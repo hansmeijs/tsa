@@ -90,10 +90,10 @@ document.addEventListener('DOMContentLoaded', function() {
    //     el_sidebar_select_period.addEventListener("mouseenter", function() {el_sidebar_select_period.classList.add(cls_hover)});
    //     el_sidebar_select_period.addEventListener("mouseleave", function() {el_sidebar_select_period.classList.remove(cls_hover)});
 // ---  side bar - select customer
-    let el_sidebar_select_customer = document.getElementById("id_sidebar_select_customer");
-        el_sidebar_select_customer.addEventListener("click", function() {MSO_Open()}, false );
-        el_sidebar_select_customer.addEventListener("mouseenter", function() {el_sidebar_select_customer.classList.add(cls_hover)});
-        el_sidebar_select_customer.addEventListener("mouseleave", function() {el_sidebar_select_customer.classList.remove(cls_hover)});
+    let el_sidebar_select_order = document.getElementById("id_sidebar_select_order");
+        el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
+        el_sidebar_select_order.addEventListener("mouseenter", function() {el_sidebar_select_order.classList.add(cls_hover)});
+        el_sidebar_select_order.addEventListener("mouseleave", function() {el_sidebar_select_order.classList.remove(cls_hover)});
 // ---  side bar - select employee
     let el_sidebar_select_employee = document.getElementById("id_sidebar_select_employee");
         el_sidebar_select_employee.addEventListener("click", function() {MSE_Open()}, false );
@@ -112,10 +112,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
 
 // ---  MOD SELECT ORDER ------------------------------
-    let el_modorder_input_customer = document.getElementById("id_modorder_input_customer")
+    let el_modorder_input_customer = document.getElementById("id_MSO_input_customer")
         el_modorder_input_customer.addEventListener("keyup", function(event){
             setTimeout(function() {MSO_FilterCustomer()}, 50)});
-    let el_modorder_btn_save = document.getElementById("id_modorder_btn_save")
+    let el_modorder_btn_save = document.getElementById("id_MSO_btn_save")
         el_modorder_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MOD SELECT EMPLOYEE ------------------------------
@@ -1078,7 +1078,7 @@ selected_btn = "customer"
             } else {
                 customer_order_text = loc.All_customers
             }
-            //el_sidebar_select_customer.value = customer_order_text
+            //el_sidebar_select_order.value = customer_order_text
 
             let employee_text = null;
             if(!!selected_employee_pk){
@@ -1109,7 +1109,7 @@ selected_btn = "customer"
         } else {
             header_text = loc.All_customers
         }
-        //el_sidebar_select_customer.value = header_text
+        //el_sidebar_select_order.value = header_text
     }; // Sidebar_DisplayCustomerOrder
 
 //========= Sidebar_DisplayEmployee  ====================================
@@ -1140,7 +1140,7 @@ selected_btn = "customer"
             order_pk: selected_order_pk,
         };
 
-        let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
+        let tblBody_select_customer = document.getElementById("id_MSO_tblbody_customer");
         let tblHead = document.getElementById("id_modorder_thead_customer");
 
         // reset el_modorder_input_customer and filter_customer
@@ -1228,15 +1228,15 @@ selected_btn = "customer"
     function MSO_FillSelectTableCustomer() {
         //console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
-        let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
+        let tblBody_select_customer = document.getElementById("id_MSO_tblbody_customer");
 
         let tblHead = null;
-        const filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false;
+        const filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_orders + ">";
         t_Fill_SelectTable(tblBody_select_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
             HandleSelect_Filter, null,
             MSO_SelectCustomer, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected)
     }  // MSO_FillSelectTableCustomer
 
@@ -1244,8 +1244,8 @@ selected_btn = "customer"
     function MSO_FillSelectOrder() {
         //console.log( "===== MSO_FillSelectOrder ========= ");
 
-        let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
-        let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
+        let el_div_order = document.getElementById("id_MSO_div_tblbody_order")
+        let tblBody_select_order = document.getElementById("id_MSO_tblbody_order");
 
         if (!mod_upload_dict.customer.pk){
             el_div_order.classList.add(cls_hide)
@@ -1253,12 +1253,12 @@ selected_btn = "customer"
         } else {
             el_div_order.classList.remove(cls_hide)
             let tblHead = null;
-            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false;
+            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
             t_Fill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
                 HandleSelect_Filter, null,
                 MSO_SelectOrder, null,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                 null, cls_selected
             );
     // select first tblRow
@@ -1334,7 +1334,7 @@ selected_btn = "customer"
             }
         }
 
-        let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
+        let tblBody_select_customer = document.getElementById("id_MSO_tblbody_customer");
         const len = tblBody_select_customer.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_customer rows
@@ -1631,12 +1631,12 @@ selected_btn = "customer"
         filter_mod_employee = ""
         el_MSP_input_price.innerText = null;
 
-        const tblHead = null, filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false,
+        const tblHead = null, filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
                         addall_to_list_txt = "<" + loc.All_employees + ">";
         t_Fill_SelectTable(tblBody, tblHead, employee_map, "employee", selected_employee_pk, null,
             HandleSelect_Filter, null,
             MSE_SelectEmployee, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected
             );
         MSE_headertext();
@@ -2265,7 +2265,7 @@ selected_btn = "customer"
             t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
 // filter selecttable customer and order
-            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
         } //  if (!skip_filter) {
@@ -2332,14 +2332,14 @@ selected_btn = "customer"
                 console.log( "subrows_hidden: ", subrows_hidden);
                 if (subrows_hidden){
                     // expand first level below this one, i.e. the rows with class = 'x_cust_694'
-                    //  toggle_class(tblBody, classname, is_add, filter_class){
-                    toggle_class(tblBody_items, cls_hide, false, "x_" + row_id);
+                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
+                    add_or_remove_class_with_qsAll(tblBody_items, cls_hide, false, ".x_" + row_id);
                     // remove attribute 'subrows_hidden' from this tblRow
                     tblRow.removeAttribute("data-subrows_hidden")
                 } else {
                     // collaps all levels below this one, i.e. the rows with class = 'c_cust_694
-                    //  toggle_class(tblBody, classname, is_add, filter_class){
-                    toggle_class(tblBody_items, cls_hide, true, "c_" + row_id);
+                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
+                    add_or_remove_class_with_qsAll(tblBody_items, cls_hide, true, ".c_" + row_id);
                     // add attribute 'subrows_hidden' from this tblRow
                     tblRow.setAttribute("data-subrows_hidden", true)
                 }
@@ -2358,8 +2358,8 @@ selected_btn = "customer"
                 let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
                 if (!subrows_hidden){
                     // expand all levels below this one, i.e. the rows with class = 'c_cust_694'
-                    //  toggle_class(tblBody, classname, is_add, filter_class){
-                    toggle_class(tblBody_items, cls_hide, false, "c_" + row_id);
+                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
+                    add_or_remove_class_with_qsAll(tblBody_items, cls_hide, false, ".c_" + row_id);
                 // expand all levels not necessary, already done at first click
                 }
             }

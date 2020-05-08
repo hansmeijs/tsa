@@ -440,14 +440,14 @@ def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
 
 
 def grid_shift_upload(request, upload_dict, user_lang): # PR2019-12-06
-    #logger.debug('grid_shift_upload')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('grid_shift_upload')
+    logger.debug('upload_dict: ' + str(upload_dict))
     # this function is called by TeammemberUploadView shift_option 'grid_shift'
 
     updates = {}
 # ++++++++++++++++  update shift from upload_dict ++++++++++++++++
     upload_shift_dict = upload_dict.get('shift')
-    #logger.debug('upload_shift_dict: ' + str(upload_shift_dict))
+    logger.debug('upload_shift_dict: ' + str(upload_shift_dict))
 
     shift_ppk = f.get_dict_value(upload_dict, ('shift', 'id', 'ppk'))
     scheme = m.Scheme.objects.get_or_none(id=shift_ppk, order__customer__company=request.user.company)
@@ -457,12 +457,12 @@ def grid_shift_upload(request, upload_dict, user_lang): # PR2019-12-06
     if shift is None:
         # shift is deleted
         shift_update = upload_shift_dict
-        #logger.debug('........... shift_update: ' + str(shift_update))
         updates['shift_update_list'] = [shift_update]
     else:
         shift_update = pld.create_shift_dict(shift, upload_shift_dict, user_lang)
         updates['shift_update_list'] = [shift_update]
 
+    logger.debug('........... shift_update: ' + str(shift_update))
     return updates
 #######################################
 
@@ -1131,26 +1131,30 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
     logger.debug('table: ' + str(table))
     logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
     logger.debug('item_dict: ' + str(item_dict))
+
     # item_dict: {'id': {'pk': 'new9', 'ppk': '1424', 'table': 'scheme', 'mode': 'create', 'shiftoption': 'isabsence', 'cycle': 1},
     #       'code': 'Colpa de WH', 'datefirst': '2020-02-05', 'datelast': '2020-02-07', 'excludepublicholiday': False, 'excludecompanyholiday': False}
     instance = None
     mapped_pk_dict = {}
     id_dict = {}
     if item_dict:
+        # TODO: go back to 'create' and 'delete' instead of mode
         # only mode 'create' and 'delete' are used in this function.
         # tag 'update' is not used in this function, instead it detects changed values
         mode = f.get_dict_value(item_dict, ('id', 'mode'))
+        is_create = f.get_dict_value(item_dict, ('id', 'create'), False)
+        is_delete = f.get_dict_value(item_dict, ('id', 'delete'), False)
         # shiftopions in fieldsare: 'isabsence', 'issingleshift'
         shift_option = f.get_dict_value(item_dict, ('id', 'shiftoption'))
         pk = f.get_dict_value(item_dict, ('id', 'pk'))
         is_absence = (shift_option == 'isabsence')
         is_singleshift = (shift_option == 'issingleshift')
         # TODO onpublicholiday
-        also_onpublicholiday = False
+        divergent_onpublicholiday = False
         on_publicholiday = False
 
         is_created, is_deleted, is_updated = False, False, False
-        if mode == 'create':
+        if is_create or mode == 'create':
             if table == 'scheme':
                 # when absence cycle = 1, when singleshift cycle = 7
                 cycle = f.get_dict_value(item_dict, ('cycle', 'value'), 7)
@@ -1158,7 +1162,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 instance = m.Scheme(order=parent,
                                     code=code,
                                     cycle=cycle,
-                                    alsoonpublicholiday=also_onpublicholiday,
+                                    divergentonpublicholiday=divergent_onpublicholiday,
                                     isabsence=is_absence,
                                     issingleshift=is_singleshift)
             if table == 'shift':
@@ -1194,6 +1198,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 mapped_pk_dict[pk] = instance.pk
                 item_dict['id']['pk'] = instance.pk
                 item_dict['id']['mode'] = 'created'
+                item_dict['id']['created'] = True
                 is_created = True
             logger.debug('is_created: ' + str(is_created))
 
@@ -1215,7 +1220,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                     scheme__order__customer__company=request.user.company)
 
             logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
-            if instance and mode == 'delete':
+            if instance and (is_delete or mode == 'delete'):
                 has_schemeitems_tobe_deleted = False
                 if table == 'shift':
                     has_schemeitems_tobe_deleted = m.Schemeitem.objects.filter(scheme=parent, shift=instance).exists()
@@ -1224,6 +1229,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 instance.delete(request=request)
                 instance = None
                 item_dict['id']['mode'] = 'deleted'
+                item_dict['id']['deleted'] = True
                 is_deleted = True
                 if has_schemeitems_tobe_deleted:
                     m.Schemeitem.objects.filter(scheme=parent, shift=instance).delete()
@@ -1294,7 +1300,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                         if new_value is None:
                             new_value = 0
 
-                    elif field in ('excludepublicholiday', 'alsoonpublicholiday', 'excludecompanyholiday', 'isrestshift', 'inactive'):
+                    elif field in ('excludepublicholiday', 'divergentonpublicholiday', 'excludecompanyholiday', 'onpublicholiday', 'isrestshift', 'inactive'):
                         new_value = field_dict.get('value')
                         if new_value is None:
                             new_value = False
@@ -1318,6 +1324,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 instance.save(request=request)
                 if not is_created and not is_deleted:
                     item_dict['id']['mode'] = 'updated'
+                    item_dict['id']['updated'] = True
                 #logger.debug('-----> instance of ' + table + ' is saved: ' + str(instance))
             else:
                 if not is_created and not is_deleted:

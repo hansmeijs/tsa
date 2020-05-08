@@ -10,13 +10,14 @@
     function t_Fill_SelectTable(tblBody_select, tblHead, data_map, tblName, selected_pk, include_parent_code,
                             HandleSelect_Filter, HandleSelectFilterButton,
                             HandleSelect_Row, HandleSelectRowButton,
-                            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                             bc_color_notselected, bc_color_selected,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        //console.log("===== t_Fill_SelectTable ===== ", tblName);
+        console.log("===== t_Fill_SelectTable ===== ", tblName);
         //console.log("filter_ppk_int = ", filter_ppk_int)
+
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -43,7 +44,7 @@
             const row_index = null // add row at end when no rowindex
             let selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
-                                        filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
+                                        filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, row_count,
                                         bc_color_notselected, bc_color_selected,
                                         imgsrc_default, imgsrc_hover);
 
@@ -53,8 +54,8 @@
         }  // for (let cust_key in data_map)
 
         if(!!addall_to_list_txt && row_count.count > 1) {
-        // add '<All customers> at beginning of list when there are more than 1 rows
-        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// add '<All customers> at beginning of list when there are more than 1 rows
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 const bc_color_all_items = (selected_pk === 0) ?  bc_color_selected : bc_color_notselected;
     //--------- insert tblBody_select row
                 let tblRow = tblBody_select.insertRow(0);
@@ -77,7 +78,8 @@
                 td.classList.add("px-2")
                 td.classList.add("td_width_200")
                 td.classList.add("tsa_bc_transparent")
-    //--------- add addEventListener
+//--------- add addEventListener
+
                 tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow, event.target)}, false);
 
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -146,7 +148,7 @@
 //========= t_CreateSelectRow  ============= PR2019-10-20
     function t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
-                                filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
+                                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, row_count,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
@@ -160,18 +162,21 @@
         if (!isEmpty(item_dict)) {
 
 //--- get info from item_dict
-            const id_dict = get_dict_value_by_key (item_dict, "id");
-                const tblName = get_dict_value_by_key(id_dict, "table");
-                const pk_int = get_dict_value_by_key(id_dict, "pk");
-                const ppk_int = get_dict_value_by_key(id_dict, "ppk");
-                const is_absence = get_dict_value_by_key(id_dict, "isabsence");
+            const id_dict = get_dict_value (item_dict, ["id"]);
+                const tblName = get_dict_value(id_dict, ["table"]);
+                const pk_int = get_dict_value(id_dict, ["pk"]);
+                const ppk_int = get_dict_value(id_dict, ["ppk"]);
+                const is_absence = get_dict_value(id_dict, ["isabsence"]);
                 const map_id = get_map_id(tblName, pk_int);
-                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-                const is_inactive = get_subdict_value_by_key(item_dict, "inactive", "value", false);
+                const code_value = get_dict_value(item_dict, ["code", "value"], "")
+                const is_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
+                const is_template = (!!get_dict_value(item_dict, ["istemplate", "value"], false));
+
     //--------- filter parent_pk or inactive if filter has value
             let skip_row = (!!filter_ppk_int && ppk_int !== filter_ppk_int) ||
                             (!filter_include_inactive && is_inactive === true) ||
-                            (!filter_include_absence && is_absence === true );
+                            (!filter_include_absence && is_absence === true )||
+                            (filter_istemplate !== is_template);
 
             if (!skip_row){
     //--------- insert tblBody_select row
@@ -185,7 +190,7 @@
                 tblRow.setAttribute("data-pk", pk_int);
                 tblRow.setAttribute("data-ppk", ppk_int);
                 tblRow.setAttribute("data-table", tblName);
-                tblRow.setAttribute("data-inactive", is_inactive);
+                if(!!is_inactive) {tblRow.setAttribute("data-inactive", is_inactive)};
 
                 if (!!pk_int && pk_int === selected_pk){
                     tblRow.classList.add(bc_color_selected);
@@ -1171,6 +1176,7 @@
                     if (!!inactive_str) {
                         hide_row = (inactive_str.toLowerCase() === "true")
                 }};
+
 // ---  show all rows if filter_select = ""
                 if (!hide_row && !!filter_select_lower){
                     let found = false

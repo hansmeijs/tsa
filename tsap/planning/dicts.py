@@ -710,9 +710,8 @@ def create_schemeitem_dict(schemeitem, item_dict):
 
     if schemeitem:
 
-        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
-        #                      'cat', 'onpublicholiday', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
-
+        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
+         #                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
         for field in c.FIELDS_SCHEMEITEM:
  # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
@@ -734,10 +733,16 @@ def create_schemeitem_dict(schemeitem, item_dict):
                     field_dict['ppk'] = scheme.order_id
                     field_dict['code'] = scheme.code
 
-            elif field in ('onpublicholiday', 'cat', 'inactive'):
+            elif field in ( 'cat',):
                 value = getattr(schemeitem, field)
                 if value:
                     field_dict['value'] = value
+
+            #elif field in ('onpublicholiday', 'cat', 'inactive'):
+            elif field in ('onpublicholiday', 'inactive'):
+                value = getattr(schemeitem, field, False)
+                #if value:
+                field_dict['value'] = value
 
             elif field == 'rosterdate':
                 rosterdate = getattr(schemeitem, field)
@@ -747,7 +752,7 @@ def create_schemeitem_dict(schemeitem, item_dict):
                 # lookup lowest rosterdate
                 schemeitem_cyclestart = m.Schemeitem.objects.filter(
                     scheme=schemeitem.scheme
-                ).order_by('rosterdate').first()
+                ).exclude(rosterdate__isnull=True).order_by('rosterdate').first()
 
                 if schemeitem_cyclestart:
                     cycle_startdate = schemeitem_cyclestart.rosterdate
@@ -1474,7 +1479,7 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug(' ============= create_emplhour_list ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
@@ -1624,8 +1629,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
 
         emplhour_list = []
         for row in emplhours_rows:
-            logger.debug('...................................')
-            logger.debug('emplhours_row' + str(row))
+            #logger.debug('...................................')
+            #logger.debug('emplhours_row' + str(row))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict_from_row
             item_dict = create_emplhour_itemdict_from_row(row, {}, comp_timezone, timeformat, user_lang)
@@ -1642,8 +1647,8 @@ def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone,
     # this function converts emplhour instance to row_dict, and then uses create_emplhour_itemdict_from_row
     # this function is called by EmplhourUploadView
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug(' ============= create_emplhour_itemdict_from_instance ============= ')
-    logger.debug(str(update_dict))
+    #logger.debug(' ============= create_emplhour_itemdict_from_instance ============= ')
+    #logger.debug(str(update_dict))
     item_dict = {}
     if emplhour:
 
@@ -1691,7 +1696,7 @@ def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone,
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    logger.debug(' === create_emplhour_itemdict_from_row ==')
+    #logger.debug(' === create_emplhour_itemdict_from_row ==')
     #logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1722,7 +1727,7 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
 
     oh_shift = row.get('oh_shift', '??')
 
-    logger.debug('oh_shift: ' + str(oh_shift))
+    #logger.debug('oh_shift: ' + str(oh_shift))
     eh_breakdur = row.get('eh_breakdur', 0)
     eh_timedur = row.get('eh_timedur', 0)
     eh_plandur = row.get('eh_plandur', 0)
@@ -1763,11 +1768,11 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
     #                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
     for field in c.FIELDS_EMPLHOUR:
-        logger.debug('...........field: ' + str(field))
+        #logger.debug('...........field: ' + str(field))
 
 # --- get field_dict from update_dict if it exists (only when update)
         field_dict = update_dict[field] if field in update_dict else {}
-        logger.debug('field_dict: ' + str(field_dict))
+        #logger.debug('field_dict: ' + str(field_dict))
 
         # 2. lock date when locked=true of  timestart and timeend are both confirmed
         if status_locked:
@@ -1823,7 +1828,7 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
         # shift info is stored in orderhour
         elif field == 'shift':
             field_dict['code'] = oh_shift
-            logger.debug('..........item_dict[shift]: ' + str(field_dict))
+            #logger.debug('..........item_dict[shift]: ' + str(field_dict))
 
         elif field == 'employee':
             if e_id is not None:
@@ -2475,7 +2480,7 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
     # for member in teammembers:
     #     employee = getattr(member, 'employee')
     #     if employee:
-    #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
+    #        #logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
 
  # 1. create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
     if not datefirst:
@@ -2582,7 +2587,7 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
     # for member in teammembers:
     #     employee = getattr(member, 'employee')
     #     if employee:
-    #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
+    #        #logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
 
 
     #logger.debug('------- ')

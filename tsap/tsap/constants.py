@@ -404,7 +404,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
-                 'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'alsoonpublicholiday',
+                 'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
                  'pricecode', 'additioncode', 'taxcode', 'inactive')
 
 

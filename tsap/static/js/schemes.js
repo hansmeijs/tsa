@@ -20,13 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  id of selected customer and selected order
         const id_sel_prefix = "sel_"
-        let selected_cust_pk = 0;
-        let selected_order_pk = 0;
-        let selected_scheme_pk = 0;
-        let selected_shift_pk = 0;
-        let selected_team_pk = 0;
-        let selected_item_pk = 0;
-        let is_template_mode = false;
         let rosterdate_dict = {};
 
         let employee_map = new Map();
@@ -38,22 +31,22 @@ document.addEventListener('DOMContentLoaded', function() {
         let team_map = new Map();
         let teammember_map = new Map();
 
+        let grid_table_dict = {};
         let grid_teams_dict = {};
-        let grid_selected_team_pk = 0;
-        let grid_schemeitem_list = [];
+        let grid_selected_team = {};
 
-        // setting_cust_pk contains saved pk. Remains when switched to template mode.
-        // selected_cust_pk can have value of template_cust, is not stored in settings
-        let setting_cust_pk = 0;
-        let setting_order_pk = 0;
-        let setting_scheme_pk = 0;
-        let selected_btn = "";
+        // settings.customer_pk contains saved pk. Remains when switched to template mode.
+        // selected.customer_pk can have value of template_cust, is not stored in settings
+        let selected = {btn: "", customer_pk: 0, order_pk: 0, scheme_pk: 0, shift_pk: 0, team_pk: 0, item_pk: 0};
+        let settings = {customer_pk: 0, order_pk: 0, scheme_pk: 0};
 
         let loc = {};  // locale_dict
         let period_dict = {};
         let mod_upload_dict = {};
         let mod_MGT_dict = {};  // used to keep track op changes in mod_grid_team  -- or table teammember
         let mod_MGS_dict = {};  // used to keep track op changes in mod_shift_team
+        let mod_MSO_dict = {};  // used to keep track op changes in mod_select_order
+        let mod_MAS_dict = {};  // used to keep track op changes in mod_add_scheme
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
@@ -62,16 +55,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let filter_mod_employee = "";
         let filter_hide_inactive = true;
         let filter_dict = {};
+        let is_template_mode = false;
 
         let quicksave = false
 
-// ---  Select Customer
-        let el_select_customer = document.getElementById("id_select_customer");
-            el_select_customer.addEventListener("change", function() {HandleSelectCustomer(el_select_customer, "select_customer change");}, false )
+// === EVENT HANDLERS ===
 
-// ---  Select Order
-        let el_select_order = document.getElementById("id_select_order")
-            el_select_order.addEventListener("click", function(event) {HandleSelectOrder(el_select_order, "select_order change")}, false )
+// ---  Sidebar - Select Order
+        let el_sidebar_select_order = document.getElementById("id_sidebar_select_order");
+            el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
+            el_sidebar_select_order.addEventListener("mouseenter", function() {el_sidebar_select_order.classList.add(cls_hover)});
+            el_sidebar_select_order.addEventListener("mouseleave", function() {el_sidebar_select_order.classList.remove(cls_hover)});
 
 // ---  Select Scheme
         // EventHandler HandleSelectRow is added in FillSelectTable
@@ -99,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
             shift: ["input", "a", "input", "input", "input", "input"],
             teammember: ["input", "input", "input", "input", "a"]}
         const field_width = {
-            schemeitem: ["090", "180", "180", "032", "032"],
+            schemeitem: ["120", "180", "180", "032", "032"],
             shift: ["180", "060", "120", "120", "120", "120"],
             teammember: ["220", "120", "120", "220", "032"]}
         const field_align = {
@@ -165,12 +159,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  create EventListener Scheme and Cycle on grid page
         let el_grid_scheme_btn_code = document.getElementById("id_grid_scheme_btn_code")
-            // TODOel_grid_scheme_btn_code.addEventListener("click", function() {MSA_Open()}, false)
+            el_grid_scheme_btn_code.addEventListener("click", function() {MAS_Open(false)}, false)
         let el_grid_scheme_btn_cycle = document.getElementById("id_grid_scheme_btn_cycle")
-            //el_grid_scheme_btn_code.addEventListener("click", function() {MSA_Open()}, false)
+            el_grid_scheme_btn_cycle.addEventListener("click", function() {MAS_Open(false)}, false)
 
 // ===================== EventListener for MODAL ===================================
-
 
 // ---  MOD GRID TEAM ------------------------------------
         let el_MGT_teamcode = document.getElementById("id_MGT_teamcode");
@@ -201,6 +194,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_MGS_btn_delete = document.getElementById("id_MGS_btn_delete");
                 el_MGS_btn_delete.addEventListener("click", function() {MGS_Save("delete")}, false )
 
+// ---  MOD SELECT ORDER ------------------------------
+        let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
+        let el_modorder_tblbody_order = document.getElementById("id_MSO_tblbody_order");
+        let el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
+            el_MSO_input_customer.addEventListener("keyup", function(event){
+                setTimeout(function() {MSO_FilterCustomer()}, 50)});
+        let el_MSO_btn_save = document.getElementById("id_MSO_btn_save")
+            el_MSO_btn_save.addEventListener("click", function() {MSO_Save()}, false )
+
 // ---  Modal Employee
         let el_mod_employee_body = document.getElementById("id_ModSelEmp_select_employee_body");
         document.getElementById("id_ModSelEmp_input_employee").addEventListener("keyup", function(event){
@@ -209,27 +211,27 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {MSE_Save("remove")}, false )
 
 // ---  MODAL SCHEME ADD
-        let el_MSA_input_order = document.getElementById("id_MSA_input_order")
-            el_MSA_input_order.addEventListener("keyup", function(){
-                setTimeout(function() {MSA_InputElementKeyup(el_MSA_input_order)}, 50)});
-        let el_MSA_input_code = document.getElementById("id_MSA_input_code")
-            el_MSA_input_code.addEventListener("keyup", function(event) {
-                setTimeout(function() {MSA_Validate()}, 250)}, false )
-        let el_MSA_input_cycle = document.getElementById("id_MSA_input_cycle")
-             el_MSA_input_cycle.addEventListener("change", function() {
-                setTimeout(function() {MSA_Validate()}, 250)}, false )
-        let el_MSA_input_datefirst = document.getElementById("id_MSA_input_datefirst")
-            el_MSA_input_datefirst.addEventListener("change", function() {MSA_DateChanged("datefirst")}, false)
-        let el_MSA_input_datelast = document.getElementById("id_MSA_input_datelast")
-            el_MSA_input_datelast.addEventListener("change", function() {MSA_DateChanged("datelast")}, false)
+        let el_MAS_input_order = document.getElementById("id_MSA_input_order")
+            el_MAS_input_order.addEventListener("keyup", function(){
+                setTimeout(function() {MSA_InputElementKeyup(el_MAS_input_order)}, 50)});
+        let el_MAS_input_code = document.getElementById("id_MSA_input_code")
+            el_MAS_input_code.addEventListener("keyup", function(event) {
+                setTimeout(function() {MAS_Validate()}, 250)}, false )
+        let el_MAS_input_cycle = document.getElementById("id_MSA_input_cycle")
+             el_MAS_input_cycle.addEventListener("change", function() {
+                setTimeout(function() {MAS_Validate()}, 250)}, false )
+        let el_MAS_input_datefirst = document.getElementById("id_MSA_input_datefirst")
+            el_MAS_input_datefirst.addEventListener("change", function() {MAS_DateChanged("datefirst")}, false)
+        let el_MAS_input_datelast = document.getElementById("id_MSA_input_datelast")
+            el_MAS_input_datelast.addEventListener("change", function() {MAS_DateChanged("datelast")}, false)
         let el_MSA_excl_ph = document.getElementById("id_MSA_excl_ph")
-            el_MSA_excl_ph.addEventListener("change", function() {MSA_CheckedChanged(el_MSA_excl_ph, "excludepublicholiday")}, false)
+            el_MSA_excl_ph.addEventListener("change", function() {MAS_CheckedChanged(el_MSA_excl_ph, "excludepublicholiday")}, false)
         let el_MSA_also_ph = document.getElementById("id_MSA_also_ph")
-            el_MSA_also_ph.addEventListener("change", function() {MSA_CheckedChanged(el_MSA_also_ph, "alsoonpublicholiday")}, false)
+            el_MSA_also_ph.addEventListener("change", function() {MAS_CheckedChanged(el_MSA_also_ph, "divergentonpublicholiday")}, false)
         let el_MSA_excl_ch = document.getElementById("id_MSA_excl_ch")
-            el_MSA_excl_ch.addEventListener("change", function() {MSA_CheckedChanged(el_MSA_excl_ch, "excludecompanyholiday")}, false)
+            el_MSA_excl_ch.addEventListener("change", function() {MAS_CheckedChanged(el_MSA_excl_ch, "excludecompanyholiday")}, false)
         let el_MSA_btn_save = document.getElementById("id_MSA_btn_save");
-            el_MSA_btn_save.addEventListener("click", function() {MSA_Save()}, false )
+            el_MSA_btn_save.addEventListener("click", function() {MAS_Save()}, false )
 
 // ---  Modal Copyfrom Template
         let el_mod_copyfrom_cust = document.getElementById("id_mod_copyfrom_customer")
@@ -328,21 +330,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- Datalist Download
         // TODO set show_absence = false
         // show_absence = null is for testing, show_absence must be false in production
-        const show_absence = null;
-        //const show_absence = false;
+        //const show_absence_FOR_TESTING_ONLY = null;
+        const show_absence_FOR_TESTING_ONLY = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
                       },
             quicksave: {mode: "get"},
             locale: {page: "scheme"},
-            customer: {isabsence: show_absence, istemplate: null, inactive: false},
-            order: {isabsence: show_absence, istemplate: null, inactive: false},
-            scheme: {isabsence: show_absence, istemplate: null, inactive: null, issingleshift: null},
+            customer: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: false},
+            order: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: false},
+            scheme: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: false, issingleshift: null},
             shift: {customer_pk: null},
-            team: {customer_pk: null, isabsence: show_absence},
-            teammember: {customer_pk: null, isabsence: show_absence},
-            schemeitem: {customer_pk: null, isabsence: show_absence},
+            team: {customer_pk: null, isabsence: show_absence_FOR_TESTING_ONLY},
+            teammember: {customer_pk: null, isabsence: show_absence_FOR_TESTING_ONLY},
+            schemeitem: {customer_pk: null, isabsence: show_absence_FOR_TESTING_ONLY},
             employee: {inactive: null}};
         DatalistDownload(datalist_request);
 
@@ -388,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 //    period_dict= response["period"];
                //     CreateTblModSelectPeriod();
                 //}
-                // setting_dict come before 'customer' and 'order'
+                // setting_dict comes before 'customer' and 'order'
                 if ("setting_dict" in response) {
                     UpdateSettings(response["setting_dict"])
                 }
@@ -402,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     //console.log( "quicksave", quicksave, typeof quicksave)
                 }
 
-    // after select customer the following lists will be downloaded, filtered by selected_cust_pk:
+    // after select customer the following lists will be downloaded, filtered by selected.customer_pk:
                   // datalist_request = "scheme" "schemeitem" "shift" "team" "teammember"
                 //SBR_FillSelectTable fills selecttable and makes visible
 
@@ -426,41 +428,58 @@ document.addEventListener('DOMContentLoaded', function() {
     // 'order' must come before 'customer'
         if ("order_list" in response) {
             get_datamap(response["order_list"], order_map)
+            // check if selected_order exists in order_map
+            if(!selected_item_exists_in_map(order_map, "order", selected.order_pk)){
+                selected.customer_pk = 0;
+                selected.order_pk = 0;
+                selected.scheme_pk = 0;
+                selected.shift_pk = 0;
+                selected.team_pk = 0;
+                selected.item_pk = 0;
+                }
         }
         if ("customer_list" in response) {
             get_datamap(response["customer_list"], customer_map)
 
     // fill the three select customer elements
-            SBR_FillOptionCustomerOrder("customer", "customer_list response");
-            HandleSelectCustomer(el_select_customer, "customer_list response")
+            FillOption_Copyfrom_CustomerOrder("customer", "customer_list response");
+            //HandleSelectCustomer(el_select_customer, "customer_list response")
         }
         if ("team_list" in response) {
             get_datamap(response["team_list"], team_map)
-            SBR_FillSelectTable("team", "refresh_maps team_list", selected_team_pk, true);
+            SBR_FillSelectTable("team", "refresh_maps team_list", selected.team_pk, true);
         }
         if ("scheme_list" in response) {
             get_datamap(response["scheme_list"], scheme_map)
-            SBR_FillSelectTable("scheme", "refresh_maps scheme_list", selected_scheme_pk);
-            Grid_FillGrid({})
+            SBR_FillSelectTable("scheme", "refresh_maps scheme_list", selected.scheme_pk);
+            Grid_FillGrid({}, "refresh_maps")
         }
         if ("shift_list" in response) {
             get_datamap(response["shift_list"], shift_map)
-
-            SBR_FillSelectTable("shift", "refresh_maps shift_list", selected_shift_pk);
+            SBR_FillSelectTable("shift", "refresh_maps shift_list", selected.shift_pk);
         }
-
         if ("teammember_list" in response) {
             get_datamap(response["teammember_list"], teammember_map)
         }
         if ("schemeitem_list" in response) {
             get_datamap(response["schemeitem_list"], schemeitem_map)
         }
-
         if ("employee_list" in response) {
             get_datamap(response["employee_list"], employee_map)
         }
 
     }  // refresh_maps
+
+//=========  selected_item_exists_in_map  === PR2020-05-01
+    function selected_item_exists_in_map(data_map, tblName, selected_pk) {
+        //console.log("===  selected_item_exists_in_map == selected_pk:", selected_pk);
+        let exists = false;
+        if(!!selected_pk && !!data_map.size){
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, selected_pk)
+            exists = !isEmpty(map_dict)
+        }
+        return exists;
+    }
 
 //=========  CreateSubmenu  === PR2019-07-08
     function CreateSubmenu() {
@@ -469,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
         // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click)
-        AddSubmenuButton(el_div, loc.Add_scheme, function (){MSA_Open()}, null, "id_menubtn_add_scheme");
+        AddSubmenuButton(el_div, loc.Add_scheme, function (){MAS_Open(true)}, null, "id_menubtn_add_scheme");
         AddSubmenuButton(el_div, loc.Delete_scheme, function (){HandleDeleteScheme()}, ["mx-2"], "id_menubtn_delete_scheme");
         AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, ["mx-2"], "id_menubtn_copy_from_template");
         AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, ["mx-2"], "id_menubtn_copy_to_template");
@@ -484,7 +503,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("--- HandleSubmenubtnTemplateShow")
 
         is_template_mode = !is_template_mode
-        //console.log("new is_template_mode: ", is_template_mode)
+        console.log("new is_template_mode: ", is_template_mode)
 
         let btn_txt = (is_template_mode) ? loc.Add_template : loc.Add_scheme;
         document.getElementById("id_menubtn_add_scheme").innerText = btn_txt;
@@ -494,25 +513,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_menubtn_show_templates").innerText = btn_txt;
 
 // reset selected customer and order
-        selected_cust_pk = (!is_template_mode) ? setting_cust_pk : 0;
-        selected_order_pk = (!is_template_mode) ? setting_order_pk : 0;
-        selected_scheme_pk =  (!is_template_mode) ? setting_scheme_pk : 0;
+        selected.customer_pk = (!is_template_mode) ? settings.customer_pk : 0;
+        selected.order_pk = (!is_template_mode) ? settings.order_pk : 0;
+        selected.scheme_pk =  (!is_template_mode) ? settings.scheme_pk : 0;
 
 // reset scheme, team, shift
         sidebar_tblBody_scheme.innerText = null;
         sidebar_tblBody_shift.innerText = null;
         sidebar_tblBody_team.innerText = null;
 
-        SBR_FillOptionCustomerOrder("customer", "HandleSubmenubtnTemplateShow");
-        HandleSelectCustomer(el_select_customer, "HandleSubmenubtnTemplateShow")
+        FillOption_Copyfrom_CustomerOrder("customer", "HandleSubmenubtnTemplateShow");
+        //HandleSelectCustomer(el_select_customer, "HandleSubmenubtnTemplateShow")
 
-        if(is_template_mode){
-            document.getElementById("id_select_customerorder_div").classList.add(cls_hide)
-            document.getElementById("id_select_template_div").classList.remove(cls_hide)
-        } else {
-            document.getElementById("id_select_customerorder_div").classList.remove(cls_hide)
-            document.getElementById("id_select_template_div").classList.add(cls_hide)
-        }
+        add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
+        add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
 
         DisableSubmenuButtons();
     }
@@ -532,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn_copyfrom.removeAttribute("aria-disabled");
             btn_copyfrom.classList.remove("tsa_color_mediumgrey");
 
-            if(!!selected_scheme_pk){
+            if(!!selected.scheme_pk){
                 btn_copyto.removeAttribute("aria-disabled");
                 btn_copyto.classList.remove("tsa_color_mediumgrey");
             } else {
@@ -540,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn_copyto.classList.add("tsa_color_mediumgrey");
             }
         }
-        if(!!selected_scheme_pk){
+        if(!!selected.scheme_pk){
             btn_delete.removeAttribute("aria-disabled");
             btn_delete.classList.remove("tsa_color_mediumgrey");
         } else {
@@ -554,20 +568,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
     function HandleBtnSelect(btn_mode, skip_update) {
-        //console.log( "==== HandleBtnSelect ========= ", selected_btn );
+        //console.log( "==== HandleBtnSelect ========= " );
+        //console.log( "btn_mode: ", btn_mode );
 
-        selected_btn = btn_mode
-        if(!selected_btn){selected_btn = "btn_gridlayout"}
+        selected.btn = (btn_mode) ? btn_mode : "btn_gridlayout";
 
-// ---  upload new selected_btn
+// ---  upload new selected.btn, not after loading page (then skip_update = true)
         if(!skip_update){
-            const upload_dict = {"page_scheme": {"btn": selected_btn}};
+            const upload_dict = {page_scheme: {btn: selected.btn}};
             UploadSettings (upload_dict, url_settings_upload);
         }
 
 // ---  highlight selected button
         let btn_container = document.getElementById("id_btn_container")
-        t_HighlightBtnSelect(btn_container, selected_btn);
+        t_HighlightBtnSelect(btn_container, selected.btn);
 
 // ---  show / hide selected table
         const div_list = ["id_div_tbl_newlayout", "id_div_tbl_schemeitem", "id_div_tbl_shift", "id_div_tbl_teammember", "id_div_data_form"];
@@ -576,44 +590,42 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!div_tbl){
                 const data_mode = get_attr_from_el(div_tbl, "data-mode")
                 //selected_btns / data_mode are: btn_schemeitem, btn_shift, btn_team, btn_scheme
-                if (data_mode === selected_btn){
+                if (data_mode === selected.btn){
                     div_tbl.classList.remove(cls_hide);
                 } else {
                     div_tbl.classList.add(cls_hide);
-                }  // if (tbl_mode === selected_btn)
+                }  // if (tbl_mode === selected.btn)
             }  // if(!!div_tbl){
         }
 
 // ---  highlight row in list table
-            let tblBody = document.getElementById("id_tbody_" + selected_btn);
+            let tblBody = document.getElementById("id_tbody_" + selected.btn);
             if(!!tblBody){
                 FilterTableRows(tblBody)
             }
 // --- update header text
-        UpdateHeaderText();
-
+        // not necessary, text stays the same on all buttons. Was: UpdateHeaderText("HandleBtnSelect");
     }  // HandleBtnSelect
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el, called_by) {
         //console.log("--- HandleSelectCustomer --- called by: ", called_by)
-        // called by DatalistDownload , select_customer.Event.Change,  MSA_Validate
+        // called by DatalistDownload , select_customer.Event.Change,  MAS_Validate
 
-        // in SBR_FillOptionCustomerOrder the first row is set selected=true when there is only one row
+        // in FillOption_Copyfrom_CustomerOrder the first row is set selected=true when there is only one row
 
 // reset lists
         // don't reset lists, all items are already downloaded
 
 // reset selected customer
-        selected_cust_pk = 0
+        selected.customer_pk = 0
 
 // reset selected order
-        selected_order_pk = 0
-        el_select_order.innerText = null
+        selected.order_pk = 0
         el_mod_copyfrom_order.innerText = null
 
 // reset tables scheme_select, schemeitems, teammember and team input box
-        selected_scheme_pk = 0;
+        selected.scheme_pk = 0;
         sidebar_tblBody_scheme.innerText = null;
         sidebar_tblBody_shift.innerText = null;
         sidebar_tblBody_team.innerText = null;
@@ -623,90 +635,96 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody_teammember.innerText = null;
         el_input_team_code.value = null
 
-        ResetAndDisableSchemeInputElements(null, "HandleSelectCustomer");
+// --- reset grid and SchemeInputElements, disable SubmenuButtons
+        Grid_FillGrid({}, "HandleSelectCustomer")
+        UpdateSchemeInputElements({}, "HandleSelectCustomer");
         DisableSubmenuButtons();
 
 // get selected customer, put name in header
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-        // after first DatalistDownload, when there is only 1 customer, selected_cust_pk gets this value
-        //  HandleSelectCustomer has then no parameter 'el' and selected_cust_pk has value
+        // after first DatalistDownload, when there is only 1 customer, selected.customer_pk gets this value
+        //  HandleSelectCustomer has then no parameter 'el' and selected.customer_pk has value
         if(!!el){
 
         // get selected customer from select element
             const sel_cust_value = parseInt(el.value);
             if (!!sel_cust_value){
-                selected_cust_pk = sel_cust_value
-                selected_order_pk = 0
-// --- save selected_cust_pk in Usersettings, not in template mode
+                selected.customer_pk = sel_cust_value
+                selected.order_pk = 0
+// --- save selected.customer_pk in Usersettings, not in template mode
                 if(!is_template_mode){
-                    setting_cust_pk = selected_cust_pk
-                    const upload_dict = {"selected_pk": { "sel_cust_pk": selected_cust_pk, "sel_order_pk": selected_order_pk}};
+                    settings.customer_pk = selected.customer_pk
+                    const upload_dict = {selected_pk: { sel_cust_pk: selected.customer_pk, sel_order_pk: selected.order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
                 }
-            // if there is only 1 customer, that one is selected (selected_cust_pk gets value in SBR_FillOptionCustomerOrder)
+            // if there is only 1 customer, that one is selected (selected.customer_pk gets value in FillOption_Copyfrom_CustomerOrder)
             // else: use settings_customer if there is one
 
-            } else if (!!setting_cust_pk){
-                // check if setting_cust_pk exists
-                const map_id = get_map_id ("customer", setting_cust_pk.toString());
+            } else if (!!settings.customer_pk){
+                // check if settings.customer_pk exists
+                const map_id = get_map_id ("customer", settings.customer_pk.toString());
                 const customer_dict = get_mapdict_from_datamap_by_id(customer_map, map_id);
                 if(!isEmpty(customer_dict)){
-                    selected_cust_pk = setting_cust_pk
+                    selected.customer_pk = settings.customer_pk
                 } else {
-                    setting_cust_pk = 0
+                    settings.customer_pk = 0
                 }
             }
-            UpdateHeaderText();
 
-            if (!!selected_cust_pk){
-                el.value = selected_cust_pk
+            if (!!selected.customer_pk){
+                el.value = selected.customer_pk
 
 // copy selected customer, to other fields with selected customer
                 if (el.id === "id_select_customer") {
                     el_mod_copyfrom_cust.selectedIndex = el.selectedIndex
                 } else if (el.id === "id_mod_copyfrom_customer") {
-                    el_select_customer.selectedIndex = el.selectedIndex
+                    //el_select_customer.selectedIndex = el.selectedIndex
                 }
 
         // fill the three select order elements
-                SBR_FillOptionCustomerOrder("order", "HandleSelectCustomer", selected_cust_pk)
+                FillOption_Copyfrom_CustomerOrder("order", "HandleSelectCustomer", selected.customer_pk)
 
-         // if there is only 1 order, that one is selected (selected_order_pk gets value in SBR_FillOptionCustomerOrder)
-        // else: use setting_order_pk if there is one
+         // if there is only 1 order, that one is selected (selected.order_pk gets value in FillOption_Copyfrom_CustomerOrder)
+        // else: use settings.order_pk if there is one
 
                 const sel_order_value = parseInt(el_select_order.value);
                 if (!!sel_order_value){
-                    selected_order_pk = parseInt(sel_order_value);
-                } else if (!!setting_order_pk){
-                    // check if setting_order_pk exists
-                    const map_id = get_map_id("order", setting_order_pk.toString());
+                    selected.order_pk = parseInt(sel_order_value);
+                } else if (!!settings.order_pk){
+                    // check if settings.order_pk exists
+                    const map_id = get_map_id("order", settings.order_pk.toString());
                     const order_dict = get_mapdict_from_datamap_by_id(order_map, map_id);
                     if(!isEmpty(order_dict)){
-                        selected_order_pk = parseInt(setting_order_pk);
-        // reset setting_order_pk
-                        setting_order_pk = 0
-                        el_select_order.value = selected_order_pk
+                        selected.order_pk = parseInt(settings.order_pk);
+        // reset settings.order_pk
+                        settings.order_pk = 0
+                        el_select_order.value = selected.order_pk
                     }
                 }
 
-                if (!!selected_order_pk){
-                    HandleSelectOrder(el_select_order, "HandleSelectCustomer")
+                if (!!selected.order_pk){
+                    HandleSelectOrder(el_select_order)
                 };
             }  //  if (!!pk_int)
         }  // if(!!el)
+
+        UpdateHeaderText("HandleSelectCustomer")
     }  // HandleSelectCustomer
 
-//=========  HandleSelectOrder  ================ PR2019-03-24
-    function HandleSelectOrder(el, called_by) {
-        console.log("--- HandleSelectOrder ---", called_by)
-        //called by HandleSelectCustomer select_order.Event.Change, MSA_Validate
+//=========  HandleSelectOrder  ================ PR2019-03-24 PR2020-04-30
+    function HandleSelectOrder(el_select_order ) {
+        console.log("--- HandleSelectOrder ---")
+        //called by HandleSelectCustomer select_order.Event.Change, MAS_Validate
+        console.log("mod_MSO_dict: ", mod_MSO_dict)
+        console.log("el_select_order: ", el_select_order)
 
 // reset lists
         // don't reset, all items from this customer are already downloaded
-// reset selected_order_pk, selected_scheme_pk
-        selected_order_pk = 0
-        selected_scheme_pk = 0;
+// reset selected.order_pk, selected.scheme_pk
+        selected.order_pk = 0
+        selected.scheme_pk = 0;
 // reset select tables
+        el_sidebar_select_order.value = null;
         sidebar_tblBody_scheme.innerText = null;
         sidebar_tblBody_shift.innerText = null;
         sidebar_tblBody_team.innerText = null;
@@ -716,59 +734,78 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody_teammember.innerText = null;
         el_input_team_code.value = null;
 
-        ResetAndDisableSchemeInputElements(true, "HandleSelectOrder");
+// --- reset grid and SchemeInputElements, disable SubmenuButtons
+        Grid_FillGrid({}, "HandleSelectOrder");
+        UpdateSchemeInputElements({}, "HandleSelectCustomer");
         DisableSubmenuButtons();
 
 // get selected order
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
 
-        // after first DatalistDownload, when there is only 1 customer, selected_cust_pk gets this value
-        //  in that case HandleSelectOrder has no parameter 'el' and selected_order_pk has value
-        if(!!el){
-            const sel_order_value = parseInt(el.value);
-            if (!sel_order_value){
-                if (!!setting_order_pk){
-                    // check if setting_order_pk exists
-                    const map_id = get_map_id("order", setting_order_pk.toString());
-                    const order_dict = get_mapdict_from_datamap_by_id(order_map, map_id);
-                    if(!isEmpty(order_dict)){
-                        selected_order_pk = parseInt(setting_order_pk);
-                        setting_order_pk = 0
-                    }
-                }
-            } else {
-                selected_order_pk = parseInt(sel_order_value);
-    // --- save selected_order_pk in Usersettings, not in template mode
-                if(!is_template_mode){
-                    const upload_dict = {"selected_pk": { "sel_cust_pk": selected_cust_pk, "sel_order_pk": selected_order_pk}};
-                    UploadSettings (upload_dict, url_settings_upload);
+        // after first DatalistDownload, when there is only 1 customer, selected.customer_pk gets this value
+        //  in that case HandleSelectOrder has no parameter 'el' and selected.order_pk has value
+        let sel_order_pk = 0, sel_cust_pk = 0
+        if(!!el_select_order){
+            if (el_select_order.selectedIndex > -1) {
+                sel_order_pk = Number(el_select_order.value);
+                let sel_option = el_select_order.options[el_select_order.selectedIndex];
+                sel_cust_pk = get_attr_from_el_int(sel_option, "data-ppk");
+            }
+        } else {
+            sel_order_pk = mod_MSO_dict.order_pk;
+            sel_cust_pk = mod_MSO_dict.customer_pk;
+        }
+
+        console.log("=====================sel_order_pk: ", sel_order_pk)
+        console.log("===================== sel_cust_pk: ", sel_cust_pk)
+
+// if no order selected: check if tghere is an order_pk in settings
+        if (!sel_order_pk){
+            sel_cust_pk = 0
+            if (!!settings.order_pk){
+                // check if settings.order_pk exists
+                const map_id = get_map_id("order", settings.order_pk.toString());
+                const order_dict = get_mapdict_from_datamap_by_id(order_map, map_id);
+                if(!isEmpty(order_dict)){
+                    selected.order_pk = parseInt(settings.order_pk);
+                    selected.customer_pk = parseInt(settings.customer_pk);
+                    settings.order_pk = 0
+                    settings.customer_pk = 0
                 }
             }
-            UpdateHeaderText();
+        } else {
+            selected.order_pk = sel_order_pk;
+            selected.customer_pk = sel_cust_pk;
+// --- save selected.order_pk in Usersettings, not in template mode
+            if(!is_template_mode){
+                const upload_dict = {selected_pk: { sel_cust_pk: selected.customer_pk, sel_order_pk: selected.order_pk}};
+                UploadSettings (upload_dict, url_settings_upload);
+            }
+        }
 
-            if (!!selected_order_pk){
-                if (el.id === "id_select_order") {
-                    el_mod_copyfrom_order.selectedIndex = el.selectedIndex
-                } else if (el.id === "id_mod_scheme_order") {
-                    el_select_order.selectedIndex = el.selectedIndex
-                    el_mod_copyfrom_order.selectedIndex = el.selectedIndex
-                } else if (el.id === "id_mod_copyfrom_order") {
-                    el_select_order.selectedIndex = el.selectedIndex
-                }
-                SBR_FillSelectTable("scheme", "HandleSelectOrder", selected_scheme_pk, true);
-            } //  if (!!pk_int)
-        }  // if(!!el){
+        if (!!el_select_order){
+            if (el_select_order.id === "id_select_order") {
+                el_mod_copyfrom_order.selectedIndex = el_select_order.selectedIndex
+            } else if (el_select_order.id === "id_mod_scheme_order") {
+                el_select_order.selectedIndex = el_select_order.selectedIndex
+                el_mod_copyfrom_order.selectedIndex = el_select_order.selectedIndex
+            } else if (el_select_order.id === "id_mod_copyfrom_order") {
+                el_select_order.selectedIndex = el_select_order.selectedIndex
+            }
+        }
+        SBR_FillSelectTable("scheme", "HandleSelectOrder", selected.scheme_pk, true);
 
 // select table 'scheme' is filled by SBR_FillSelectTable("scheme"). This function is called in DatalistDownload
-
+        UpdateHeaderText("HandleSelectOrder")
     }  // HandleSelectOrder
 
 //=========  HandleSelectRow ================ PR2019-12-01
-    function HandleSelectRow(sel_tr_clicked) {
-        console.log( "===== HandleSelectRow  ========= ");
+    function HandleSelectRow(sel_tr_clicked, calledby) {
+        //console.log( "===== HandleSelectRow  ========= ", calledby);
         // selectRow tables are: scheme, shift, team
         // if sel_tr_clicked does not exist: it is a deleted scheme
         let sel_tblName = null, sel_code_value = null, is_addnew_row = false;
+        let map_dict = {};
         if(!!sel_tr_clicked) {
 
 // ---  get map_dict
@@ -776,14 +813,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const pk_str = get_attr_from_el_str(sel_tr_clicked, "data-pk");
             const map_id = get_map_id(sel_tblName, pk_str);
             // function 'get_mapdict_from_tblRow.....' returns empty dict if map or key not exist.
-            const map_dict = get_mapdict_from_tblRow(sel_tr_clicked)
+            map_dict = get_mapdict_from_tblRow(sel_tr_clicked)
 
             is_addnew_row = (get_attr_from_el_str(sel_tr_clicked, "data-addnew") === "true");
 
-        console.log( "HandleSelectRow: sel_tblName", sel_tblName);
-        console.log( "HandleSelectRow: map_id", map_id);
-        console.log( "HandleSelectRow: is_addnew_row", is_addnew_row);
-        console.log( "HandleSelectRow: map_dict", map_dict);
+            //console.log( "sel_tblName", sel_tblName);
+            //console.log( "map_id", map_id);
+            //console.log( "is_addnew_row", is_addnew_row);
+            //console.log( "map_dict", map_dict);
 
             if (is_addnew_row && sel_tblName === "shift"){
 // ---  set focus to addnewrow
@@ -804,38 +841,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 const sel_ppk_int = get_subdict_value_by_key(map_dict, "id", "ppk", 0);
                 sel_code_value = get_subdict_value_by_key(map_dict, "code", "value");
 
-// ---  update selected_scheme_pk
+// ---  update selected.scheme_pk
                 if (sel_tblName === "scheme"){
-                    // PR2020-04-19 always update team and shift. Was: if(sel_pk_int !== selected_scheme_pk){
-                    selected_scheme_pk = sel_pk_int;
-// --- deselect selected_shift_pk and selected_team_pk when selected_scheme_pk changes
-                    selected_shift_pk = 0;
-                    selected_team_pk = 0;
-// ---  save selected_scheme_pk in Usersettings, not in template mode
+                    // PR2020-04-19 always update team and shift. Was: if(sel_pk_int !== selected.scheme_pk){
+                    selected.scheme_pk = sel_pk_int;
+// --- deselect selected.shift_pk and selected.team_pk when selected.scheme_pk changes
+                    selected.shift_pk = 0;
+                    selected.team_pk = 0;
+// ---  save selected.scheme_pk in Usersettings, not in template mode
                     if(!is_template_mode){
-                        const upload_dict = {"selected_pk": {"sel_cust_pk": selected_cust_pk,
-                                                             "sel_order_pk": selected_order_pk,
-                                                             "sel_scheme_pk": selected_scheme_pk}};
+                        const upload_dict = {selected_pk: {sel_cust_pk: selected.customer_pk,
+                                                           sel_order_pk: selected.order_pk,
+                                                           sel_scheme_pk: selected.scheme_pk}};
                         UploadSettings (upload_dict, url_settings_upload);
                     }
 
-                    UpdateSchemeInputElements(map_dict)
-
-// --- Add ppk_int to addnewRow of selecttable
-                    document.getElementById("sel_shift_addnew").setAttribute("data-ppk", selected_scheme_pk)
-                    document.getElementById("sel_team_addnew").setAttribute("data-ppk", selected_scheme_pk)
+// --- Add ppk_int to addnewRow of selecttable shift and team
+                    document.getElementById("sel_shift_addnew").setAttribute("data-ppk", selected.scheme_pk)
+                    document.getElementById("sel_team_addnew").setAttribute("data-ppk", selected.scheme_pk)
 
 // --- Fill select table Shift and Teams
-                    SBR_FillSelectTable("shift", "HandleSelectRow", selected_shift_pk, false); // false = is not curremt select table
-                    SBR_FillSelectTable("team", "HandleSelectRow" , selected_team_pk, false); // false = is not curremt select table
+                    SBR_FillSelectTable("shift", "HandleSelectRow", selected.shift_pk, false); // false = is not curremt select table
+                    SBR_FillSelectTable("team", "HandleSelectRow" , selected.team_pk, false); // false = is not curremt select table
 
 // --- fill data table schemeitems
                     FillTableRows("schemeitem");
                     FillTableRows("shift");
                     FillTableRows("teammember");
 
-// --- fill grid with new scheme
-                    Grid_FillGrid(map_dict)
 
 // reset addnew row, fill options shifts and team
                     // needed to update ppk in addnew row PR2020-03-16 was: dont, already called by FillTableRows
@@ -846,8 +879,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     DisableSubmenuButtons()
 
                 } else if (sel_tblName === "shift"){
-// ---  update selected_shift_pk
-                    selected_shift_pk = sel_pk_int;
+// ---  update selected.shift_pk
+                    selected.shift_pk = sel_pk_int;
 
                 // ---  set focus to selected shift row
                         // --- lookup row 'add new' in tFoot
@@ -857,7 +890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             for (let i = 0; i < len; i++) {
                                 const tblRow = tblBody_shift.rows[i]
                                 const row_shift_pk = get_attr_from_el(tblRow,"data-pk")
-                                if (row_shift_pk === selected_shift_pk.toString()){
+                                if (row_shift_pk === selected.shift_pk.toString()){
                                     HandleTableRowClicked(tblRow, true) // true = skip_highlight_selectrow
                                     let el_input = tblRow.cells[0].children[0];
                                     if (!!el_input){
@@ -870,9 +903,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         };
 
                 } else if (sel_tblName === "team"){
-// ---  update selected_team_pk
-                    selected_team_pk = sel_pk_int;
-                    console.log("before FillTableRows: selected_team_pk", selected_team_pk)
+// ---  update selected.team_pk
+                    selected.team_pk = sel_pk_int;
+                    //console.log("before FillTableRows: selected.team_pk", selected.team_pk)
                     FillTableRows("teammember");
                 }
             }  //   if (!isEmpty(map_dict))
@@ -887,6 +920,12 @@ document.addEventListener('DOMContentLoaded', function() {
             ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_yellow_lightlight, false, sel_tr_clicked, cls_bc_yellow)
             ChangeBackgroundRows(sidebar_tblBody_shift, cls_bc_lightlightgrey, false)
             ChangeBackgroundRows(sidebar_tblBody_team, cls_bc_lightlightgrey, false)
+
+// --- fill grid with new scheme
+            Grid_FillGrid(map_dict, "HandleSelectRow")
+// --- fill form input fields and tables
+            UpdateSchemeInputElements(map_dict, "HandleSelectRow");
+
         } else if (sel_tblName === "shift" || sel_tblName === "team"){
             ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_lightlightgrey, true)
             let tblBody_this = (sel_tblName === "shift") ? sidebar_tblBody_shift : sidebar_tblBody_team;
@@ -896,11 +935,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // --- get header_text
-        UpdateHeaderText()
-
-// reset input fields and tables
-        //ResetAndDisableSchemeInputElements()
-
+        UpdateHeaderText("HandleSelectRow")
+        if (sel_tblName === "scheme"){
+            UpdateSchemeInputElements(map_dict, "HandleSelectRow")
+        }
 // put selected team_code in el_input_team_code
         const team_code = (sel_tblName === "team" && !!sel_code_value) ? sel_code_value : null
         el_input_team_code.value = team_code
@@ -908,13 +946,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // hide or show tables
         //console.log( "sel_tblName", sel_tblName);
 
-        // change selected_btn to 'team' when team is selected, to 'shift' when shift is selected,
+        // change selected.btn to 'team' when team is selected, to 'shift' when shift is selected,
         // when scheme is selected and btn_mode = "btn_schemeitem : let it stay,
         // goto btn_gridlayout otherwise
 
         const btn_mode = (sel_tblName === "team") ? "btn_team" :
-                         (sel_tblName === "shift") ? "btn_shift" : selected_btn;
-                       //  (sel_tblName === "scheme" && selected_btn === "btn_schemeitem") ? "btn_schemeitem" : "btn_gridlayout";
+                         (sel_tblName === "shift") ? "btn_shift" : selected.btn;
+                       //  (sel_tblName === "scheme" && selected.btn === "btn_schemeitem") ? "btn_schemeitem" : "btn_gridlayout";
         HandleBtnSelect(btn_mode);
         /*
         const show_table_schemeitem = (sel_tblName === "scheme");
@@ -928,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else { document.getElementById("id_div_tbl_teammember").classList.add(cls_hide)}
 */
 // put pk and ppk of selected customer in addnew row
-        const sel_scheme_or_team_pk = (sel_tblName === "team") ? selected_team_pk : selected_scheme_pk
+        const sel_scheme_or_team_pk = (sel_tblName === "team") ? selected.team_pk : selected.scheme_pk
         const item_tblName = (sel_tblName === "team") ? "teammember" :
                              (sel_tblName === "shift") ? "shift" : "schemeitem";
         UpdateAddnewRow(item_tblName, sel_scheme_or_team_pk);
@@ -957,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  get clicked tablerow
         if(!!tr_clicked) {
 
-            selected_item_pk = get_datapk_from_element(tr_clicked)
+            selected.item_pk = get_datapk_from_element(tr_clicked)
 
 // ---  highlight row in selecttable, not when called by handleselectrow
             if(!!skip_highlight_selectrow){
@@ -965,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (["shift", "team"].indexOf( tblName ) > -1){
                     let tblBody_select = (tblName === "shift") ? sidebar_tblBody_shift : sidebar_tblBody_team;
                     //  params: tableBody, cls_selected, cls_background
-                    HighlightSelectRowByPk(tblBody_select, selected_item_pk, cls_bc_yellow, cls_bc_yellow_lightlight);
+                    HighlightSelectRowByPk(tblBody_select, selected.item_pk, cls_bc_yellow, cls_bc_yellow_lightlight);
                 }
             }
         }
@@ -1028,12 +1066,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnSchemeitems(param_name, skip_confirm) {
         console.log("=== HandleBtnSchemeitems =========", param_name);
 
-        if (!!selected_scheme_pk){
+        if (!!selected.scheme_pk){
         // params are: prev, next, dayup, daydown, autofill, delete
             if (param_name === "delete" && !skip_confirm) {
                 ModConfirmOpen("schemeitem_delete");
             } else {
-                let parameters = {"upload": JSON.stringify ({"mode": param_name, "scheme_pk": selected_scheme_pk})};
+                let parameters = {"upload": JSON.stringify ({mode: param_name, scheme_pk: selected.scheme_pk})};
                 //console.log("parameters ", parameters);
 
                 // show loader
@@ -1052,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         el_loader.classList.add(cls_hide)
                         if ("schemeitem_list" in response) {
                             get_datamap(response["schemeitem_list"], schemeitem_map)
-                            console.log( "schemeitem_list selected_scheme_pk", selected_scheme_pk, typeof selected_scheme_pk);
+                            console.log( "schemeitem_list selected.scheme_pk", selected.scheme_pk, typeof selected.scheme_pk);
                             FillTableRows("schemeitem")
                         }
                     },
@@ -1217,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             tblRow.setAttribute("id", row_id);
             tblRow.setAttribute("data-map_id", map_id );
-            tblRow.setAttribute("data-pk", pk_int);
+             tblRow.setAttribute("data-pk", pk_int);
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", is_inactive);
 
@@ -1279,12 +1317,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(" ppk_int", ppk_int);
 
             if (tblName === "shift"){
-                selected_shift_pk = 0
+                selected.shift_pk = 0
                 HandleSelectRow(sel_tblRow)
             } else  if (tblName === "team"){
-                selected_team_pk = 0
+                selected.team_pk = 0
 
-        console.log( "HandleSelectAddnewRow: selected_team_pk", selected_team_pk);
+        console.log( "HandleSelectAddnewRow: selected.team_pk", selected.team_pk);
 // ---  create upload_dict
                 const upload_dict = {"id":{"temp_pk": pk_str, "ppk": ppk_int, "table": tblName, "create": true}}
                 const url_str = url_scheme_shift_team_upload;
@@ -1296,14 +1334,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //  if (!!tblRow)
     }  // HandleSelectAddnewRow
 
-//========= SBR_FillOptionCustomerOrder  ====================================
-    function SBR_FillOptionCustomerOrder(tblName, called_by, ppk_str) {
-        //console.log( "=== SBR_FillOptionCustomerOrder called by: ", called_by);
+//========= FillOption_Copyfrom_CustomerOrder  ====================================
+    function FillOption_Copyfrom_CustomerOrder(tblName, called_by, ppk_str) {
+        //console.log( "=== FillOption_Copyfrom_CustomerOrder called by: ", called_by);
 
 // ---  fill options of select box
-        let option_text = "";
-        let row_count = 0
-        let ppk_int = 0
+        let option_text = "", row_count = 0, ppk_int = 0
 
         // customer list has no ppk_str
         if (!!ppk_str){ppk_int = parseInt(ppk_str)};
@@ -1314,14 +1350,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_map = (tblName === "customer") ? customer_map :
                          (tblName === "order") ? order_map : null
 
-        const selected_pk = (tblName === "customer") ? selected_cust_pk :
-                            (tblName === "order") ? selected_order_pk : null
-
-        //console.log( "selected_pk", selected_pk);
-        //console.log( "ppk_int", ppk_int);
-        //console.log( "select_text_none", select_text_none);
-//--- loop through option dict
-
+        const selected_pk = (tblName === "customer") ? selected.customer_pk :
+                            (tblName === "order") ? selected.order_pk : null
 // --- loop through data_map
         for (const [map_id, item_dict] of data_map.entries()) {
             const pk_int = get_pk_from_dict(item_dict);
@@ -1351,28 +1381,21 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (row_count > 1){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
         }
-        // put option_text in select elements
-        let el_select;
-        for (let i = 0; i < 2; i++) {
-            if (tblName === "order") {
-                el_select = (i === 0) ? el_select_order : el_mod_copyfrom_order;
-            } else if (tblName === "customer") {
-                el_select = (i === 0) ? el_select_customer :  el_mod_copyfrom_cust;
-            }
-            if(!!el_select){
-                el_select.innerHTML = option_text;
-                // if there is only 1 option: select first option
-                if (select_first_option){el_select.selectedIndex = 0};
-            }
+        // put option_text in select elements -- only el_mod_copyfrom_order el_mod_copyfrom_cust
+        let el_select = (tblName === "order") ? el_mod_copyfrom_order :
+                        (tblName === "customer") ? el_mod_copyfrom_cust : null;
+        if(!!el_select){
+            el_select.innerHTML = option_text;
+            // if there is only 1 option: select first option
+            if (select_first_option){el_select.selectedIndex = 0};
         }
-        //console.log("el_select.selectedIndex", el_select.selectedIndex);
-    }  //function SBR_FillOptionCustomerOrder
+    }  //function FillOption_Copyfrom_CustomerOrder
 
 //========= SBR_FillSelectTable  ============= PR2019-09-23
     function SBR_FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
         //console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
         //console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
-        //console.log( "selected_pk: ", selected_pk, "selected_order_pk: ", selected_order_pk);
+        //console.log( "selected_pk: ", selected_pk, "selected.order_pk: ", selected.order_pk);
 
         let selected_ppk_int = 0;
         const selected_map_id = get_map_id(tblName, selected_pk.toString());
@@ -1396,13 +1419,13 @@ document.addEventListener('DOMContentLoaded', function() {
             sidebar_tblBody_shift.innerText = null;
             sidebar_tblBody_team.innerText = null;
 
-            selected_ppk_int = selected_order_pk;
+            selected_ppk_int = selected.order_pk;
 
             caption_one = loc.Scheme;
             caption_multiple = loc.Select_scheme + ":";
 
         } else if (tblName === "shift"){
-            selected_ppk_int =  selected_scheme_pk;
+            selected_ppk_int = selected.scheme_pk;
             data_map = shift_map
             tblBody = sidebar_tblBody_shift
 
@@ -1410,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', function() {
             caption_multiple = caption_one
 
         } else if (tblName === "team"){
-            selected_ppk_int =  selected_scheme_pk;
+            selected_ppk_int =  selected.scheme_pk;
             data_map = team_map
             tblBody = sidebar_tblBody_team
 
@@ -1465,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                 const row_id = "sel_" + map_id;
                 tblRow.setAttribute("id", row_id);
-                tblRow.setAttribute("data-pk", pk_int);
+                 tblRow.setAttribute("data-pk", pk_int);
                 tblRow.setAttribute("data-ppk", ppk_int);
                 tblRow.setAttribute("data-map_id", map_id);
                 tblRow.setAttribute("data-table", tblName);
@@ -1521,20 +1544,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- count tblRow
                 row_count += 1
 // --- check if selected_scheme exists
-                if (tblName === "scheme" && !selectedRow && pk_int === selected_scheme_pk){
+                if (tblName === "scheme" && !selectedRow && pk_int === selected.scheme_pk){
                     selectedRow = tblRow;
                 }
             } //  if (add_row)
         } // for (const [pk_int, item_dict] of data_map.entries())
 
-// --- show select_table scheme when selected_order_pk exists
-        if (!!selected_order_pk){
+// --- show select_table scheme when selected.order_pk exists
+        if (!!selected.order_pk){
             document.getElementById("id_select_table_scheme").classList.remove(cls_hide)
         } else {
             document.getElementById("id_select_table_scheme").classList.add(cls_hide)
         }
-// --- show select_table shift and team hen selected_order_pk exists
-        if (!!selected_scheme_pk){
+// --- show select_table shift and team hen selected.order_pk exists
+        if (!!selected.scheme_pk){
             document.getElementById("id_select_table_shift").classList.remove(cls_hide)
             document.getElementById("id_select_table_team").classList.remove(cls_hide)
         } else {
@@ -1542,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById("id_select_table_team").classList.add(cls_hide)
         }
 
-// ++++++ select scheme if only 1 exists or when setting_scheme_pk has value and selectedRow exists ++++++
+// ++++++ select scheme if only 1 exists or when settings.scheme_pk has value and selectedRow exists ++++++
         // Dont highlight yet, scheme info is not downoloaded yet so teams and shift are not yet filled
         if (tblName === "scheme"){
             if (row_count === 1 && !!firstRow){
@@ -1552,6 +1575,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     } // SBR_FillSelectTable
+
 
 //========= CreateSelectHeaderRows  ============= PR2019-11-02
     function CreateSelectHeaderRows() {
@@ -1593,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < 3; i++) {
             const tblName = (tblList[i]);
 
-            let ppk_int = (tblName === "scheme") ? selected_order_pk : selected_scheme_pk
+            let ppk_int = (tblName === "scheme") ? selected.order_pk : selected.scheme_pk
             // ppk_int has no value yet, because AddnewRow is added at startup
 
     // ++++++ add addnew row  ++++++
@@ -1606,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //--------- insert tblFoot row
             let tblRow = tblFoot.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             tblRow.setAttribute("id", "sel_" + tblName + "_addnew");
-            tblRow.setAttribute("data-pk", pk_new);
+             tblRow.setAttribute("data-pk", pk_new);
             tblRow.setAttribute("data-ppk", ppk_int)
             tblRow.setAttribute("data-table", tblName);
             // --- put data-addnew in tr when is_addnew_row
@@ -1627,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add EventListener to input element, add innerText
                 if (tblName === "scheme"){
                     el_a.innerText = get_attr_from_el(el_data, "data-txt_scheme_add") + "..."
-                    el_a.addEventListener("click", function() {MSA_Open()}, false )
+                    el_a.addEventListener("click", function() {MAS_Open(true)}, false )
                 } else if (tblName === "shift"){
                     el_a.innerText = get_attr_from_el(el_data, "data-txt_shift_add") + "..."
                     el_a.addEventListener("click", function() {HandleSelectAddnewRow(tblRow)}, false )
@@ -1718,12 +1742,12 @@ document.addEventListener('DOMContentLoaded', function() {
             id_new += 1;
             const pk_new = "new" + id_new.toString()
 
-            // selected_scheme_pk is still 0 when footer is created
+            // selected.scheme_pk is still 0 when footer is created
             // CreateTblRow(prefix, tblName, pk_int, ppk_int, is_new_row, row_count, row_index)
             // this is an add-new row! (add-new row is in footer)
-            let tblRow = CreateTblRow("tfoot", tblName, pk_new, selected_scheme_pk, true);
+            let tblRow = CreateTblRow("tfoot", tblName, pk_new, selected.scheme_pk, true);
 
-            dict["id"] = {"pk": pk_new, "ppk": selected_scheme_pk, "temp_pk": pk_new, "table": tblName};
+            dict["id"] = {pk: pk_new, ppk: selected.scheme_pk, temp_pk: pk_new, table: tblName};
             if (tblName === "schemeitem"){dict["rosterdate"] = today_dict; }
 
             UpdateTableRow(tblRow, dict, "CreateTblFooter");
@@ -1739,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tblFoot = document.getElementById("id_tfoot_" + tblName);
         let tblRow = tblFoot.rows[0];
 // reset data-ppk (necessary?
-        //const ppk_int = (tblName === "teammember") ? selected_team_pk : selected_scheme_pk
+        //const ppk_int = (tblName === "teammember") ? selected.team_pk : selected.scheme_pk
         //tblRow.setAttribute("data-ppk", ppk_int);
 
         let el_input_firstfield = tblRow.cells[0].children[0];
@@ -1755,10 +1779,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     format_date_element (el_input_firstfield, el_msg, field_dict, month_list, weekday_list,
                                         loc.user_lang, loc.comp_timezone, false, true)
                 }
-                if(!!selected_scheme_pk){
+                if(!!selected.scheme_pk){
                     //FillOptionShiftOrTeamFromMap(data_map, selected_parent_pk, selected_pk, with_rest_abbrev, firstoption_txt)
-                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeamFromMap(shift_map, selected_scheme_pk, null, true)
-                    tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeamFromMap(team_map, selected_scheme_pk)
+                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeamFromMap(shift_map, selected.scheme_pk, null, true)
+                    tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeamFromMap(team_map, selected.scheme_pk)
                 }
         // in schemeitems: disable add teammember when template
             } else if(tblName === "teammember"){
@@ -1827,11 +1851,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName) {
-        console.log( "===== FillTableRows  ========= ", tblName);
+        //console.log( "===== FillTableRows  ========= ", tblName);
         // tblNames are: schemeitem, shift, teammember
-
-
-        console.log( "selected_team_pk", selected_team_pk);
 
 // --- reset tblBody
         let tblBody = document.getElementById("id_tbody_" + tblName);
@@ -1841,14 +1862,14 @@ document.addEventListener('DOMContentLoaded', function() {
         let data_map, sel_pk_int, sel_ppk_int;
         if (tblName === "shift"){
             data_map = shift_map;
-            sel_ppk_int = selected_scheme_pk
-            sel_pk_int = selected_shift_pk
+            sel_ppk_int = selected.scheme_pk
+            sel_pk_int = selected.shift_pk
         } else if (tblName === "teammember"){
             data_map = teammember_map;
-            sel_ppk_int = selected_team_pk
+            sel_ppk_int = selected.team_pk
         } else if (tblName === "schemeitem"){
             data_map = schemeitem_map;
-            sel_ppk_int = selected_scheme_pk
+            sel_ppk_int = selected.scheme_pk
         };
 
         rosterdate_dict = {};
@@ -1856,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let row_count = 0;
 
         if (!!sel_ppk_int){
-        console.log( "sel_ppk_int", sel_ppk_int);
+            //console.log( "sel_ppk_int", sel_ppk_int);
 
 // --- loop through data_map
             for (const [map_id, item_dict] of data_map.entries()) {
@@ -2205,26 +2226,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= Upload_Scheme  ============= PR2019-06-06
     function Upload_Scheme(el_input) {
-        console.log("======== Upload_Scheme");
+        console.log(">>>>>>>>>>>>>>>>>>>>>>>>>======== Upload_Scheme");
+        console.log("el_input: ", el_input);
 
         let upload_dict = {};
 
-// ---  create id_dict
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected_scheme_pk)
-        let id_dict = get_dict_value_by_key(map_dict, "id");
-        console.log("id_dict: ", id_dict);
+// ---  get pk and ppk from el_input, is safer than getting from selected.scheme_pk
+        const pk_int = get_attr_from_el_int(el_input, "data-pk")
 
-// add id_dict to upload_dict
+// ---  create id_dict
+        const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", pk_int)
+        let id_dict = get_dict_value_by_key(map_dict, "id");
+
         if (!isEmpty(id_dict)){
 
-// skip if parent_pk does not exist (then it is an empty scheme)
+// ---  skip if parent_pk does not exist (then it is an empty scheme)
             if(!!id_dict["ppk"]){
+// ---  add id_dict to upload_dict
                 upload_dict["id"] = id_dict
                 if(!!id_dict["pk"]){upload_dict["pk"] = id_dict["pk"]}
 
     // ---  loop through input elements of scheme
-                const fieldname = get_attr_from_el_str(el_input, "data-field")
-                console.log("fieldname", fieldname);
+                const fldName = get_attr_from_el_str(el_input, "data-field")
+                console.log("fldName", fldName);
                 console.log("el_input", el_input);
 // get n_value
                     // PR2019-03-17 debug: getAttribute("value");does not get the current value
@@ -2244,14 +2268,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("o_value", o_value, typeof o_value);
                 console.log("n_value", n_value, typeof n_value);
 
+// validate if value of cycle is within range
+                if(fldName === "cycle") {
+                    if (n_value < 1 || n_value > 28) {
+                        el_input.value = (o_value >= 1 && o_value <= 28) ? o_value : 7;
+                        return false;
+                    }
+                }
+
                 // n_value can be blank when deleted, skip when both are blank
                 if(n_value !== o_value){
 // add n_value and 'update' to field_dict
                     let field_dict = {"update": true};
                     if(!!n_value){field_dict["value"] = n_value};
 // add field_dict to upload_dict
-                    upload_dict[fieldname] = field_dict;
+                    upload_dict[fldName] = field_dict;
                 };
+// reset other field (in scheme, publichodilay)
+                if(["divergentonpublicholiday", "excludepublicholiday"].indexOf(fldName) > -1) {
+                    // in scheme:  if value of this field is true, set other field false
+                    if(!!n_value){
+                        const other_fldName = (fldName === "divergentonpublicholiday") ? "excludepublicholiday" : "divergentonpublicholiday"
+                        upload_dict[other_fldName] = {value: false, update: true};
+                    }
+                }
+
                 console.log("upload_dict", upload_dict);
 
             }  // if(!!id_dict["parent_pk"])
@@ -2270,7 +2311,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // This function is called by el_input_team_code
 
 // ---  create team_dict
-        const map_id = get_map_id("team", selected_team_pk.toString());
+        const map_id = get_map_id("team", selected.team_pk.toString());
         console.log("map_id: ", map_id);
         const team_dict = get_mapdict_from_datamap_by_id(team_map, map_id)
         console.log("team_dict: ", team_dict);
@@ -2446,15 +2487,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if ("scheme_list" in response) {
                         get_datamap(response["scheme_list"], scheme_map)
-                        SBR_FillSelectTable("scheme", "UploadSchemeOrShiftOrTeam scheme_list", selected_scheme_pk);
+                        SBR_FillSelectTable("scheme", "UploadSchemeOrShiftOrTeam scheme_list", selected.scheme_pk);
                     }
                     if ("shift_list" in response) {
                         get_datamap(response["shift_list"], shift_map)
-                        SBR_FillSelectTable("shift", "UploadSchemeOrShiftOrTeam shift_list", selected_shift_pk);
+                        SBR_FillSelectTable("shift", "UploadSchemeOrShiftOrTeam shift_list", selected.shift_pk);
                     }
                     if ("team_list" in response) {
                         get_datamap(response["team_list"], team_map)
-                        SBR_FillSelectTable("team", "UploadSchemeOrShiftOrTeam team_list", selected_team_pk, true);
+                        SBR_FillSelectTable("team", "UploadSchemeOrShiftOrTeam team_list", selected.team_pk, true);
                     }
                     if ("schemeitem_list" in response) {
                         get_datamap(response["schemeitem_list"], schemeitem_map)
@@ -2604,10 +2645,10 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= HandleDeleteScheme  ============= PR2020-03-12
     function HandleDeleteScheme() {
         console.log( " ==== HandleDeleteScheme ====");
-        console.log( "selected_scheme_pk: ", selected_scheme_pk);
+        console.log( "selected.scheme_pk: ", selected.scheme_pk);
 
-        if(!!selected_scheme_pk){
-            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected_scheme_pk);
+        if(!!selected.scheme_pk){
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
         console.log( "map_dict: ", map_dict);
             if (!isEmpty(map_dict)){
     // ---  create upload_dict with id_dict
@@ -2616,7 +2657,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mod_upload_dict["code"] = map_dict["code"];
 
                 ModConfirmOpen("delete");
-            }  // if (selected_scheme_pk)
+            }  // if (selected.scheme_pk)
         }  //   if(!!tblRow)
 
     }  // HandleDeleteScheme
@@ -2668,6 +2709,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const url_str = (tblName === "teammember") ? url_teammember_upload :
                                 (tblName === "schemeitem") ? url_schemeitem_upload : url_scheme_shift_team_upload
+
                 UploadChanges(upload_dict, url_str);
             }  // if (!isEmpty(map_dict))
         }  //   if(!!tblRow)
@@ -2888,7 +2930,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if ("scheme_list" in response) {
                         get_datamap(response["scheme_list"], scheme_map)
-                        // SBR_FillSelectTable("scheme", "MSA_Save scheme_list", selected_scheme_pk);
+                        // SBR_FillSelectTable("scheme", "MAS_Save scheme_list", selected.scheme_pk);
                     }
 
                     if ("shift_update" in response) {
@@ -2919,47 +2961,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  Grid_UpdateFromResponse_si  ================ PR2020-03-15
-    function Grid_UpdateFromResponse_si(si_update_list) {
-        console.log(" ==== Grid_UpdateFromResponse_si ====");
-        console.log("si_update_list", si_update_list);
-        console.log ("-------- grid_schemeitem_list.length", grid_schemeitem_list.length)
-        let cell_id_str = null, ppk_int = null;
-// --- loop through si_update_list
-        for (let i = 0, len = si_update_list.length; i < len; i++) {
-            let update_dict = si_update_list[i];
-            if(!cell_id_str) { cell_id_str = get_dict_value(update_dict, ["id", "cell_id"])};
-            if(!ppk_int) { ppk_int = get_dict_value(update_dict, ["id", "ppk"])};
-
-//----- get id_dict of updated item
-            const tblName = get_dict_value(update_dict, ["id", "table"]);
-            const pk_int = get_dict_value(update_dict, ["id", "pk"]);
-            const map_id = get_map_id(tblName, pk_int);
-
-            if (!!map_id){
-//----- replace updated item in map or remove deleted item from map
-                update_map_item(tblName, map_id, update_dict);
-
-//----- add or remove map_id of this schemeitem to grid_schemeitem_list
-                const id_dict = get_dict_value(update_dict, ["id"]);
-                const exists = grid_schemeitem_list.includes(map_id);
-                if(("deleted" in id_dict)){
-                // skip if map_id  does not exist in grid_schemeitem_list
-                    if (exists) {
-                        removeA(grid_schemeitem_list, map_id);
-                    }
-                } else {
-                // skip if map_id already exists in grid_schemeitem_list
-                    if (!exists) {
-                        grid_schemeitem_list.push(map_id)
-                    }
-                }
-            }  // if (!!map_id){
-        }  //  for (let j = 0; j < 8; j++)
-
-        Grid_UpdateCell(cell_id_str)
-    };  // Grid_UpdateFromResponse_si
-
 //=========  Grid_UpdateFromResponse_team  ================ PR2020-03-20
     function Grid_UpdateFromResponse_team(update_list) {
         console.log(" ==== Grid_UpdateFromResponse_team ====");
@@ -2976,16 +2977,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("map_id", map_id);
             if (!!map_id){
 //----- replace updated item in map or remove deleted item from map
-                update_map_item(tblName, map_id, update_dict);
+                update_map_item_local(tblName, map_id, update_dict);
             }  // if (!!map_id){
         }  //  for (let j = 0; j < 8; j++)
-// fill grid_teams_dict, teams and shifts
-        Grid_CreateTblTeams(selected_scheme_pk);
-        //Grid_CreateTblShifts(selected_scheme_pk)
-        //Grid_FillTblShifts(selected_scheme_pk)
+
+        Grid_CreateTblTeams(selected.scheme_pk);
+
     };  // Grid_UpdateFromResponse_team
-
-
 
 //=========  Grid_UpdateFromResponse_tm  ================ PR2020-03-20
     function Grid_UpdateFromResponse_tm(update_list) {
@@ -3003,42 +3001,48 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("map_id", map_id);
             if (!!map_id){
 //----- replace updated item in map or remove deleted item from map
-                update_map_item(tblName, map_id, update_dict);
+                update_map_item_local(tblName, map_id, update_dict);
             }  // if (!!map_id){
         }  //  for (let j = 0; j < 8; j++)
-// fill grid_teams_dict, teams and shifts
-        Grid_CreateTblTeams(selected_scheme_pk);
-        //Grid_CreateTblShifts(selected_scheme_pk)
-        //Grid_FillTblShifts(selected_scheme_pk)
+
+        Grid_CreateTblTeams(selected.scheme_pk);
+
     };  // Grid_UpdateFromResponse_tm
 
 //=========  Grid_UpdateFromResponse_shift  ================ PR2020-03-20
     function Grid_UpdateFromResponse_shift(update_list) {
         console.log(" ==== Grid_UpdateFromResponse_shift ====");
         console.log("update_list", update_list);
-        let cell_id_str = null, ppk_int = null;
+        let cell_id_str = null, ppk_int = null, tblName = null;
         let pk_list = [] // for highlighting cells
+        let new_shift_pk = null;  // for highlighting new shift
 // --- loop through update_list
         for (let i = 0, len = update_list.length; i < len; i++) {
             let update_dict = update_list[i];
             console.log("update_dict", update_dict);
 //----- get id_dict of updated item
-            const tblName = get_dict_value(update_dict, ["id", "table"]);
+            tblName = get_dict_value(update_dict, ["id", "table"]);
             const pk_int = get_dict_value(update_dict, ["id", "pk"]);
             const map_id = get_map_id(tblName, pk_int);
             console.log("map_id", map_id);
             pk_list.push(pk_int)
+            if (tblName === "shift"){new_shift_pk = pk_int}
             if (!!map_id){
 //----- replace updated item in map or remove deleted item from map
-                update_map_item(tblName, map_id, update_dict);
-
+                update_map_item_local(tblName, map_id, update_dict);
             }  // if (!!map_id){
         }  //  for (let j = 0; j < 8; j++)
-// fill grid_teams_dict, teams and shifts
-        //Grid_CreateTblTeams(selected_scheme_pk);
-        Grid_CreateTblShifts(selected_scheme_pk)
-        Grid_FillTblShifts(selected_scheme_pk)
 
+        Grid_CreateTblShifts(selected.scheme_pk)
+
+        if (tblName === "shift"){
+            const tr_id = "grid_shift_" +  new_shift_pk.toString();
+            const tr = document.getElementById(tr_id);
+            if(!!tr){
+                tr.classList.add("border_bg_valid");
+                setTimeout(function (){ tr.classList.remove("border_bg_valid");}, 2000);
+            };
+        } else {
 // ---  highlight cell when selected team in cell (after refresh tables
         for (let i = 0, len = pk_list.length; i < len; i++) {
             const cell_id = "cell_shift_" + pk_list[i].toString();
@@ -3049,6 +3053,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function (){ td.classList.remove("border_bg_valid");}, 2000);
             }
         }
+        }
 
 // ---  highlight shift cell after update
 
@@ -3058,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateFromResponse  ================ PR2019-10-14
     function UpdateFromResponse(update_dict) {
         console.log(" ==== UpdateFromResponse ====");
-        console.log("update_dict", JSON.stringify(update_dict));
+        console.log("update_dict", deepcopy_dict(update_dict));
 
 //----- get id_dict of updated item
         const id_dict = get_dict_value(update_dict, ["id"]);
@@ -3073,9 +3078,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ++++ deleted ++++
         if(is_deleted){
 // ---  reset selected scheme/shift/team when deleted
-            if (tblName === "scheme"){selected_scheme_pk = 0};
-            if (["scheme", "shift"].indexOf(tblName) > -1 ){selected_shift_pk = 0};
-            if (["scheme", "team"].indexOf(tblName) > -1 ){selected_team_pk = 0};
+            if (tblName === "scheme"){selected.scheme_pk = 0};
+            if (["scheme", "shift"].indexOf(tblName) > -1 ){selected.shift_pk = 0};
+            if (["scheme", "team"].indexOf(tblName) > -1 ){selected.team_pk = 0};
 // ---  delete tblRow
             let tblRow_delete = document.getElementById(map_id);
 
@@ -3101,8 +3106,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // ---  delete innerText of sidebar_tblBody_shift and of sidebar_tblBody_team
                 sidebar_tblBody_shift.innerText = null;
                 sidebar_tblBody_team.innerText = null;
-                selected_scheme_pk = 0
-                ResetAndDisableSchemeInputElements(true, UpdateFromResponse);
+                selected.scheme_pk = 0
+
+                UpdateSchemeInputElements({}, "UpdateFromResponse");
             }
         } else {
             let tblRow;
@@ -3206,7 +3212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }  // if( tblName === "scheme"...
 
             if(tblName === "scheme"){
-                UpdateSchemeInputElements(update_dict);
+                UpdateSchemeInputElements(update_dict, "UpdateFromResponse");
             }
             if (["shift"].indexOf( tblName ) > -1){
                 console.log("xxx HighlightSelectShiftTeam")
@@ -3214,15 +3220,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }  //  if(is_deleted){
 // --- update grid
-        const scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected_scheme_pk);
-        Grid_FillGrid(scheme_dict)
+        const scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
+        Grid_FillGrid(scheme_dict, "UpdateFromResponse")
 
 //--- remove 'updated', deleted created and msg_err from update_dict
         // NOTE: first update tblRow, then remove these keys from update_dict, then replace update_dict in map
         remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
-        update_map_item(tblName, map_id, update_dict);
+        update_map_item_local(tblName, map_id, update_dict);
         /*
         if(is_deleted){
             if (tblName === "scheme"){scheme_map.delete(map_id)} else
@@ -3240,19 +3246,19 @@ document.addEventListener('DOMContentLoaded', function() {
         */
 //--- refresh header text
 // TODO correct
-        UpdateHeaderText();
+        UpdateHeaderText("UpdateFromResponse");
     }  // UpdateFromResponse
 
 
 //========= UpdateTablesAfterResponse  =============
     function UpdateTablesAfterResponse(response){
-        //console.log("--- UpdateTablesAfterResponse  --------------");
+        console.log("--- UpdateTablesAfterResponse  --------------");
         //SBR_FillSelectTable fills selecttable and makes visible
 
-        //console.log("response[refresh_tables: ", response["refresh_tables"]);
+        console.log("response[refresh_tables: ", response["refresh_tables"]);
         const new_scheme_pk = get_subdict_value_by_key(response, "refresh_tables", 'new_scheme_pk', 0)
 
-        //console.log("new_scheme_pk: ", new_scheme_pk);
+        console.log("new_scheme_pk: ", new_scheme_pk);
         let fill_rows = false;
         if ("scheme_list" in response) {
             get_datamap(response["scheme_list"], scheme_map)
@@ -3282,6 +3288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             FillTableRows("shift");
             FillTableRows("teammember");
             FillTableRows("schemeitem");
+            UpdateHeaderText("UpdateTablesAfterResponse");
         }
     };  //  UpdateTablesAfterResponse
 
@@ -3369,7 +3376,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UpdateField  =============
     function UpdateField(el_input, update_dict, tblName){
         //console.log("--- UpdateField  -------------- ", tblName);
-        //console.log(update_dict);
         if(!!el_input){
 // --- lookup field in update_dict, get data from field_dict
             const fieldname = get_attr_from_el(el_input, "data-field");
@@ -3380,12 +3386,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 let ppk_int = parseInt(get_dict_value (field_dict, ["ppk"]), 0)
                 if(!pk_int){pk_int = 0}
                 if(!ppk_int){ppk_int = 0}
+        //console.log("pk_int: ", pk_int);
 
                 if (tblName === "schemeitem") {
                     if (fieldname === "rosterdate"){
-                        //const hide_weekday = false, hide_year = true;
-                        format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                                            loc.user_lang, loc.comp_timezone, false, true)
+                        // show 'Public holiday' when onpublicholiday=true
+                        const is_onph = get_dict_value(update_dict, ["onpublicholiday", "value"], false);
+                        if (is_onph){
+                            el_input.value = loc.Public_holidays.toLowerCase();
+                        } else {
+                            //const hide_weekday = false, hide_year = true;
+                            format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                                loc.user_lang, loc.comp_timezone, false, true)
+                        }
                     } else if (["shift", "team"].indexOf( fieldname ) > -1){
                         format_select_element (el_input, "code", field_dict)
                     } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
@@ -3573,127 +3586,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // UpdateSchemeitemOrTeammember
 
 //=========  UpdateSchemeInputElements  ================ PR2019-08-07
-    function UpdateSchemeInputElements(item_dict) {
-        console.log( "===== UpdateSchemeInputElements  ========= ");
-        console.log(item_dict);
-        const no_item = (!item_dict);
-        if(!no_item) {
-// get temp_pk_str and id_pk from item_dict["id"]
-            const id_dict = get_dict_value_by_key (item_dict, "id");
-            const is_created = ("created" in id_dict);
-            const is_deleted = ("deleted" in id_dict);
-            const msg_err = get_dict_value_by_key (item_dict, "error");
-            //console.log("id_dict", id_dict);
-            //console.log("is_created", is_created, typeof is_created);
-            document.getElementById("id_menubtn_delete_scheme").disabled = false
+    function UpdateSchemeInputElements(item_dict, calledby) {
+        //console.log( "===== UpdateSchemeInputElements  ========= ", calledby);
+        //console.log(item_dict);
 
-// --- error
-            if (!!msg_err){
-                const el_scheme_code = document.getElementById("id_scheme_code");
-                ShowMsgError(el_scheme_code, el_msg, msg_err, [-160, 80])
+// get temp_pk_str and id_pk from item_dict["id"]
+        const id_dict = get_dict_value (item_dict, ["id"]);
+        const pk_int = get_dict_value (id_dict, ["pk"]);
+        const ppk_int = get_dict_value (id_dict, ["ppk"]);
+        const is_created = get_dict_value (id_dict, ["created"], false);
+        const is_deleted = get_dict_value (id_dict, ["deleted"], false);
+        const msg_err = get_dict_value (item_dict, ["error"]);
+        const is_reset = (!pk_int);
+
+// --- show id_dict error
+        if (!!msg_err){
+            const el_scheme_code = document.getElementById("id_scheme_code");
+            ShowMsgError(el_scheme_code, el_msg, msg_err, [-160, 80])
 
 // --- new created record
-            } else if (is_created){
-                const el_scheme_code = document.getElementById("id_scheme_code");
-                ShowOkElement(el_scheme_code)
-            }
+        } else if (is_created){
+            const el_scheme_code = document.getElementById("id_scheme_code");
+            ShowOkElement(el_scheme_code)
+        }
 
-            const pk_int = get_pk_from_dict(item_dict)
-            const ppk_int = get_ppk_from_dict(item_dict);
+        const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday", "divergentonpublicholiday"];
+        for(let i = 0, fieldname; fieldname = field_list[i]; i++){
+            const field_dict = get_dict_value (item_dict, [fieldname])
+            const value = get_dict_value (field_dict, ["value"])
+            const updated = get_dict_value (field_dict, ["updated"]);
+            const msg_err = get_dict_value (field_dict, ["error"]);
 
-            if(!!pk_int){
-                const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday", "alsoonpublicholiday"];
-                for(let i = 0, el, field_dict, fieldname, value, updated, len = field_list.length; i < len; i++){
-                    fieldname = field_list[i];
-        //console.log("fieldname", fieldname);
-                    field_dict = get_dict_value_by_key (item_dict, fieldname)
-        //console.log("field_dict", field_dict);
-                    value = get_dict_value_by_key (field_dict, "value")
-                    updated = get_dict_value_by_key (field_dict, "updated");
-                    const msg_err = get_dict_value_by_key (field_dict, "error");
-
-                    el = document.getElementById( "id_scheme_" + fieldname)
-
-                    if(!!msg_err){
-                        ShowMsgError(el, el_msg, msg_err, [-160, 80])
-                    } else if(updated){
-
-                        if(el.type === "checkbox") {
-                            // when checkbox: make parent div gree imstead of input element
-                            console.log("checkbox", updated);
-                            let el_parent = el.parentNode;
-                            console.log("el_parent", el_parent);
-                            el_parent.classList.add("border_bg_valid");
-                            setTimeout(function (){el_parent.classList.remove("border_bg_valid");}, 2000);
-                        } else {
-                            // element must loose focus, otherwise border_bg_valid won't show
-                            el.blur()
-                            el.classList.add("border_bg_valid");
-                            setTimeout(function (){el.classList.remove("border_bg_valid");}, 2000);
-                        }
-                    }
-                    el.setAttribute("data-field", fieldname)
-                    if(!!value) {
-                        el.setAttribute("data-value", value)
-                    } else {
-                        el.removeAttribute("data-value")
-                    }
-                    if(!!pk_int) {
-                        el.setAttribute("data-pk", pk_int)
-                    } else {
-                        el.removeAttribute("data-pk")
-                    }
-                    if(!!ppk_int) {
-                        el.setAttribute("data-ppk", ppk_int)
-                    } else {
-                        el.removeAttribute("ppk-pk")
-                    }
-
-                    if (["code", "cycle"].indexOf( fieldname ) > -1){
-                        const key_str = "value";
-                        format_text_element (el, key_str, el_msg, field_dict, false, [-220, 60])
-                        el.readOnly = false;
-                    } else if (fieldname === "datefirst" || fieldname === "datelast"){
-                        el.value = value
-                        el.min = get_dict_value_by_key (field_dict, "mindate");
-                        el.max = get_dict_value_by_key (field_dict, "maxdate");
-                    // in template_mode datefirst and datelast are readOnly
-                        el.readOnly = (is_template_mode);
-                    } else  if (["excludepublicholiday", "excludecompanyholiday", "alsoonpublicholiday"].indexOf( fieldname ) > -1){
-                        el.checked = (!!value);
-                        el.readOnly = false;
-                    };
-                }  // for(let i = 0, fieldname,
-            }  // if(!!pk_int){
-        } // if(!!tr_clicked)
-        ResetAndDisableSchemeInputElements(no_item, "UpdateSchemeInputElements")
-    }  // UpdateSchemeInputElements
-
-
-//=========  ResetAndDisableSchemeInputElements  ================ PR2019-12-01 PR2020-04-20
-    function ResetAndDisableSchemeInputElements(reset_value, calledby) {
-        console.log(" ======  ResetAndDisableSchemeInputElements  =======", calledby)
-        // reset el_input in scheme_form, only when no_item=true
-        const el_list = ["id_scheme_code", "id_scheme_cycle", "id_scheme_datefirst", "id_scheme_datelast", "id_scheme_excludepublicholiday", "id_scheme_excludecompanyholiday", "id_scheme_alsoonpublicholiday"];
-        el_list.forEach(function (id_str, index) {
-            let el_input = document.getElementById(id_str)
-            const input_type = el_input.type
-            if (input_type === "checkbox"){
-                el_input.disabled = reset_value;
-                if(reset_value){
-                    el_input.checked = false
+            let el = document.getElementById( "id_scheme_" + fieldname)
+// ---  show field_dict error
+            if(!!msg_err){
+                ShowMsgError(el, el_msg, msg_err, [-160, 80])
+            } else if(updated){
+// ---  show updated ok
+                if(el.type === "checkbox") {
+                    // when checkbox: make parent div green imstead of input element
+                    let el_parent = el.parentNode;
+                    el_parent.classList.add("border_bg_valid");
+                    setTimeout(function (){el_parent.classList.remove("border_bg_valid");}, 2000);
+                } else {
+                    // element must loose focus, otherwise border_bg_valid won't show
+                    el.blur()
+                    el.classList.add("border_bg_valid");
+                    setTimeout(function (){el.classList.remove("border_bg_valid");}, 2000);
                 }
-            } else {
-                const read_only = ((reset_value) || (input_type === "date" && is_template_mode))
-                el_input.readOnly = read_only;
-                if(reset_value){
-                    el_input.value = null;
-                    el_input.removeAttribute("data-pk");
-                    el_input.removeAttribute("data-ppk");
-                };
             }
-        });
-    }  // ResetAndDisableSchemeInputElements
+
+// ---  set attribute when value exists, otherwise remove attribute
+            add_or_remove_attr(el, "data-value", (!!value), value);
+            add_or_remove_attr(el, "data-pk", (!!pk_int), pk_int);
+            add_or_remove_attr(el, "data-ppk", (!!ppk_int), ppk_int);
+// ---  put value in input boxes
+            if (["code", "cycle"].indexOf( fieldname ) > -1){
+                const key_str = "value";
+                format_text_element (el, key_str, el_msg, field_dict, false, [-220, 60])
+                el.readOnly = is_reset;
+            } else if (fieldname === "datefirst" || fieldname === "datelast"){
+                el.value = value
+                el.min = get_dict_value_by_key (field_dict, "mindate");
+                el.max = get_dict_value_by_key (field_dict, "maxdate");
+            // in template_mode datefirst and datelast are readOnly
+                el.readOnly = (is_reset || is_template_mode);
+            } else  if (["excludepublicholiday", "excludecompanyholiday", "divergentonpublicholiday"].indexOf( fieldname ) > -1){
+                el.checked = (!!value);
+                el.readOnly = is_reset;
+            };
+        }  // for(let i = 0, fieldname,
+
+// ---  disable delete button when no scheme selected
+        document.getElementById("id_menubtn_delete_scheme").disabled = is_reset;
+
+    }  // UpdateSchemeInputElements
 
 
 //###########################################################################
@@ -3704,17 +3671,24 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MGS_Open  ================  PR2020-03-21
     function MGS_Open(el_input) {
         console.log(" ======  MGS_Open  =======")
+        console.log("el_input:", el_input)
 
 // ---  reset mod_MGS_dict
         mod_MGS_dict = {};
-
-// ---  get scheme_pk and map_dict_pk from el_input
-        const tblRow = get_tablerow_selected(el_input)
-        const shift_pk = get_attr_from_el(tblRow, "data-shift_pk")
-        const scheme_pk = get_attr_from_el(tblRow, "data-shift_ppk")
-
+        let shift_pk = null, scheme_pk = null;
+        if(el_input.id === "shift_new"){
+            id_new = id_new + 1
+            shift_pk = "new" + id_new.toString()
+            scheme_pk = get_dict_value(grid_table_dict, ["scheme", "pk"])
+        } else {
+// ---  get  map_dict_pk from el_input.id
+            const shift_dict = get_mapdict_from_datamap_by_id(shift_map, el_input.id )
+            shift_pk = get_dict_value(shift_dict, ["id", "pk"])
+            scheme_pk = get_dict_value(shift_dict, ["id", "ppk"])
+        }
         console.log("shift_pk:", shift_pk)
         console.log("scheme_pk:", scheme_pk)
+
         if(!!scheme_pk && shift_pk){
 
 // ---  put map_dict_code in header
@@ -4021,10 +3995,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "MGS_BtnSaveDeleteEnable");
         console.log( mod_MGS_dict);
 
-        el_MGS_btn_save.disabled = (!selected_scheme_pk || !mod_MGS_dict.shift.values_changed);
+        el_MGS_btn_save.disabled = (!selected.scheme_pk || !mod_MGS_dict.shift.values_changed);
 
         const shift_id_mode = mod_MGS_dict.shift.id.mode;
-        const btn_delete_hidden = (!selected_scheme_pk || shift_id_mode === "create");
+        const btn_delete_hidden = (!selected.scheme_pk || shift_id_mode === "create");
         add_or_remove_class (el_MGS_btn_delete, cls_hide, btn_delete_hidden) // args: el, classname, is_add
     }  // MGS_BtnSaveDeleteEnable
 
@@ -4066,24 +4040,33 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MGT_fill_MGT_dict  ================  PR2020-03-19
     function MGT_fill_MGT_dict(scheme_pk, team_pk){
         console.log( "MGT_fill_MGT_dict");
+        console.log( "scheme_pk: ", scheme_pk);
+        console.log( "team_pk: ", team_pk);
 
+        console.log( "grid_teams_dict: ", deepcopy_dict(grid_teams_dict));
 // ---  get grid_team_dict from grid_teams_dict
         const grid_team_dict = grid_teams_dict[team_pk];
-        // grid_team_dict:
-        // { 2376: {id: {col: 4, row_id: "team_2376", code: "Ploeg E", abbrev: "E"}
-        //          1327: {row: 2, row_id: "tm_1327", display: "---"} }
-
+        console.log( "grid_team_dict: ", deepcopy_dict(grid_team_dict));
+        /*
+        // grid_team_dict: 2557: { id: {col: 2, row_id: "team_2557", code: "Ploeg C", abbrev: "C"}
+              teammembers:          1597: {row: 2, row_id: "tm_1597", display: "chris"}
+                                    1598: {row: 3, row_id: "tm_1598", display: "ert"}
+                                    1599: {row: 4, row_id: "tm_1599", display: "ik"}
+        */
         const team_mapdict = get_mapdict_from_datamap_by_tblName_pk(team_map, "team", team_pk)
         const add_new_mode = (isEmpty(team_mapdict));
+        console.log( "add_new_mode: ", add_new_mode);
 
 // --- create mod_MGT_dict with team
         mod_MGT_dict = {team: {id: {pk: team_pk,
                                     ppk: scheme_pk,
-                                    table: "team",
-                                    mode: (add_new_mode) ? "create" : "unchanged"}
-                        }}
+                                    table: "team"
+                                    // use 'create' instead of 'mode'. Was: mode: (add_new_mode) ? "create" : "unchanged"
+                                    }}
+                        }
+        if (add_new_mode){ mod_MGT_dict.team.id.create = true };
 // --- add team_code
-        if (!!add_new_mode){
+        if (add_new_mode){
             const team_code = get_teamcode_with_sequence(team_map, scheme_pk, loc.Team);
             mod_MGT_dict.team.code = {value: team_code, update: true};
         } else {
@@ -4208,6 +4191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if(["team", "mode"].indexOf(key) === -1){
                             const tm_dict = mod_MGT_dict[key]
                             if(!isEmpty(tm_dict)){
+       console.log("tm_dict: ", deepcopy_dict(tm_dict));
                                 const mode = get_dict_value(tm_dict, ["id", "mode"]);
                                 // add only teammembers with mode 'create, 'delete' or 'update'
                                 if(["create", "delete", "update"].indexOf(mode) > -1){
@@ -4217,6 +4201,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         const fldName = fields[i]
                                         if(get_dict_value(tm_dict, [fldName, "update"], false)){
                                             const fld_dict = get_dict_value(tm_dict, [fldName]);
+       console.log("fld_dict: ", deepcopy_dict(fld_dict));
                                             if(!!fld_dict){
                                                 teammember_dict[fldName] = fld_dict;
                                             }
@@ -4307,7 +4292,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // skip rows that have the "delete" mode
                     // was:  if(tblName === "grid_teammember" && mode !== "delete"){
                     if(tblName === "teammember" && mode !== "delete"){
-                        // no need to filter on selected_team_pk: mod_MGT_dict only contains tm_pk's of this team
+                        // no need to filter on selected.team_pk: mod_MGT_dict only contains tm_pk's of this team
                         let tblRow = MGT_TblTeammember_CreateRow(tblBody, tm_dict);
                         MGT_TblTeammember_UpdateRow(tblRow, tm_dict);
                     }
@@ -4440,7 +4425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mod_MGT_dict.mode = "update";
             MGT_BtnSaveDeleteEnable();
             MGT_FillTableTeammember(team_pk)
-        console.log( " mod_MGT_dict[pk_str]: " + JSON.stringify( mod_MGT_dict[pk_str]));
+        console.log( " mod_MGT_dict[" + pk_str +  "]: " , deepcopy_dict(mod_MGT_dict[pk_str]));
         }
     }
 
@@ -4577,10 +4562,10 @@ document.addEventListener('DOMContentLoaded', function() {
         id_new += 1;
         const pk_new = "new" + id_new.toString()
 
-        const team_code = get_teamcode_with_sequence(team_map, selected_scheme_pk, loc.Team);
+        const team_code = get_teamcode_with_sequence(team_map, selected.scheme_pk, loc.Team);
 
         el_MGT_teamcode.value = team_code
-        mod_MGT_dict.team = {id: {temp_pk: pk_new, ppk: selected_scheme_pk, table : "team", create: true}, code: { value: team_code}}
+        mod_MGT_dict.team = {id: {temp_pk: pk_new, ppk: selected.scheme_pk, table : "team", create: true}, code: { value: team_code}}
 
 // ---  put team_code in header
         const header_text = (!!team_code) ? team_code : loc.Team + ":";
@@ -4624,19 +4609,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "MGT_BtnSaveDeleteEnable");
 
         const mode = get_dict_value(mod_MGT_dict, ["mode"])
-        el_MGT_btn_save.disabled = (!selected_scheme_pk || ["update", "create", "delete"].indexOf(mode) === -1);
+        el_MGT_btn_save.disabled = (!selected.scheme_pk || ["update", "create", "delete"].indexOf(mode) === -1);
 
         const team_mode = get_dict_value(mod_MGT_dict, ["team", "id", "mode"])
-        const btn_delete_hidden = (!selected_scheme_pk || team_mode === "create");
+        const btn_delete_hidden = (!selected.scheme_pk || team_mode === "create");
         add_or_remove_class (el_MGT_btn_delete, cls_hide, btn_delete_hidden) // args: el, classname, is_add
     }  // MGT_BtnSaveDeleteEnable
 
 // +++++++++ MOD CONFRIM ++++++++++++++++++++++++++++++++++++++++++++++++++++
-//=========  ModConfirmOpen  ================ PR2019-10-23
-    function ModConfirmOpen(mode, el_input) {
+//=========  ModConfirmOpen  ================ PR2019-10-23 PR2020-05-03
+    function ModConfirmOpen(mode, el_input, get_text) {
         console.log(" -----  ModConfirmOpen   ----", mode)
         console.log("mod_upload_dict: ", mod_upload_dict)
-        console.log("mod_MGS_dict: ", mod_MGS_dict)
+        console.log("get_text: ", get_text)
         // modes are schemeitem_delete, delete, inactive, 'grid_si', 'grid_team_delete', 'grid_shift_delete'
 
         mod_upload_dict.mode = mode //used in ModConfirmSave
@@ -4677,12 +4662,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (mode === "grid_shift_delete") {
              header_text = loc.Shift + ": " + mod_MGS_dict.shift.code.value ;
              if (mod_MGS_dict.shift.isrestshift.value) { header_text += " (R)"};
-        } else if (tblName === "grid_si") {
-            const rosterdate = get_attr_from_el_str(el_input, "data-rosterdate");
-            let rosterdate_text = format_date_iso (rosterdate, month_list, weekday_list, false, true, loc.user_lang);
-            if(!rosterdate_text){ rosterdate_text = "-"}
-            const shift_text = get_attr_from_el_str(tblRow, "data-shift_code", "-");
-            header_text = loc.Shift + " '" + shift_text + "' " + loc.of + " " + rosterdate_text;
+        } else if (mode === "grid_si") {
+            header_text = get_text;
         } else if (tblName === "schemeitem") {
             const rosterdate = get_dict_value(map_dict, ["rosterdate", "value"])
             let rosterdate_text = format_date_iso (rosterdate, month_list, weekday_list, false, true, loc.user_lang);
@@ -4703,8 +4684,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        (tblName === "schemeitem") ? loc.This_shift :
                        (tblName === "shift") ? loc.This_shift :
                        (tblName === "teammember") ? loc.This_teammember :
-                       (tblName === "team") ? loc.This_team :
-                       (tblName === "grid_si") ? loc.This_shift : null
+                       (tblName === "team") ? loc.This_team : null
         let msg_02_txt = null, msg_03_txt = loc.want_to_continue;;
 
         if (mode === "grid_si"){
@@ -4728,10 +4708,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_btn_save = document.getElementById("id_confirm_btn_save")
         el_btn_save.innerText = (mode === "inactive") ? loc.Yes_make_inactive : loc.Yes_delete;
         let el_btn_cancel = document.getElementById("id_confirm_btn_cancel")
-        el_btn_cancel.innerText = (tblName === "grid_si") ? loc.OK : loc.No_cancel;
+        el_btn_cancel.innerText = (mode === "grid_si") ? loc.OK : loc.No_cancel;
 
-// hide ok button when (tblName === "grid_si")
-        add_or_remove_class (el_btn_save, cls_hide, (tblName === "grid_si"))
+// hide ok button when (mode === "grid_si")
+        add_or_remove_class (el_btn_save, cls_hide, (mode === "grid_si"))
         //setTimeout(function() {el_btn_save.focus()}, 300);
 
 // set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
@@ -4818,6 +4798,279 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } // ModConfirmSave
 
+// +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
+
+//========= MSO_Open ====================================  PR2020-04-30
+    function MSO_Open () {
+        console.log(" ===  MSO_Open  =====") ;
+        console.log("selected.customer_pk:", selected.customer_pk) ;
+
+        // do not update selected_period.customer_pk until MSO_Save
+// ---  reset mod_MSO_dict, don't put current value in mod_MSO_dict
+        mod_MSO_dict = {customer_pk: 0, order_pk: 0};
+
+        let el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
+        el_MSO_input_customer.value = null;
+        MSO_FillSelectTableCustomer()
+        // MSO_SelectCustomer is called by MSO_FillSelectTableCustomer
+        //MSO_FillSelectTableOrder is called by MSO_SelectCustomer
+        MSO_headertext();
+
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){
+            el_MSO_input_customer.focus()
+        }, 500);
+
+// ---  show modal
+         $("#id_modselectorder").modal({backdrop: true});
+
+    }; // MSO_Open
+
+//=========  MSO_Save  ================ PR2020-01-29
+    function MSO_Save() {
+        console.log("===  MSO_Save =========");
+
+        HandleSelectOrder()
+
+// hide modal
+        $("#id_modselectorder").modal("hide");
+    }  // MSO_Save
+
+//=========  MSO_SelectCustomer  ================ PR2020-01-09
+    function MSO_SelectCustomer(tblRow, event_targetNIU) {
+        console.log( "===== MSO_SelectCustomer ========= ");
+        console.log( "tblRow: ", tblRow);
+
+
+        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
+        // eventhandler added in t_Fill_SelectTable: HandleSelect_Row(tblRow, event.target, data_map, loc)
+// ---  deselect all highlighted rows
+        let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
+        DeselectHighlightedTblbody(el_MSO_tblbody_customer, cls_selected)
+// ---  get clicked tablerow
+        if(!!tblRow) {
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+// ---  get pk from id of select_tblRow
+            let data_pk = get_attr_from_el(tblRow, "data-pk")
+            if(!Number(data_pk)){
+                if(data_pk === "addall" ) {
+                    mod_MSO_dict.customer_pk = 0;
+                    mod_MSO_dict.order_pk = 0;
+                    MSO_Save();
+                }
+            } else {
+                const pk_int = Number(data_pk)
+                if (pk_int !== mod_MSO_dict.customer_pk){
+                    mod_MSO_dict.customer_pk = pk_int;
+                    mod_MSO_dict.order_pk = 0;
+                }
+            }
+// ---  put value in input box
+            const cust_code =  get_attr_from_el(tblRow, "data-value");
+            document.getElementById("id_MSO_input_customer").value = cust_code
+        } else {
+
+        }
+        MSO_FillSelectTableOrder();
+        MSO_headertext();
+    }  // MSO_SelectCustomer
+
+//=========  MSO_SelectOrder  ================ PR2020-01-09
+    function MSO_SelectOrder(tblRow, event_targetNIU, skip_save) {
+        console.log( "===== MSO_SelectOrder ========= ");
+        console.log( "skip_save", skip_save);
+        // event_targetNIU necessary because of t_Fill_SelectTable.HandleSelect_Row(tblRow, event.target)
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedTblbody(document.getElementById("id_MSO_tblbody_order") , cls_selected)
+// ---  get clicked tablerow
+        if(!!tblRow) {
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+            // el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_el(el_select, "data-value");
+// ---  get pk from id of select_tblRow
+            const data_pk_int = Number(get_attr_from_el(tblRow, "data-pk"));
+            const data_ppk_int = Number(get_attr_from_el(tblRow, "data-ppk"));
+            if(!!data_ppk_int){
+                mod_MSO_dict.customer_pk = data_ppk_int;
+                mod_MSO_dict.order_pk = (!!data_pk_int) ? data_pk_int : 0;
+            } else {
+                mod_MSO_dict.customer_pk = 0;
+                mod_MSO_dict.order_pk = 0;
+            }
+        }
+        MSO_headertext();
+// ---  save when clicked on tblRow, not when called by script
+        if(!skip_save) { MSO_Save() };
+    }  // MSO_SelectOrder
+
+//=========  MSO_FilterCustomer  ================ PR2020-01-28
+    function MSO_FilterCustomer() {
+        console.log( "===== MSO_FilterCustomer  ========= ");
+
+        let el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
+
+        let new_filter = el_MSO_input_customer.value;
+        //console.log( "new_filter: <" + new_filter + ">");
+// ---  deselect all highlighted rows
+        let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer")
+        DeselectHighlightedTblbody(el_MSO_tblbody_customer, cls_selected)
+// reset selected customer.pk, order.pk
+        mod_MSO_dict.customer_pk = 0;
+        mod_MSO_dict.order_pk = 0;
+// ---  filter select_customer rows
+        if (!!el_MSO_tblbody_customer.rows.length){
+            const filter_dict = t_Filter_SelectRows(el_MSO_tblbody_customer, new_filter);
+// ---  if filter results have only one customer: put selected customer in el_MSO_input_customer
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            if (!!selected_pk) {
+                el_MSO_input_customer.value = get_dict_value(filter_dict, ["selected_value"])
+// ---  put pk of selected customer in mod_MSO_dict
+                const pk_int = Number(selected_pk)
+                if(!!pk_int && pk_int !== mod_MSO_dict.customer_pk){
+                    mod_MSO_dict.customer_pk = pk_int;
+                }
+// ---  Set focus to btn_save
+                let el_MSO_btn_save = document.getElementById("id_MSO_btn_save")
+                el_MSO_btn_save.focus()
+        }};
+        MSO_FillSelectTableOrder();
+        MSO_headertext();
+    }; // MSO_FilterCustomer
+
+//=========  MSO_FillSelectTableCustomer  ================ PR2020-02-07
+    function MSO_FillSelectTableCustomer() {
+        console.log( "===== MSO_FillSelectTableCustomer ========= ");
+
+        let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
+        const tblHead = null, filter_ppk_int = null, filter_include_inactive = false,
+            filter_include_absence = (show_absence_FOR_TESTING_ONLY !== false), filter_istemplate = is_template_mode;
+        t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_MSO_dict.customer_pk, null,
+            MSO_Select_Filter, null, MSO_SelectCustomer, null,
+            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, null,
+            null, cls_selected,
+        );
+// ---  lookup selected tblRow
+        let tr_selected = null;
+        if(!!mod_MSO_dict.customer_pk) {
+            for(let i = 0, tblRow; tblRow = el_MSO_tblbody_customer.rows[i]; i++){
+                const customer_pk = get_attr_from_el_int(tblRow, "data-pk");
+                if (customer_pk === mod_MSO_dict.customer_pk) {
+                    tr_selected = tblRow;
+                    break;
+                }
+            }
+        }
+        console.log( "tr_selected: ", tr_selected);
+        if(!tr_selected){
+// ---  if not found, make 'addall' row selected
+           //let tr_addall =  el_MSO_tblbody_customer.rows[0]
+           let tr_addall = el_MSO_tblbody_customer.querySelector("[data-pk='addall']");
+
+        console.log( "tr_addall: ", tr_addall);
+           if(!!tr_addall){ tr_selected = tr_addall }
+        }
+        MSO_SelectCustomer(tr_selected, null);
+
+    }  // MSO_FillSelectTableCustomer
+
+//=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
+    function MSO_FillSelectTableOrder() {
+        console.log( "===== MSO_FillSelectTableOrder ========= ");
+        console.log( "mod_MSO_dict.customer_pk: ", mod_MSO_dict.customer_pk);
+        console.log( "mod_MSO_dict.order_pk: ", mod_MSO_dict.order_pk);
+        console.log("is_template_mode: ", is_template_mode)
+
+// ---  hide div_tblbody_order when no customer selected, reset tblbody_order
+        add_or_remove_class (document.getElementById("id_MSO_div_tblbody_order"), cls_hide, !mod_MSO_dict.customer_pk)
+        let el_MSO_tblbody_order = document.getElementById("id_MSO_tblbody_order")
+        el_MSO_tblbody_order.innerText = null;
+
+        let el_MSO_btn_save = document.getElementById("id_MSO_btn_save")
+
+        if (!!mod_MSO_dict.customer_pk){
+            const filter_ppk_int = mod_MSO_dict.customer_pk, filter_include_inactive = true,
+            filter_include_absence = (show_absence_FOR_TESTING_ONLY !== false), filter_istemplate = is_template_mode;
+
+            t_Fill_SelectTable(el_MSO_tblbody_order, null, order_map, "order", mod_MSO_dict.customer_pk, null,
+                MSO_Select_Filter, null, MSO_SelectOrder, null,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, null, null, cls_selected
+            );
+    // select first tblRow
+            const rows_length = el_MSO_tblbody_order.rows.length;
+            if(!!rows_length) {
+                let firstRow = el_MSO_tblbody_order.rows[0];
+                MSO_SelectOrder(firstRow, null, true);  // skip_save = true
+                if (rows_length === 1) { el_MSO_btn_save.focus();}
+            }
+            const head_txt = (!!rows_length) ? loc.Select_order + ":" : loc.No_orders;
+            document.getElementById("id_MSO_div_tblbody_header").innerText = head_txt
+
+            el_MSO_btn_save.disabled = (!rows_length);
+        }
+    }  // MSO_FillSelectTableOrder
+
+//========= MSO_Select_Filter  ====================================
+    function MSO_Select_Filter() {
+        console.log( "===== MSO_Select_Filter  ========= ");
+        // skip filter if filter value has not changed, update variable filter_select
+
+        let el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
+        let new_filter = el_MSO_input_customer.value;
+
+        let skip_filter = false
+        if (!new_filter){
+            if (!filter_select){
+                skip_filter = true
+            } else {
+                filter_select = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_select) {
+                skip_filter = true
+            } else {
+                filter_select = new_filter.toLowerCase();
+            }
+        }
+        if (!skip_filter) {
+// filter selecttable customer and order
+            const tblBody_select_customer = document.getElementById("id_MSO_tblbody_customer")
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
+        } //  if (!skip_filter) {
+    }; // function MSO_Select_Filter
+
+
+//=========  MSO_headertext  ================ PR2020-02-07
+    function MSO_headertext() {
+        //console.log( "=== MSO_headertext  ");
+        let header_text = null;
+        if(!!mod_MSO_dict.customer_pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_MSO_dict.customer_pk)
+            const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
+            let order_code = null;
+            if(!!mod_MSO_dict.order_pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_MSO_dict.order_pk)
+                order_code = get_dict_value(order_dict, ["code", "value"]);
+                header_text = customer_code + " - " + order_code
+            } else {
+                header_text = customer_code;
+            }
+        } else {
+            header_text = loc.Customers;
+        }
+        document.getElementById("id_modorder_header").innerText = header_text
+    }  // MSO_headertext
+
+
+
+// +++++++++++++++++ END MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
+
+
+
 // +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //=========  MSE_open  ================ PR2020-03-19
@@ -4827,15 +5080,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log(el_input)
 
-        console.log("selected_scheme_pk", selected_scheme_pk)
-        console.log("selected_team_pk", selected_team_pk)
+        console.log("selected.scheme_pk", selected.scheme_pk)
+        console.log("selected.team_pk", selected.team_pk)
 
         const tlbRow = get_tablerow_selected(el_input)
         const is_grid = (!!get_attr_from_el(tlbRow, "data-isgrid"))
         console.log("is_grid", is_grid)
 
 // ---  add employee disabled in template mode, also in table when no team selected (grid mode is allowed)
-        if(is_template_mode || (!selected_team_pk && !is_grid ) ){
+        if(is_template_mode || (!selected.team_pk && !is_grid ) ){
             // TODO error: el_msg not showing yet
             // ShowMsgError(el_input, el_msg, msg_err, [200,200])
             // ---  show modal confirm with message 'First select employee'
@@ -5164,53 +5417,51 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-//=========  MSA_Open  ================ PR2020-04-19
-    function MSA_Open() {
-        console.log("=========  MSA_Open =========");
-        console.log("selected_scheme_pk: ", loc.Edit_scheme);
+//=========  MOD ADD SCHEME  ================ PR2020-04-19
+    function MAS_Open(is_addnew) {
+        console.log("=========  MAS_Open ========= is_addnew:", is_addnew);
 
 // ---  hide input box customer and order when in template_mode, also when editing an existing scheme
-        const hide_order = ( is_template_mode || !!selected_scheme_pk );
+        const hide_order = ( is_template_mode || !is_addnew || !!selected.scheme_pk );
         add_or_remove_class (document.getElementById("id_MSA_div_select_order"), cls_hide, hide_order)
         add_or_remove_class (document.getElementById("id_MSA_div_input_order"), cls_hide, hide_order)
-// ---  reset mod_upload_dict
-        const scheme_dict = get_scheme_dict(selected_order_pk, selected_scheme_pk);
-        mod_upload_dict = {selected_order_pk: selected_order_pk,
-                           scheme: scheme_dict}
-        console.log("mod_upload_dict", mod_upload_dict);
-// ---  reset input boxes
-        el_MSA_input_order.value = get_dict_value(scheme_dict, ["", "value"]);
-        el_MSA_input_code.value = get_dict_value(scheme_dict, ["code", "value"]);
-        el_MSA_input_cycle.value = get_dict_value(scheme_dict, ["cycle", "value"]);
-        el_MSA_input_datefirst.value = get_dict_value(scheme_dict, ["cycle", "value"]);
-        el_MSA_input_datelast.value = get_dict_value(scheme_dict, ["cycle", "value"]);
-        el_MSA_excl_ph.value = get_dict_value(scheme_dict, ["excludepublicholiday", "value"]);
-        el_MSA_also_ph.value = get_dict_value(scheme_dict, ["alsoonpublicholiday", "value"]);
-        el_MSA_excl_ch.value = get_dict_value(scheme_dict, ["excludecompanyholiday", "value"]);
 
-// ---  fill select table orders
-        MSA_FillSelectTable(selected_order_pk);
-// ---  set focus to el_MSA_input_code
+// ---  reset mod_upload_dict when is_addnew, otherwise: fill with scheme_dict
+        let scheme_dict = {};
+        if(is_addnew){selected.scheme_pk = 0}
+        scheme_dict = get_scheme_dict(selected.order_pk, selected.scheme_pk);
+        mod_upload_dict = {selected_order_pk: selected.order_pk, scheme: scheme_dict}
+
+// ---  set input boxes
+        el_MAS_input_order.value = get_dict_value(scheme_dict, ["", "value"]);
+        el_MAS_input_code.value = get_dict_value(scheme_dict, ["code", "value"]);
+        el_MAS_input_cycle.value = get_dict_value(scheme_dict, ["cycle", "value"]);
+        el_MAS_input_datefirst.value = get_dict_value(scheme_dict, ["cycle", "value"]);
+        el_MAS_input_datelast.value = get_dict_value(scheme_dict, ["cycle", "value"]);
+        el_MSA_excl_ph.checked = (!!get_dict_value(scheme_dict, ["excludepublicholiday", "value"], false));
+        el_MSA_also_ph.checked = (!!get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false));
+        el_MSA_excl_ch.checked = (!!get_dict_value(scheme_dict, ["excludecompanyholiday", "value"], false));
+
+// ---  set focus to el_MAS_input_order
         // delay 500ms because of modal fade
-        setTimeout(function (){el_MSA_input_order.focus();}, 500);
+        setTimeout(function (){el_MAS_input_order.focus()}, 500);
 // ---  validate values, set save btn enabled
-        const has_error = MSA_Validate(true) // skip_on_open = true: only display default messages
+        const has_error = MAS_Validate(true) // skip_on_open = true: only display default messages
         MSA_SetHeaderAndEnableBtnSave(has_error);
 // ---  open Modal Scheme Add
         $("#id_modschemeadd").modal({backdrop: true});
-    }  // MSA_Open
+    }  // MAS_Open
 
 
-//=========  MSA_Save  ================ PR2020-04-20
-    function MSA_Save() {
-        console.log("=========  MSA_Save =========");
+//=========  MAS_Save  ================ PR2020-04-20
+    function MAS_Save() {
+        console.log("=========  MAS_Save =========");
         $("#id_modschemeadd").modal("hide");
 
         let upload_dict = mod_upload_dict.scheme;
         let url_str = url_scheme_shift_team_upload;
         UploadChanges(upload_dict, url_str)
-    }  // MSA_Save
-
+    }  // MAS_Save
 
 //=========  get_scheme_dict  ================ PR2020-04-20
     function get_scheme_dict(order_pk, scheme_pk) {
@@ -5219,7 +5470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "scheme_pk", scheme_pk)
 // --- GET SCHEME ----------------------------------
         let scheme_ppk = null, scheme_code = null, scheme_cycle = null;
-        let datefirst = null, datelast = null, excl_ph = false, alsoon_ph = false, excl_ch = false;
+        let datefirst = null, datelast = null, excl_ph = false, dvg_onph = false, excl_ch = false;
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", scheme_pk);
         const is_addnew = (isEmpty(map_dict))
         if (is_addnew) {;
@@ -5237,7 +5488,7 @@ document.addEventListener('DOMContentLoaded', function() {
             datefirst = get_dict_value(map_dict, ["datefirst", "value"]);
             datelast = get_dict_value(map_dict, ["datelast", "value"]);
             excl_ph = get_dict_value(map_dict, ["excludepublicholiday", "value"], false)
-            alsoon_ph = get_dict_value(map_dict, ["alsoonpublicholiday", "value"], false)
+            dvg_onph = get_dict_value(map_dict, ["divergentonpublicholiday", "value"], false)
             excl_ch = get_dict_value(map_dict, ["excludecompanyholiday", "value"], false)
         }
         let scheme_dict = { id: {pk: scheme_pk,
@@ -5248,7 +5499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             datefirst: {value: datefirst},
                             datelast: {value: datelast},
                             excludepublicholiday: {value: excl_ph},
-                            alsoonpublicholiday: {value: alsoon_ph},
+                            divergentonpublicholiday: {value: dvg_onph},
                             excludecompanyholiday: {value: excl_ch}
                         };
         if (is_addnew) {
@@ -5258,174 +5509,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return scheme_dict
     }
-
-//=========  MSA_InputElementKeyup  ================ PR2020-04-20
-    function MSA_InputElementKeyup(el_input) {
-        console.log( "=== MSA_InputElementKeyup === ")
-        console.log( "el_input.value:  ", el_input.value)
-        console.log( "filter_dict:  ", filter_dict)
-
-        const tblName = "order";
-        const new_filter = el_input.value
-        let tblBody_select = document.getElementById("id_MSA_tblbody_select");
-        const len = tblBody_select.rows.length;
-        if (!!len){
-
-// ---  filter select rows
-            // if filter results have only one order: put selected order in el_MRO_input_order
-            // filter_dict: {row_count: 1, selected_pk: "730", selected_parentpk: "3", selected_value: "Rabo", selected_display: null}
-            // selected_pk only gets value when there is one row
-            const filter_dict = t_Filter_SelectRows(tblBody_select, new_filter);
-            const only_one_selected_pk = get_dict_value(filter_dict, ["selected_pk"])
-            const ppk_str = get_dict_value(filter_dict, ["selected_parentpk"])
-            const code_value = get_dict_value(filter_dict, ["selected_value"])
-            console.log( "ppk_str:  ", ppk_str)
-            console.log( "code_value:  ", code_value)
-
-            if (!!only_one_selected_pk) {
-            console.log( "only_one_selected_pk:  ", only_one_selected_pk)
-// ---  get pk of selected item (when there is only one row in selection)
-                const pk_int = (!!Number(only_one_selected_pk)) ? Number(only_one_selected_pk) : null;
-                const ppk_int = (!!Number(ppk_str)) ? Number(ppk_str) : null;
-            console.log( "pk_int:  ", pk_int)
-// ---  highlight row
-                MSA_SelecttableUpdateAfterSelect(pk_int, ppk_int, code_value)
-// ---  set header and btn save enabled
-                MSA_SetHeaderAndEnableBtnSave();
-// ---  set focus to btn_save
-                //if(!el_MRO_btn_save.disabled){
-                //    el_MRO_btn_save.focus()
-                //}
-
-            }  //  if (!!selected_pk) {
-        }
-    }  // MSA_InputElementKeyup
-
-//=========  MSA_FillSelectTable  ================ PR2020-02-29
-    function MSA_FillSelectTable(selected_pk) {
-        //console.log( "===== MSA_FillSelectTable ========= ");
-        //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
-
-        let filter_pk = null;
-
-        const select_header_text = loc.Customers_and_orders + ":";
-        const caption_none = loc.No_orders;
-        document.getElementById("id_MSA_select_header").innerText = select_header_text;
-
-        let tableBody = document.getElementById("id_MSA_tblbody_select");
-        tableBody.innerText = null;
-
-        let row_count = 0, has_selected_pk = false;
-//--- when no items found: show 'select_customer_none'
-        if (order_map.size === 0){
-
-        } else {
-//--- loop through order_map
-            for (const [map_id, item_dict] of order_map.entries()) {
-                // is_absence, istemplate and  inactive are already filtered on download, let filter stay
-                const pk_int = get_dict_value(item_dict, ["id", "pk"]);
-                const ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
-                const order_is_absence = (!!get_dict_value(item_dict, ["id", "isabsence"], false));
-                const order_istemplate = (!!get_dict_value(item_dict, ["id", "istemplate"], false));
-                const order_inactive = (!!get_dict_value(item_dict, ["inactive", "value"], false));
-
-//--- check if item must be added to list
-                let add_to_list = false, has_selected_pk = false;
-                const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-                const order_code = get_dict_value(item_dict, ["code", "value"], "");
-                const code_value = customer_code + " - " + order_code;
-                const customer_inactive = get_dict_value(item_dict, ["customer", "inactive"])
-                add_to_list = (!order_is_absence && !order_istemplate && !order_inactive && !customer_inactive );
-
-                if (add_to_list){
-                    row_count += 1;
-                    const is_selected_pk = (!!selected_order_pk &&  pk_int === selected_order_pk)
-//- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
-                    let tblRow = tableBody.insertRow(-1);
-                    tblRow.setAttribute("data-pk", pk_int);
-                    tblRow.setAttribute("data-ppk", ppk_int);
-                    tblRow.setAttribute("data-value", code_value);
-//- add hover to tblRow
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
-//- add EventListener to tblRow
-                    tblRow.addEventListener("click", function() {MSA_SelecttableClicked(tblRow)}, false )
-
-                    if (is_selected_pk){
-                        has_selected_pk = true;
-// ---  highlight clicked row
-                        tblRow.classList.add(cls_selected)
-                    }
-
-// - add first td to tblRow.
-                    let td = tblRow.insertCell(-1);
-// --- add a element to td., necessary to get same structure as item_table, used for filtering
-                    let el = document.createElement("div");
-                        el.innerText = code_value;
-                        el.classList.add("mx-1")
-                    td.appendChild(el);
-                } //  if (pk_int !== selected_customer_pk)
-            } // for (const [pk_int, item_dict] of data_map.entries())
-        }  // if (data_map.size === 0)
-        if(row_count === 0){
-            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            td.innerText = caption_none;
-        } else if(row_count === 1){
-            let tblRow = tableBody.rows[0]
-            if(!!tblRow)
-// ---  highlight first row
-                tblRow.classList.add(cls_selected)
-                MSA_SelecttableClicked(tblRow)
-        }
-        return has_selected_pk;
-    }  // MSA_FillSelectTable
-
-//=========  MSA_SelecttableClicked  ================ PR2020-01-09
-    function MSA_SelecttableClicked(tblRow) {
-        console.log( "===== MSA_SelecttableClicked ========= ");
-
-        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
-// ---  get clicked tablerow
-        if(!!tblRow) {
-// ---  deselect all highlighted rows
-            DeselectHighlightedRows(tblRow, cls_selected)
-// ---  highlight clicked row
-            tblRow.classList.add(cls_selected)
-// ---  get pk from selected tblRow
-            const pk_int = get_attr_from_el_int(tblRow, "data-pk")
-            const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
-            const code_value = get_attr_from_el(tblRow, "data-value", "")
-            MSA_SelecttableUpdateAfterSelect(pk_int, ppk_int, code_value)
-// ---  set header and enable btn csave
-            MSA_SetHeaderAndEnableBtnSave();
-        }
-    }  // MSA_SelecttableClicked
-
-//=========  MSA_SelecttableUpdateAfterSelect  ================ PR2020-04-12
-    function MSA_SelecttableUpdateAfterSelect(pk_int, ppk_int, code_value) {
-        console.log( "===== MSA_SelecttableUpdateAfterSelect ========= ");
-        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
-        console.log( "pk_int:", pk_int, typeof pk_int);
-        console.log( "ppk_int:", ppk_int, typeof ppk_int);
-        console.log( "code_value:", code_value);
-
-
-
-        if(!!pk_int) {
-            mod_upload_dict.selected_order_pk = pk_int;
-            el_MSA_input_order.value = code_value
-            mod_upload_dict.scheme = get_scheme_dict(pk_int, null);
-            el_MSA_input_code.value = get_dict_value(mod_upload_dict, ["scheme", "code", "value"])
-            console.log( "mod_upload_dict:", mod_upload_dict);
-
-            setTimeout(function (){el_MSA_btn_save.focus()}, 50);
-        }
-
-        const has_error = MSA_Validate() // skip_on_open = true: only display default messages
-
-    }  // MSA_SelecttableUpdateAfterSelect
-
 
 //=========  MSO_SchemeCycleChanged  ================ PR2020-01-03
     function MSO_SchemeCycleChanged(fldName) {
@@ -5437,15 +5520,15 @@ document.addEventListener('DOMContentLoaded', function() {
         MSO_SetSchemeCycleText(cycle_value);
     }; // MSO_SchemeCycleChanged
 
-//=========  MSA_DateChanged  ================ PR2020-01-03
-    function MSA_DateChanged(fldName) {
-        console.log( "===== MSA_DateChanged  ========= ");
+//=========  MAS_DateChanged  ================ PR2020-01-03
+    function MAS_DateChanged(fldName) {
+        console.log( "===== MAS_DateChanged  ========= ");
         console.log( "fldName ", fldName);
 
         if (fldName === "datefirst") {
-            mod_upload_dict.scheme.datefirst = {value: el_MSA_input_datefirst.value, update: true}
+            mod_upload_dict.scheme.datefirst = {value: el_MAS_input_datefirst.value, update: true}
         } else if (fldName === "datelast") {
-            mod_upload_dict.scheme.datelast = {value: el_MSA_input_datelast.value, update: true}
+            mod_upload_dict.scheme.datelast = {value: el_MAS_input_datelast.value, update: true}
         }
         console.log( "mod_upload_dict.scheme: ", mod_upload_dict.scheme);
         // ---  set new min max of both date field
@@ -5453,16 +5536,29 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "el_MSA_date_container.scheme: ", el_MSA_date_container);
         set_other_datefield_minmax(el_MSA_date_container, fldName);
 
-    }; // MSA_DateChanged
+    }; // MAS_DateChanged
 
 
-//=========  MSA_CheckedChanged  ================ PR2020-04-20
-    function MSA_CheckedChanged(el_input, fldName) {
-        console.log( "===== MSA_CheckedChanged  ========= ");
+//=========  MAS_CheckedChanged  ================ PR2020-04-20
+    function MAS_CheckedChanged(el_input, fldName) {
+        console.log( "===== MAS_CheckedChanged  ========= ");
         console.log( "fldName ", fldName);
         mod_upload_dict.scheme[fldName] = {value: el_input.checked, update: true}
         console.log( "mod_upload_dict ", mod_upload_dict);
-    }; // MSA_CheckedChanged
+
+// reset other field (in scheme, publicholiday)
+        if(["divergentonpublicholiday", "excludepublicholiday"].indexOf(fldName) > -1) {
+            // in scheme:  if value of this field is true, set other field false
+            if(el_input.checked){
+                const other_field_id = (fldName === "divergentonpublicholiday") ? "id_MSA_excl_ph" : "id_MSA_also_ph"
+                const other_el = document.getElementById(other_field_id)
+                if(other_el && other_el.checked){
+                    other_el.checked = false;
+                    const other_fldName = (fldName === "divergentonpublicholiday") ? "excludepublicholiday" : "divergentonpublicholiday"
+                    mod_upload_dict.scheme[other_fldName] = {value: false, update: true}
+        }}};
+
+    }; // MAS_CheckedChanged
 
 
 //=========  MSO_PublicholidayChanged  ================ PR2020-01-03
@@ -5470,21 +5566,33 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== MSO_PublicholidayChanged  ========= ");
         if (fldName === "excludepublicholiday") {
             mod_upload_dict.scheme.excludepublicholiday = {value: el_MSO_excl_ph.checked, update: true}
-        } else if (fldName === "alsoonpublicholiday") {
-            mod_upload_dict.scheme.alsoonpublicholiday = {value: el_MSO_also_ph.checked, update: true}
+        } else if (fldName === "divergentonpublicholiday") {
+            mod_upload_dict.scheme.divergentonpublicholiday = {value: el_MSO_also_ph.checked, update: true}
         } else if (fldName === "excludecompanyholiday") {
             mod_upload_dict.scheme.excludecompanyholiday = {value: el_MSO_excl_ch.checked, update: true}
         }
-    }; // function MSO_PublicholidayChanged
+// reset other field (in scheme, publicholiday)
+        if(["divergentonpublicholiday", "excludepublicholiday"].indexOf(fldName) > -1) {
+            // in scheme:  if value of this field is true, set other field false
+            if(el_input.checked){
+                const other_field_id = (fldName === "divergentonpublicholiday") ? "id_MSA_excl_ph" : "id_MSA_also_ph"
+                const other_el = document.getElementById(other_field_id)
+                if(other_el && other_el.checked){
+                    other_el.checked = false;
+                    const other_fldName = (fldName === "divergentonpublicholiday") ? "excludepublicholiday" : "divergentonpublicholiday"
+                    mod_upload_dict.scheme[other_fldName] = {value: false, update: true}
+        }}};
 
+
+    }; // function MSO_PublicholidayChanged
 
 //=========  MSA_SetHeaderAndEnableBtnSave  ================ PR2020-04-20
     function MSA_SetHeaderAndEnableBtnSave (has_error) {
         console.log(" -----  MSA_SetHeaderAndEnableBtnSave   ---- has_error: ", has_error)
 
 // ---  create header text
-        let header_text = (is_template_mode) ? (!!selected_scheme_pk) ? loc.Edit_template : loc.Add_template :
-                                                 (!!selected_scheme_pk) ? loc.Edit_scheme : loc.Add_scheme;
+        let header_text = (is_template_mode) ? (!!selected.scheme_pk) ? loc.Edit_template : loc.Add_template :
+                                                 (!!selected.scheme_pk) ? loc.Edit_scheme : loc.Add_scheme;
 
         if(!has_error){
             header_text += "...";
@@ -5501,9 +5609,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // MSA_SetHeaderAndEnableBtnSave
 
 //VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-//========= MSA_Validate  ================ PR2019-07-20
-    function MSA_Validate(skip_on_open) {
-        console.log("=========  MSA_Validate =========");
+//========= MAS_Validate  ================ PR2019-07-20
+    function MAS_Validate(skip_on_open) {
+        console.log("=========  MAS_Validate ========= skip_on_open", skip_on_open);
         let has_error = false;
 
         if(!skip_on_open){
@@ -5511,32 +5619,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const msg_err = (is_error) ? loc.Please_select_order : null;
             if(is_error){has_error = true};
             let el_err = document.getElementById("id_MSA_msg_order");
-            formcontrol_err_msg(el_MSA_input_order, el_err, msg_err)
+            formcontrol_err_msg(el_MAS_input_order, el_err, msg_err)
         };
         if(!skip_on_open){
-            const is_error = (!el_MSA_input_code.value);
+            const is_error = (!el_MAS_input_code.value);
             const msg_err = (is_error) ? loc.err_msg_Enter_scheme_name : null;
             if(is_error){has_error = true};
             let el_err = document.getElementById("id_MSA_msg_code");
-            formcontrol_err_msg(el_MSA_input_code, el_err, msg_err);
+            formcontrol_err_msg(el_MAS_input_code, el_err, msg_err);
         };
         // show default also on open
         let msg_err = null
-        if(!el_MSA_input_cycle.value){
+        if(!el_MAS_input_cycle.value){
             has_error = true
             msg_err = loc.err_msg_Enter_cycle_days;
         } else {
-            const cycle_int = Number(el_MSA_input_cycle.value)
+            const cycle_int = Number(el_MAS_input_cycle.value)
              if(cycle_int < 1 || cycle_int > 28){
-                has_error = true
+                has_error = true;
                 msg_err = loc.err_msg_Cycle_outof_range;
             }
         }
         let el_err = document.getElementById("id_MSA_msg_cycle");
-        const msg_default = loc.Enter_cycle_days
-        formcontrol_err_msg(el_MSA_input_cycle, el_err, msg_err, msg_default);
+        const msg_default = loc.Enter_cycle_days;
+        formcontrol_err_msg(el_MAS_input_cycle, el_err, msg_err, msg_default);
         return has_error;
-    }  // MSA_Validate
+    }  // MAS_Validate
 
 // +++++++++++++++++ MODAL COPYFROM TEMPLATE  +++++++++++++++++++++++++++++++
 
@@ -5546,8 +5654,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // disable btn when templates are shown
         if(!is_template_mode) {
-            if(!!selected_order_pk && selected_cust_pk) {
-                mod_upload_dict = {"copyto_order_pk": selected_order_pk, "copyto_order_ppk": selected_cust_pk};
+            if(!!selected.order_pk && selected.customer_pk) {
+                mod_upload_dict = {copyto_order_pk: selected.order_pk, copyto_order_ppk: selected.customer_pk};
             // reset input elements
                 //el_mod_copyfrom_template_select.value = null
                 //let el_err = document.getElementById("id_mod_copyfrom_template_select_err");
@@ -5572,14 +5680,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 SBR_FillSelectTable("template", "ModCopyfromTemplateOpen", 0, false)
 
-                  // selected_order_pk is the order to which de template scheme will be copied.
-            // cannot copy if selected_order_pk is blank
-                document.getElementById("id_mod_copyfrom_btn_save").readOnly = (!selected_order_pk)
+                  // selected.order_pk is the order to which de template scheme will be copied.
+            // cannot copy if selected.order_pk is blank
+                document.getElementById("id_mod_copyfrom_btn_save").readOnly = (!selected.order_pk)
 
             // ---  show modal
                 $("#id_mod_copyfrom").modal({backdrop: true});
 
-            }  //  if(!!selected_order_pk && selected_cust_pk) {
+            }  //  if(!!selected.order_pk && selected.customer_pk) {
         }
 }; // function ModCopyfromTemplateOpen
 
@@ -5795,19 +5903,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // get copyto ppk from selected order
             let selected_order_ppk;
-            if(!!selected_order_pk) {
+            if(!!selected.order_pk) {
     // get template ppk and ppk from scheme_template_list
 
 // --- loop through scheme_map
                 for (const [map_id, item_dict] of scheme_map.entries()) {
                     const pk_int = get_pk_from_dict(item_dict);
                     const ppk_int = get_ppk_from_dict(item_dict);
-                    if(pk_int === selected_order_pk){
+                    if(pk_int === selected.order_pk){
                         selected_order_ppk = ppk_int
                         break;
                     }
                 }
-            }  // if(!!selected_order_pk)
+            }  // if(!!selected.order_pk)
 
 // get rosterdate of cyclestart record from schemeitem_template_list
             //let new_datestart;
@@ -5817,7 +5925,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const dict ={"id": {"pk": template_pk, "ppk": template_ppk, "table": "template_scheme"}}
             if (!!template_code){
                 dict["code"] = {"value": template_code, "update": true}
-                dict["order"] = {"pk": selected_order_pk}
+                dict["order"] = {"pk": selected.order_pk}
             }
             let parameters = {"copyfromtemplate": JSON.stringify (dict)};
             //console.log("parameters");
@@ -5849,7 +5957,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= ModCopytoTemplateOpen====================================
     function ModCopytoTemplateOpen () {
        console.log("===  ModCopytoTemplateOpen  =====") ;
-       //console.log("selected_scheme_pk: ", selected_scheme_pk) ;
+       //console.log("selected.scheme_pk: ", selected.scheme_pk) ;
 
         // disable btn when templates are shown
         if(!is_template_mode){
@@ -5857,9 +5965,9 @@ document.addEventListener('DOMContentLoaded', function() {
             el_input.innerText = null
 
         // get selected scheme from scheme_map
-            if (!!selected_scheme_pk){
+            if (!!selected.scheme_pk){
 
-                const map_id = get_map_id("scheme", selected_scheme_pk);
+                const map_id = get_map_id("scheme", selected.scheme_pk);
                 let item_dict = get_mapdict_from_datamap_by_id(scheme_map, map_id)
                 let code_txt = get_subdict_value_by_key (item_dict, "code", "value") + " " + loc.Template.toLowerCase()
                 el_input.value = code_txt
@@ -5912,7 +6020,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModalCopytoTemplateSave() {
         console.log("=========  ModalCopytoTemplateSave =========");
 
-        const dict ={id: {pk: selected_scheme_pk, ppk: selected_order_pk,
+        const dict ={id: {pk: selected.scheme_pk, ppk: selected.order_pk,
                         istemplate: true, table: "scheme", mode: "copyto"}}
 
         let template_code = document.getElementById("id_mod_copyto_code").value
@@ -6101,7 +6209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             if ("team_list" in response){
                                 get_datamap(response["team_list"], team_map)
-                                //SBR_FillSelectTable("team", "HandlePopupDateSave", selected_team_pk, true)
+                                //SBR_FillSelectTable("team", "HandlePopupDateSave", selected.team_pk, true)
                             }
                             if ("teammember_update" in response){
                                 UpdateFromResponse(response["teammember_update"]);
@@ -6461,24 +6569,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function UpdateSettings(setting_dict){
         //console.log(" --- UpdateSettings ---")
         //console.log("setting_dict", setting_dict)
-        // only called at openign op page
+        // only called at opening of page
 
         let key = "selected_pk";
         if (key in setting_dict){
             const sel_dict = setting_dict[key];
-            //console.log("sel_dict", sel_dict)
-
             // these variables store pk of customer / order from setting.
             // They are used in HandleSelectCustomer to go to saved customer / order
             // field type is integer
-            setting_cust_pk = get_dict_value_by_key(sel_dict, "sel_cust_pk", 0);
-            setting_order_pk = get_dict_value_by_key(sel_dict, "sel_order_pk", 0);
-            setting_scheme_pk = get_dict_value_by_key(sel_dict, "sel_scheme_pk", 0);
+            settings.customer_pk = get_dict_value(sel_dict, ["sel_cust_pk"], 0);
+            settings.order_pk = get_dict_value(sel_dict, ["sel_order_pk"], 0);
+            settings.scheme_pk = get_dict_value(sel_dict, ["sel_scheme_pk"], 0);
 
-            // selected_cust_pk can also contain pk of template customer
-            selected_cust_pk = setting_cust_pk;
-            selected_order_pk = setting_order_pk;
-            selected_scheme_pk = setting_scheme_pk;
+            // selected.customer_pk can also contain pk of template customer,
+            // settings.customer_pk only contains normal customers
+            selected.customer_pk = settings.customer_pk;
+            selected.order_pk = settings.order_pk;
+            selected.scheme_pk = settings.scheme_pk;
         }
         key = "quicksave";
         if (key in setting_dict){
@@ -6486,62 +6593,78 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         key = "page_scheme";
         if (key in setting_dict){
-            const page_dict = setting_dict[key];
-            if ("btn" in page_dict ){
-                selected_btn = page_dict["btn"];
-                HandleBtnSelect(selected_btn, true);
-            }
+            selected.btn = get_dict_value(setting_dict, [key, "btn"], "btn_gridlayout")
+            HandleBtnSelect(selected.btn, true);  // skip_update = true
         }
+        //console.log("settings", settings)
     }  // UpdateSettings
 
 //========= UpdateHeaderText  ================== PR2019-11-23
-    function UpdateHeaderText(){
-        //console.log(" --- UpdateHeaderText ---")
+    function UpdateHeaderText(calledby){
+        //console.log(" --- UpdateHeaderText ---",calledby )
+
         // from fill select order
-        let header_text = "";
-        // Was:
-        //if(!is_template_mode){
-        //    if(el_select_customer.selectedIndex > -1){
-        //        if(!!el_select_customer.options[el_select_customer.selectedIndex].text){
-        //            header_text = el_select_customer.options[el_select_customer.selectedIndex].text
-        //        };
-        //    }
-        //}
+        let header_text = "", hdr_right_text = "";
 
         if(!!is_template_mode){
             header_text = loc.Template + ":  "
+            el_sidebar_select_order.value = null;
         } else {
-            if(!!selected_cust_pk){
-                const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map,"customer", selected_cust_pk)
-                const cust_code = get_subdict_value_by_key(map_dict, "code", "value")
-                if(cust_code){header_text = cust_code;}
+            let pk_int = null;
+            if(!!selected.order_pk){
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected.order_pk)
+                pk_int = get_dict_value(map_dict, ["id", "pk"])
+
+                const order_code = get_dict_value(map_dict, ["code", "value"], "")
+                const customer_code = get_dict_value(map_dict, ["customer", "code"], "")
+                header_text += customer_code + "  -  " + order_code;
             }
-            // index 0 contains 'select order' when there are multiple options)
-            // skip if no option selected or when option = 0 with multiple options
-            if(!!selected_order_pk){
-                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map,"order", selected_order_pk)
-                const order_code = get_subdict_value_by_key(map_dict, "code", "value")
-                if(order_code){
-                    if(!!header_text) {header_text += "  -  "};
-                    header_text += order_code;
+            // if selected.order_pk not found in order_map: reset
+            if (!pk_int) {
+                selected.order_pk = 0
+                selected.customer_pk = 0
+                selected.scheme_pk = 0
+                // check if any orders
+                let has_records = false;
+                if(!!order_map.size){
+                // --- loop through order_map
+                    for (const [map_id, item_dict] of order_map.entries()) {
+                        istemplate: {value: true}
+                        const is_template = get_dict_value(item_dict, ["istemplate", "value"], false)
+                        if (is_template === is_template_mode) {
+                            has_records = true;
+                            break;
+                        }
+                    }
                 }
+                header_text = (has_records) ? loc.Select_customer_and_order + "..." : loc.No_orders;
             }
+
+// ---  update text of sidebar select customer-order
+            el_sidebar_select_order.value = header_text
+
         }
-        if(!!selected_scheme_pk){
-            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map,"scheme", selected_scheme_pk)
-            const code = get_dict_value(map_dict, ["code", "value"])
-            const cycle = get_dict_value(map_dict, ["cycle", "value"])
+        //console.log("header_text", header_text)
+        let scheme_dict = {};
+        if(!!selected.scheme_pk){
+            scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map,"scheme", selected.scheme_pk)
+            const code = get_dict_value(scheme_dict, ["code", "value"])
+            const cycle = get_dict_value(scheme_dict, ["cycle", "value"])
             if(code){
                 if(!is_template_mode && !!header_text) {header_text += "  -  "};
                 header_text +=  code;
             }
-            let hdr_right_text = null
+
             if(cycle){
                 hdr_right_text = cycle.toString() + "-" + loc.days_cycle;
             }
-            document.getElementById("id_hdr_right_text").innerText = hdr_right_text
         }
-        document.getElementById("id_hdr_text").innerText = header_text
+        document.getElementById("id_hdr_text").innerText = header_text;
+        document.getElementById("id_hdr_right_text").innerText = hdr_right_text;
+
+        //Grid_FillGrid(scheme_dict, "UpdateHeaderText")
+        //UpdateSchemeInputElements(scheme_dict, "UpdateHeaderText");
+
     }   //  UpdateHeaderText
 
 //========= get_mapdict_from_tblRow  ================== PR2019-10-30
@@ -6562,10 +6685,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // get_mapdict_from_tblRow
 
 
-//========= update_map_item  ====================================
-    function update_map_item(tblName, map_id, update_dict){  // PR2019-12-01 PR2020-03-15
-        console.log(" --- update_map_item ---", tblName, map_id)
-        console.log("update_dict: ", update_dict)
+//========= update_map_item_local  ====================================
+    function update_map_item_local(tblName, map_id, update_dict){  // PR2019-12-01 PR2020-03-15
+        //console.log(" --- update_map_item_local ---", tblName, map_id)
+        //console.log("update_dict: ", update_dict)
         // called by UpdateFromResponse, Grid_UpdateFromResponse_si, Grid_UpdateFromResponse_tm
         if(!!tblName && !!map_id && !isEmpty(update_dict)){
 
@@ -6591,7 +6714,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            (tblName === "schemeitem") ? schemeitem_map :
                            (tblName === "teammember") ? teammember_map : null
 
-        console.log("data_map.size before: ", data_map.size)
+        //console.log("data_map.size before: ", data_map.size)
             if(is_deleted){
                 if(!!data_map.size){
                     data_map.delete(map_id);
@@ -6607,9 +6730,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log("is_updated")
                 }
             }
-        console.log("data_map.size after: ", data_map.size)
+        //console.log("data_map.size after: ", data_map.size)
         }  // if(!isEmpty(id_dict))
-    }  // update_map_item
+    }  // update_map_item_local
 
 //========= GetDatetimeLocal  ====================================
   //  function GetDatetimeLocalXXX(data_datetime, loc.comp_timezone) {
@@ -6644,13 +6767,16 @@ document.addEventListener('DOMContentLoaded', function() {
 //grid layout
 
 //========= Grid_FillGrid  ====================================
-    function Grid_FillGrid(scheme_dict) {
-        //console.log(" === Grid_FillGrid ===") // PR2020-03-13
-        //console.log("scheme_dict: ", scheme_dict) // PR2020-03-13
+    function Grid_FillGrid(scheme_dict, calledby) {
+        console.log(" === Grid_FillGrid ===", calledby) // PR2020-03-13
+        console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
 
         let el_btn_datefirstlast = document.getElementById("id_grid_scheme_btn_datefirstlast")
         let el_btn_exph = document.getElementById("id_grid_scheme_btn_exph")
         let el_btn_exch = document.getElementById("id_grid_scheme_btn_exch")
+
+// ---  reset grid_table_dict
+        grid_table_dict = {}
 
 // ---  reset scheme fields
         el_grid_scheme_btn_code.innerText = loc.Scheme + ":";
@@ -6661,17 +6787,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  put scheme values in scheme section
         if(!isEmpty(scheme_dict)){
-            const scheme_pk = get_dict_value(scheme_dict, ["id", "pk"])
+            const scheme_pk = get_dict_value(scheme_dict, ["id", "pk"]);
             const scheme_code = get_dict_value(scheme_dict, ["code", "value"]);
-            el_grid_scheme_btn_code.innerText = get_dict_value(scheme_dict, ["code", "value"])
-            const cycle = get_dict_value(scheme_dict, ["cycle", "value"])
-            if(cycle){el_grid_scheme_btn_cycle.innerText = cycle.toString() + "-" + loc.days_cycle};
-            const exph = get_dict_value(scheme_dict, ["excludepublicholiday", "value"], false)
-            el_btn_exph.innerText = (exph) ? loc.Not_on_public_holidays : loc.Also_on_public_holidays;
-            const exch = get_dict_value(scheme_dict, ["excludecompanyholiday", "value"], false)
-            el_btn_exch.innerText = (exch)  ? loc.Not_on_company_holidays : loc.Also_on_company_holidays;
+            const cycle = get_dict_value(scheme_dict, ["cycle", "value"]);
             const datefirst_iso = get_dict_value(scheme_dict, ["datefirst", "value"], "")
             const datelast_iso = get_dict_value(scheme_dict, ["datelast", "value"], "")
+            const exph = get_dict_value(scheme_dict, ["excludepublicholiday", "value"], false);
+            const dvg_onph = get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false);
+            const exch = get_dict_value(scheme_dict, ["excludecompanyholiday", "value"], false)
+
+            el_grid_scheme_btn_code.innerText = get_dict_value(scheme_dict, ["code", "value"])
+            if(cycle){el_grid_scheme_btn_cycle.innerText = cycle.toString() + "-" + loc.days_cycle};
+            el_btn_exph.innerText = (exph) ? loc.Not_on_public_holidays : (dvg_onph) ? loc.Divergent_shift_on_public_holidays : loc.Also_on_public_holidays;
+            el_btn_exch.innerText = (exch) ? loc.Not_on_company_holidays : loc.Also_on_company_holidays;
+
+// ---  put scheme in grid_table_dict
+            grid_table_dict.scheme = {
+                    pk: scheme_pk,
+                    code: scheme_code,
+                    cycle: cycle,
+                    datefirst: datefirst_iso,
+                    datelast: datelast_iso,
+                    exph: exph,
+                    exch: exch,
+                    dvg_onph: dvg_onph};
 
             let periodtext = "", prefix = "";
             if(!!datefirst_iso && !!datelast_iso) {
@@ -6691,26 +6830,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             el_btn_datefirstlast.innerText = periodtext;
 
-// fill grid_teams_dict, teams and shifts
             Grid_CreateTblTeams(scheme_pk);
-            Grid_CreateTblShifts(scheme_pk)
-            Grid_FillTblShifts(scheme_pk)
+            Grid_CreateTblShifts(scheme_pk);
+
         }  //if(!isEmpty(scheme_dict)){
     }  // Grid_FillGrid
 
 //=========  Grid_CreateTblTeams  === PR2020-03-13
     function Grid_CreateTblTeams(scheme_pk) {
-        //console.log("===  Grid_CreateTblTeams == ");
+        console.log("===  Grid_CreateTblTeams == ");
+        // called by Grid_FillGrid, Grid_UpdateFromResponse_team, Grid_UpdateFromResponse_tm
+        // functions also fills grid_teams_dict
 
         let tblBody = document.getElementById("id_grid_tbody_team");
         tblBody.innerText = null
 
-        grid_teams_dict = {}
+        grid_teams_dict = {};
 
 /*  structure of  grid_teams_dict:
-       keys are team_pk's,
-       value has id_dict:  {id: {col: index, row_id: id, code: team_code, abbrev: abbrev}};
-       plus dict for every teammember of team
+       - keys are team_pk's,
+       - value has id_dict:  {id: {col: index, row_id: id, code: team_code, abbrev: abbrev}};
+                              key = tm_pk for every teammember of team
        2376: { id: {col: 4, row_id: "team_2376", code: "Ploeg E", abbrev: "E"}
                1327: {row: 2, row_id: "tm_1327", display: "---"} }
        new: {  id: {col: 5} }
@@ -6802,12 +6942,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  count how many teammembers this team_dict already has
                             // team_dict also has key 'id', therefore count = length - 1
                             const tm_dict_length = Object.keys(team_dict).length;
-                //console.log("tm_dict_length", tm_dict_length)
                             // select_row has index 0, header_row has index 1
                             // first teammember has row index 2 : index = tm_dict_length + 1, min = 2
                             const row_index = (!!tm_dict_length) ? tm_dict_length + 1 : 2;
-                //console.log("row_index", row_index)
-                //console.log("max_row_index", max_row_index)
                             // add row to table when necessary
                             if (row_index > max_row_index) {
                                 max_row_index = row_index
@@ -6819,6 +6956,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // grd_border_right needed to display all cells with same width
                                     td.classList.add("grd_border_right");
                                     tblRow.appendChild(td);
+
+
                                 }
                             }
                             const row_id ="tm_" + tm_pk.toString();
@@ -6844,16 +6983,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const lookup_cell = lookup_tblRow.cells[col_idx]
                                 lookup_cell.innerText = employee_code
                                 lookup_cell.classList.add("grd_team_td");
-
             // add EventListener to lookup_cell
                                 lookup_cell.addEventListener("click", function() {MGT_Open(lookup_cell)}, false )
                                 lookup_cell.classList.add("pointer_show")
             // add data-pk and data-ppk to lookup_cell
                                 lookup_cell.setAttribute("data-team_pk", team_pk);
                                 lookup_cell.setAttribute("data-scheme_pk", scheme_pk);
-
-            //console.log("tm_employee_code", tm_employee_code)
-            //console.log("lookup_column", lookup_column)
                             }
                         }  // if (!!team_dict)
                     }
@@ -6865,78 +7000,91 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  Grid_CreateTblShifts  === PR2020-03-13
     function Grid_CreateTblShifts(scheme_pk) {
-        //console.log("===  Grid_CreateTblShifts == ", scheme_pk, cycle)
+        console.log("===  Grid_CreateTblShifts == ", scheme_pk)
 
         let tblBody = document.getElementById("id_grid_tbody_shift");
         tblBody.innerText = null
+        let first_rosterdate_JS = null;
 
-// --- reset list of map_id's of the schemeitems of the selected scheme
-        grid_schemeitem_list = [];
-
-        let min_rosterdate = null, cycle = null
+        let cycle = null, dvg_onph = false, add_ph_column = 0;
         if (!!scheme_pk){
+// ---  get scheme from scheme_map
             const scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", scheme_pk)
             cycle = get_dict_value(scheme_dict, ["cycle", "value"])
+            dvg_onph = get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false)
+            add_ph_column = (dvg_onph) ? 1 : 0;
 
-// +++  loop through schemeitem_map to get first rosterdate and store schemeitems of this scheme in grid_schemeitem_map
-            for (const [map_id, si_dict] of schemeitem_map.entries()) {
-                const ppk_int = get_dict_value(si_dict, ["id", "ppk"], 0);
-// ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
-                if (!!ppk_int && scheme_pk === ppk_int) {
-                    const pk_int = get_dict_value(si_dict, ["id", "pk"], 0);
-                    const rosterdate = get_dict_value(si_dict, ["rosterdate", "value"]);
-                    const shift_pk = get_dict_value(si_dict, ["shift", "pk"]);
-                    const team_pk = get_dict_value(si_dict, ["team", "pk"]);
+// ---  get first rosterdate of grid: Monday when cycle >=7, Mon/Thu when cycle>= 4 and <7, today when cycle < 4
+            // -- new Date(); also has current time. Convert to date without time
+            // -- function: get_dateJS_from_dateISO (get_today_iso()) gives date from UTC time,
+            //    instead of '2020-05-02 T 20-12' it gives '2020-05-03 T 00-12' GMT-0400 (Bolivia Time)
+            //    use today_JS_from_arr instead, remember month_index =   today_arr[1] - 1
 
-// ---  add map_id of this schemeitem to grid_schemeitem_list
-                    grid_schemeitem_list.push(map_id);
-
-// ---  get min_rosterdate
-                    // localeCompare() returns 0 if both strings are equal,
-                    //  -1 if string 1 is sorted before string 2 and 1 if string 2 is sorted before string 1.
-                    //var result = string1.localeCompare(string2);
-                    if (!min_rosterdate || rosterdate.localeCompare(min_rosterdate) < 0) {
-                        min_rosterdate = rosterdate
-                    }
-                }
+            const today_arr = get_now_arr_JS()
+            const today_JS = new Date(today_arr[0], today_arr[1] - 1, today_arr[2]);
+            let today_weekday = today_JS.getDay()
+            if (today_weekday === 0 ) {today_weekday = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
+            if(cycle < 4) {
+                first_rosterdate_JS = today_JS  // first rosterdate is today if cycle < 4
+            } else  {
+                // first rosterdate is this week Monday, unless cycle < 7 and weekday > cycle. In that case Thursday is first day
+                const add_days = (cycle < 7 && today_weekday > cycle) ? 4 : 1;
+                first_rosterdate_JS = addDaysJS(today_JS, + add_days - today_weekday);
             }
-        }  // if (!!scheme_pk)
+            grid_table_dict.first_rosterdate = get_dateISO_from_dateJS_vanilla(first_rosterdate_JS);
 
-        if(!min_rosterdate){min_rosterdate = today_dict.value}
-        console.log("min_rosterdate ", min_rosterdate)
-        if(!!min_rosterdate){
-            // col_rosterdate_dict stores rosterdate of each column, used to create id for each cell "2020-03-14_1784" (rosterdate + "_" + shift_pk)
+// ---  create col_rosterdate_dict
+        //  stores rosterdate of each column, used to create id for each cell "2020-03-14_1784" (rosterdate + "_" + shift_pk)
             let col_rosterdate_dict = {};
 
 // +++  create two header rows, one for the weekdays and the other for dates
             let tblRow_weekday = tblBody.insertRow (-1);  // index -1: insert new cell at last position.// ---  create Team header row
             let tblRow_date = tblBody.insertRow (-1);  // index -1: insert new cell at last position.
+
+            // to keep rows at top when sorting
+            tblRow_weekday.setAttribute("data-offsetstart", "-1001")
+            tblRow_date.setAttribute("data-offsetstart", "-1000")
 // --- create header with dates, number of columns = cycle + 1
             let first_month_index = -1, last_month_index = -1, first_year = 0, last_year = 0;
-            let date_JS = get_dateJS_from_dateISO_vanilla(min_rosterdate)
+            // first_rosterdate_JS chenges when dat_JS changes. addDaysJS creates copy
+            let date_JS = addDaysJS(first_rosterdate_JS, 0)
             let cell_weekday, cell_date;
-            for (let col_index = 0, td; col_index < cycle + 1 ; col_index++) {
+            // add 1 extra column when dvg_onph
+            for (let col_index = 0, td; col_index < cycle + 1 + add_ph_column ; col_index++) {
+                const is_col_ph = (dvg_onph && col_index === cycle + add_ph_column);
+                let date_iso = null;
+
 // ---  add th to tblRow_weekday.
                 let th = document.createElement("th");
-                const cls = (col_index === 0) ? "grd_shift_th_first" : "grd_shift_th";
+                const cls = (col_index === 0) ? "grd_shift_th_first" : (is_col_ph) ? "grd_shift_th_ph" : "grd_shift_th";
                 th.classList.add(cls);
+                if (is_col_ph) { th.classList.add("tsa_color_mediumblue")};
                 tblRow_weekday.appendChild(th);
 // ---  add th to tblRow_date.
                 th = document.createElement("th");
                 th.classList.add(cls);
+                if (is_col_ph) { th.classList.add("tsa_color_mediumblue")};
                 tblRow_date.appendChild(th);
                 if (!!col_index){
-// ---  add rosterdate to col_rosterdate_dict
-                    col_rosterdate_dict[col_index] = get_dateISO_from_dateJS_vanilla(date_JS);
-
+// ---  add innerText to cell_weekday and cell_date
                     cell_weekday = tblRow_weekday.cells[col_index];
-                    const weekday_index = (!!date_JS.getDay()) ? date_JS.getDay() : 7;  // index 0 is index 7 in weekday_list
-                    cell_weekday.innerText = loc.weekdays_abbrev[weekday_index];
-
                     cell_date = tblRow_date.cells[col_index];
-                    cell_date.innerText = date_JS.getDate().toString();
 
-//  these are used in get_month_year_text
+                    if (is_col_ph) {
+                        date_iso = "onph"
+                        cell_weekday.innerText = loc.Public;
+                        cell_date.innerText = loc.holidays;
+                    } else {
+                        date_iso = get_dateISO_from_dateJS_vanilla(date_JS);
+                        const weekday_index = (!!date_JS.getDay()) ? date_JS.getDay() : 7;  // Sunday = 0 in JS, Sunday = 7 in ISO
+                        cell_weekday.innerText = loc.weekdays_abbrev[weekday_index];
+
+                        cell_date.innerText = date_JS.getDate().toString();
+                    }
+// ---  add rosterdate to col_rosterdate_dict
+                    col_rosterdate_dict[col_index] = date_iso;
+
+    //  these are used in get_month_year_text
                     const year_int = date_JS.getFullYear();
                     const month_index = date_JS.getMonth();
                     if ( col_index === 1){
@@ -6946,13 +7094,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     last_year = year_int;  // used in get_month_year_text
                     last_month_index = month_index; // used in get_month_year_text
 
-// go to next date
+    // go to next date
                     change_dayJS_with_daysadd_vanilla(date_JS, 1);
 
                 }  // if (!!col_index){
-// put month / year in first column
+    // put month / year in first column
                 tblRow_date.cells[0].innerText = get_month_year_text(first_year, last_year, first_month_index, last_month_index, loc)
-
             }  //  for (let col_index = 0, td; col_index < cycle + 1 ; col_index++) {
 
 // +++++++++++++++++++++++++++++++++++  add shift rows  ++++++++++++++++++++++++++++++++
@@ -6964,68 +7111,80 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ppk_int = get_dict_value(shift_dict, ["id", "ppk"], 0);
 // ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
                 if (!!ppk_int && scheme_pk === ppk_int) {
-                    const pk_int = get_dict_value(shift_dict, ["id", "pk"], 0);
+                    const shift_pk_int = get_dict_value(shift_dict, ["id", "pk"], 0);
                     const is_restshift = get_dict_value(shift_dict, ["isrestshift", "value"], false);
                     let shift_code = get_dict_value(shift_dict, ["code", "value"], "---");
+                    // shift_offsetstart is for sorting shift rows
+                    let shift_offsetstart = get_dict_value(shift_dict, ["offsetstart", "value"], 0);
+                    if (!shift_offsetstart) { shift_offsetstart = 1440};
                     if( is_restshift) {shift_code += " (R)"}
-                    if(!!pk_int){
-                        const row_id ="grid_shift_" + pk_int.toString();
-                        shifts_dict[pk_int] = {row: row_index};
+                    if(!!shift_pk_int){
+                        const row_id ="grid_shift_" + shift_pk_int.toString();
+                        shifts_dict[shift_pk_int] = {row: row_index};
                         row_index += 1
-// ---  add tblRow.
-                        let tblRow_shift = tblBody.insertRow (-1);  // index -1: insert new cell at last position.
-                        tblRow_shift.setAttribute("id", row_id);
-                        tblRow_shift.setAttribute("data-table", "grid_si");
-                        tblRow_shift.setAttribute("data-shift_pk", pk_int);
-                        tblRow_shift.setAttribute("data-shift_ppk", ppk_int);
-                        tblRow_shift.setAttribute("data-shift_code", shift_code);
-// ---  add td's to tblRow.
-                        for (let col_index = 0, cell_id; col_index < cycle + 1 ; col_index++) {
-                            let rosterdate = col_rosterdate_dict[col_index];
-                            const is_shift_cell = (col_index === 0);
-// ---  add id to cells
-                            let td_si = document.createElement("td");
-                            if (is_shift_cell) {
-                                cell_id = "cell_shift_" + pk_int.toString();
-                                td_si.innerText =  shift_code;
-                            } else {
-                                cell_id = "si_" + rosterdate + "_" + pk_int.toString();
-                                td_si.setAttribute("data-rosterdate", rosterdate);
+// ---  sort row.
+                        let insert_at_index = -1;
+                        for(let i = 0, tblRow; tblRow = tblBody.rows[i]; i++){
+                            let row_offsetstart = get_attr_from_el_int(tblRow, "data-offsetstart");
+                            if (!row_offsetstart) { row_offsetstart = 1440};
+                            if (shift_offsetstart < row_offsetstart) {
+                                insert_at_index = tblRow.rowIndex;
+                                break;
                             }
-                            td_si.setAttribute("id", cell_id);
+                        }
+// ---  add tblRow.
+                        let tblRow_shift = tblBody.insertRow (insert_at_index);  // index -1: insert new cell at last position.
+                        //tblRow_shift.setAttribute("id", row_id);
+                        tblRow_shift.id = row_id;
+                        tblRow_shift.setAttribute("data-offsetstart", shift_offsetstart)
+// ---  add td's to tblRow.
+                        // add extra column when dvg_onph
+                        for (let col_index = 0, cell_id; col_index < cycle + 1 + add_ph_column ; col_index++) {
+                            // in col 'on_ph' there is no rosterdate, fill in min_rosterdate instead since field is required
+                            const is_shift_cell = (col_index === 0);
+                            const is_cell_ph = ((dvg_onph) && (col_index === cycle + add_ph_column));
+                            let rosterdate_iso = col_rosterdate_dict[col_index]; // not in use when first_rosterdate_JS
+    // ---  add id to cells
+                            let td_si = document.createElement("td");
+                            const prefix = (is_shift_cell) ? "shift_" : (is_cell_ph) ? "si_onph_" : "si_" + rosterdate_iso + "_"
+                            const cell_id = prefix + shift_pk_int.toString();
+                            td_si.id = cell_id;
+                            if (is_shift_cell) {  td_si.innerText =  shift_code};
                             td_si.classList.add((is_shift_cell) ? "grd_shift_td_first" : "grd_shift_td");
                             td_si.addEventListener("click", function() {Grid_SchemitemClicked(td_si, is_shift_cell)}, false )
-// ---  add hover to cells
+    // ---  add hover to cells
                             td_si.addEventListener("mouseenter", function() {td_si.classList.add(cls_hover)});
                             td_si.addEventListener("mouseleave", function() {td_si.classList.remove(cls_hover)});
 
                             tblRow_shift.appendChild(td_si);
-                        }  // for (let i = 0; i < cycle + 1 ; i++)
+
+    // ---  add cell_dict to grid_table_dict
+                            const cell_dict = {cell_id: cell_id, rosterdate: (is_cell_ph) ? "onph" : rosterdate_iso,
+                                               onph: is_cell_ph,
+                                               shift: {pk: shift_pk_int, code: shift_code},
+                                               scheme_pk: scheme_pk,
+                                               schemeitems: {}};
+                            grid_table_dict[cell_id] = cell_dict;
+                        }  // for (let col_index = 0,
                     }
                  }
             }  // for (const [map_id, shift_dict] of shift_map.entries()) {
 
 
 // +++++++++++++++++++++++++++++++++++  add footer row  ++++++++++++++++++++++++++++++++
-
-// +++  create two header rows, one for the weekdays and the other for dates
             let tblRow_footer = tblBody.insertRow (-1);  // index -1: insert new cell at last position.// ---  create Team header row
-
-            id_new = id_new + 1
-            const pk_new = "new" + id_new.toString()
-            tblRow_footer.setAttribute("data-shift_pk", pk_new);
-            tblRow_footer.setAttribute("data-shift_ppk", scheme_pk);
-
+        // to keep row at bottom when sorting
+            tblRow_footer.setAttribute("data-offsetstart", 10000)
 // ---  add td's to tblRow_footer.
-            for (let col_index = 0, cell_id; col_index < cycle + 1 ; col_index++) {
+            for (let col_index = 0, cell_id; col_index < cycle + 1 + add_ph_column ; col_index++) {
 // ---  add id to cells
                 let td_si = document.createElement("th");
                 if (col_index === 0) {
 // ---  add cell 'addnew' th to tblRow.
-                    const cell_id = "shift_" + pk_new;
-                    td_si.setAttribute("id", cell_id);
+                    const cell_id = "shift_new";
+                    //td_si.setAttribute("id", cell_id);
+                    td_si.id = cell_id;
                     td_si.innerText = "< " + loc.Add_shift + " >";
-
                     td_si.classList.add("tsa_color_mediumgrey");
                     td_si.addEventListener("click", function() {Grid_SchemitemClicked(td_si, true)}, false )  // is_shift_cell = true
     // ---  add hover to cells
@@ -7033,295 +7192,407 @@ document.addEventListener('DOMContentLoaded', function() {
                     td_si.addEventListener("mouseleave", function() {td_si.classList.remove(cls_hover)});
                 }
                 td_si.classList.add((col_index === 0) ? "grd_shift_th_first" : "grd_shift_th");
-
                 tblRow_footer.appendChild(td_si);
             }  // for (let i = 0; i < cycle + 1 ; i++)
+        }  // if (!!scheme_pk)
 
+// +++++++++++++++++++++++++++++++++++  fill grid table ++++++++++++++++++++++++++++++++
+        Grid_FillTblShifts(scheme_pk, first_rosterdate_JS, cycle);
 
-        } //  if(!!min_rosterdate)
     }  // Grid_CreateTblShifts
 
 //=========  Grid_FillTblShifts  === PR2020-03-14
-    function Grid_FillTblShifts(scheme_pk) {
-        //console.log("===  Grid_FillTblShifts == ")
+    function Grid_FillTblShifts(scheme_pk, first_rosterdate_JS, cycle) {
+        console.log("===  Grid_FillTblShifts == ")
         let tblBody = document.getElementById("id_grid_tbody_shift");
 
-        //console.log("scheme_pk ", scheme_pk)
-        //console.log("selected_scheme_pk ", selected_scheme_pk)
-        //console.log("grid_schemeitem_list ", grid_schemeitem_list)
+// +++  loop through schemeitem_map and store schemeitems of this scheme in grid_schemeitem_map
+        // iif weekly cycle: first date is Monday, if 1 day cycle: first date is today
+        for (const [map_id, si_dict] of schemeitem_map.entries()) {
+            const ppk_int = get_dict_value(si_dict, ["id", "ppk"], 0);
+// ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
+            if (!!ppk_int && scheme_pk === ppk_int) {
 
-// ---  loop through grid_schemeitem_list. This contains the map_id's of the schemeitems of selected scheme
-        for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
-            const map_id = grid_schemeitem_list[i];
-            const si_dict = get_mapdict_from_datamap_by_id(schemeitem_map, map_id);
-            if (!isEmpty(si_dict)) {
-                //console.log("si_dict", si_dict)
-                const si_pk_int = get_dict_value(si_dict, ["id", "pk"], 0);
-                const ppk_int = get_dict_value(si_dict, ["id", "ppk"], 0);
-                const rosterdate = get_dict_value(si_dict, ["rosterdate", "value"]);
-                const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
-                let team_row_id, team_abbrev = "";
-                if (!!team_pk){
-                    team_abbrev = get_dict_value(grid_teams_dict, [team_pk, "id", "abbrev"])
-                    team_row_id = get_dict_value(grid_teams_dict, [team_pk, "id", "row_id"])
-                }
+// ---  lookup rosterdate in grid.
+                // get difference in days between date of first column and rosterdate of schemeitem.
+                // get remainder of diff / cycle (0 to 6 or -1 to -6 in weekcycle. Add 1 cycle when negative
+                // get column index by adding remainder to first columns. Convert to cell_id
+                const rosterdate_iso = get_dict_value(si_dict, ["rosterdate", "value"]);
+                const rosterdate_JS = get_dateJS_from_dateISO (rosterdate_iso)
+                const day_diff = get_days_diff_JS(rosterdate_JS, first_rosterdate_JS)
+                let days_add = (day_diff % cycle) // % is remainder: -1 % 2 = -1,  1 % 2  = 1
+                if (days_add < 0 ) {days_add += cycle }
+                const cell_date_JS = addDaysJS(first_rosterdate_JS, days_add)
+                const cell_date_iso = get_dateISO_from_dateJS_vanilla(cell_date_JS)
+
+// ---  convert rosterdate and shift_pk to cell_id, use "si_onph_" when on_publicholiday
                 const shift_pk = get_dict_value(si_dict, ["shift", "pk"], 0);
-// ---  lookup cell of this rosterdate and shift_pk
-                const cell_id = "si_" + rosterdate + "_" + shift_pk.toString();
+                const on_publicholiday = get_dict_value(si_dict, ["onpublicholiday", "value"]);
+                const inactive = get_dict_value(si_dict, ["inactive", "value"]);
+                const cell_date = (on_publicholiday) ? "onph" : cell_date_iso
+                const cell_id = "si_" + cell_date + "_" + shift_pk.toString();
                 let cell = document.getElementById(cell_id);
+
                 if(!!cell){
+// get team_dict from team_map, not from si_dict
+                    const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
+                    const team_dict = get_mapdict_from_datamap_by_tblName_pk(team_map, "team", team_pk);
+                    const team_code = get_dict_value(team_dict, ["code", "value"])
+                    const team_abbrev = get_dict_value(team_dict, ["code", "abbrev"])
+
+// add  schemeitem to cell_dict in grid_table
+                    const cell_schemeitems_dict = get_dict_value(grid_table_dict, [cell_id, "schemeitems"]);
+                    const si_pk_int = get_dict_value(si_dict, ["id", "pk"], 0);
+                    cell_schemeitems_dict[si_pk_int] = {pk: si_pk_int, ppk: ppk_int,
+                                                inactive: inactive, onpublicholiday: on_publicholiday,
+                                                rosterdate: (on_publicholiday) ? "onph" : rosterdate_iso,
+                                                shift_pk: shift_pk,
+                                                team: {pk: team_pk, code: team_code, abbrev: team_abbrev} };
+
+// ---  add class 'has_si' and team_row_id to classList of cell
+                    // 'has_si' used in querySelectorAll, team_row_id used to highlight
                     cell.classList.add("has_si")
+                    const team_row_id = get_dict_value(grid_teams_dict, [team_pk, "id", "row_id"])
                     if(!!team_row_id) {cell.classList.add(team_row_id)};
-
-// ---  add list of schemiten_id's (cell can have multiple si's)
-                    const old_data_si_pk = get_attr_from_el(cell, "data-si_pk")
-                    let new_data_si_pk = si_pk_int.toString();
-                    if (!!old_data_si_pk) {new_data_si_pk += ";" + old_data_si_pk }
-                    if (!!new_data_si_pk) { cell.setAttribute("data-si_pk", new_data_si_pk)}
-
-                    // add list of team_id's (cell can have multiple team_id's)
-                    const old_data_team_pk = get_attr_from_el(cell, "data-team_pk")
-                    let new_data_team_pk = team_pk.toString();
-                    if (!!old_data_team_pk) {new_data_team_pk += ";" + old_data_team_pk }
-                    if (!!new_data_team_pk) {cell.setAttribute("data-team_pk", new_data_team_pk)}
 
 // ---  add team_abbrev to cell.innerText
                     cell.innerText = set_cell_innertext(cell.innerText, team_abbrev)
-                }
-            }
-        }
+                }  // if(!!cell){
+            }  //  if (!!ppk_int && scheme_pk === ppk_int) {
+        }  // for (const [map_id, si_dict] of schemeitem_map.entries())
+
+console.log("grid_table_dict", deepcopy_dict(grid_table_dict))
     }  //  Grid_FillTblShifts
 
-//=========  Grid_UpdateCell  === PR2020-03-15
-    function Grid_UpdateCell(cell_id) {
-        //console.log("===  Grid_UpdateCell == ")
-// ---  get rosterdate from cell
-        let cell = document.getElementById(cell_id);
-        if(!!cell){
-            const cell_rosterdate = get_attr_from_el(cell, "data-rosterdate");
-// ---  get shift_pk from tblRow
-            const cell_shift_pk = get_attr_from_el_int(cell.parentNode, "data-shift_pk");
 
-            if(!!cell_rosterdate && !!cell_shift_pk) {
+//=========  Grid_UpdateFromResponse_si  ================ PR2020-03-15
+    function Grid_UpdateFromResponse_si(si_update_list) {
+        console.log(" ==== Grid_UpdateFromResponse_si ====");
+        //console.log("si_update_list", si_update_list);
+        let cell_id_str = null, ppk_int = null;
+
+// --- loop through si_update_list
+        for (let i = 0, update_dict; update_dict = si_update_list[i]; i++) {
+            console.log("update_dict", deepcopy_dict(update_dict));
+
+//----- get id_dict of updated item
+            // all cell_id_str's and ppk_int's from items in si_update_list must be the same
+            const id_dict = update_dict.id;
+            if(!cell_id_str) { cell_id_str = get_dict_value(id_dict, ["cell_id"])};
+            const tblName = id_dict.table;
+            const pk_int = id_dict.pk;
+            if(!ppk_int) { ppk_int = get_dict_value(id_dict, ["ppk"])};
+            const temp_pk = get_dict_value(id_dict, ["temp_pk"]); // can be null
+            const is_created = get_dict_value(id_dict, ["created"], false);  // can be null
+
+            const on_ph = get_dict_value(update_dict, ["onpublicholiday", "value"], false);
+            const is_inactive = get_dict_value(update_dict, ["inactive", "value"], false);
+            const rosterdate_iso = get_dict_value(update_dict, ["rosterdate", "value"]);
+            const shift_pk = get_dict_value(update_dict, ["shift", "pk"]);
+            const team_pk = get_dict_value(update_dict, ["team", "pk"]);
+
+//----- get grid_table cell_dict
+            const cell_dict = grid_table_dict[cell_id_str]
+
+console.log(",,,,,,,,,,,,, before  cell_dict", deepcopy_dict(cell_dict))
+
+// if is new schemeitem: delete item with 'temp_pk' from cell_dict.schemeitems
+            if(temp_pk){ delete cell_dict.schemeitems[temp_pk]};
+// grid_table_dict = {si_onph_1128: {schemeitems: {3030: { deepcopy}} } }
+// ---  add or replace cell_dict.schemeitems
+            cell_dict.schemeitems[pk_int] = {pk: pk_int,
+                                                ppk: ppk_int,
+                                                rosterdate: rosterdate_iso,
+                                                onpublicholiday: on_ph,
+                                                inactive: is_inactive,
+                                                shift_pk: shift_pk,
+                                                team: {pk: team_pk, code: "??", abbrev: "??"}
+                                             };
+
+console.log(",,,,,,,,,,,,,,,,,, cell_dict", cell_dict)
+//----- replace updated item in map or remove deleted item from map
+            const map_id = get_map_id(tblName, pk_int);
+            update_map_item_local(tblName, map_id, update_dict);
+console.log(",,,,,,,,,,,,, after cell_dict", deepcopy_dict(cell_dict))
+
+        }  //  for (let j = 0; j < 8; j++)
+
+        Grid_UpdateCell(cell_id_str)
+    };  // Grid_UpdateFromResponse_si
+
+
+//=========  Grid_UpdateCell  === PR2020-03-15
+    function Grid_UpdateCell(cell_id_str) {
+        // obly called by Grid_UpdateFromResponse_si
+        console.log("===  Grid_UpdateCell == cell_id_str: ", cell_id_str)
+
+//----- get cell_dict
+        const cell_dict = grid_table_dict[cell_id_str]
+        console.log("--- cell_dict", deepcopy_dict(cell_dict))
+
+        const on_ph = cell_dict.onph;
+        const cell_rosterdate = cell_dict.rosterdate;
+        const cell_shift_pk = get_dict_value(cell_dict, ["shift", "pk"]);
+        console.log("on_ph", on_ph)
+        console.log("cell_rosterdate", cell_rosterdate)
+
+// ---  get cell
+        let cell = document.getElementById(cell_id_str);
+        console.log("cell", cell)
+        console.log("cell_rosterdate", cell_rosterdate)
+        console.log("on_ph", on_ph)
+        console.log("cell_shift_pk", cell_shift_pk)
+        if(cell && (cell_rosterdate || on_ph ) && cell_shift_pk) {
+
 // ---  reset attributes
-                cell.classList.remove("has_si")
-                cell.removeAttribute("data-si_pk")
-                cell.removeAttribute("data-team_pk")
-                const class_list = cell.classList;
-                for (let i = 0, len = class_list.length; i < len ; i++) {
-                    const class_name = class_list[i]
-                    if(!!class_name){
-                        const class_name_sliced = class_name.slice(0,5)
-                        if( class_name_sliced === "team_" ){
-                            cell.classList.remove(class_name)
-                        }
+            cell.classList.remove("has_si")
+            cell.removeAttribute("data-si_pk")
+            cell.removeAttribute("data-team_pk")
+            const class_list = cell.classList;
+            for (let i = 0, len = class_list.length; i < len ; i++) {
+                const class_name = class_list[i]
+                if(!!class_name){
+                    const class_name_sliced = class_name.slice(0,5)
+    console.log("class_name_sliced", class_name_sliced)
+                    if( class_name_sliced === "team_" ){
+                        cell.classList.remove(class_name)
                     }
                 }
-                cell.innerText = null;
-                let cell_contains_selected_team = false;
-// ---  loop through grid_schemeitem_list. This contains the map_id's of the schemeitems of selected scheme
-                for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
-                    const map_id = grid_schemeitem_list[i];
-                    const si_dict = get_mapdict_from_datamap_by_id(schemeitem_map, map_id);
-                    if (!isEmpty(si_dict)) {
-// ---  get only de schemeitems of this shift and this rosterdate
-                        const shift_pk = get_dict_value(si_dict, ["shift", "pk"], 0);
-                        const rosterdate = get_dict_value(si_dict, ["rosterdate", "value"]);
-                        if(shift_pk === cell_shift_pk && rosterdate === cell_rosterdate ){
-                            const si_pk_int = get_dict_value(si_dict, ["id", "pk"], 0);
-                            const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
-                            let team_row_id, team_abbrev = "";
-                            if (!!team_pk){
-                                team_abbrev = get_dict_value(grid_teams_dict, [team_pk, "id", "abbrev"])
-                                team_row_id = get_dict_value(grid_teams_dict, [team_pk, "id", "row_id"])
-                                if(team_pk === grid_selected_team_pk){
-                                    cell_contains_selected_team = true
-                                }
-                            }
-                            cell.classList.add("has_si")
-                            if(!!team_row_id) {cell.classList.add(team_row_id)};
+            }
+            cell.innerText = null;
+            let cell_contains_selected_team = false;
+// ---  loop through schemeitems of this cell_dict
+            const schemeitems_dict = get_dict_value(cell_dict, ["schemeitems"]);
+            for (let si_pk in schemeitems_dict) {
+                if (schemeitems_dict.hasOwnProperty(si_pk)) {
+                    const si_dict = schemeitems_dict[si_pk];
+                    const si_pk_int = get_dict_value(si_dict, ["pk"], 0);
+                    const ppk_int = get_dict_value(si_dict, [ "ppk"], 0);
+                    console.log(".................si_pk ", si_pk);
+                    console.log(".................si_dict ", deepcopy_dict(si_dict));
+                    const shift_pk = get_dict_value(si_dict, ["shift_pk"], 0);
+                    const on_ph = get_dict_value(si_dict, ["onpublicholiday"], false);
+                    let rosterdate = get_dict_value(si_dict, ["rosterdate"]);
+                    if (on_ph) { rosterdate = "on_ph"};
 
-// ---  add list of schemiten_id's (cell can have multiple si's)
-                            const old_data_si_pk = get_attr_from_el(cell, "data-si_pk")
-                            let new_data_si_pk = si_pk_int.toString();
-                            if (!!old_data_si_pk) {new_data_si_pk += ";" + old_data_si_pk }
-                            if (!!new_data_si_pk) { cell.setAttribute("data-si_pk", new_data_si_pk)}
-
-                            // add list of team_id's (cell can have multiple team_id's)
-                            const old_data_team_pk = get_attr_from_el(cell, "data-team_pk")
-                            let new_data_team_pk = team_pk.toString();
-                            if (!!old_data_team_pk) {new_data_team_pk += ";" + old_data_team_pk }
-                            if (!!new_data_team_pk) {cell.setAttribute("data-team_pk", new_data_team_pk)}
+                    const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
+                    const team_abbrev = get_dict_value(grid_teams_dict, [team_pk, "id", "abbrev"])
+                    const team_row_id = get_dict_value(grid_teams_dict, [team_pk, "id", "row_id"])
+                    if(team_pk === grid_selected_team.pk){
+                        cell_contains_selected_team = true
+                    }
+                    cell.classList.add("has_si")
+                    if(!!team_row_id) {
+                        cell.classList.add(team_row_id)
+                    };
 
 // ---  add team_abbrev to cell.innerText
-                            cell.innerText = set_cell_innertext(cell.innerText, team_abbrev)
+                    cell.innerText = set_cell_innertext(cell.innerText, team_abbrev)
+                }  //  if (schemeitems_dict.hasOwnProperty(si_pk))
+            }  // for (let si_pk in schemeitems_dict)
 
-                        }  //   if(shift_pk === cell_shift_pk && rosterdate === cell_rosterdate ){
-                    }  //  if (!isEmpty(si_dict)) {
-                }  // for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
+// ---  show ok for 2 seconds, then highlight cell if cell_contains_selected_team
+            cell.classList.remove(cls_bc_yellow_light);
+            cell.classList.add("border_bg_valid");
+            setTimeout(function (){
+                cell.classList.remove("border_bg_valid");
+                if (cell_contains_selected_team){ cell.classList.add(cls_bc_yellow_light)};
+            }, 2000);
 
-// ---  highlight cell when selected team in cell
-                cell.classList.remove(cls_bc_yellow_light);
-                cell.classList.add("border_bg_valid");
-                setTimeout(function (){
-                    cell.classList.remove("border_bg_valid");
-                    if (cell_contains_selected_team){ cell.classList.add(cls_bc_yellow_light)};
-                }, 2000);
+        }  //if(cell && (cell_rosterdate || on_ph ) && cell_shift_pk)
 
-            }  // if(!!cell_rosterdate && !!cell_shift_pk)
-
-        }  //  if(!!cell)
     }  //  Grid_UpdateCell
 
 //=========  Grid_SelectTeam  === PR2020-03-14
     function Grid_SelectTeam(called_by, th_select) {
-        //console.log("===  Grid_SelectTeam == ", called_by);
+        console.log("===  Grid_SelectTeam == ", called_by);
         // when th_select = null: deselect all (happens when clicked outside grid tables, or when mod_MGT opens)
         let th_select_cellIndex = -1, team_pk_str = null;
-        grid_selected_team_pk = 0;
+        grid_selected_team = {};
         if(!!th_select) {
-// ---  get selected_team_pk from th_select
+// ---  get selected.team_pk from th_select
+            team_pk_str = th_select.id;
             th_select_cellIndex = th_select.cellIndex
-            team_pk_str = th_select.id.toString();
-            grid_selected_team_pk = get_attr_from_el_int(th_select, "data-team_pk")
+            const team_dict = get_mapdict_from_datamap_by_id(team_map, th_select.id);
+            grid_selected_team.pk = get_dict_value(team_dict, ["id", "pk"]);
+            grid_selected_team.ppk = get_dict_value(team_dict, ["id", "ppk"]);
+            grid_selected_team.code = get_dict_value(team_dict, ["code", "value"], "-");
+            grid_selected_team.abbrev = get_dict_value(team_dict, ["code", "abbrev"]);
         }
-
 // ---  highlight cells of this team in tbody_teams
         let tbody_teams = document.getElementById("id_grid_tbody_team");
         for (let i = 1, row, len = tbody_teams.rows.length; i < len; i++) {
             row = tbody_teams.rows[i];
             const cls_selected = (i === 1) ? "grd_team_th_selected" : "grd_team_td_selected";
-            const cls_not_selected = (i === 1) ? "grd_team_th" : "grd_team_td";
-            for (let j = 0, cell, len = row.cells.length; j < len; j++) {
-                cell = row.cells[j];
-                const team_pk = get_attr_from_el(cell, "data-team_pk")
-                if(!!team_pk) {
-                    if (cell.cellIndex === th_select_cellIndex){
-                        cell.classList.add(cls_selected);
-                        cell.classList.remove(cls_not_selected);
-                    } else {
-                        cell.classList.add(cls_not_selected);
-                        cell.classList.remove(cls_selected);
-                    }
-                }
+            //const cls_not_selected = (i === 1) ? "grd_team_th" : "grd_team_tdXXX";
+            const cls_not_selected = (i === 1) ? "grd_team_th" : null;
+            for (let j = 0, cell; cell = row.cells[j]; j++) {
+                const add_selected = (!!get_attr_from_el(cell, "data-team_pk") && cell.cellIndex === th_select_cellIndex)
+                add_or_remove_class(cell, cls_selected, add_selected);
+                if(cls_not_selected){add_or_remove_class(cell, cls_not_selected, !add_selected)};
             }
         }
 
 // ---  highlight cells with this team in tbody_shift
         let tbody_shift = document.getElementById("id_grid_tbody_shift");
         let elements = tbody_shift.querySelectorAll(".has_si")
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el = elements[i]
+        for (let i = 0, el; el = elements[i]; i++) {
             const is_selected_team = el.classList.contains(team_pk_str)
-            if (is_selected_team){
-                el.classList.add(cls_bc_yellow_light);
-            } else {
-                el.classList.remove(cls_bc_yellow_light);
-            }
+            add_or_remove_class(el, cls_bc_yellow_light,is_selected_team )
         };
     }  // Grid_SelectTeam
 
 //=========  Grid_SchemitemClicked  === PR2020-03-14
     function Grid_SchemitemClicked(td_clicked, is_shift_cell) {
         console.log("===  Grid_SchemitemClicked == ");
-        console.log("grid_selected_team_pk ", grid_selected_team_pk);
-        console.log("is_shift_cell ", is_shift_cell);
+        console.log("td_clicked ", td_clicked);
+        // grid_selected_team = {pk: 2540, ppk: 2019, code: "Ploeg A", abbrev: "A"}
 
 // ---  open ModGridShift when is_shift_cell
         if(!!is_shift_cell) {
             MGS_Open(td_clicked)
-        } else if(!grid_selected_team_pk) {
-// ---  show message in ModConfirm when there is no team selected
-            ModConfirmOpen("grid_si", td_clicked)
         } else {
-// ---  get team_abbrev from team_map
-            const team_dict = get_mapdict_from_datamap_by_tblName_pk(team_map, "team", grid_selected_team_pk)
-            const team_abbrev = get_dict_value(team_dict, ["code", "abbrev"], "")
-// ---  get shift_pk and scheme_pk from tblRow tr_clicked
-            const tr_clicked = td_clicked.parentNode
-            const shift_pk = Number(get_attr_from_el(tr_clicked, "data-shift_pk"))
-            const scheme_pk = Number(get_attr_from_el(tr_clicked, "data-shift_ppk"))
-// ---  get cell_id_str and rosterdate from cell td_clicked
-            const cell_id_str = get_attr_from_el(td_clicked, "id", "");
-            const rosterdate = get_attr_from_el(td_clicked, "data-rosterdate")
-            // only if there is a rosterdate and shift_pk selected (must be always the case)
-            if(!!rosterdate && !!shift_pk && !!scheme_pk) {
-               let upload_list = [];
-// ---  get si_pk_arr from td_clicked. It can be array string: '2132;2128;2128'
-                const si_pk_str = get_attr_from_el(td_clicked, "data-si_pk", "");
-                const si_pk_arr = si_pk_str.split(";");
-                console.log("si_pk_arr ", si_pk_arr);
-// ---  loop through si_pk_arr, get info from schemitem_map and check if team_pk = grid_selected_team_pk
-                let has_si_with_sel_team = false;
-                let si_pk_without_team = null;  // when team is added: store in si_without_team, if any
-                for (let i = 0, team_pk, si_pk, pk_str; pk_str = si_pk_arr[i]; i++) {
-                    si_pk = Number(pk_str);
-                    if(!!si_pk){
-// ---  get info from schemitem_map and check if team_pk = grid_selected_team_pk
-                        const si_dict = get_mapdict_from_datamap_by_tblName_pk(schemeitem_map, "schemeitem", si_pk )
-                        if(!isEmpty(si_dict)){
-                            team_pk = get_dict_value(si_dict, ["team", "pk"])
-                            const team_code = get_dict_value(si_dict, ["team", "code"], "-")
-// ---  if si has no team, put si_pk in si_pk_without_team (only once, skip if si_pk_without_team has value)
-                            if (!team_pk) {
-                                if (!team_pk && !si_pk_without_team) { si_pk_without_team = si_pk};
-// ---  check if team_pk = grid_selected_team_pk
-                            } else if(team_pk === grid_selected_team_pk){
-                                if (!has_si_with_sel_team){
-                                    has_si_with_sel_team = true;
-// ---  remove team_pk from first schemeitem: update schemeitem with team.pk = null, make inactive false
-                                    upload_list.push({id: {mode: "grid", table: "schemeitem",
-                                                    pk: si_pk, ppk: scheme_pk, cell_id: cell_id_str},
-                                                    team: {pk: null, ppk: scheme_pk, code: team_code, update: true},
-                                                    inactive: {value: false, update: true}})
-                                } else {
-// ---  if there are multiple schemeitems with this team: delete other schemeitems with this team
-                                    upload_list.push({id: {mode: "grid", table: "schemeitem", delete: true,
-                                                    pk: si_pk, ppk: scheme_pk,  cell_id: cell_id_str},
-                                                    team: {pk: null, ppk: scheme_pk, code: team_code}});
+    // ---  get cell_dict from grid_table_dict
+            const cell_id_str = td_clicked.id;
+            console.log("cell_id_str ", cell_id_str);
+            const cell_dict = grid_table_dict[cell_id_str]
+            const rosterdate_iso = cell_dict.rosterdate;
+            const on_ph = cell_dict.onph;
+            console.log("cell_dict ", cell_dict);
+            if(!grid_selected_team.pk) {
+    // ---  show message in ModConfirm when there is no team selected
+                let rosterdate_text = (on_ph) ? loc.Public_holidays :
+                                    format_date_iso (rosterdate_iso, month_list, weekday_list, false, true, loc.user_lang);
+                if (rosterdate_text){ rosterdate_text = loc.of + " " + rosterdate_text};
+                const shift_text =  get_dict_value(cell_dict, ["shift", "code"]);
+                const header_text = loc.Shift + " '" + shift_text + "' " + rosterdate_text;
+                ModConfirmOpen("grid_si", null, header_text)
+            } else {
+    // ---  get info from cell_dict
+                const shift_pk = get_dict_value(cell_dict, ["shift", "pk"]);
+                const scheme_pk = get_dict_value(cell_dict, ["scheme_pk"]);
+
+                console.log("shift_pk ", shift_pk);
+                console.log("scheme_pk ", scheme_pk);
+                console.log("rosterdate_iso ", rosterdate_iso);
+                console.log("on_ph ", on_ph);
+
+                // only if there is a (rosterdate_iso or 'onph') and shift_pk selected (must be always the case)
+                if( (rosterdate_iso || on_ph) && !!shift_pk && !!scheme_pk) {
+                   let upload_list = [];
+                    let has_si_with_sel_team = false;  // checks if tehre is already a si with this team
+                    let si_pk_without_team = null;
+
+    // ---  loop through schemeitems of this cell_dict
+                    const schemeitems_dict = get_dict_value(cell_dict, ["schemeitems"]);
+                    for (let si_pk in schemeitems_dict) {
+                        if (schemeitems_dict.hasOwnProperty(si_pk)) {
+                            const si_dict = schemeitems_dict[si_pk];
+                            const ppk_int = get_dict_value(si_dict, ["ppk"], 0);
+                            console.log(".................si_pk ", si_pk);
+                            console.log("si_dict ", si_dict);
+             //si_dict: {pk: 2992, ppk: 2019, rosterdate: "2020-05-07", shift_pk: 1121, team_pk: 2540, inactive: false, onpublicholiday: false}
+
+                            if(!isEmpty(si_dict)){
+    // ---  lookup team in cell_dict.teams
+                                const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
+                                const team_code = get_dict_value(si_dict, ["team", "code"]);
+                                const team_abbrev = get_dict_value(si_dict, ["team", "abbrev"]);
+    // ++++++++++ when si_dict has no team:
+                                if (!team_pk) {
+            // if si has no team, put si_pk in si_pk_without_team (only once, skip if si_pk_without_team has value)
+            // this way we can re-use schemeitem records without team, instead of deleting and adding a new schemeitem record
+                                    if (!si_pk_without_team) { si_pk_without_team = si_pk};
+    // ++++++++++ when si_dict does have team:
+            // ---  check if team_pk = grid_selected_team.pk
+                                } else if (team_pk === grid_selected_team.pk){
+                                    if (!has_si_with_sel_team){
+            // has_si_with_sel_team is used to delete a team when it has a double  schemeitem record
+                                        has_si_with_sel_team = true;
+    // ---  remove team_pk from first schemeitem: update schemeitem with team.pk = null, make inactive false
+                                        upload_list.push({id: {mode: "grid", table: "schemeitem",
+                                                        pk: si_pk, ppk: scheme_pk, cell_id: cell_id_str},
+                                                        team: {pk: null, ppk: scheme_pk, code: team_code, update: true},
+                                                        inactive: {value: false, update: true}})
+                                    } else {
+    // ---  if there are multiple schemeitems with this team: delete other schemeitems with this team
+                                        upload_list.push({id: {mode: "grid", table: "schemeitem", delete: true,
+                                                        pk: si_pk, ppk: scheme_pk, cell_id: cell_id_str},
+                                                        team: {pk: null, ppk: scheme_pk, code: team_code}});
+             // remove schemeitem from cell_dict.schemeitems
+                                        delete cell_dict.schemeitems[si_pk];
+                                    }
                                 }
                             }
+                        }  // if (schemeitems_dict.hasOwnProperty(key))
+                    }  // for (let si_pk in schemeitems_dict)
+
+    // ---  update td_clicked.innerText, before upload response
+                    const old_innertext = td_clicked.innerText;
+                    const is_remove = has_si_with_sel_team
+                    td_clicked.innerText = set_cell_innertext(old_innertext, grid_selected_team.abbrev, is_remove)
+                    add_or_remove_class (td_clicked, cls_bc_yellow_light, !is_remove);
+
+    // ++++++++++ add schemeitem - when there are no schemeitems with this team in his cell
+                    console.log("si_pk_without_team: ", si_pk_without_team)
+                    if(!is_remove) {
+
+           // add team to schemeitem - if there is a schemeitem without team: add team to that schemeitem
+                        if(!!si_pk_without_team){
+                        // ---  add team_pk to first schemeitem, make inactive false
+                            upload_list.push({
+                                id: {mode: "grid", table: "schemeitem", pk: si_pk_without_team, ppk: scheme_pk, cell_id: cell_id_str},
+                                team: {pk: grid_selected_team.pk, ppk: scheme_pk, code: grid_selected_team.code, update: true},
+                                inactive: {value: false, update: true}
+                            })
+                    // add team to existing schemeitem dict
+                            schemeitems_dict[si_pk_without_team] = {pk: grid_selected_team.pk,
+                                                                    code: grid_selected_team.code,
+                                                                    abbrev: grid_selected_team.abbrev};
+
+                        } else {
+           // --- create new schemeitem - if there is no schemeitem without team
+                            // mode = 'grid' returns 'si_update_list' , otherwise 'schemeitem_update'
+
+                            //-- increase id_new
+                            id_new = id_new + 1
+                            const pk_new = "new" + id_new.toString()
+                            let new_upload_dict = {
+                                            id: {pk: pk_new,
+                                                ppk: scheme_pk,
+                                                temp_pk: pk_new,
+                                                table: "schemeitem",
+                                                create: true,
+                                                cell_id: cell_id_str,
+                                                mode: "grid"},
+                                rosterdate: {value: rosterdate_iso}, // required field or onph, key:'update'not necessary when create
+                                onpublicholiday: {value: on_ph}, // key:'update'not necessary
+                                shift: {pk: shift_pk}, // required field, key:'update'not necessary when create
+                                team: {pk: grid_selected_team.pk, update: true}
+                            }
+                            upload_list.push(new_upload_dict);
+           // add new schemeitem to  cell_dict.schemeitems
+                            schemeitems_dict[pk_new] = {pk: pk_new,
+                                                        ppk: scheme_pk,
+                                                        rosterdate: rosterdate_iso,
+                                                        onpublicholiday: on_ph,
+                                                        inactive: false,
+                                                        shift_pk: shift_pk,
+                                                        team: {pk: grid_selected_team.pk,
+                                                                code: grid_selected_team.code,
+                                                                abbrev: grid_selected_team.abbrev}
+                                                        };
                         }
+                    }  //  if(!is_remove)
+    // ---  upload upload_list, it can contain multiple upload_dicts
+                    if (upload_list.length){
+                       UploadChanges(upload_list, url_schemeitem_upload);
                     }
-                }
-// ---  add or remove new team already in cell, before upload response
-                const old_innertext = td_clicked.innerText;
-                const is_remove = has_si_with_sel_team
-                td_clicked.innerText = set_cell_innertext(old_innertext, team_abbrev, is_remove)
-                console.log("td_clicked: ", td_clicked)
-                console.log("is_remove: ", is_remove)
-                if(is_remove){
-                    td_clicked.classList.remove(cls_bc_yellow_light)
-                } else {
-                    td_clicked.classList.add(cls_bc_yellow_light)
-                }
-// ---  when there are no schemeitems with this team in his cell: add schemeitem
-                if(!has_si_with_sel_team) {
-                    // first look if there are anu schemitems without team. If so add team,
-                    if(!!si_pk_without_team){
-                    // ---  remove team_pk from first schemeitem, make inactive false
-                        upload_list.push({
-                            id: {mode: "grid", table: "schemeitem", pk: si_pk_without_team, ppk: scheme_pk, cell_id: cell_id_str},
-                            team: {pk: grid_selected_team_pk, ppk: scheme_pk, update: true},
-                            inactive: {value: false, update: true}
-                        })
-                    } else {
-                        // otherwise: create new schemitm
-                        // mode = 'grid' returns 'si_update_list' , otherwise 'schemeitem_update'
-                        upload_list.push( {
-                            id: {mode: "grid", table: "schemeitem", create: true, ppk: scheme_pk, cell_id: cell_id_str},
-                            rosterdate: { value: rosterdate}, // required field, update: true not necessary when create
-                            shift: {pk: shift_pk, ppk: scheme_pk }, // required field, update: true not necessary when create
-                            team: {pk: grid_selected_team_pk, ppk: scheme_pk, update: true}
-                        });
-                    }
-                }
-// ---  upload upload_list, it can contain multiple upload_dicts
-                if (upload_list.length){
-                    UploadChanges(upload_list, url_schemeitem_upload);
-                }
-            }  // if(!!rosterdate && !!shift_pk)
-        }
+                }  // if(!!rosterdate_iso && !!shift_pk && !!scheme_pk) {
+            }  // if(!grid_selected_team.pk)
+        }  // if(!!is_shift_cell)
+        console.log("grid_table_dict: ", grid_table_dict)
     }  // Grid_SchemitemClicked
+
 
 }); //$(document).ready(function()

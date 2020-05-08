@@ -845,9 +845,9 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
     }; // MSO_MSE_lookup_rowindex_in_list
 
 
-//=========  Deepcopy_Dict  ================ PR2020-20-10
-    function Deepcopy_Dict(tblName, map_dict){
-        //console.log(" === Deepcopy_Dict ===")
+//=========  Deepcopy_Calendar_Dict  ================ PR2020-20-10
+    function Deepcopy_Calendar_Dict(tblName, map_dict){
+        //console.log(" === Deepcopy_Calendar_Dict ===")
         //console.log(map_dict)
         // this function adds key-value pair "breakduration: {value: 0, minoffset: 0, maxoffset: 0}" to dict_clone
         // where 'breakduration' is in list of dict_keys and 'value' is in list of field_keys
@@ -887,4 +887,6 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
                             dict_clone[dict_key][field_key] = field_value;
         }}}}}
         return dict_clone;
-    }  // Deepcopy_Dict
+    }  // Deepcopy_Calendar_Dict
+
+

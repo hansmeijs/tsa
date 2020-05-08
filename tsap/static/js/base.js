@@ -243,23 +243,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return power_list
     }
 
+// ++++++++++++++++ ADD REMOVE CLASS / ATTRIBUTE  ++++++++++++++++++++++++++++++++++++
 
-// ++++++++++++++++ ADD REMOVE CLASS  ++++++++++++++++++++++++++++++++++++
-
-//========= function toggle_class  ====================================
-    function toggle_class(tblBody, classname, is_add, filter_class){
-        // add or remove selected cls_hide from all elements with class 'filter_class'
-        console.log("toggle_class", is_add, filter_class)
+//========= function add_or_remove_class_with_qsAll  ====================================
+    function add_or_remove_class_with_qsAll(el_container, classname, is_add, filter_class){
+        // add or remove selected cls_hide from all elements with class 'filter_class' PR2020-04-29
+console.log(" @@@@@@@@@@@@@@--- add_or_remove_class_with_qsAll --- ")
+console.log("is_add: ", is_add)
+console.log("filter_class: ", filter_class)
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
 
          // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
-        let elements = tblBody.querySelectorAll("." + filter_class)
+        let elements = el_container.querySelectorAll(filter_class)
         for (let i = 0, len = elements.length; i < len; i++) {
             add_or_remove_class (elements[i], classname, is_add)
+console.log(elements[i])
         };
+console.log(" @@@@@@@@@@@@@@--- end of add_or_remove_class_with_qsAll --- ")
     }
 //========= function add_or_remove_class  ====================================
     function add_or_remove_class (el, classname, is_add) {
@@ -272,39 +275,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-//========= function remove_class_hide  ====================================
-    function remove_class_hide(filter_class){
-        // remove selected class_name from all elements with class 'filter_class
-        //console.log("remove_class_hide", filter_class)
+//========= function add_or_remove_attr_with_qsAll  ======== PR2020-05-01
+    function add_or_remove_attr_with_qsAll(el_container, filter_class, atr_name, is_add, atr_value){
+        // add or remove attribute from all elements with class 'filter_class' PR2020-04-29
+console.log(" --- add_or_remove_attr_with_qsAll --- ")
+console.log("is_add: ", is_add)
+console.log("filter_class: ", filter_class)
+        // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
+        // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
+        // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
 
          // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
-        let elements =  tblBody_items.querySelectorAll("." + filter_class)
+        let elements = el_container.querySelectorAll(filter_class)
+        for (let i = 0, len = elements.length; i < len; i++) {
+            add_or_remove_attr(elements[i], atr_name, is_add, atr_value)
+console.log(elements[i])
+        };
+    }  // add_or_remove_attr_with_qsAll
 
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el =  elements[i];
-            if(!!el){
-                el.classList.remove(cls_hide);
-        //console.log("remove cls_hide")
+//========= function add_or_remove_attr  =========== PR2020-05-01
+    function add_or_remove_attr (el, atr_name, is_add, atr_value) {
+        if(!!el){
+            if (is_add){
+                el.setAttribute(atr_name, atr_value)
+            } else {
+                el.removeAttribute(atr_name)
             }
         }
-    }
-//========= function add_class_hide  ====================================
-    function add_class_hide(filter_class){
-        // add selected class_name to all elements with class 'filter_class'
-        //console.log("add_class_hide", filter_class)
-
-        // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_class)
-        let elements =  tblBody_items.querySelectorAll("." + filter_class)
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el =  elements[i];
-            if(!!el){
-                el.classList.add(cls_hide)
-        //console.log("add cls_hide")
-            }
-        }
-    }
+    }  // add_or_remove_attr
 
 
 // ================ MAP FUNCTIONS ========================
@@ -315,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const fieldname = (!!override_fieldname) ? override_fieldname : fieldname = get_attr_from_el_str(el, "data-field");
         const item_dict = get_itemdict_from_datamap_by_el(el, data_map);
         if (!isEmpty(item_dict)) {
-            field_dict = get_dict_value_by_key(item_dict, fieldname)
+            field_dict = get_dict_value(item_dict, [fieldname])
         }
         return field_dict
     }
@@ -424,10 +423,10 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
         console.log(" --- update_map_item ---")
-        const id_dict = get_dict_value_by_key (update_dict, "id");
+        const id_dict = get_dict_value(update_dict, ["id"]);
         if(!!data_map && !isEmpty(id_dict)){
-            const tblName = get_dict_value_by_key(id_dict, "table");
-            const pk_int = get_dict_value_by_key(id_dict, "pk");
+            const tblName = get_dict_value(id_dict, ["table"]);
+            const pk_int = get_dict_value(id_dict, ["pk"]);
             const map_id = get_map_id(tblName, pk_int);
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
@@ -447,8 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!isEmpty(id_dict))
         console.log(data_map) // PR2019-11-26
     }  // update_map_item
-
-
 
 //========= insertAtIndex  ================== PR2020-01-20
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
@@ -495,8 +492,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return row_index;
     }  // getRowIndex
 
-
-
 //========= sort_localeCompare  =============  PR2020-04-22
     function sort_localeCompare(row_code, new_code, user_lang) {
         // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
@@ -506,8 +501,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
         return compare;
     }  // sort_localeCompare
-
-
 
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
@@ -667,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 // =========  get_teamcode_abbrev  === PR2020-03-15
-function get_teamcode_abbrev(input_code, loc){
+    function get_teamcode_abbrev(input_code, loc){
     //console.log("get_teamcode_abbrev", input_code);
 
     let abbrev = ""
@@ -697,16 +690,79 @@ function get_teamcode_abbrev(input_code, loc){
     return abbrev;
 }  // get_teamcode_abbrev
 
+//=========  deepcopy_dict  ================ PR2020-05-03
+    let deepcopy_dict = function copy_fnc(data_dict) {
+        //console.log(" === Deepcopy_Dict ===")
+        let dict_clone = {};
+        for(let key in data_dict) {
+            if(data_dict.hasOwnProperty(key)){
+                const value = data_dict[key];
+                if (typeof value==='object' && value!==null && !(value instanceof Array) && !(value instanceof Date)) {
+                   dict_clone[key] = copy_fnc(value);
+                } else {
+                    dict_clone[key] = value;
+        }}};
+        return dict_clone;
+    }  // deepcopy_dict
+
+
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  change_dayJS_with_daysadd_vanilla ================ PR2019-12-04
-    function change_dayJS_with_daysadd_vanilla(date_JS, numberOfDaysToAdd) {
-        //console.log( "===== change_dayJS_with_daysadd_vanilla  ========= ");
-        // from https://stackoverflow.com/questions/3818193/how-to-add-number-of-days-to-todays-date
-        if(!!date_JS){
-            date_JS.setDate(date_JS.getDate() + numberOfDaysToAdd);
+//========= get_dateJS_from_dateISO  ======== PR2019-10-28
+    function get_dateJS_from_dateISO (date_iso) {
+        //console.log( "===== get_dateJS_from_dateISO  ========= ");
+        //console.log( "date_iso: ", date_iso);
+        let date_JS = null;
+        if (!!date_iso){
+            let arr = date_iso.split("-");
+            if (arr.length > 2) {
+                // Month 4 april has index 3
+                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
+            }
         }
-    }  // change_dayJS_with_daysadd_vanilla
+        return date_JS
+    }  //  get_dateJS_from_dateISO
+
+//=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
+
+    function get_dateJS_from_dateISO_vanilla(date_iso) {
+        //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
+        let date_JS = null;
+        if (!!date_iso){
+            let arr_int = get_array_from_ISOstring(date_iso);
+            arr_int[1] = arr_int[1] -1;  // Month 4 april has index 3
+            date_JS = new Date(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]);
+        }
+        return date_JS
+    }  // get_dateJS_from_dateISO_vanilla
+
+//========= get_dateISO_from_dateJS_vanilla new  ========== PR2019-12-04
+    function get_dateISO_from_dateJS_vanilla(date_JS) {
+        let date_iso = null
+        if (!!date_JS){
+            // add 1 to month, getMonth starts with 0 for January
+            let year_str = date_JS.getFullYear().toString();
+            let month_index = 1 + date_JS.getMonth();
+            let month_str = "00" + month_index.toString();
+            let day_str = "00" + date_JS.getDate().toString();
+            date_iso = [year_str, month_str.slice(-2), day_str.slice(-2)].join("-");
+        }
+        return date_iso;
+    }
+
+//========= get_tomorrow_iso new  ========== PR2019-11-15
+    function get_tomorrow_iso() {
+        const tomorrow_JS = addDaysJS(new Date(), + 1)
+        // add 1 to month, getMonth starts with 0 for January
+        return [tomorrow_JS.getFullYear(), 1 + tomorrow_JS.getMonth(), tomorrow_JS.getDate()].join("-");
+    }
+
+//========= get_yesterday_iso new  ========== PR2019-11-15
+    function get_yesterday_iso() {
+        const yesterday_JS = addDaysJS(new Date(), - 1)
+        // add 1 to month, getMonth starts with 0 for January
+        return [yesterday_JS.getFullYear(), 1 + yesterday_JS.getMonth(), yesterday_JS.getDate()].join("-");
+    }
 
 //========= addDaysJS  ======== PR2019-11-03
     function addDaysJS(date_JS, days) {
@@ -722,6 +778,15 @@ function get_teamcode_abbrev(input_code, loc){
         };
         return copy_JS
     }
+
+//=========  change_dayJS_with_daysadd_vanilla ================ PR2019-12-04
+    function change_dayJS_with_daysadd_vanilla(date_JS, numberOfDaysToAdd) {
+        //console.log( "===== change_dayJS_with_daysadd_vanilla  ========= ");
+        // from https://stackoverflow.com/questions/3818193/how-to-add-number-of-days-to-todays-date
+        if(!!date_JS){
+            date_JS.setDate(date_JS.getDate() + numberOfDaysToAdd);
+        }
+    }  // change_dayJS_with_daysadd_vanilla
 
 //========= get_days_diff  ==================================== PR2020-03-25
     function get_days_diff(date1_iso, date2_iso) {
@@ -743,33 +808,23 @@ function get_teamcode_abbrev(input_code, loc){
         return days_diff
     }  // get_days_diff
 
-
-//========= get_dateJS_from_dateISO  ======== PR2019-10-28
-    function get_dateJS_from_dateISO (date_iso) {
-        //console.log( "===== get_dateJS_from_dateISO  ========= ");
-        //console.log( "date_iso: ", date_iso);
-        let date_JS = null;
-        if (!!date_iso){
-            let arr = date_iso.split("-");
-            if (arr.length > 2) {
-                // Month 4 april has index 3
-                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
-            }
+//========= get_days_diff_JS  ==================================== PR2020-05-02
+    function get_days_diff_JS(datetime1_JS, datetime2_JS) {
+        let days_diff = null
+        //console.log("datetime1_JS", datetime1_JS)
+        //console.log("datetime2_JS", datetime2_JS)
+        if (!!datetime1_JS && datetime2_JS) {
+            // getTime() returns the number of milliseconds since 1970/01/01
+            const diff_in_ms = datetime1_JS.getTime() - datetime2_JS.getTime();
+            const diff_in_days_notRounded = diff_in_ms / (1000 * 3600 * 24);
+            //console.log("diff_in_ms", diff_in_ms)
+            //console.log("diff_in_days_notRounded", diff_in_days_notRounded)
+            // calculate the number of days between two dates
+            days_diff = Math.floor(diff_in_ms / (1000 * 3600 * 24));
+            //console.log("days_diff", days_diff)
         }
-        return date_JS
-    }  //  get_dateJS_from_dateISO
-
-//=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
-    function get_dateJS_from_dateISO_vanilla(date_iso) {
-        //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
-        let date_JS = null;
-        if (!!date_iso){
-            let arr_int = get_array_from_ISOstring(date_iso);
-            arr_int[1] = arr_int[1] -1;  // Month 4 april has index 3
-            date_JS = new Date(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]);
-        }
-        return date_JS
-    }  // get_dateJS_from_dateISO_vanilla
+        return days_diff
+    }  // get_days_diff_JS
 
 //========= get_today_iso new  ========== PR2019-11-15
     function get_today_iso() {
@@ -784,7 +839,7 @@ function get_teamcode_abbrev(input_code, loc){
         let monday_JS = null;
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
-            if (!weekday_index) {weekday_index = 7}  // JS sunday = 0, iso sunday = 7
+            if (!weekday_index) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
             monday_JS = addDaysJS(date_JS, + 1 - weekday_index)
         }
         return monday_JS;
@@ -795,7 +850,7 @@ function get_teamcode_abbrev(input_code, loc){
         let sunday_JS = null;
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
-            if (!weekday_index) {weekday_index = 7}  // JS sunday = 0, iso sunday = 7
+            if (!weekday_index) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
             sunday_JS = addDaysJS(date_JS, + 7 - weekday_index)
         }
         return sunday_JS;
@@ -805,7 +860,7 @@ function get_teamcode_abbrev(input_code, loc){
     function get_thisweek_monday_sunday_dateobj() {
         const today_JS = new Date();
         let today_weekday = today_JS.getDay()
-        if (today_weekday === 0 ) {today_weekday = 7}// JS sunday = 0, iso sunday = 7
+        if (today_weekday === 0 ) {today_weekday = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
         const monday_JS = addDaysJS(today_JS, + 1 - today_weekday)
         const sunday_JS = addDaysJS(today_JS, + 7 - today_weekday)
         return [monday_JS, sunday_JS];
@@ -841,7 +896,7 @@ function get_teamcode_abbrev(input_code, loc){
     function get_nextweek_monday_sunday_dateobj() {
         const today_JS = new Date();
         let today_weekday = today_JS.getDay()
-        if (today_weekday === 0 ) {today_weekday = 7}// JS sunday = 0, iso sunday = 7
+        if (today_weekday === 0 ) {today_weekday = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
         const nextweek_monday_JS = addDaysJS(today_JS, + 8 - today_weekday)
         const nextweek_sunday_JS = addDaysJS(today_JS, + 14 - today_weekday)
         return [nextweek_monday_JS, nextweek_sunday_JS];
@@ -882,34 +937,6 @@ function get_teamcode_abbrev(input_code, loc){
         const nextmonth_lastday_iso = get_yyyymmdd_from_ISOstring(nextmonth_lastday_JS.toISOString())
         return [nextmonth_firstday_iso, nextmonth_lastday_iso];
     }  // get_nextweek_monday_sunday_iso
-
-//========= get_dateISO_from_dateJS_vanilla new  ========== PR2019-12=04
-    function get_dateISO_from_dateJS_vanilla(date_JS) {
-        let date_iso = null
-        if (!!date_JS){
-            // add 1 to month, getMonth starts with 0 for January
-            let year_str = date_JS.getFullYear().toString();
-            let month_index = 1 + date_JS.getMonth();
-            let month_str = "00" + month_index.toString();
-            let day_str = "00" + date_JS.getDate().toString();
-            date_iso = [year_str, month_str.slice(-2), day_str.slice(-2)].join("-");
-        }
-        return date_iso;
-    }
-
-//========= get_tomorrow_iso new  ========== PR2019-11-15
-    function get_tomorrow_iso() {
-        const tomorrow_JS = addDaysJS(new Date(), + 1)
-        // add 1 to month, getMonth starts with 0 for January
-        return [tomorrow_JS.getFullYear(), 1 + tomorrow_JS.getMonth(), tomorrow_JS.getDate()].join("-");
-    }
-
-//========= get_yesterday_iso new  ========== PR2019-11-15
-    function get_yesterday_iso() {
-        const yesterday_JS = addDaysJS(new Date(), - 1)
-        // add 1 to month, getMonth starts with 0 for January
-        return [yesterday_JS.getFullYear(), 1 + yesterday_JS.getMonth(), yesterday_JS.getDate()].join("-");
-    }
 
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {
@@ -969,7 +996,7 @@ function get_teamcode_abbrev(input_code, loc){
     }
 
 //========= function get_date_from_ISOstring  ==================================== PR2019-04-15
-    function get_date_from_ISOstringXXX(date_as_ISOstring) {
+    function get_datetime_from_ISOstringXXX(date_as_ISOstring) {
     // NIU, replaced by get_dateJS_from_dateISO_vanilla
         "use strict";
         // date_as_ISOstring: 2019-06-25T07:00:00Z
@@ -983,6 +1010,8 @@ function get_teamcode_abbrev(input_code, loc){
 
 //========= function get_array_from_ISOstring  ==================================== PR2019-04-15
     function get_array_from_ISOstring(datetime_iso) {
+        //console.log(" --- get_array_from_ISOstring ---")
+        //console.log("datetime_iso: ", datetime_iso, typeof datetime_iso)
         "use strict";
         // datetime_aware_iso = "2019-03-30T04:00:00-04:00"
         // split string into array  ["2019", "03", "30", "19", "05", "00"]
@@ -1166,10 +1195,6 @@ function get_teamcode_abbrev(input_code, loc){
         return excel_date
 
     }  // get_Exceldate_from_date
-
-
-
-
 
 
 //###########################################################

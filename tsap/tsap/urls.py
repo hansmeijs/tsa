@@ -142,7 +142,6 @@ urlpatterns = [
     ])),
 
     path('customer/', include([
-
         path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
         path('pricerate_upload/', customer_views.PricerateUploadView.as_view(), name='pricerate_upload_url'),
@@ -183,6 +182,7 @@ urlpatterns = [
     ])),
     path('roster/', include([
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
+        path('emplhour_download', planning_views.EmplhourDownloadView.as_view(), name='emplhour_download_url'),
         path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
     ])),
 

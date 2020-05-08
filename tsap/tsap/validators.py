@@ -265,23 +265,32 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
             #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
+            is_inactive = False
+            instance = None
             if table == 'employee':
-                exists = m.Employee.objects.filter(crit).exists()
+                instance = m.Employee.objects.filter(crit).first()
             elif table == 'customer':
-                exists = m.Customer.objects.filter(crit).exists()
+                instance = m.Customer.objects.filter(crit).first()
             elif table == 'order':
-                exists = m.Order.objects.filter(crit).exists()
+                instance = m.Order.objects.filter(crit).first()
             elif table == 'scheme':
-                exists = m.Scheme.objects.filter(crit).exists()
+                instance = m.Scheme.objects.filter(crit).first()
             elif table == 'shift':
-                exists = m.Shift.objects.filter(crit).exists()
+                instance = m.Shift.objects.filter(crit).first()
             elif table == 'team':
-                exists = m.Team.objects.filter(crit).exists()
+                instance = m.Team.objects.filter(crit).first()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
-
+            # TODO msg not working yet
+            if instance:
+                exists = True
+                is_inactive = getattr(instance, 'inactive', False)
             if exists:
-                msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
+                if is_inactive:
+                    msg_err = _("'%(val)s' exists, but is inactive.") % {'fld': fld, 'val': new_value}
+                else:
+                    msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
+
     if msg_err:
         if update_dict:
             if field not in update_dict:

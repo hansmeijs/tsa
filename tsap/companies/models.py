@@ -449,7 +449,7 @@ class Scheme(TsaBaseModel):
 
     excludecompanyholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
-    alsoonpublicholiday = BooleanField(default=False)
+    divergentonpublicholiday = BooleanField(default=False)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -649,8 +649,8 @@ class Schemeitem(TsaBaseModel):
     datelast = None
 
     locked = None
-
-    rosterdate = DateField(db_index=True)
+    # rosterdate is None on public holidays PR20202-05-04
+    rosterdate = DateField(db_index=True, null=True)
     onpublicholiday = BooleanField(default=False)
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
@@ -669,7 +669,7 @@ class Schemeitem(TsaBaseModel):
 
         new_si_rosterdate_naive = None
 
-        if new_rosterdate_dte:
+        if new_rosterdate_dte and self.rosterdate:
             si_rosterdate_naive = f.get_datetime_naive_from_dateobject(self.rosterdate)
             new_rosterdate_naive = f.get_datetime_naive_from_dateobject(new_rosterdate_dte)
             #logger.debug('si_rosterdate_naive: ' + str(si_rosterdate_naive) + ' ' + str(type(si_rosterdate_naive)))
@@ -775,6 +775,7 @@ class Emplhour(TsaBaseModel):
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    exceldate = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899
 
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
@@ -936,8 +937,8 @@ class Companysetting(Model):  # PR2019-03-09
 
     @classmethod
     def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
-        logger.debug('---  set_jsonsettingg  ------- ')
-        logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+        #logger.debug('---  set_jsonsettingg  ------- ')
+        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
 
         if company and key_str:
             # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
@@ -951,7 +952,7 @@ class Companysetting(Model):  # PR2019-03-09
             # test
             row = None
             saved_row = cls.objects.filter(company=company, key=key_str).first()
-            logger.debug('>>>>>>>>>>>>>>saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
+            #logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
 
     @classmethod
     def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
@@ -1052,8 +1053,8 @@ def add_duration_to_companyinvoice(rosterdate_dte, duration_sum, is_delete_roste
 
 def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-04  PR2020-04-08
     # function subtracts entries from balance: from refund first, then from paid / bonus: oldest expiration date first
-    logger.debug('-------------  entry_balance_subtract  ----------------- ')
-    logger.debug('duration_sum ' + str(duration_sum))
+    #logger.debug('-------------  entry_balance_subtract  ----------------- ')
+    #logger.debug('duration_sum ' + str(duration_sum))
 
     if request.user.company:
 # - get today in comp_timezone
@@ -1076,7 +1077,7 @@ def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-0
 # - loop through invoice_rows
             save_changes = False
             for invoice in invoices:
-                logger.debug('invoice: ' + str(invoice.dateexpired) + ' cat: ' + str(invoice.cat))
+                #logger.debug('invoice: ' + str(invoice.dateexpired) + ' cat: ' + str(invoice.cat))
 # - skip if row is expired. (expired=False is also part of crit, but let it stay here)
                 if not invoice.expired:
 # - check if row is expired. If so: set expired=True and balance=0
@@ -1100,7 +1101,7 @@ def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-0
                                 invoice.balance = saved_balance - subtract
                                 subtotal = subtotal - subtract
                                 save_changes = True
-                                logger.debug('invoice.balance ' + str(invoice.balance))
+                                #logger.debug('invoice.balance ' + str(invoice.balance))
                     if save_changes:
                         invoice.save(request=request)
 
@@ -1127,8 +1128,8 @@ def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-0
 def entry_refund_to_spare(duration_hours_rounded, request, comp_timezone):  # PR2020-04-25
     # - it is a refund. Entries will be added to ENTRY_CAT_01_SPARE
     #  = refund happens when deleting shifts of a rosterdate
-    logger.debug('-------------  entry_refund_to_spare  ----------------- ')
-    logger.debug('duration_hours_rounded ' + str(duration_hours_rounded))
+    #logger.debug('-------------  entry_refund_to_spare  ----------------- ')
+    #logger.debug('duration_hours_rounded ' + str(duration_hours_rounded))
 
     if request.user.company and duration_hours_rounded:
         # - it is a refund. Entries will be added to ENTRY_CAT_REFUND
@@ -1148,12 +1149,12 @@ def entry_refund_to_spare(duration_hours_rounded, request, comp_timezone):  # PR
             spare_row.used = saved_used - duration_hours_rounded
             spare_row.balance = saved_used - duration_hours_rounded + c.ENTRY_NEGATIVE_ALLOWED
             spare_row.save(request=request)
-            # logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+            #logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
 
 
 def entry_create_bonus(request, entries, valid_months, note, comp_timezone, entryrate=0, entrydate=None):  # PR2020-04-15
     # function adds a row with a balance. Called by SignupActivateView for bonus. TODO: add row when payment is made
-    logger.debug('-------------  entry_create_bonus  ----------------- ')
+    #logger.debug('-------------  entry_create_bonus  ----------------- ')
 
 # -. get entrydate = today when blank
     if entrydate is None:
@@ -1181,7 +1182,7 @@ def entry_create_bonus(request, entries, valid_months, note, comp_timezone, entr
 
 def entry_create_spare_row(request):  # PR2020-04-15
     # function adds a spare row. A spare row contains the 'max negative allowed' and add refund as negative used,
-    logger.debug('-------------  entry_create_spare_row  ----------------- ')
+    #logger.debug('-------------  entry_create_spare_row  ----------------- ')
 
 # - check if there is already a spare row (do't use get_or_no
     # don't use get_or_none, it wil return None when multiple rows exist, therefore adding another record

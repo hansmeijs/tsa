@@ -433,11 +433,12 @@
                 el_input.removeAttribute("data-value");
                 // NIU if (!!placeholder_txt) { el_input.setAttribute("placeholder", placeholder_txt)}
             }
-
-            if(!!pk){el_input.setAttribute("data-pk", pk)
-            } else {el_input.removeAttribute("data-pk")};
-            if(!!ppk){el_input.setAttribute("data-ppk", ppk)
-            } else {el_input.removeAttribute("data-ppk")};
+            // field_dict does not contain pk or ppk. PR2020-05-01
+            // was:
+            //if(!!pk){el_input.setAttribute("data-pk", pk)
+            //} else {el_input.removeAttribute("data-pk")};
+            //if(!!ppk){el_input.setAttribute("data-ppk", ppk)
+            //} else {el_input.removeAttribute("data-ppk")};
         }
     }  // format_text_element
 
@@ -1103,7 +1104,10 @@
 
 //=========  set_cell_innertext  === PR2020-03-15
     function set_cell_innertext(inner_text, team_abbrev, is_remove) {
-        //console.log( "=========================== set_cell_innertext ");
+       //console.log( "=========== set_cell_innertext ================");
+       //console.log( "inner_text", inner_text);
+       //console.log( "team_abbrev", team_abbrev);
+       //console.log( "is_remove", is_remove);
 
 // ---  add team_abbrev to cell.innerText, sort if there are multiple teams in one cell
         let new_innerText = "";
@@ -1114,11 +1118,21 @@
                 if(inner_text.toLowerCase() === team_abbrev.toLowerCase()){
                     // new_innerText = "";
                 } else {
-                    const inner_text_arr= inner_text.split("\n")
+
+        //console.log( "inner_text", inner_text);
+                 // replace carriage return with space
+                 const text_replaced = inner_text.replace(/[\n\r]+/g, ' ')
+        //console.log( "text_replaced", text_replaced);
+
+                    //const inner_text_arr= inner_text.split("\n")
+                    const inner_text_arr= text_replaced.split(" ")
+        //console.log( "inner_text_arr", inner_text_arr);
                     for (let i = 0, len = inner_text_arr.length; i < len; i++) {
                         const abbr = inner_text_arr[i];
+        //console.log( "abbr", abbr);
                         if(!!abbr && abbr.toLowerCase() === team_abbrev.toLowerCase()){
                             removeA(inner_text_arr, abbr);
+        //console.log( "removeA");
                         }
                     }
                     inner_text_arr.sort()
@@ -1139,6 +1153,7 @@
                 new_innerText = inner_text_arr.join(" ")
             }
         }
+        //console.log( "new_innerText", new_innerText);
         return new_innerText;
     }
 

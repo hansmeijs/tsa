@@ -301,15 +301,20 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
 
         dict['Customer'] = TXT_Customer
-        dict['Select_customer'] = TXT_Select_customer
-        dict['No_customers'] = TXT_No_customers
+        dict['Customers'] = TXT_Customers
         dict['Customer_list'] = TXT_Customer_list
+        dict['Select_customer'] = TXT_Select_customer
+        dict['Select_customer_and_order'] = TXT_Select_customer_and_order
+
+        dict['All_customers'] = TXT_All_customers
+        dict['No_customers'] = TXT_No_customers
 
         dict['Order'] = TXT_Order
         dict['Select_order'] = TXT_Select_order
+        dict['All_orders'] = TXT_All_orders
         dict['No_orders'] = TXT_No_orders
 
-        dict['Customers_and_orders']  = _('Customers and orders')
+        dict['Customers_and_orders'] = _('Customers and orders')
 
         dict['Scheme'] = TXT_Scheme
         dict['This_scheme'] = TXT_This_scheme
@@ -339,6 +344,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Not_on_company_holidays'] = TXT_Not_on_company_holidays
         dict['Also_on_public_holidays'] = TXT_Also_on_public_holidays
         dict['Also_on_company_holidays'] = TXT_Also_on_company_holidays
+        dict['Divergent_shift_on_public_holidays'] = TXT_Divergent_shift_on_public_holidays
+
+        dict['Public'] = pgettext_lazy('first line of Public holidays', 'Public')
+        dict['holidays'] = pgettext_lazy('second line of Public holidays', 'holidays')
+
+        dict['Public_holidays'] = TXT_Public_holidays
+        dict['Public_holiday'] = TXT_Public_holiday
+
 
         dict['Period'] = TXT_Period
 
@@ -684,6 +697,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['No_customers'] = TXT_No_customers
         dict['Order'] = TXT_Order
         dict['All_orders'] = TXT_All_orders
+        dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
         dict['All_employees'] = TXT_All_employees
 
@@ -773,6 +787,7 @@ TXT_Customer = _('Customer')
 TXT_Customers = _('Customers')
 TXT_Customer_name = _('Customer name')
 TXT_Select_customer = _('Select customer')
+TXT_Select_customer_and_order = _('Select customer and order')
 TXT_No_customer_selected = _('There is no customer selected.')
 TXT_No_order_selected = _('There is no order selected.')
 TXT_Customer_list = _('Customer list')
@@ -826,6 +841,13 @@ TXT_Not_on_public_holidays = _('Not on holidays')
 TXT_Not_on_company_holidays = _('Not on company holidays')
 TXT_Also_on_public_holidays = _('Also on holidays')
 TXT_Also_on_company_holidays = _('Also on company holidays')
+TXT_Divergent_shift_on_public_holidays = _('Divergent shift on public holidays')
+TXT_Public = _('Public')
+TXT_holidays = _('holidays')
+
+TXT_Public_holiday = _('Public holiday')
+TXT_Public_holidays = _('Public holidays')
+
 
 TXT_Shift = _('Shift')
 TXT_Shifts = _('Shifts')

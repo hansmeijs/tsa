@@ -27,18 +27,19 @@
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
                                 <div style="overflow-x:hidden;overflow-y:auto;height:360px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_modorder_tblbody_customer" data-table="customer">
+                                        <tbody id="id_MSO_tblbody_customer" data-table="customer">
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
+
                         <div id="id_modorder_body_right"  class="modal_body_right mx-2 my-2">
 
                             <div class="mx-2 my-2">
                                 <h6 class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
                                 <div class="form-group">
-                                    <input id="id_modorder_input_customer"
+                                    <input id="id_MSO_input_customer"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
@@ -48,13 +49,13 @@
                                 </div>
                             </div>
 
-                            <div id="id_modorder_div_tblbody_order" class="display_hide mx-2 mt-2">
-                                <h6 id="id_modorder_div_tblbody_header" class="mx-2 my-1">{% trans 'Select order' %}:</h6>
+                            <div id="id_MSO_div_tblbody_order" class="display_hide mx-2 mt-2">
+                                <h6 id="id_MSO_div_tblbody_header" class="mx-2 my-1">{% trans 'Select order' %}:</h6>
                                  <!-- this div is necessary to get standard structure for FilterTableRows -->
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
                                 <div style="overflow-x:hidden;overflow-y:auto;height:240px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_modorder_tblbody_order" data-table="order">
+                                        <tbody id="id_MSO_tblbody_order" data-table="order">
                                         </tbody>
                                     </table>
                                 </div>
@@ -65,7 +66,7 @@
                 <div class="modal-footer">
                     <div class="content_subheader_right">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_modorder_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_MSO_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
 

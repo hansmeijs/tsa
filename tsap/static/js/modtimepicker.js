@@ -6,9 +6,6 @@
     let mod_quicksave = false;
     let mod_quicksave_initialized = false;
 
-
-
-
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
         console.log("=== MODAL  ModTimepickerOpen  =====");

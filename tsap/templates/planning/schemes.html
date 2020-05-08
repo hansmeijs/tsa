@@ -18,19 +18,16 @@
             <h3>{% trans 'Planning' %}</h3>
         </div>
 
+        <div id="id_sidebar_div_select_order" class="td_width_200 mx-2 mt-2 mb-4">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer and order' %}:</h6>
+            <input id="id_sidebar_select_order"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                readonly>
+        </div>
+
         <div class="td_width_200 mx-2 my-2">
-            <div id="id_select_customerorder_div" >
-                 <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
-                 <h6>
-                    <select id="id_select_customer" class="td_width_200 px-2" ></select>
-                    <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
-                </h6>
-                <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select order' %}</h6>
-                <h6>
-                    <select id="id_select_order" class="td_width_200 px-2"></select>
-                </h6>
-            </div>
-            <div id="id_select_template_div" class="display_hide mx-2 my-2">
+            <div id="id_select_template_div" class="display_hide my-2">
                 <h4 class="mx-2 my-2">{% trans 'Templates' %}</h4>
             </div>
 
@@ -167,6 +164,8 @@
     {% include 'includes/modgridteam.html' %}
 <!-- =================== MODAL GRID SHIFT  =================== -->
     {% include 'includes/modgridshift.html' %}
+<!-- =================== MODAL SELECT ORDER  =================== -->
+    {% include 'includes/modselectorder.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
     {% include 'includes/modselectemployee.html' %}
 <!-- =================== POPUP DATE  =================== -->
@@ -214,7 +213,7 @@
         <!-- class content body mx-2 -->
         <div class="content_body mx-2">
 
-<!-- =================== DATA TABLE  =================== -->
+<!-- =================== GRID  =================== -->
 
             <div id="id_div_tbl_newlayout" data-mode="btn_gridlayout" class="display_hide">
                 <div class="tsa_main_container m-4">
@@ -227,13 +226,13 @@
                                 <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="code" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
                                 <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
                             </div>
-                            <div class=" m-1">
+                            <div class=" mx-1">
                                 <a id="id_grid_scheme_btn_datefirstlast" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
                             </div>
-                            <div class=" m-1">
+                            <div class=" mx-1">
                                 <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
                             </div>
-                            <div class=" m-1">
+                            <div class=" mx-1 mb-1">
                                 <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
                             </div>
                         </div>
@@ -245,9 +244,9 @@
                         </div>
                     </div>
 
-                    <div class="tsa_shift_container tbl_XXborder">
+                    <div class="tsa_shift_container">
                         <h6 class="grid_schemeitem_hdr m-0 px-2 py-1">
-                            Schedule
+                            {% trans 'Planned shifts' %}
                         </h6>
                         <div class="grid_schemeitem tbl_XXborder">
                             <div class=" tbl_border">
@@ -257,10 +256,13 @@
                                 </table>
                             </div>
                         </div>
+
+                        <div><small id="id_msg_onph" class="mx-2">{% trans "If a date is a public holiday, you must enter the normal shifts in that column. Shifts of public holidays must be entered in the column 'Public holidays'." %}</small></div>
                     </div>
                 </div>
             </div>
 
+<!-- =================== DATA TABLES  =================== -->
             <div id="id_div_tbl_schemeitem" data-mode="btn_schemeitem" class="display_hide">
                 <div class="content_header mx-2 my-4">
                     <div id="id_btns_schemeitem" class="content_subheader_left">
@@ -326,38 +328,36 @@
 
                 <div class="modal_flexcontainer">
                     <div class="modal_flex1 px-2">
-                                                <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                        <input id="id_scheme_datefirst" type="date" data-field= "code"
+                        <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                        <input id="id_scheme_datefirst" type="date" data-table="scheme" data-field= "datefirst"
                         autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
                     <div class="modal_flex1 px-2">
                        <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                        <input id="id_scheme_datelast" type="date" data-field="namelast"
+                        <input id="id_scheme_datelast" type="date" data-table="scheme" data-field="datelast"
                         autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
                 </div>
                 <div class="modal_flexcontainer pt-3">
                     <div class="modal_flex1 px-2">
-                        <input id="id_scheme_excludepublicholiday" type="checkbox" data-field="excludepublicholiday" class="frm_input td_width_032 ">
+                        <input id="id_scheme_excludepublicholiday" type="checkbox" data-table="scheme" data-field="excludepublicholiday" class="frm_input td_width_032 ">
                         <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on public holidays' %}</label>
                     </div>
-                    <div class="modal_flex1 px-2 display_hide">
-                         <input id="id_scheme_excludecompanyholiday" type="checkbox" data-field="excludecompanyholiday" class="frm_input td_width_032">
+                    <div class="modal_flex1 px-2">
+                         <input id="id_scheme_excludecompanyholiday" type="checkbox" data-table="scheme" data-field="excludecompanyholiday" class="frm_input td_width_032">
                         <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
                     </div>
                 </div>
-                <div class="modal_flexcontainer display_hide">
+                <div class="modal_flexcontainer">
                     <div class="modal_flex1 px-2">
-                        <input id="id_scheme_alsoonpublicholiday" type="checkbox" data-field="alsoonpublicholiday" class="frm_input td_width_032 ">
-                        <label for="id_scheme_alsoonpublicholiday" class="mt-1">{% trans 'Divergent shift on public holidays' %}</label>
+                        <input id="id_scheme_divergentonpublicholiday" type="checkbox" data-table="scheme" data-field="divergentonpublicholiday" class="frm_input td_width_032 ">
+                        <label for="id_scheme_divergentonpublicholiday" class="mt-1">{% trans 'Divergent on public holidays' %}</label>
                     </div>
                     <div class="modal_flex1 px-2">
                     </div>
                 </div>
 
             </div>
-
-
 
         </div>
 <!-- flex_container -->

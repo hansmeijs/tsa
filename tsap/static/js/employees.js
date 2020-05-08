@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const field_tags = {
             employee: ["input", "input", "input", "input", "input", "input", "input", "a"],
-            absence: ["input", "select", "input", "input",  "input", "a"],
+            absence: ["input", "input", "input", "input",  "input", "a"],
             shifts: ["input", "input", "input", "input", "input", "input", "a"],
             planning: ["input", "input", "input", "input", "input", "input", "input"]}
 
@@ -426,11 +426,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const imgsrc_hover = imgsrc_inactive_black;
             const include_parent_code = null;
             let tblHead = document.getElementById("id_thead_select");
-            const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, addall_to_list_txt = null;
+            const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false, addall_to_list_txt = null;
             t_Fill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_default, imgsrc_hover,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -576,8 +576,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelect_Row ================ PR2019-08-28
     function HandleSelect_Row(sel_tr_clicked) {
-        //console.log( "===== HandleSelect_Row  ========= ");
-        //console.log( sel_tr_clicked);
+        console.log( "===== HandleSelect_Row  ========= ");
+        console.log( sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
 // ---  get map_dict
@@ -586,9 +586,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, pk_str);
             // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, tblName, pk_str);
+            const employee_pk = get_dict_value(map_dict, ["id", "pk"], 0);
+            const employee_ppk = get_dict_value(map_dict, ["id", "ppk"]);
+            const employee_code = get_dict_value(map_dict, ["code", "value"]);
 
+        console.log( "pk_str", pk_str);
 // ---  update selected_employee_pk
-            selected_employee_pk = get_dict_value(map_dict, ["id", "pk"], 0);
+            selected_employee_pk = employee_pk;
             selected_teammember_pk = 0;
 
  // ---  highlight clicked row in select table
@@ -618,7 +622,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         };
                 DatalistDownload(datalist_request);
 
-
             } else {
                 let tblBody = tblBody_from_selectedbtn(selected_btn);
                 if(!!tblBody){
@@ -629,11 +632,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                     };
 
-                    //const mode_list = ["employee", "absence", "shifts", "planning"]
-                    //mode_list.forEach(function (mode, index) {
-                    //    FilterTableRows(document.getElementById("id_tbody_" + mode));
-                    //});
-
                     FilterTableRows(tblBody);
 
 // create addnew_row if lastRow is not an addnewRow
@@ -643,15 +641,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(selected_btn !== "employee" && !!row_count){
                         let lastRow = tblBody.rows[row_count - 1];
                         if(!!lastRow){
-                            //console.log("lastRow", lastRow)
-                            const pk_str = get_attr_from_el(lastRow, "id");
+
+                            lastRow.setAttribute("data-employee_pk", employee_pk)
+                            console.log("lastRow", lastRow)
+                            const teammember_pk_str = get_attr_from_el(lastRow, "id");
+        console.log( "pk_str", pk_str);
                             // if pk is not a number it is an 'addnew' row
-                            if(!parseInt(pk_str)){
+                            if(!Number(teammember_pk_str)){
                                 let el_input = lastRow.cells[0].children[0];
                                 if(!!el_input){
-                                    el_input.setAttribute("data-pk", selected_employee_pk)
-                                    el_input.setAttribute("data-ppk", get_dict_value(map_dict, ["ppk"]))
-                                    const employee_code = get_dict_value(map_dict, ["code", "value"]);
+                                    el_input.setAttribute("data-pk", employee_pk)
+                                    el_input.setAttribute("data-ppk", employee_ppk)
                                     el_input.setAttribute("data-value", employee_code)
                                     el_input.value = employee_code
                                 }
@@ -668,8 +668,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
-        //console.log("=== HandleTableRowClicked");
-        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
+        console.log("=== HandleTableRowClicked");
+        console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
         const tblName = get_attr_from_el_str(tr_clicked, "data-table")
 
@@ -681,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // only select employee from select table
         const data_key = (["teammember", "planning"].indexOf( tblName ) > -1) ? "data-employee_pk" : "data-pk";
         const employee_pk_str = get_attr_from_el_str(tr_clicked, data_key);
-        //console.log( "employee_pk_str: ", employee_pk_str, typeof employee_pk_str);
+        console.log( "employee_pk_str: ", employee_pk_str, typeof employee_pk_str);
 
         if(!!employee_pk_str){
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk_str)
@@ -1100,6 +1100,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  CreateTblRow  ================ PR2019-08-29
     function CreateTblRow(tblBody, sel_btn, pk_str, ppk_str, employee_pk, workhoursperday) {
         //console.log("=========  CreateTblRow =========", sel_btn);
+        //console.log("employee_pk", employee_pk);
+        //console.log("ppk_str", ppk_str);
 
         const tblName = (sel_btn === "employee") ? "employee" :
                         (["absence", "shifts"].indexOf( sel_btn ) > -1) ? "teammember":
@@ -1698,12 +1700,8 @@ document.addEventListener('DOMContentLoaded', function() {
                        format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
 
                     } else if (fieldname === "order"){
-                        const key_str = "code";
-                        if(is_absence){
-                            format_select_element (el_input, key_str, field_dict)
-                        } else {
-                            format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
-                        }
+                        const key_str = (is_absence) ? "code" : "cust_order_code";
+                        format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset);
 
                     } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                         const hide_weekday = true, hide_year = false;
@@ -2319,11 +2317,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const imgsrc_hover = imgsrc_inactive_black;
                         const include_parent_code = null;
                         let tblHead = document.getElementById("id_thead_select");
-                        const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, addall_to_list_txt = null;
+                        const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false, addall_to_list_txt = null;
                         t_Fill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleFilterInactive,
                             HandleSelect_Row,  HandleSelectRowButton,
-                            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                             cls_bc_lightlightgrey, cls_bc_yellow,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -2590,15 +2588,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById("id_mod_period_datelast").value = selected_planning_period["period_datelast"]
             }
         }
-    let el = document.getElementById("id_modperiod_div_selectcustomer")
 
-        console.log("el", el)
-        el.classList.add(cls_hide)
-    document.getElementById("id_modperiod_div_selectorder").classList.add(cls_hide)
+        //TODO check if these fields are not in use
+        document.getElementById("id_modperiod_div_selectcustomer").classList.add(cls_hide)
+        document.getElementById("id_modperiod_div_selectorder").classList.add(cls_hide)
 
         // ---  show modal, set focus on save button
         $("#id_mod_period").modal({backdrop: true});
-
 
     };  // ModPeriodOpen
 
@@ -2637,17 +2633,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModPeriodSelectPeriod  ================ PR2020-01-09
     function ModPeriodSelectPeriod(tr_clicked, selected_index) {
-        //console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
+        console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
-    // ---  deselect all highlighted rows, highlight selected row
+// ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
             tr_clicked.classList.add(cls_selected)
 
-    // add period_tag to mod_upload_dict
+// ---  add period_tag to mod_upload_dict
             const period_tag = get_attr_from_el(tr_clicked, "data-tag")
             mod_upload_dict["period_tag"] = period_tag;
 
-    // enable date input elements, give focus to start
+// ---  enable date input elements, give focus to start
             let el_datefirst = document.getElementById("id_mod_period_datefirst");
             let el_datelast = document.getElementById("id_mod_period_datelast");
 
@@ -2677,7 +2673,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModPeriodDateChanged  ================ PR2019-07-14
     function ModPeriodDateChanged(fldName) {
-    // set min max of other input field
+        console.log( "===== ModPeriodDateChanged ========= ", fldName);
+// ---  set min max of other input field
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
         let el_this = document.getElementById("id_mod_period_" + fldName)
@@ -2689,7 +2686,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
         console.log("===  ModPeriodSave  =====") ;
-        // TODO selected_customer_pk selected_order_pk
+        console.log("mod_upload_dict: ", deepcopy_dict(mod_upload_dict) ) ;
+        // TODO check if in useselected_customer_pk selected_order_pk
         const selected_customer_pk = 0, selected_order_pk = 0;
 
 // planning_period: {period_tag: "tweek", now: (5) [2020, 2, 8, 9, 55]}
@@ -2704,6 +2702,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_hdr_period").innerText = loc.Period + "..."
 
         const period_tag = get_dict_value(mod_upload_dict, ["period_tag"], "tweek");
+        console.log("period_tag: ", period_tag) ;
 
         selected_planning_period = {period_tag: period_tag}
         // only save dates when tag = "other"
@@ -2723,6 +2722,7 @@ document.addEventListener('DOMContentLoaded', function() {
             orderby_rosterdate_customer: false
         };
 
+        console.log("selected_planning_period: ", selected_planning_period)
 
         let datalist_request = {planning_period: selected_planning_period,
                                 employee_planning: employee_planning_dict,
@@ -3345,7 +3345,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let teammember_dict = {};
         let schemeitem_dict = {};
 
-// TODO NOT IN USE???
         if(tblName === "teammember"){
 
             order_pk = get_attr_from_el(el_input, "data-pk");
@@ -3404,7 +3403,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
                     console.log("ooooooooooooooooooooo dict")
             console.log(dict)
-                        shifts_list.push(Deepcopy_Dict("shift", dict));
+                        shifts_list.push(Deepcopy_Calendar_Dict("shift", dict));
                         // put first shift in shift_dict
                         if(isEmpty(shift_dict)){
                             shift_pk = get_dict_value(dict, ["id", "pk"]);

@@ -49,14 +49,18 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
 
-def get_date_from_ISO(date_string):  # PR2019-09-18 PR2020-03-20
+def get_date_from_ISO(date_iso):  # PR2019-09-18 PR2020-03-20
     # this is the simple way, it works though
     #logger.debug('... get_date_from_ISO ...')
-    #logger.debug('date_string: ' + str(date_string))
+    #logger.debug('date_iso: ' + str(date_iso))
+    # PR2020-05-04 try is necessary, When creating public holiday schemeitem date_iso = "onph', must return: dte = None
     dte = None
-    if date_string:
-        arr = date_string.split('-')
-        dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+    if date_iso:
+        try:
+            arr = date_iso.split('-')
+            dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+        except:
+            pass
     return dte
 
 def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
@@ -277,8 +281,9 @@ def get_today_dateobj():
 
 def get_Exceldate_from_datetime(date_obj):
     #logger.debug(' --- get_Exceldate_from_datetime --- ')
-    # PR2020-01-23 function convert date_object to number, representing Excel date
     #logger.debug('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
+    # date_obj: 2020-05-06 type: <class 'datetime.date'>
+    # PR2020-01-23 function convert date_object to number, representing Excel date.
     datetime_naive = get_datetime_naive_from_dateobject(date_obj)
     excel_date = None
     if datetime_naive:
@@ -2226,22 +2231,29 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 
 def calc_amount_addition_tax_rounded(time_duration, billing_duration,
                              is_absence, is_restshift, is_billable,
-                             price_rate, addition_rate,tax_rate):  # PR2020-03-10
-    #logger.debug(' ============= get_pricecodeitem ============= ')
+                             price_rate, addition_rate, tax_rate):  # PR2020-04-28
+    logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     amount, addition, tax = 0, 0, 0
     if price_rate and not is_absence and not is_restshift:
-        if is_billable:
-            base_duration = billing_duration
-        else:
-            base_duration = time_duration
+        base_duration = billing_duration # if is_billable else time_duration
+        logger.debug('base_duration: ' + str(base_duration))
+        logger.debug('price_rate: ' + str(price_rate))
+        logger.debug('addition_rate: ' + str(addition_rate))
+        logger.debug('tax_rate: ' + str(tax_rate))
+        if base_duration:
+            amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
+            # use math.floor instead of int(), to get correct results when amount is negative
+            # math.floor() returns the largest integer less than or equal to a given number.
+            # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
+            amount = math.floor(0.5 + amount_not_rounded)  # This rounds to an integer
+            addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
+            addition = math.floor(0.5 + addition_not_rounded)  # This rounds to an integer
+            tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
+            tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
-        amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
-        amount = int(0.5 + amount_not_rounded)  # This rounds to an integer
-        addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
-        addition = int(0.5 + addition_not_rounded)  # This rounds to an integer
-        tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
-        tax = int(0.5 + tax_not_rounded) # This rounds to an integer
-
+    logger.debug('amount: ' + str(amount))
+    logger.debug('addition: ' + str(addition))
+    logger.debug('tax: ' + str(tax))
     return amount, addition, tax
 
 

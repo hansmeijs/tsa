@@ -187,57 +187,57 @@ let planning_list = [] // for export and printing - can replace map?
                 setTimeout(function() {MAC_InputCustomer()}, 50)});
 
 // ---  MOD SHIFT ------------------------------------
-        let el_modshift_btn_save = document.getElementById("id_modshift_btn_save");
+        let el_modshift_btn_save = document.getElementById("id_MOS_btn_save");
             el_modshift_btn_save.addEventListener("click", function() {MSO_Save("save")}, false );
-        let el_modshift_btn_delete = document.getElementById("id_modshift_btn_delete");
+        let el_modshift_btn_delete = document.getElementById("id_MOS_btn_delete");
             el_modshift_btn_delete.addEventListener("click", function() {MSO_Save("delete")}, false );
-        let el_MSO_btn_shiftadd = document.getElementById("id_MSO_btn_shiftadd");
+        let el_MSO_btn_shiftadd = document.getElementById("id_MOS_btn_shiftadd");
             el_MSO_btn_shiftadd.addEventListener("click", function() {MSO_ShiftAdd()}, false );
-        let el_MSO_btn_shiftdelete = document.getElementById("id_MSO_btn_shiftdelete");
+        let el_MSO_btn_shiftdelete = document.getElementById("id_MOS_btn_shiftdelete");
             el_MSO_btn_shiftdelete.addEventListener("click", function() {MSO_ShiftDelete()}, false );
-        let el_MSO_btn_teamadd = document.getElementById("id_MSO_btn_teamadd");
+        let el_MSO_btn_teamadd = document.getElementById("id_MOS_btn_teamadd");
             el_MSO_btn_teamadd.addEventListener("click", function() {MSO_TeamAdd()}, false );
-        let el_MSO_btn_teamdelete = document.getElementById("id_MSO_btn_teamdelete");
+        let el_MSO_btn_teamdelete = document.getElementById("id_MOS_btn_teamdelete");
             el_MSO_btn_teamdelete.addEventListener("click", function() {MSO_TeamDelete()}, false );
 
 
-        let el_MSO_cycle = document.getElementById("id_MSO_scheme_cycle")
+        let el_MSO_cycle = document.getElementById("id_MOS_scheme_cycle")
             el_MSO_cycle.addEventListener("change", function() {MSO_SchemeCycleChanged()}, false );
-        let el_MSO_scheme_datefirst = document.getElementById("id_MSO_scheme_datefirst")
+        let el_MSO_scheme_datefirst = document.getElementById("id_MOS_scheme_datefirst")
             el_MSO_scheme_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
-        let el_MSO_scheme_datelast = document.getElementById("id_MSO_scheme_datelast")
+        let el_MSO_scheme_datelast = document.getElementById("id_MOS_scheme_datelast")
             el_MSO_scheme_datelast.addEventListener("change", function() {MSO_SchemeDateChanged("datelast")}, false );
         // select buttons
-        document.getElementById("id_MSO_btn_shift").addEventListener("click", function() {MSO_BtnSelectClicked("mod_shift")}, false );
-        document.getElementById("id_MSO_btn_team").addEventListener("click", function() {MSO_BtnSelectClicked("mod_team")}, false );
-        document.getElementById("id_MSO_btn_scheme").addEventListener("click", function() {MSO_BtnSelectClicked("mod_scheme")}, false );
+        document.getElementById("id_MOS_btn_shift").addEventListener("click", function() {MSO_BtnSelectClicked("mod_shift")}, false );
+        document.getElementById("id_MOS_btn_team").addEventListener("click", function() {MSO_BtnSelectClicked("mod_team")}, false );
+        document.getElementById("id_MOS_btn_scheme").addEventListener("click", function() {MSO_BtnSelectClicked("mod_scheme")}, false );
         // input elements
-        let el_MSO_teamcode = document.getElementById("id_MSO_teamcode");
+        let el_MSO_teamcode = document.getElementById("id_MOS_teamcode");
             el_MSO_teamcode.addEventListener("change", function() {MSO_ShiftcodeOrTeamcodeChanged(el_MSO_teamcode)}, false)
-        let el_MSO_selectteam = document.getElementById("id_MSO_selectteam")
+        let el_MSO_selectteam = document.getElementById("id_MOS_selectteam")
             el_MSO_selectteam.addEventListener("change", function() {MSO_SelectTeamChanged(el_MSO_selectteam)}, false)
 
-        let el_MSO_shiftcode = document.getElementById("id_MSO_shiftcode");
+        let el_MSO_shiftcode = document.getElementById("id_MOS_shiftcode");
             el_MSO_shiftcode.addEventListener("change", function() {MSO_ShiftcodeOrTeamcodeChanged(el_MSO_shiftcode)}, false)
-        let el_MSO_selectshift = document.getElementById("id_MSO_selectshift")
+        let el_MSO_selectshift = document.getElementById("id_MOS_selectshift")
             el_MSO_selectshift.addEventListener("change", function() {MSO_SelectShiftChanged(el_MSO_selectshift)}, false)
 
-        let el_MSO_offsetstart = document.getElementById("id_MSO_input_offsetstart")
+        let el_MSO_offsetstart = document.getElementById("id_MOS_input_offsetstart")
             el_MSO_offsetstart.addEventListener("click", function() {MSO_TimepickerOpen(el_MSO_offsetstart, "modshift")}, false );
-        let el_MSO_offsetend = document.getElementById("id_MSO_input_offsetend");
+        let el_MSO_offsetend = document.getElementById("id_MOS_input_offsetend");
             el_MSO_offsetend.addEventListener("click", function() {MSO_TimepickerOpen(el_MSO_offsetend, "modshift")}, false );
-        let el_MSO_breakduration = document.getElementById("id_MSO_input_breakduration");
+        let el_MSO_breakduration = document.getElementById("id_MOS_input_breakduration");
             el_MSO_breakduration.addEventListener("click", function() {MSO_TimepickerOpen(el_MSO_breakduration, "modshift")}, false );
-        let el_MSO_timeduration = document.getElementById("id_MSO_input_timeduration");
+        let el_MSO_timeduration = document.getElementById("id_MOS_input_timeduration");
             el_MSO_timeduration.addEventListener("click", function() {MSO_TimepickerOpen(el_MSO_timeduration, "modshift")}, false );
-        let el_MSO_isrestshift = document.getElementById("id_MSO_restshift");
+        let el_MSO_isrestshift = document.getElementById("id_MOS_restshift");
             el_MSO_isrestshift.addEventListener("change", function() {MSO_RestshiftClicked()}, false );
 
-        let el_MSO_excl_ph = document.getElementById("id_modshift_publicholiday");
+        let el_MSO_excl_ph = document.getElementById("id_MOS_publicholiday");
             el_MSO_excl_ph.addEventListener("change", function() {MSO_PublicholidayChanged("excl_ph")}, false );
-        let el_MSO_also_ph = document.getElementById("id_MSO_also_ph");
+        let el_MSO_also_ph = document.getElementById("id_MOS_also_ph");
             el_MSO_also_ph.addEventListener("change", function() {MSO_PublicholidayChanged("also_ph")}, false );
-        let el_MSO_excl_ch = document.getElementById("id_modshift_companyholiday");
+        let el_MSO_excl_ch = document.getElementById("id_MOS_companyholiday");
             el_MSO_excl_ch.addEventListener("change", function() {MSO_PublicholidayChanged("excl_ch")}, false );
 
 // ---  MOD EMPLOYEE ------------------------------------
@@ -386,11 +386,11 @@ let planning_list = [] // for export and printing - can replace map?
 
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null, row_count = {};
-            const filter_include_absence = false;
+            const filter_include_absence = false, filter_istemplate = false;
             t_Fill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -408,11 +408,11 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["order_list"], order_map);
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-            const filter_include_absence = false;
+            const filter_include_absence = false, filter_istemplate = false;
             t_Fill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
@@ -2552,7 +2552,7 @@ let planning_list = [] // for export and printing - can replace map?
                                 datefirst: {value: null},
                                 datelast: {value: null},
                                 excludepublicholiday: {value: false},
-                                alsoonpublicholiday: {value: false},
+                                divergentonpublicholiday: {value: false},
                                 excludecompanyholiday: {value: false},
                                 };
                 mod_upload_dict.scheme = scheme_dict;
@@ -2569,7 +2569,7 @@ let planning_list = [] // for export and printing - can replace map?
                         datefirst: {value: get_dict_value(calendar_scheme_dict, ["datefirst"])},
                         datelast: {value: get_dict_value(calendar_scheme_dict, ["datelast"])},
                         excludepublicholiday: {value: get_dict_value(calendar_scheme_dict, ["excludepublicholiday"], false)},
-                        alsoonpublicholiday: {value: get_dict_value(calendar_scheme_dict, ["alsoonpublicholiday"], false)},
+                        divergentonpublicholiday: {value: get_dict_value(calendar_scheme_dict, ["divergentonpublicholiday"], false)},
                         excludecompanyholiday: {value: get_dict_value(calendar_scheme_dict, ["excludecompanyholiday"], false)}
                         };
                 mod_upload_dict.scheme = scheme_dict;
@@ -2601,7 +2601,7 @@ let planning_list = [] // for export and printing - can replace map?
                         const row_scheme_pk = get_dict_value(team_dict, ["id", "ppk"]);
                         if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
                             team_dict.id.mode = "unchanged";
-                            mod_upload_dict.teams_list.push(Deepcopy_Dict("team", team_dict));
+                            mod_upload_dict.teams_list.push(Deepcopy_Calendar_Dict("team", team_dict));
                 }}};
             }
 // --- make team selected_team_pk_str
@@ -2641,7 +2641,7 @@ let planning_list = [] // for export and printing - can replace map?
                         const row_scheme_pk = get_dict_value(shift_dict, ["id", "ppk"]);
                         if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
                             shift_dict.id.mode = "unchanged";
-                            mod_upload_dict.shifts_list.push(Deepcopy_Dict("shift", shift_dict));
+                            mod_upload_dict.shifts_list.push(Deepcopy_Calendar_Dict("shift", shift_dict));
                 }}};
             }
 // --- make shift selected_shift_pk_str
@@ -2658,14 +2658,14 @@ let planning_list = [] // for export and printing - can replace map?
                                 table: "teammember",
                                 mode: "create"}
                           };
-                mod_upload_dict.teammembers_list.push(Deepcopy_Dict("teammember", new_tm_dict));
+                mod_upload_dict.teammembers_list.push(Deepcopy_Calendar_Dict("teammember", new_tm_dict));
             }
     // fill teammembers_list with map_dicts of teammember_map of this scheme
             if(!!teammember_map.size){
                 for (const [map_id, tm_dict] of teammember_map.entries()) {
                     const row_scheme_pk = get_dict_value(tm_dict, ["team", "ppk"]);
                     if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
-                         mod_upload_dict.teammembers_list.push(Deepcopy_Dict("teammember", tm_dict));
+                         mod_upload_dict.teammembers_list.push(Deepcopy_Calendar_Dict("teammember", tm_dict));
             }}};
 
 // --- GET SCHEMEITEM ----------------------------------
@@ -2675,7 +2675,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const row_scheme_pk = get_dict_value(si_dict, ["id", "ppk"]);
                     if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
                         const row_si_pk = get_dict_value(si_dict, ["id", "pk"]);
-                         mod_upload_dict.schemeitems_list.push(Deepcopy_Dict("schemeitem", si_dict));
+                         mod_upload_dict.schemeitems_list.push(Deepcopy_Calendar_Dict("schemeitem", si_dict));
             }}};
             //console.log("mod_upload_dict: ", mod_upload_dict)
 
@@ -2683,10 +2683,10 @@ let planning_list = [] // for export and printing - can replace map?
 
     // ---  put order name in left header
             const order_text = (!!order_code) ? customer_code + " - " + order_code : loc.Select_order + "...";
-            document.getElementById("id_modshift_header").innerText = order_text;
+            document.getElementById("id_MOS_header").innerText = order_text;
 
     // ---  put scheme code in left subheader
-            document.getElementById("id_modshift_header_scheme").innerText = scheme_code;
+            document.getElementById("id_MOS_header_scheme").innerText = scheme_code;
 
     // ---  put scheme cycle in input element and in right subheader
             el_MSO_cycle.value = scheme_cycle;
@@ -2720,9 +2720,9 @@ let planning_list = [] // for export and printing - can replace map?
             el_MSO_scheme_datelast.readOnly = false;
 
     // ---  show onceonly only in new shifts, reset checkbox, enable datefirst datelast
-            //document.getElementById("id_modshift_onceonly").checked = false
+            //document.getElementById("id_MOS_onceonly").checked = false
             //const is_add = (!isEmpty(calendar_map_dict))
-            //add_or_remove_class (document.getElementById("id_modshift_onceonly_container"), cls_hide, is_add);
+            //add_or_remove_class (document.getElementById("id_MOS_onceonly_container"), cls_hide, is_add);
             el_MSO_scheme_datefirst.readOnly = false;
             el_MSO_scheme_datelast.readOnly = false;
 
@@ -2732,7 +2732,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // --- set excluded checkboxen upload_dict
             el_MSO_excl_ph.checked = get_dict_value(mod_upload_dict, ["scheme", "excludepublicholiday", "value"], false);
-            el_MSO_also_ph.checked = get_dict_value(mod_upload_dict, ["scheme", "alsoonpublicholiday", "value"], false);
+            el_MSO_also_ph.checked = get_dict_value(mod_upload_dict, ["scheme", "divergentonpublicholiday", "value"], false);
             el_MSO_excl_ch.checked = get_dict_value(mod_upload_dict, ["scheme", "excludecompanyholiday", "value"], false);
             el_MSO_excl_ph.disabled = false;
             el_MSO_also_ph.disabled = false;
@@ -2751,7 +2751,7 @@ let planning_list = [] // for export and printing - can replace map?
             if(is_addnew_mode){ setTimeout(function() {el_MSO_offsetstart.focus()}, 500)};
 
 // ---  show modal
-            $("#id_modshift").modal({backdrop: true});
+            $("#id_modordershift").modal({backdrop: true});
 
         } else {
 // ---  show modal confirm with message 'First select employee'
@@ -2811,7 +2811,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         const excl_ph = el_MSO_excl_ph.checked;
         const also_ph = el_MSO_also_ph.checked;
-        const excl_ch = document.getElementById("id_modshift_companyholiday").checked;
+        const excl_ch = document.getElementById("id_MOS_companyholiday").checked;
 
         upload_dict.scheme =  {id: {pk: scheme_pk,
                                     ppk: scheme_ppk,
@@ -2822,7 +2822,7 @@ let planning_list = [] // for export and printing - can replace map?
                                 datefirst: {value: datefirst},
                                 datelast: {value: datelast},
                                 excludepublicholiday: {value: excl_ph},
-                                alsoonpublicholiday: {value: also_ph},
+                                divergentonpublicholiday: {value: also_ph},
                                 excludecompanyholiday: {value: excl_ch}
                                 };
 
@@ -2905,7 +2905,7 @@ let planning_list = [] // for export and printing - can replace map?
         mod_upload_dict.shifts_list.push(new_shift_dict)
 
 // ---  fill shift options, set select shift in selectbox
-        let el_select_shift = document.getElementById("id_MSO_selectshift");
+        let el_select_shift = document.getElementById("id_MOS_selectshift");
         const selected_shift_pk_str = (!!pk_str) ? pk_str : "0";
         el_select_shift.innerHTML = t_FillOptionShiftOrTeamFromList( mod_upload_dict.shifts_list, scheme_pk,
                                             selected_shift_pk_str, true); // true = with_rest_abbrev
@@ -3173,7 +3173,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // set focus from offsetstart to offsetend element
             if (fldName === "offsetstart") {
-                setTimeout(function() { document.getElementById("id_MSO_input_offsetend").focus()}, 50);
+                setTimeout(function() { document.getElementById("id_MOS_input_offsetend").focus()}, 50);
             }
         }  // if("save_changes" in tp_dict) {
      }  //MSO_TimepickerResponse
@@ -3243,7 +3243,7 @@ let planning_list = [] // for export and printing - can replace map?
 //=========  MSO_FilterEmployee  ================ PR2019-11-23
     function MSO_FilterEmployee(el_filter) {
         //console.log( "===== MSO_FilterEmployee  ========= ");
-        let tblBody =  document.getElementById("id_modshift_select_order_tblBody")
+        let tblBody =  document.getElementById("id_MOS_select_order_tblBody")
         const filter_str = el_filter.value;
         t_Filter_SelectRows(tblBody, filter_str, filter_show_inactive);
     }; // function MSO_FilterEmployee
@@ -3256,7 +3256,7 @@ let planning_list = [] // for export and printing - can replace map?
                             (scheme_cycle === 1) ? loc.Daily_cycle :
                             (scheme_cycle === 7) ? loc.Weekly_cycle :
                             scheme_cycle.toString() + "-" + loc.days_cycle;
-        document.getElementById("id_modshift_header_cycle").innerText = cycle_text;
+        document.getElementById("id_MOS_header_cycle").innerText = cycle_text;
     }
 
 //=========  MSO_SchemeCycleChanged  ================ PR2020-01-03
@@ -3286,8 +3286,8 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log( "===== MSO_PublicholidayChanged  ========= ");
         if (fldName === "excludepublicholiday") {
             mod_upload_dict.scheme.excludepublicholiday = {value: el_MSO_excl_ph.checked, update: true}
-        } else if (fldName === "alsoonpublicholiday") {
-            mod_upload_dict.scheme.alsoonpublicholiday = {value: el_MSO_also_ph.checked, update: true}
+        } else if (fldName === "divergentonpublicholiday") {
+            mod_upload_dict.scheme.divergentonpublicholiday = {value: el_MSO_also_ph.checked, update: true}
         } else if (fldName === "excludecompanyholiday") {
             mod_upload_dict.scheme.excludecompanyholiday = {value: el_MSO_excl_ch.checked, update: true}
         }
@@ -3302,7 +3302,7 @@ let planning_list = [] // for export and printing - can replace map?
         mod_upload_dict.mode = selected_btn
 
 // ---  highlight selected button
-        const btns_container = document.getElementById("id_MSO_btns_container")
+        const btns_container = document.getElementById("id_MOS_btns_container")
         t_HighlightBtnSelect(btns_container, selected_btn)
 
 // ---  highlight selected shift_row and team_cells
@@ -3354,7 +3354,7 @@ let planning_list = [] // for export and printing - can replace map?
             mod_upload_dict.shifts_list.push(new_shift_dict)
 
     // ---  fill shift options, set select shift in selectbox
-            let el_select_shift = document.getElementById("id_MSO_selectshift");
+            let el_select_shift = document.getElementById("id_MOS_selectshift");
             const selected_shift_pk_str = (!!pk_str) ? pk_str : "0";
             el_select_shift.innerHTML = t_FillOptionShiftOrTeamFromList( mod_upload_dict.shifts_list, scheme_pk,
                                                 selected_shift_pk_str, true); // true = with_rest_abbrev
@@ -4012,7 +4012,7 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log("===  MSO_Grid_CreateTblShifts == ", scheme_pk)
         //console.log("mod_upload_dict == ", mod_upload_dict)
 
-        let tblBody = document.getElementById("id_MSO_grid_tbody_shift");
+        let tblBody = document.getElementById("id_MOS_grid_tbody_shift");
         tblBody.innerText = null
 
 // ---  get scheme info from mod_upload_dict, not from scheme_map (the latter does not contain new schemes)
@@ -4183,7 +4183,7 @@ let planning_list = [] // for export and printing - can replace map?
 //=========  MSO_Grid_FillTblShifts  === PR2020-03-23
     function MSO_Grid_FillTblShifts(scheme_pk) {
         //console.log("===  MSO_Grid_FillTblShifts == ")
-        let tblBody = document.getElementById("id_MSO_grid_tbody_shift");
+        let tblBody = document.getElementById("id_MOS_grid_tbody_shift");
 
         const first_rosterdate_iso = mod_upload_dict.calendar.first_rosterdate_iso;
         const cycle = get_dict_value(mod_upload_dict, ["scheme", "cycle", "value"], 0);
@@ -4256,7 +4256,7 @@ let planning_list = [] // for export and printing - can replace map?
         const selected_btn = mod_upload_dict.mode;
         //console.log("selected_btn", selected_btn)
 
-        let tblBody = document.getElementById("id_MSO_grid_tbody_shift");
+        let tblBody = document.getElementById("id_MOS_grid_tbody_shift");
         for (let i = 0, row, len = tblBody.rows.length; i < len ; i++) {
             row = tblBody.rows[i];
             const shift_pk_str = get_attr_from_el(row, "data-shift_pk")
@@ -5106,7 +5106,7 @@ let planning_list = [] // for export and printing - can replace map?
             t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
 // filter selecttable customer and order
-            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
         } //  if (!skip_filter) {
