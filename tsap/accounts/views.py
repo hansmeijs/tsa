@@ -74,7 +74,7 @@ class UserListView(ListView):
             messages.error(request, _("User has no role."))
 
         headerbar_param = get_headerbar_param(request, {'users': users})
-        # logger.debug('home headerbar_param: ' + str(headerbar_param))
+        #logger.debug('home headerbar_param: ' + str(headerbar_param))
         """
         headerbar_param:
         {
@@ -132,13 +132,13 @@ class UserAddView(CreateView):
 
     def post(self, request, *args, **kwargs):
         # data = request.POST.copy()
-        # logger.debug('UserAddView def post(self, request:data = ' + str(data))
+        #logger.debug('UserAddView def post(self, request:data = ' + str(data))
         form = UserAddForm(request.POST, request=request)  # form = UserAddForm(request.POST)
-        # logger.debug('UserAddView post form.data: ' + str(form.data))
+        #logger.debug('UserAddView post form.data: ' + str(form.data))
         print('UserAddView post form.data: ' + str(form.data))
 
         if form.is_valid():
-            # logger.debug('UserAddView post is_valid form.data: ')
+            #logger.debug('UserAddView post is_valid form.data: ')
             if request.user.company is not None:
         # create random password
                 randompassword = User.objects.make_random_password() + User.objects.make_random_password()
@@ -147,7 +147,7 @@ class UserAddView(CreateView):
 
         # save user without commit
                 new_user = form.save(commit=False)
-                # logger.debug('UserAddView post form.save after commit=False')
+                #logger.debug('UserAddView post form.save after commit=False')
 
         # ======  save field 'company'  ============
             # user.company cannot be changed, except for users with role.system. They can switch company in headerbar.
@@ -157,7 +157,7 @@ class UserAddView(CreateView):
                 new_username = form.cleaned_data.get('username')
                 # Add compayprefix to username
                 prefixed_username = new_user.company.companyprefix + new_username
-                # logger.debug('prefixed_username: ' + str(prefixed_username))
+                #logger.debug('prefixed_username: ' + str(prefixed_username))
                 new_user.username = prefixed_username
                 # store username without prefix in field 'first name', to be shown in user edit form
                 new_user.first_name = new_username
@@ -169,8 +169,8 @@ class UserAddView(CreateView):
                 else:
                     role_int = request.user.role
                 new_user.role = role_int
-                # logger.debug('UserAddView post form.is_valid user.username: '+ str(user.username))
-                # logger.debug('UserAddView post form.is_valid user.role: '+ str(user.role))
+                #logger.debug('UserAddView post form.is_valid user.username: '+ str(user.username))
+                #logger.debug('UserAddView post form.is_valid user.role: '+ str(user.role))
 
         # ======  save field 'Permit'
                 permit_sum = 0
@@ -192,20 +192,20 @@ class UserAddView(CreateView):
 
         # ======  save new_user
                 new_user.save(self.request)  # PR 2018-08-04 debug: was: user.save()
-                # logger.debug('UserAddView post password: ' +  str(user.password))
+                #logger.debug('UserAddView post password: ' +  str(user.password))
 
                 current_site = get_current_site(request)
-                # logger.debug('UserAddView post current_site: ' +  str(current_site))
-                # logger.debug('current_site.domain: ' +  str(current_site.domain))
+                #logger.debug('UserAddView post current_site: ' +  str(current_site))
+                #logger.debug('current_site.domain: ' +  str(current_site.domain))
 
                 # domain = current_site.domain
-                # logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
+                #logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
 
                 # uid_code = urlsafe_base64_encode(force_bytes(user.pk))
-                # logger.debug('UserAddView post uid_code: ' + str(uid_code))
+                #logger.debug('UserAddView post uid_code: ' + str(uid_code))
 
                 # token = account_activation_token.make_token(user)
-                # logger.debug('UserAddView post token: ' + str(token))
+                #logger.debug('UserAddView post token: ' + str(token))
 
                 subject = 'Activate your TSA-secure account'
                 from_email = 'TSA-secure <noreply@tsasecure.com>'
@@ -217,19 +217,19 @@ class UserAddView(CreateView):
                     'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
                     'token': account_activation_token.make_token(new_user),
                 })
-                # logger.debug('UserAddView post subject: ' + str(subject))
+                #logger.debug('UserAddView post subject: ' + str(subject))
                 # PR2018-12-31 moved from accounts_user to here
                 # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
                 send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
 
-                # logger.debug('UserAddView post message sent. ')
+                #logger.debug('UserAddView post message sent. ')
                 return redirect('account_activation_sent_url')
             else:
                 # TODO: message that company is not correct
                  return render(request, 'user_add.html', {'form': form})
 
         else:
-            # logger.debug('UserAddView post NOT is_valid form.data: ' + str(form.data))
+            #logger.debug('UserAddView post NOT is_valid form.data: ' + str(form.data))
             return render(request, 'user_add.html', {'form': form})
 
 
@@ -297,7 +297,7 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         kwargs.update({'request': self.request})
 
         # eg: kwargs: {'initial': {}, 'prefix': None, 'instance': <User: Ad>, 'request': <WSGIRequest: GET '/users/18/edit'>}
-        # logger.debug('UserEditView get_form_kwargs kwargs: ' + str(kwargs))
+        #logger.debug('UserEditView get_form_kwargs kwargs: ' + str(kwargs))
         return kwargs
 
 
@@ -333,7 +333,7 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         # PR2018-08-09 get value from field 'field_is_active', save it in user.is_active
         # value in field_is_active is stored as str: '0'=False, '1'=True
         field_is_active = form.cleaned_data.get('field_is_active')
-        # logger.debug('UserEditView form_valid field_is_active: ' +  str(field_is_active) + ' Type: ' + str(type(field_is_active)))
+        #logger.debug('UserEditView form_valid field_is_active: ' +  str(field_is_active) + ' Type: ' + str(type(field_is_active)))
         _is_active = bool(int(field_is_active))
         user.is_active = _is_active
 
@@ -348,19 +348,19 @@ class UserEditView(UserPassesTestMixin, UpdateView):
 class UserLanguageView(View):
 
     def get(self, request, lang, pk):
-        # logger.debug('UserLanguageView get self: ' + str(self) + 'request: ' + str(request) + ' lang: ' + str(lang) + ' pk: ' + str(pk))
+        #logger.debug('UserLanguageView get self: ' + str(self) + 'request: ' + str(request) + ' lang: ' + str(lang) + ' pk: ' + str(pk))
         if request.user is not None :
-            # logger.debug('UserLanguageView get request.user: ' + str(request.user))
+            #logger.debug('UserLanguageView get request.user: ' + str(request.user))
             request.user.lang = lang
-            # logger.debug('UserLanguageView get request.user.language: ' + str(request.user.lang))
+            #logger.debug('UserLanguageView get request.user.language: ' + str(request.user.lang))
             request.user.save(self.request)
-            # logger.debug('UserLanguageView get saved.language: ' + str(request.user.lang))
+            #logger.debug('UserLanguageView get saved.language: ' + str(request.user.lang))
         return redirect('home')
 
 
 # PR2018-04-24
 def account_activation_sent(request):
-    # logger.debug('account_activation_sent request: ' + str(request))
+    #logger.debug('account_activation_sent request: ' + str(request))
     # PR2018-05-27
     # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
     return render(request, 'account_activation_sent.html')
@@ -375,30 +375,30 @@ class UserActivateView(UpdateView):
     context_object_name = 'UserActivateForm'  # "context_object_name" changes the original parameter name "object_list"
     # this one doesnt word: goes to login form, user not activated
     def activate(request, uidb64, token):
-        # logger.debug('UserActivateView def activate request: ' +  str(request))
+        #logger.debug('UserActivateView def activate request: ' +  str(request))
 
         #try:
         uid = force_text(urlsafe_base64_decode(uidb64))
 
         user = User.objects.get(pk=uid)
-        logger.debug('UserActivateView def activate user: ' + str(user))
+        #logger.debug('UserActivateView def activate user: ' + str(user))
 
         #except:  #except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        #    logger.debug('def activate except TypeError: ' + str(TypeError))
-        #    logger.debug('def activate except ValueError: ' + str(ValueError))
-        #    logger.debug('def activate except OverflowError: ' + str(OverflowError))
-        #    logger.debug('def activate except User.DoesNotExist: ' + str(User.DoesNotExist))
+        #logger .debug('def activate except TypeError: ' + str(TypeError))
+        #logger.debug('def activate except ValueError: ' + str(ValueError))
+        #logger.debug('def activate except OverflowError: ' + str(OverflowError))
+        #logger.debug('def activate except User.DoesNotExist: ' + str(User.DoesNotExist))
         #    user = None
 
-        logger.debug('UserActivateView def activate token: ' + str(token))
+        #logger.debug('UserActivateView def activate token: ' + str(token))
 
         if user is not None and account_activation_token.check_token(user, token):
             user.is_active = True
             user.activated = True
             user.save()
-            # logger.debug('UserActivateView def activate user.saved: ' + str(user))
+            #logger.debug('UserActivateView def activate user.saved: ' + str(user))
             # login(request, user)
-            # logger.debug('UserActivateView def activate user.loggedin: ' + str(user))
+            #logger.debug('UserActivateView def activate user.loggedin: ' + str(user))
 
             # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
             #return render(request, 'account_activation_success.html', {'user': user,})
@@ -414,12 +414,12 @@ class UserActivateView(UpdateView):
             param = {'display_user': True }
             headerbar_param = f.get_headerbar_param(request, param)
             headerbar_param['form'] = form
-            # logger.debug('def home(request) headerbar_param: ' + str(headerbar_param))
+            #logger.debug('def home(request) headerbar_param: ' + str(headerbar_param))
 
             return render(request, 'user_add.html', headerbar_param)
 
         else:
-            # logger.debug('def activate account_activation_token.check_token False')
+            #logger.debug('def activate account_activation_token.check_token False')
             return render(request, 'account_activation_invalid.html')
 
 
@@ -429,19 +429,19 @@ def UserActivate(request, uidb64, token):
     #  'You have successfully activated your TSA-secure account.
     #  Before you can login you have to create a password.
     #  Click "Create password" and follow the instructions.
-    logger.debug('UserActivate request: ' + str(request) + str(uidb64))
+    #logger.debug('UserActivate request: ' + str(request) + str(uidb64))
 
     try:
         uid = force_text(urlsafe_base64_decode(uidb64))
-        logger.debug('def activate try uid: ' + str(uid))
+        #logger.debug('def activate try uid: ' + str(uid))
         user = User.objects.get(pk=uid)
-        logger.debug('UserActivate def activate try user: ' + str(user))
+        #logger.debug('UserActivate def activate try user: ' + str(user))
 
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        # logger.debug('UserActivate def activate except TypeError: ' + str(TypeError))
-        # logger.debug('UserActivate def activate except ValueError: ' + str(ValueError))
-        # logger.debug('UserActivate def activate except OverflowError: ' + str(OverflowError))
-        # logger.debug('UserActivate def activate except User.DoesNotExist: ' + str(User.DoesNotExist))
+        #logger.debug('UserActivate def activate except TypeError: ' + str(TypeError))
+        #logger.debug('UserActivate def activate except ValueError: ' + str(ValueError))
+        #logger.debug('UserActivate def activate except OverflowError: ' + str(OverflowError))
+        #logger.debug('UserActivate def activate except User.DoesNotExist: ' + str(User.DoesNotExist))
         user = None
 
     if user is not None and account_activation_token.check_token(user, token):
@@ -450,12 +450,12 @@ def UserActivate(request, uidb64, token):
         # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
         user.activatedat = timezone.now()
         user.save()
-        logger.debug('UserActivate def activate user.saved: ' + str(user))
+        #logger.debug('UserActivate def activate user.saved: ' + str(user))
 
         # open setpassword form
 
         # login(request, user)
-        # logger.debug('UserActivate def activate user.loggedin: ' + str(user))
+        #logger.debug('UserActivate def activate user.loggedin: ' + str(user))
 
 
 
@@ -466,7 +466,7 @@ def UserActivate(request, uidb64, token):
         # return render(request, 'password_reset_confirm.html', {'user': user,})
 
     else:
-        logger.debug('def activate account_activation_token.check_token False')
+        #logger.debug('def activate account_activation_token.check_token False')
         return render(request, 'account_activation_invalid.html')
 
 """
@@ -509,7 +509,7 @@ class UserActivatedSuccess(View):
 
     def get(self, request):
         def get(self, request):
-            logger.debug('UserActivatedSuccess get request: ' + str(request))
+            #logger.debug('UserActivatedSuccess get request: ' + str(request))
             return self.render(request)
 
         def render(self, request):
@@ -517,7 +517,7 @@ class UserActivatedSuccess(View):
             # TODO I don't think schoolbase is correct PR2018-10-19
             schoolbase = usr.schoolbase
 
-            logger.debug('UserActivatedSuccess render usr: ' + str(usr))
+            #logger.debug('UserActivatedSuccess render usr: ' + str(usr))
 
             return render(request, 'country_list.html', {'user': usr, 'schoolbase': schoolbase})
 
@@ -533,11 +533,11 @@ class UserDeleteView(DeleteView):
 class UserSettingsUploadView(UpdateView):  # PR2019-10-09
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= UserSettingsUploadView ============= ')
+        #logger.debug(' ============= UserSettingsUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-            # logger.debug('request.POST ' + str(request.POST))
+            #logger.debug('request.POST ' + str(request.POST))
 
 # 1. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -548,15 +548,15 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                 # upload_dict: {'quicksave': {'value': False}}
                 for key in upload_dict:
                     new_setting = upload_dict[key]
-                    # logger.debug('new_setting: ' + str(new_setting))
+                    #logger.debug('new_setting: ' + str(new_setting))
                     # key: quicksave --> new_setting: {'value': False}
                     if key == 'selected_pk':
                         settings_dict = Usersetting.get_jsonsetting(key, request.user)
-                        # logger.debug('settings_dict: ' + str(settings_dict))
+                        #logger.debug('settings_dict: ' + str(settings_dict))
                 # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
                         for sel_pk in new_setting:
                             sel_value = new_setting[sel_pk]
-                            # logger.debug('sel_value: ' + str(sel_value))
+                            #logger.debug('sel_value: ' + str(sel_value))
                             settings_dict[sel_pk] = sel_value
                     else:
                         # "planning_period":{"datefirst":"2019-10-10","datelast":"2019-12-13"}}
@@ -569,26 +569,26 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                     # new_setting = json.loads(request.POST['setting'])
                     # new_setting_json = json.dumps(new_setting)
                     if settings_dict:
-                        logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
+                        #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
                         Usersetting.set_jsonsetting(key, settings_dict, request.user)
 
 # 2. get iddict variables
                 # if field in upload_dict:
                     # new_dict = upload_dict.get(field)
                     # saved_dict = Usersetting.get_jsonsetting(key, settings_dict, request.user)
-                    # logger.debug('settings_dict ' + str(settings_dict))
+                    #.debug('settings_dict ' + str(settings_dict))
                     # settings_dict {'page_employee': {'selected_btn': 'absence'}}
                     # if settings_dict:
                         # key = c.KEY_USER_PAGE_SETTINGS
                         # page = 'pagexx'
                         # new_setting_dict = {}
                         # selected_btn = settings_dict.get('selected_btn')
-                        # logger.debug('selected_btn ' + str(selected_btn))
+                        #logger.debug('selected_btn ' + str(selected_btn))
 
                         # TODO: multiple settings, get saves settingsfirst, then update new setting
                         # new_page_dict = {}
                         #  new_page_dict[page] = {'selected_btn': selected_btn}
-                        # logger.debug('new_page_dict ' + str(new_page_dict))
+                        #logger.debug('new_page_dict ' + str(new_page_dict))
 
         # c. add update_dict to update_wrap
                         update_wrap['setting'] = {"result": "ok"}
@@ -604,10 +604,10 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
 class DownloadSubmenusView(View):  # PR2018-12-19
     # function updates Usersettings
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= DownloadSubmenusView ============= ')
+        #logger.debug(' ============= DownloadSubmenusView ============= ')
         if request.user is not None:
             for key in request.POST.keys():
-                # logger.debug('request.POST[' + str(key) + ']: ' + request.POST[key] + ' type: ' + str(type(request.POST[key])))
+                #logger.debug('request.POST[' + str(key) + ']: ' + request.POST[key] + ' type: ' + str(type(request.POST[key])))
                 if key == c.KEY_USER_MENU_SELECTED:
                     selected_index = request.POST[key]
                     if Usersetting.objects.filter(
@@ -659,8 +659,8 @@ class SignupView(View):
     # it returns the signup page
     # if user.is_authenticated: return to home page with error message
     def get(self, request):
-        logger.debug(' ========== SignupView ===============')
-        logger.debug('request: ' + str(request))
+        #logger.debug(' ========== SignupView ===============')
+        #logger.debug('request: ' + str(request))
         if request.user and request.user.is_authenticated:
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
@@ -678,8 +678,8 @@ class SignupUploadView(View):
     #  when ok: it also sends an email to the user
 
     def post(self, request, *args, **kwargs):
-        logger.debug('  ')
-        logger.debug(' ========== SignupUploadView ===============')
+        #logger.debug('  ')
+        #logger.debug(' ========== SignupUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
@@ -687,7 +687,7 @@ class SignupUploadView(View):
         upload_json = request.POST.get("upload")
         if upload_json:
             upload_dict = json.loads(upload_json)
-            logger.debug('upload_dict: ' + str(upload_dict))
+            #logger.debug('upload_dict: ' + str(upload_dict))
 
 # - set language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -801,8 +801,8 @@ class SignupUploadView(View):
 
 # === SignupActivateView ===================================== PR2020-04-01
 def SignupActivateView(request, uidb64, token):
-    logger.debug('  === SignupActivateView =====')
-    # logger.debug('request: ' + str(request))
+    #logger.debug('  === SignupActivateView =====')
+    #logger.debug('request: ' + str(request))
 
     # SignupActivateView is called when user clicks on link 'Activate your TSA-secure account'
     # it returns the page 'signup_setpassword'
@@ -840,18 +840,18 @@ def SignupActivateView(request, uidb64, token):
             update_wrap['msg_01'] = _('The link to activate your account is not valid.')
             update_wrap['msg_02'] = _('You cannot activate your account.')
 
-    logger.debug('update_wrap: ' + str(update_wrap))
+    #logger.debug('update_wrap: ' + str(update_wrap))
 
     if request.method == 'POST':
-        logger.debug('request.POST' + str(request.POST))
+        #logger.debug('request.POST' + str(request.POST))
         form = SetPasswordForm(user, request.POST)
 
         form_is_valid = form.is_valid()
 
         non_field_errors = f.get_dict_value(form, ('non_field_errors',))
         field_errors = [(field.label, field.errors) for field in form]
-        logger.debug('non_field_errors' + str(non_field_errors))
-        logger.debug('field_errors' + str(field_errors))
+        #logger.debug('non_field_errors' + str(non_field_errors))
+        #logger.debug('field_errors' + str(field_errors))
 
         if form_is_valid:
             user = form.save()
@@ -877,7 +877,7 @@ def SignupActivateView(request, uidb64, token):
                 #login_user = authenticate(username=user.username, password=password1)
                 #login(request, login_user)
                 login(request, user)
-                logger.debug('user.login' + str(user))
+                #logger.debug('user.login' + str(user))
                 if request.user:
                     update_wrap['msg_01'] = _("Congratulations.")
                     update_wrap['msg_02'] = _("Your account is succesfully activated.")

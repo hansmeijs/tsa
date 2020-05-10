@@ -169,15 +169,27 @@ document.addEventListener('DOMContentLoaded', function() {
             el_modemployee_btn_save.addEventListener("click", function() {MSE_Save()}, false )
 
 // ---  MOD SELECT SHIFT ------------------------------
+        let el_MSS_input_date = document.getElementById("id_MSS_input_date");
+            el_MSS_input_date.addEventListener("focus", function() {MSS_GotFocus("date", el_MSS_input_date)}, false )
+            el_MSS_input_date.addEventListener("change", function() {MSS_RosterdateEdit(el_MSS_input_date)}, false)
         let el_MSS_input_order = document.getElementById("id_MSS_input_order")
+            el_MSS_input_order.addEventListener("focus", function() {MSS_GotFocus("order", el_MSS_input_order)}, false )
             el_MSS_input_order.addEventListener("keyup", function(event){
-                setTimeout(function() {MSS_Filter("order")}, 50)});
+                setTimeout(function() {MSS_Filter("order", el_MSS_input_order)}, 50)});
         let el_MSS_input_shift = document.getElementById("id_MSS_input_shift")
+            el_MSS_input_shift.addEventListener("focus", function() {MSS_GotFocus("shift", el_MSS_input_shift)}, false )
             el_MSS_input_shift.addEventListener("keyup", function(event){
-                setTimeout(function() {MSS_Filter("shift")}, 50)});
+                setTimeout(function() {MSS_Filter("shift", el_MSS_input_shift)}, 50)});
         let el_MSS_input_employee = document.getElementById("id_MSS_input_employee")
+            el_MSS_input_employee.addEventListener("focus", function() {MSS_GotFocus("employee",el_MSS_input_employee )}, false )
             el_MSS_input_employee.addEventListener("keyup", function(event){
-                setTimeout(function() {MSS_Filter("employee")}, 50)});
+                setTimeout(function() {MSS_Filter("employee", el_MSS_input_employee)}, 50)});
+
+        document.getElementById("id_MSS_replace").addEventListener("change", function() {MSS_CheckboxEdit("replace")}, false)
+        document.getElementById("id_MSS_switch").addEventListener("change", function() {MSS_CheckboxEdit("switch")}, false)
+
+
+
         let el_MSS_btn_save = document.getElementById("id_MSS_btn_save")
             el_MSS_btn_save.addEventListener("click", function() {MSS_Save()}, false )
 
@@ -1696,7 +1708,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblHead = null, filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
         t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
-            HandleSelect_Filter, null, MSO_SelectCustomer, null,
+            MSO_MSE_Filter_SelectRows, null, MSO_SelectCustomer, null,
             filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected)
 // ---  lookup selected tblRow
@@ -1737,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
             t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
-                HandleSelect_Filter, null, MSO_SelectOrder, null,
+                MSO_MSE_Filter_SelectRows, null, MSO_SelectOrder, null,
                 filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt, null, cls_selected
             );
     // select first tblRow
@@ -1793,7 +1805,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblHead = null, filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
                         addall_to_list_txt = "<" + loc.All_employees + ">";
         t_Fill_SelectTable(tblBody, tblHead, employee_map, "employee", selected_period.employee_pk, null,
-            HandleSelect_Filter, null,
+            MSO_MSE_Filter_SelectRows, null,
             MSE_SelectEmployee, null,
             filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected
@@ -1869,39 +1881,35 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSE_FilterEmployee() {
         //console.log( "===== MSE_FilterEmployee  ========= ");
 
+// ---  get value of new_filter
         let new_filter = el_modemployee_input_employee.value
 
-        let tblBody_select_employee = document.getElementById("id_ModSelEmp_tbody_employee");
-        const len = tblBody_select_employee.rows.length;
+        let tblBody = document.getElementById("id_ModSelEmp_tbody_employee");
+        const len = tblBody.rows.length;
         if (!!new_filter && !!len){
-// ---  filter select_employee rows
-            const filter_dict = t_Filter_SelectRows(tblBody_select_employee, new_filter);
-
+// ---  filter rows in table select_employee
+            const filter_dict = t_Filter_SelectRows(tblBody, new_filter);
 // ---  if filter results have only one employee: put selected employee in el_modemployee_input_employee
             const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
             if (!!selected_pk) {
                 el_modemployee_input_employee.value = get_dict_value(filter_dict, ["selected_value"])
-
 // ---  put pk of selected employee in mod_upload_dict
                 if(!Number(selected_pk)){
                     if(selected_pk === "addall" ) {
                         mod_upload_dict.employee.pk = 0;
-                        //mod_upload_dict.order = 0;
                     }
                 } else {
                     const pk_int = Number(selected_pk)
                     if (pk_int !== selected_period.employee_pk){
                         mod_upload_dict.employee.pk = pk_int;
-                        //mod_upload_dict.order = 0;
                     }
                 }
                 MSE_headertext();
-
 // ---  Set focus to btn_save
                 el_modemployee_btn_save.focus()
             }  //  if (!!selected_pk) {
         }
-    }; // MSO_FilterCustomer
+    }; // MSE_FilterEmployee
 
     function MSE_headertext() {
         //console.log( "=== MSE_headertext  ");
@@ -1922,147 +1930,219 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ MODAL SELECT SHIFT +++++++++++++++++++++++++++++++++++++++++++
 //========= MSS_Open ====================================  PR2020-05-07
-    function MSS_Open (selected_emplhour_pk) {
+    function MSS_Open () {
         console.log(" ===  MSS_Open  =====") ;
         console.log("mod_upload_dict: ", mod_upload_dict) ;
 
-        const emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, mod_upload_dict.map_id)
-        // tblRow = null when no tblRow is  selected
-        const tblRow = document.getElementById(mod_upload_dict.map_id);
-        console.log("tblRow: ", tblRow) ;
-        console.log("emplhour_dict: ", emplhour_dict) ;
-
-// ---  get rosterdate
-        const emplhour_pk = get_dict_value(emplhour_dict, ["id", "pk"])
-        if(mod_upload_dict.rosterdate && emplhour_pk){
-            const upload_dict = {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: emplhour_pk}
-            UploadChanges(upload_dict, url_emplhour_download);
-        }
-
-
-        const is_absence = get_dict_value(emplhour_dict, ["id", "isabsence"])
-        console.log("is_absence: ", is_absence) ;
-        if(!!tblRow && !is_absence){
-            mod_upload_dict.rowindex = tblRow.rowIndex;
-        }
-// ---  reset el_MRO_input fields
+// ---  put rosterdate in input box
         document.getElementById("id_MSS_input_date").value = mod_upload_dict.rosterdate;
-        document.getElementById("id_MSS_input_order").value = null;
-        document.getElementById("id_MSS_input_employee").value = null;
 
-        //MRO_SetHeaderAndEnableBtnSave();
+// ---  reset other input box, disable
+        mod_upload_dict.is_switch = false;
 
-// ---  set focus to el_input
-        setTimeout(function (){ document.getElementById("id_MSS_input_order") .focus() }, 50);
-        console.log("mod_upload_dict", mod_upload_dict) ;
+        MSS_Reset_TableAndInputBoxes();
+        MSS_DisableInputBoxes(isEmpty(mod_upload_dict.emplh_shift_dict))
+// ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
+        if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
+            add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
+            const upload_dict = {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}
+            UploadChanges(upload_dict, url_emplhour_download);
+            // response handled in  MSS_UploadResponse
+        }
+
 // ---  show modal
         $("#id_modselectshift").modal({backdrop: true});
 
-}; // MRO_Open
+}; // MSS_Open
 
+//=========  MSS_Save  ================ PR2020-05-09
+    function MSS_Save() {
+        console.log("===  MSS_Save =========");
+        console.log("mod_upload_dict", mod_upload_dict);
+        console.log("========mod_upload_dict.is_switch", mod_upload_dict.is_switch);
 
-//=========  MSS_FillSelectTable  ================ PR2020-05-07
-    function MSS_FillSelectTable(tblName, emplh_shift_dict, selected_pk) {
-        console.log( ">>>>>>>>>>>>>>===== MSS_FillSelectTable ========= ");
-        console.log( "tblName: ", tblName);
+// ---  create id_dict of current emplhour record
+        let other_employee_dict = {};
+        const employee_pk = (mod_upload_dict.is_switch && mod_upload_dict.employee_pk) ? mod_upload_dict.employee_pk : null;
+        const employee_ppk = (mod_upload_dict.is_switch && mod_upload_dict.employee_ppk) ? mod_upload_dict.employeep_pk : null;
+        other_employee_dict = {pk: employee_pk, ppk: employee_ppk, table: "employee", update: true};
 
+        let upload_dict = {id: {pk: mod_upload_dict.emplhour.pk,
+                                ppk: mod_upload_dict.emplhour.ppk,
+                                table: "emplhour",
+                                shiftoption: "moveto_shift",
+                                rowindex: mod_upload_dict.rowindex},
+                            employee: other_employee_dict,
+                            moveto_emplhour_pk: mod_upload_dict.selected_emplhour_pk
+                           }
 
-        let data_dict ={};
-        let select_header_text = null;
-        let caption_none = null;
-        let filter_pk = null;
+// ---  remove employee from current emplhour
+        //let tr_changed = document.getElementById(mod_upload_dict.map_id);
+        //console.log("mod_upload_dict.map_id", mod_upload_dict.map_id)
+        //console.log("tr_changed", tr_changed)
+        //set_fieldvalue_in_tblRow(tr_changed, "employee", "bingo!!");
 
-        if(tblName === "cust_ordr") {
-            mod_upload_dict.emplh_shift_dict = emplh_shift_dict;
-            data_dict = emplh_shift_dict;
-            select_header_text = loc.Select_order + ":";
-            caption_none = loc.No_orders;
-        } else if(tblName === "shift") {
-            data_dict = emplh_shift_dict;
-            select_header_text = loc.Select_shift + ":";
-            caption_none = loc.No_shifts;
-            filter_pk = mod_upload_dict.order.pk;
-        } else if(tblName === "employee") {
-            data_dict = emplh_shift_dict;
-            select_header_text = loc.Select_employee + ":";
-            caption_none = loc.No_employees;
-        };
-        document.getElementById("id_MSS_select_header").innerText = select_header_text;
-        let tableBody = document.getElementById("id_MSS_tblbody_select");
-        tableBody.innerText = null;
+// ---  Upload Changes
+        UploadChanges(upload_dict, url_emplhour_upload);
 
-        let row_count = 0, has_selected_pk = false;
-//--- when no items found: show 'select_customer_none'
-        if (isEmpty(data_dict)){
+        $('#id_modselectshift').modal('hide');
+    }  // MSS_Save
 
-        } else {
-//--- loop through dict
-            for(var key in data_dict) {
-                if(data_dict.hasOwnProperty(key)) {
-                    const item_dict = data_dict[key];
-
-    //--- check if item must be added to list
-                    let add_to_list = false, has_selected_pk = false, pk_int = null, code_value = "";
-                    if(tblName === "cust_ordr") {
-                        pk_int = key
-                        code_value = get_dict_value(item_dict, ["cust_ordr_code"], "");
-                        add_to_list = true
-                    } else if(tblName === "shift") {
-                        code_value = get_dict_value(item_dict, ["code", "value"], "");
-                        const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
-                        add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
-                    } else if(tblName === "employee") {
-                        code_value = get_dict_value(item_dict, ["code", "value"], "");
-                        const skip_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
-
-                        add_to_list = (!is_inactive && within_range && !skip_selected_pk);
-                    };
-
-                    if (add_to_list){
-                        row_count += 1;
-    //- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
-                        let tblRow = tableBody.insertRow(-1);
-                        tblRow.setAttribute("data-pk", pk_int);
-                        tblRow.setAttribute("data-value", code_value);
-                        tblRow.setAttribute("data-table", tblName);
-    //- add hover to tblRow
-                        tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                        tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
-    //- add EventListener to tblRow
-                        tblRow.addEventListener("click", function() {MRO_MRE_SelecttableClicked(tblName, tblRow, tblName)}, false )
-
-    // - add first td to tblRow.
-                        let td = tblRow.insertCell(-1);
-    // --- add a element to td., necessary to get same structure as item_table, used for filtering
-                        let el = document.createElement("div");
-                            el.innerText = code_value;
-                            el.classList.add("mx-1")
-                        td.appendChild(el);
-                    } // if (add_to_list)
-                }  //  if(data_dict.hasOwnProperty(key)) {
-            } // for(var key in data_dict) {
-        }  //  if (isEmpty(data_dict)){
-        if(row_count === 0){
-            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            td.innerText = caption_none;
-        } else if(row_count === 1){
-            let tblRow = tableBody.rows[0]
-            if(!!tblRow)
-            // ---  highlight first row
-                tblRow.classList.add(cls_selected)
-                if(tblName === "customer") {
-                    selected_period.customer_pk = get_attr_from_el_int(tblRow, "data-pk");
-                    selected_period.order_pk = 0;
-                     MRO_MRE_SelecttableClicked(tblName, tblRow, "MRO")
-                } else if(tblName === "order") {
-                    selected_period.order_pk = get_attr_from_el_int(tblRow, "data-pk");
-                    MRO_MRE_SelecttableClicked(tblName, tblRow, "MRO")
-                }
+//=========  MSS_UploadResponse  ================ PR2020-05-10
+    function MSS_UploadResponse (response_emplh_shift_dict) {
+        //console.log(" =====  MSS_UploadResponse  ===== ", tblName)
+        //console.log(el_input)
+        mod_upload_dict.emplh_shift_dict = deepcopy_dict(response_emplh_shift_dict)
+        const row_count = MRO_MRE_MSS_FillSelectTable ("MSS", "order");
+        el_MSS_input_order.readOnly = (!row_count);
+        if(row_count){
+            mod_upload_dict.skip_focus_event = true;
+            el_MSS_input_order.readOnly = false;
+            set_focus_on_el_with_timeout(el_MSS_input_order, 50)
         }
-        return has_selected_pk;
-    }  // MSS_FillSelectTable
 
+    }  // MSS_UploadResponse
+
+//=========  MSS_RosterdateEdit  ================ PR2020-05-08
+    function MSS_RosterdateEdit (el_input) {
+        console.log(" =====  MSS_RosterdateEdit =====")
+
+// ---  get new rosterdate
+        mod_upload_dict.rosterdate = el_input.value
+// ---  disable input boxes
+        MSS_DisableInputBoxes(true)
+        MSS_Reset_TableAndInputBoxes();
+// ---  show loader
+        add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
+// ---  reset table and input field
+// ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
+        if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
+            const upload_dict = {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}
+            console.log("upload_dict", upload_dict)
+            UploadChanges(upload_dict, url_emplhour_download);
+        }
+    }  // MSS_RosterdateEdit
+
+//=========  MSS_CheckboxEdit  ================ PR2020-05-10
+    function MSS_CheckboxEdit (fldName) {
+        //console.log(" =====  MSS_CheckboxEdit =====")
+        const checkbox_replace = document.getElementById("id_MSS_replace")
+        const checkbox_switch = document.getElementById("id_MSS_switch")
+        if ( fldName === "replace") {
+              mod_upload_dict.is_switch = !checkbox_replace.checked
+              checkbox_switch.checked = mod_upload_dict.is_switch
+        } else if ( fldName === "switch") {
+            mod_upload_dict.is_switch = checkbox_switch.checked
+            checkbox_replace.checked = !mod_upload_dict.is_switch
+        }
+// ---  Set focus to btn_save
+        el_MSS_btn_save.focus()
+    }  // MSS_CheckboxEdit
+
+//=========  MSS_Filter  ================ PR2020-05-09
+    function MSS_Filter (tblName, el_input) {
+        //console.log("=====  MSS_Filter ===== tblName", tblName)
+        //console.log("el_input", el_input)
+// ---  get value of new_filter
+        let new_filter = el_input.value
+
+        let tblBody = document.getElementById("id_MSS_tblbody_select");
+        const len = tblBody.rows.length;
+        if (len){
+// ---  filter rows in table select_employee
+            const filter_dict = t_Filter_SelectRows(tblBody, new_filter);
+// ---  if filter results have only one row: put selected row in el_input
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            const selected_value = get_dict_value(filter_dict, ["selected_value"])
+            if (selected_pk) {
+                el_input.value = selected_value
+// ---  put pk of selected row in mod_upload_dict
+                const pk_int = selected_pk;
+                if (tblName === "order") {
+                    mod_upload_dict.selected_order_pk = selected_pk;
+                    MRO_MRE_MSS_SelecttableUpdateAfterSelect("MSS", tblName, selected_pk, null, selected_value)
+                } else if (tblName === "shift") {
+                    mod_upload_dict.selected_shift_pk = selected_pk;
+                    MRO_MRE_MSS_SelecttableUpdateAfterSelect("MSS", tblName, selected_pk, null, selected_value)
+                } else if (tblName === "employee") {
+                    mod_upload_dict.selected_emplhour_pk = selected_pk;
+                    console.log("mod_upload_dict.selected_emplhour_pk: ", mod_upload_dict.selected_emplhour_pk)
+                    el_MSS_input_employee.value = selected_value;
+                    el_MSS_btn_save.disabled = false;
+                    set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
+                }
+// ---  Set focus to btn_save
+                el_MSS_btn_save.focus()
+            }  //  if (!!selected_pk) {
+        }
+    }  // MSS_Filter
+
+//=========  MSS_DisableInputBoxes  ================ PR2020-05-09
+    function MSS_DisableInputBoxes(disable) {
+        //console.log( "===== MSS_DisableInputBoxes ========= ");
+
+// ---  set focus to el_date, disable other input elements
+        setTimeout(function (){ el_MSS_input_date .focus() }, 50);
+
+// ---  add_or_remove_attr_with_qsAll(el_container, filter_class, atr_name, is_add, atr_value)
+        add_or_remove_attr_with_qsAll(document.getElementById("id_MSS_input_container"), "input", "readOnly", disable, true)
+        //el_MSS_input_order.readOnly = true
+        //el_MSS_input_shift.readOnly = true
+        //el_MSS_input_employee.readOnly = true
+        el_MSS_btn_save.disabled = disable
+    }  // MSS_DisableInputBoxes
+
+//=========  MSS_Reset_TableAndInputBoxes  ================ PR2020-05-09
+    function MSS_Reset_TableAndInputBoxes() {
+        console.log( "===== MSS_Reset_TableAndInputBoxes ========= ");
+        console.log( "mod_upload_dict", mod_upload_dict);
+
+// set header text
+        const el_header = document.getElementById("id_MSS_header");
+        const employee_code = get_dict_value(mod_upload_dict, ["employee", "code"])
+        const header_text = (employee_code) ? loc.Select_shift + " " + loc.for + " " + employee_code : loc.Select_shift + ":"
+        el_header.innerText = header_text;
+// ---  reset input boxes
+        const el_MSS_input_container = document.getElementById("id_MSS_input_container");
+        // add_or_remove_attr_with_qsAll(el_container, filter, atr_name, is_add, atr_value){
+        //add_or_remove_attr_with_qsAll(el_MSS_input_container, "input", "value", false)
+        document.getElementById("id_MSS_input_order").value = null;
+        document.getElementById("id_MSS_input_shift").value = null;
+        document.getElementById("id_MSS_input_employee").value = null;
+
+        document.getElementById("id_MSS_tblbody_select").innerText = null;
+
+        document.getElementById("id_MSS_replace").checked = true;
+        document.getElementById("id_MSS_switch").checked = false;
+
+    }  // MSS_Reset_TableAndInputBoxes
+
+//=========  MSS_GotFocus  ================ PR2020-05-09
+    function MSS_GotFocus (tblName, el_input) {
+        console.log(" =====  MSS_GotFocus  ===== ", tblName)
+        console.log("mod_upload_dict.skip_focus_event", mod_upload_dict.skip_focus_event)
+        if(mod_upload_dict.skip_focus_event){
+            mod_upload_dict.skip_focus_event = false;
+        } else {
+            if (tblName === "order") {
+                el_MSS_input_order.value = null
+                el_MSS_input_shift.value = null;
+                el_MSS_input_employee.value = null;
+                // reset select table when input order got focus
+                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_upload_dict.selected_order_pk);
+            } else if (tblName === "shift") {
+                el_MSS_input_shift.value = null;
+                el_MSS_input_employee.value = null;
+                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_upload_dict.selected_shift_pk);
+            } else if (tblName === "employee") {
+                el_MSS_input_employee.value = null;
+                MRO_MRE_MSS_FillSelectTable("MSS", tblName, 0);
+            }
+        }
+    }  // MSS_GotFocus
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= Sidebar_FillOptionsAbsenceRestshift  ==================================== PR2020-02-27
     function Sidebar_FillOptionsAbsenceRestshift() {
@@ -2532,9 +2612,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= HandleSelect_Filter  ====================================
-    function HandleSelect_Filter() {
-        //console.log( "===== HandleSelect_Filter  ========= ");
+//========= MSO_MSE_Filter_SelectRows  ====================================
+    function MSO_MSE_Filter_SelectRows() {
+        //console.log( "===== MSO_MSE_Filter_SelectRows  ========= ");
         // skip filter if filter value has not changed, update variable filter_select
 
         let new_filter = document.getElementById("id_filter_select_input").value;
@@ -2565,14 +2645,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // filter selecttable customer and order
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_period.customer_pk)
-
         } //  if (!skip_filter) {
-    }; // function HandleSelect_Filter
+    }; // MSO_MSE_Filter_SelectRows
 
-
-//========= FilterTableRows_dict  ====================================
-    function FilterTableRows_dict() {  // PR2019-06-09
-        //console.log( "===== FilterTableRows_dict  ========= ");
+//========= Filter_TableRows  ====================================
+    function Filter_TableRows() {  // PR2019-06-09
+        console.log( "===== Filter_TableRows=== ");
         //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
         //console.log( "show_inactive", show_inactive, typeof show_inactive);
         const len = tBody_roster.rows.length;
@@ -2588,7 +2666,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             }
         };
-    }; // FilterTableRows_dict
+    }; // Filter_TableRows
 
 //========= ShowTableRow_dict  ====================================
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15
@@ -2691,7 +2769,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26
-        //console.log( "===== ResetFilterRows  ========= ");
+        console.log( "===== ResetFilterRows  ========= ");
 
         filter_dict = {};
         filter_hide_inactive = true;
@@ -2703,11 +2781,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  deselect highlighted rows, reset selected_emplhour_pk
         selected_emplhour_pk = 0;
         DeselectHighlightedTblbody(tBody_roster, cls_selected)
+
+// ---  reset filtered tablerows
+        Filter_TableRows();
+
     }  // function ResetFilterRows
 
 //========= HandleTblheaderFilterKeyup  ====================================
     function HandleTblheaderFilterKeyup(el, index, el_key) {
-        //console.log( "===== HandleTblheaderFilterKeyup  ========= ");
+        console.log( "===== HandleTblheaderFilterKeyup  ========= ");
         //console.log( "el_key", el_key);
 
         //console.log( "el.value", el.value, index, typeof index);
@@ -2753,7 +2835,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (!skip_filter) {
-            FilterTableRows_dict();
+            Filter_TableRows();
         } //  if (!skip_filter) {
     }; // function HandleTblheaderFilterKeyup
 
@@ -2972,7 +3054,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ModRosterdateFinished(response["rosterdate"]);
                     };
                     if("emplh_shift_dict" in response){
-                        MSS_FillSelectTable ("cust_ordr", response.emplh_shift_dict);
+                        MSS_UploadResponse(response.emplh_shift_dict)
                     }
                     if ("logfile" in response) {
                         const new_rosterdate = get_dict_value(response, ["rosterdate", "rosterdate", "rosterdate"], "")
@@ -3625,7 +3707,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_MRO_breakduration.innerText = null;
         el_MRO_timeduration.innerText = null;
 
-        MRO_MRE_FillSelectTable("order", "MRO");
+        MRO_MRE_MSS_FillSelectTable("MRO", "order");
 
         MRO_SetHeaderAndEnableBtnSave();
 
@@ -3723,7 +3805,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pk_int = (!!Number(only_one_selected_pk)) ? Number(only_one_selected_pk) : null;
                 const ppk_int = (!!Number(ppk_str)) ? Number(ppk_str) : null;
 // ---  highlight row
-                MRO_MRE_SelecttableUpdateAfterSelect(tblName, pk_int, ppk_int, code_value, false)
+                MRO_MRE_MSS_SelecttableUpdateAfterSelect("MRO", tblName, pk_int, ppk_int, code_value)
 // ---  set header and btn save enabled
                 MRO_SetHeaderAndEnableBtnSave();
 // ---  set focus to btn_save
@@ -3742,106 +3824,104 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_InputOnfocus  ================ PR2020-02-29
     function MRO_InputOnfocus(tblName) {
-        MRO_MRE_FillSelectTable(tblName, "MRO")
+        MRO_MRE_MSS_FillSelectTable("MRO", tblName)
     }  // MRO_InputOnfocus
 
-//=========  MRO_MRE_FillSelectTable  ================ PR2020-02-29
-    function MRO_MRE_FillSelectTable(tblName, pgeName, selected_pk) {
-        console.log( "===== MRO_MRE_FillSelectTable ========= ");
+//=========  MRO_MRE_MSS_FillSelectTable  ================ PR2020-02-29
+    function MRO_MRE_MSS_FillSelectTable(pgeName, tblName, selected_pk) {
+        console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
+        console.log( "pgeName: ", pgeName);
         console.log( "tblName: ", tblName);
         console.log( "selected_pk: ", selected_pk, typeof selected_pk);
 
         let data_map = new Map();
+        let data_dict = {};
         let select_header_text = null;
         let caption_none = null;
         let filter_pk = null;
 
+        if(pgeName === "MSS"){
+// ---  hide loader
+            const el_loader = document.getElementById("id_MSS_loader");
+            add_or_remove_class(el_loader, cls_hide, true);
+            const order_dict = mod_upload_dict.emplh_shift_dict;
+            const shift_dict = get_dict_value(order_dict, [mod_upload_dict.order_pk]);
+            const employee_dict = get_dict_value(shift_dict, [mod_upload_dict.shift_code]);
+console.log("?????????? order_dict", order_dict)
+console.log("?????????? shift_dict", shift_dict)
+console.log("?????????? employee_dict", employee_dict)
+            if(tblName === "order") {
+                data_dict = order_dict;
+            } else if(tblName === "shift") {
+                data_dict = shift_dict;
+            } else if(tblName === "employee") {
+                data_dict = employee_dict;
+            }
+        } else {
+            if(tblName === "order") {
+                data_map = order_map;
+            } else if(tblName === "shift") {
+                data_map = shift_map;
+                filter_pk = mod_upload_dict.order.pk;
+            } else if(tblName === "employee") {
+                data_map = employee_map;
+            };
+        }
         if(tblName === "order") {
-            data_map = order_map;
             select_header_text = loc.Select_order + ":";
             caption_none = loc.No_orders;
         } else if(tblName === "shift") {
-            data_map = shift_map;
             select_header_text = loc.Select_shift + ":";
             caption_none = loc.No_shifts;
             filter_pk = mod_upload_dict.order.pk;
         } else if(tblName === "employee") {
-            data_map = employee_map;
-            select_header_text = loc.Select_employee + ":";
+            if (pgeName === "MSS"){
+                select_header_text = loc.Current_teammembers + ":";
+            } else {
+                select_header_text = loc.Select_employee + ":";
+            }
             caption_none = loc.No_employees;
         };
-        if (pgeName === "MRO"){
-            document.getElementById("id_MRO_select_header").innerText = select_header_text;
-        }
-        const table_id = "id_" + pgeName + "_tblbody_select"
-        let tableBody = document.getElementById(table_id);
+
+        let tableBody = document.getElementById("id_" + pgeName + "_tblbody_select");
         tableBody.innerText = null;
 
+        if (["MRO", "MSS"].indexOf(pgeName) > -1 ){
+            document.getElementById("id_" + pgeName + "_select_header").innerText = select_header_text;
+        }
         let row_count = 0, has_selected_pk = false;
-//--- when no items found: show 'select_customer_none'
-        if (data_map.size === 0){
-
-        } else {
-//--- loop through data_map
-            for (const [map_id, item_dict] of data_map.entries()) {
-                const pk_int = get_dict_value(item_dict, ["id", "pk"]);
-                const ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
-                const is_inactive = get_dict_value(item_dict, ["inactive", "value"]);
-                const date_first = get_dict_value(item_dict, ["datefirst", "value"]);
-                const date_last = get_dict_value(item_dict, ["datelast", "value"]) ;
-                const within_range = period_within_range_iso(date_first, date_last, mod_upload_dict.rosterdate, mod_upload_dict.rosterdate)
-
-//--- check if item must be added to list
-                let add_to_list = false, has_selected_pk = false, code_value = "";
-                if(tblName === "order") {
-                    const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-                    const order_code = get_dict_value(item_dict, ["code", "value"], "");
-                    code_value = customer_code + " - " + order_code;
-                    const is_absence = get_dict_value(item_dict, ["id", "isabsence"])
-                    const customer_inactive = get_dict_value(item_dict, ["customer", "inactive"])
-                    add_to_list = (!is_absence && !customer_inactive &&!is_inactive && within_range);
-                } else if(tblName === "shift") {
-                    code_value = get_dict_value(item_dict, ["code", "value"], "");
-                    const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
-                    add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
-                } else if(tblName === "employee") {
-                    code_value = get_dict_value(item_dict, ["code", "value"], "");
-                    const skip_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
-
-                    add_to_list = (!is_inactive && within_range && !skip_selected_pk);
-                };
-
-                if (add_to_list){
-                    row_count += 1;
-                    const is_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
-//- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
-                    let tblRow = tableBody.insertRow(-1);
-                    tblRow.setAttribute("data-pk", pk_int);
-                    tblRow.setAttribute("data-ppk", ppk_int);
-                    tblRow.setAttribute("data-value", code_value);
-                    tblRow.setAttribute("data-table", tblName);
-//- add hover to tblRow
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
-//- add EventListener to tblRow
-                    tblRow.addEventListener("click", function() {MRO_MRE_SelecttableClicked(tblName, tblRow, pgeName)}, false )
-
-                    if (is_selected_pk){
-                        has_selected_pk = true;
-// ---  highlight clicked row
-                        tblRow.classList.add(cls_selected)
+//--- loop through data_map or data_dict
+        if(pgeName === "MSS") {
+            for(var key in data_dict) {
+                if(data_dict.hasOwnProperty(key)) {
+                    const item_dict = data_dict[key];
+                    const add_item =  (tblName === "order") ||
+                                      (tblName === "shift" && key !== "pk" && key !== "cust_ordr_code") ||
+                                      (tblName === "employee" && key !== "shft_code")
+                    if (add_item){
+                        const code = (tblName === "order") ? get_dict_value(item_dict, ["cust_ordr_code"], "") :
+                                     (tblName === "shift") ? key :
+                                     (tblName === "employee") ?  get_dict_value(item_dict, ["code"], "") : null
+                        const row_dict = {id: {pk: key }, code: {value: code }}
+                        if(tblName === "employee"){
+                            const employee_pk = get_dict_value(item_dict, ["pk"]);
+                            const employee_ppk = get_dict_value(item_dict, ["ppk"]);
+                            if(employee_pk){ row_dict.employee_pk = employee_pk};
+                            if(employee_ppk){ row_dict.employee_ppk = employee_ppk};
+                        }
+                        const arr = MRO_MRE_MSS_FillSelectRow(row_dict, tableBody, tblName, pgeName, selected_pk, mod_upload_dict.rosterdate)
+                        if (arr[0]) { row_count += 1 };  //add_to_list = arr[0];
+                        if (arr[1]) { has_selected_pk = true }  //  is_selected_pk = arr[1];
                     }
-
-// - add first td to tblRow.
-                    let td = tblRow.insertCell(-1);
-// --- add a element to td., necessary to get same structure as item_table, used for filtering
-                    let el = document.createElement("div");
-                        el.innerText = code_value;
-                        el.classList.add("mx-1")
-                    td.appendChild(el);
-                } //  if (pk_int !== selected_customer_pk)
-            } // for (const [pk_int, item_dict] of data_map.entries())
-        }  // if (data_map.size === 0)
+                }
+            };
+        } else {
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const arr = MRO_MRE_MSS_FillSelectRow(item_dict, tableBody, tblName, pgeName, selected_pk, mod_upload_dict.rosterdate)
+                if (arr[0]) { row_count += 1 };  //add_to_list = arr[0];
+                if (arr[1]) { has_selected_pk = true }  //  is_selected_pk = arr[1];
+            };
+        }
         if(row_count === 0){
             let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
@@ -3851,21 +3931,103 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!tblRow)
             // ---  highlight first row
                 tblRow.classList.add(cls_selected)
-                if(tblName === "customer") {
-                    selected_period.customer_pk = get_attr_from_el_int(tblRow, "data-pk");
-                    selected_period.order_pk = 0;
-                     MRO_MRE_SelecttableClicked(tblName, tblRow, "MRO")
-                } else if(tblName === "order") {
-                    selected_period.order_pk = get_attr_from_el_int(tblRow, "data-pk");
-                    MRO_MRE_SelecttableClicked(tblName, tblRow, "MRO")
+                if (pgeName === "MSS"){
+                    if(tblName === "order") {
+                        mod_upload_dict.selected_order_pk = get_attr_from_el(tblRow, "data-pk");
+                    } else  if(tblName === "shift") {
+                         mod_upload_dict.selected_shift_pk = get_attr_from_el(tblRow, "data-pk");
+                    }
+                } else {
+                    if(tblName === "customer") {
+                        selected_period.customer_pk = get_attr_from_el_int(tblRow, "data-pk");
+                        selected_period.order_pk = 0;
+                        MRO_MRE_MSS_SelecttableClicked("MRO", tblName, tblRow);
+                    } else if(tblName === "order") {
+                        selected_period.order_pk = get_attr_from_el_int(tblRow, "data-pk");
+                        MRO_MRE_MSS_SelecttableClicked("MRO", tblName, tblRow)
+                    }
                 }
         }
-        return has_selected_pk;
-    }  // MRO_MRE_FillSelectTable
+        return row_count;
+    }  // MRO_MRE_MSS_FillSelectTable
 
-//=========  MRO_MRE_SelecttableClicked  ================ PR2020-01-09
-    function MRO_MRE_SelecttableClicked(tblName, tblRow, pgeName) {
-        console.log( "===== MRO_MRE_SelecttableClicked ========= ");
+//=========  MRO_MRE_MSS_FillSelectRow  ================ PR2020-05-08
+    function MRO_MRE_MSS_FillSelectRow(item_dict, tableBody, tblName, pgeName, selected_pk, rosterdate) {
+        //console.log( "===== MRO_MRE_MSS_FillSelectRow ========= ", tblName);
+        //console.log( "item_dict: ", item_dict);
+        //console.log( "tblName: ", tblName);
+        //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
+
+//--- loop through data_map
+        let pk_str = get_dict_value(item_dict, ["id", "pk"]);
+        let ppk_str = get_dict_value(item_dict, ["id", "ppk"]);
+        let code_value = get_dict_value(item_dict, ["code", "value"], "");
+        const is_inactive = get_dict_value(item_dict, ["inactive", "value"]);
+        const date_first = get_dict_value(item_dict, ["datefirst", "value"]);
+        const date_last = get_dict_value(item_dict, ["datelast", "value"]) ;
+        const within_range = period_within_range_iso(date_first, date_last, rosterdate, rosterdate)
+
+//--- check if item must be added to list
+        let add_to_list = false, is_selected_pk = false;
+        if(pgeName === "MSS" && tblName === "order") {
+            add_to_list = true
+        } else if (pgeName === "MSS" && tblName === "shift") {
+            add_to_list = true
+        } else if (pgeName === "MSS" && tblName === "employee") {
+            // 9050: {pk: 2623, ppk: 3, code: "Wu XX Y"}
+            // 9050 is emplhour_pk, pk = employee_pk
+            add_to_list = true
+        } else if(tblName === "order") {
+            const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
+            const order_code = get_dict_value(item_dict, ["code", "value"], "");
+            code_value = customer_code + " - " + order_code;
+            const is_absence = get_dict_value(item_dict, ["id", "isabsence"])
+            const customer_inactive = get_dict_value(item_dict, ["customer", "inactive"])
+            add_to_list = (!is_absence && !customer_inactive &&!is_inactive && within_range);
+        } else if(tblName === "shift") {
+            const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
+            add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
+        } else if(tblName === "employee") {
+            const skip_selected_pk = (!!selected_pk &&  pk_str === selected_pk)
+            add_to_list = (!is_inactive && within_range && !skip_selected_pk);
+        };
+        if (add_to_list){
+
+
+            is_selected_pk = (!!selected_pk &&  pk_str === selected_pk)
+//- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
+            let tblRow = tableBody.insertRow(-1);
+            if (pk_str) {tblRow.setAttribute("data-pk", pk_str)};
+            if (ppk_str) {tblRow.setAttribute("data-ppk", ppk_str)};
+            if (code_value) {tblRow.setAttribute("data-value", code_value)};
+            if (item_dict.employee_pk) {tblRow.setAttribute("data-employee_pk", item_dict.employee_pk)};
+            if (item_dict.employee_ppk) {tblRow.setAttribute("data-employee_ppk", item_dict.employee_ppk)};
+            if (tblName) {tblRow.setAttribute("data-table", tblName)};
+//- add hover to tblRow
+            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+//- add EventListener to tblRow
+            tblRow.addEventListener("click", function() {MRO_MRE_MSS_SelecttableClicked(pgeName, tblName, tblRow)}, false )
+// ---  highlight clicked row
+            if (is_selected_pk){ tblRow.classList.add(cls_selected)}
+// - add first td to tblRow.
+            let td = tblRow.insertCell(-1);
+
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+            let el = document.createElement("div");
+                el.innerText = code_value;
+                el.classList.add("mx-1", "td_width_180")
+            td.appendChild(el);
+        } //  if (pk_int !== selected_customer_pk)
+        return [add_to_list, is_selected_pk];
+    }  // MRO_MRE_MSS_FillSelectRow
+
+//=========  MRO_MRE_MSS_SelecttableClicked  ================ PR2020-01-09
+    function MRO_MRE_MSS_SelecttableClicked(pgeName, tblName, tblRow) {
+        //console.log( "===== MRO_MRE_MSS_SelecttableClicked ========= ");
+        //console.log( "tblName:", tblName);
+        //console.log( "pgeName:", pgeName);
+        //console.log( "tblRow:", tblRow);
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -3874,75 +4036,113 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
 // ---  get pk from id of select_tblRow
-            const pk_int = get_attr_from_el_int(tblRow, "data-pk")
-            const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
+            const pk_str = get_attr_from_el(tblRow, "data-pk")
+            const ppk_str = get_attr_from_el(tblRow, "data-ppk")
             const code_value = get_attr_from_el(tblRow, "data-value", "")
+            if(pgeName === "MSS" && tblName === "employee"){
+                const employee_pk = get_attr_from_el(tblRow, "data-employee_pk")
+                const employee_ppk = get_attr_from_el(tblRow, "data-employee_ppk")
 
-            MRO_MRE_SelecttableUpdateAfterSelect(tblName, pk_int, ppk_int, code_value, pgeName)
+                mod_upload_dict.selected_emplhour_pk = pk_str
+                if (employee_pk) {mod_upload_dict.employee_pk = employee_pk};
+                if (employee_ppk) {mod_upload_dict.employee_ppk = employee_ppk};
+
+                el_MSS_input_employee.value = code_value;
+                el_MSS_btn_save.disabled = false;
+                set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
+
+            } else
+                MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_str, ppk_str, code_value)
 // ---  when MRO_table: set header and enable btn csave
             if(pgeName === "MRO"){
                 MRO_SetHeaderAndEnableBtnSave();
             };
         }
-    }  // MRO_MRE_SelecttableClicked
+    }  // MRO_MRE_MSS_SelecttableClicked
 
-//=========  MRO_MRE_SelecttableUpdateAfterSelect  ================ PR2020-04-12
-    function MRO_MRE_SelecttableUpdateAfterSelect(tblName, pk_int, ppk_int, code_value, pgeName) {
-        console.log( "===== MRO_MRE_SelecttableUpdateAfterSelect ========= ");
+//=========  MRO_MRE_MSS_SelecttableUpdateAfterSelect  ================ PR2020-04-12
+    function MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_str, ppk_str, code_value) {
+        //console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
-
-        console.log( "tblName:", tblName);
-        console.log( "pk_int:", pk_int, typeof pk_int);
-        console.log( "code_value:", code_value);
-
-        if(!!pk_int) {
-            if (tblName === "order") {
-                mod_upload_dict.order.pk = pk_int;
-                mod_upload_dict.order.code = code_value;
-                el_MRO_input_order.value = code_value
-                MRO_MRE_FillSelectTable("shift", "MRO")
-                setTimeout(function (){el_MRO_input_shift.focus()}, 50);
-
-            } else if (tblName === "shift") {
-                mod_upload_dict.shift.pk = pk_int;
-                mod_upload_dict.shift.code = code_value;
-
-                const shift_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_int);
-                    mod_upload_dict.shift.offsetstart = get_dict_value(shift_dict, ["offsetstart", "value"]);
-                    mod_upload_dict.shift.offsetend = get_dict_value(shift_dict, ["offsetend", "value"]);
-                    mod_upload_dict.shift.breakduration = get_dict_value(shift_dict, ["breakduration", "value"], 0);
-                    mod_upload_dict.shift.timeduration = get_dict_value(shift_dict, ["timeduration", "value"], 0);
-
-                el_MRO_input_shift.value = code_value
-                el_MRO_offsetstart.innerText = display_offset_time (loc, mod_upload_dict.shift.offsetstart, false, false);
-                el_MRO_offsetend.innerText = display_offset_time (loc, mod_upload_dict.shift.offsetend, false, false);
-                el_MRO_breakduration.innerText = display_duration (mod_upload_dict.shift.breakduration, loc.user_lang);
-                el_MRO_timeduration.innerText = display_duration (mod_upload_dict.shift.timeduration, loc.user_lang);
-
-                setTimeout(function (){el_MRO_input_employee.focus()}, 50);
-
-            } else if  (tblName === "employee") {
-// ---  put info of selected employee in mod_upload_dict.selected_employee
-                mod_upload_dict.selected_employee = {pk: pk_int, ppk: ppk_int, code: code_value}
-
-                console.log( "mod_upload_dict.selected_employee ", mod_upload_dict.selected_employee);
-                if(pgeName === "MRE"){
-                    //  put selected employee in MRE employee input box
-                    el_MRE_input_employee.value = code_value
-                    if (mod_upload_dict.btn_select === "add_employee" ) {
-                    // save immediately when mode = 'add_employee'
-                        MRE_Save("save")
-                    } else if (mod_upload_dict.btn_select === "tab_absence" ) {
-                         el_MRE_btn_save.focus()
-                    }
-                } else  if(pgeName === "MRO"){
-                    mod_upload_dict.employee = {pk: pk_int, ppk: ppk_int, table: "employee", code: code_value, update: true}
-                    el_MRO_input_employee.value = code_value
-                    setTimeout(function (){el_MRO_btn_save.focus()}, 50);
+        // called when clicked on Selecttable and at Keyup of InputElement
+        // called by MRO_MRE_MSS_SelecttableClicked and MRO_InputElementKeyup
+        //console.log( "tblName:", tblName);
+        //console.log( "pk_str:", pk_str, typeof pk_str);
+        //console.log( "code_value:", code_value);
+        if(!!pk_str) {
+            if (pgeName === "MSS") {
+                mod_upload_dict.skip_focus_event = true;
+                if (tblName === "order") {
+                    mod_upload_dict.order_pk = pk_str;
+                    mod_upload_dict.order_code = code_value;
+// ---  put value in input box
+                    el_MSS_input_order.value = code_value
+// ---  enable el_shift, set focus to el_shift
+                    el_MSS_input_order.readOnly = false;
+                    el_MSS_input_shift.readOnly = false;
+                    set_focus_on_el_with_timeout(el_MSS_input_shift, 50)
+// ---  fill selecttable shift
+                    MRO_MRE_MSS_FillSelectTable("MSS", "shift", pk_str)
+                } else if (tblName === "shift") {
+                    mod_upload_dict.shift_code = code_value;
+// ---  put value in input box
+                    el_MSS_input_shift.value = code_value
+// ---  enable el_shift, set focus to el_shift
+                    el_MSS_input_shift.readOnly = false;
+                    el_MSS_input_employee.readOnly = false;
+                    set_focus_on_el_with_timeout(el_MSS_input_employee, 50)
+// ---  fill selecttable shift
+                    MRO_MRE_MSS_FillSelectTable("MSS", "employee", pk_str)
                 }
-            }
-        }
-    }  // MRO_MRE_SelecttableUpdateAfterSelect
+            } else {
+                if (tblName === "order") {
+                    mod_upload_dict.order.pk = pk_str;
+                    mod_upload_dict.order.code = code_value;
+                    el_MRO_input_order.value = code_value
+                    MRO_MRE_MSS_FillSelectTable("MRO", "shift")
+                    setTimeout(function (){el_MRO_input_shift.focus()}, 50);
+
+                } else if (tblName === "shift") {
+                    mod_upload_dict.shift.pk = pk_str;
+                    mod_upload_dict.shift.code = code_value;
+
+                    const shift_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_str);
+                        mod_upload_dict.shift.offsetstart = get_dict_value(shift_dict, ["offsetstart", "value"]);
+                        mod_upload_dict.shift.offsetend = get_dict_value(shift_dict, ["offsetend", "value"]);
+                        mod_upload_dict.shift.breakduration = get_dict_value(shift_dict, ["breakduration", "value"], 0);
+                        mod_upload_dict.shift.timeduration = get_dict_value(shift_dict, ["timeduration", "value"], 0);
+
+                    el_MRO_input_shift.value = code_value
+                    el_MRO_offsetstart.innerText = display_offset_time (loc, mod_upload_dict.shift.offsetstart, false, false);
+                    el_MRO_offsetend.innerText = display_offset_time (loc, mod_upload_dict.shift.offsetend, false, false);
+                    el_MRO_breakduration.innerText = display_duration (mod_upload_dict.shift.breakduration, loc.user_lang);
+                    el_MRO_timeduration.innerText = display_duration (mod_upload_dict.shift.timeduration, loc.user_lang);
+
+                    setTimeout(function (){el_MRO_input_employee.focus()}, 50);
+
+                } else if  (tblName === "employee") {
+    // ---  put info of selected employee in mod_upload_dict.selected_employee
+                    mod_upload_dict.selected_employee = {pk: pk_str, ppk: ppk_str, code: code_value}
+
+                    if(pgeName === "MRE"){
+                        //  put selected employee in MRE employee input box
+                        el_MRE_input_employee.value = code_value
+                        if (mod_upload_dict.btn_select === "add_employee" ) {
+                        // save immediately when mode = 'add_employee'
+                            MRE_Save("save")
+                        } else if (mod_upload_dict.btn_select === "tab_absence" ) {
+                             el_MRE_btn_save.focus()
+                        }
+                    } else  if(pgeName === "MRO"){
+                        mod_upload_dict.employee = {pk: pk_str, ppk: ppk_str, table: "employee", code: code_value, update: true}
+                        el_MRO_input_employee.value = code_value
+                        setTimeout(function (){el_MRO_btn_save.focus()}, 50);
+                    }
+                }
+
+            }  // if (pgeName === "MSS")
+        }  //  if(!!pk_str) {
+    }  // MRO_MRE_MSS_SelecttableUpdateAfterSelect
 
 //=========  MRO_InputDateChanged  ================ PR2020-04-14
     function MRO_InputDateChanged () {
@@ -3966,7 +4166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_MRO_breakduration.innerText = null;
         el_MRO_timeduration.innerText = null;
 
-        MRO_MRE_FillSelectTable("order", "MRO");
+        MRO_MRE_MSS_FillSelectTable("MRO", "order");
 
         MRO_SetHeaderAndEnableBtnSave();
 
@@ -4045,7 +4245,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(" -----  MRE_Open   ----")
         //console.log("el_input: ", el_input)
 
-
 // reset mod_upload_dict
         mod_upload_dict = {rosterdate: null,
                             map_id: null,
@@ -4058,7 +4257,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             order: {},
                             shift: {},
                             employee: {},
-                            selected_employee: {}
+                            selected_employee: {},
+                            emplh_shift_dict: {}
                             };
 
         const tblRow = get_tablerow_selected(el_input);
@@ -4126,7 +4326,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_mod_employee_body.setAttribute("data-map_id", map_id);
 
         // fill select table employees, skip selected employee
-                MRO_MRE_FillSelectTable("employee", "MRE", mod_upload_dict.employee.pk);
+                MRO_MRE_MSS_FillSelectTable("MRE", "employee", mod_upload_dict.employee.pk);
 
         // change label 'replacement' to 'select_employee' if no employee, hide right panel
                 let data_text = null;
@@ -4153,7 +4353,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // ---  show modal
                 $("#id_modroster_employee").modal({backdrop: true});
 
-        console.log("mod_upload_dict: ", mod_upload_dict)
             }  // if (!mod_upload_dict.isrestshift)
 
         } else {
@@ -4172,8 +4371,6 @@ document.addEventListener('DOMContentLoaded', function() {
              $("#id_mod_confirm").modal({backdrop: true});
         }  //   if(!isEmpty(emplh_dict))
 
-
-        console.log("mod_upload_dict: ", deepcopy_dict(mod_upload_dict)  )
     };  // MRE_Open
 
 //=========  MRE_Save  ================ PR2019-06-23
@@ -4370,7 +4567,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "=== MRE_btn_SelectAndDisable === ", selected_btn);
         if(selected_btn === "tab_move" ) {
             $('#id_modroster_employee').modal('hide');
-            MSS_Open (selected_emplhour_pk)
+            MSS_Open ();
 
         } else{
             // selected_btn:  tab_absence, tab_split, tab_switch

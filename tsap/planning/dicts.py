@@ -1831,6 +1831,9 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
             #logger.debug('..........item_dict[shift]: ' + str(field_dict))
 
         elif field == 'employee':
+            logger.debug('.......... e_id: ' + str(e_id))
+            logger.debug('.......... e_code: ' + str(e_code))
+            logger.debug('.......... field_dict: ' + str(field_dict))
             if e_id is not None:
                 # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
                 field_dict['pk'] = e_id  # employee.id

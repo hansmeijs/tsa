@@ -2372,8 +2372,8 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourDownloadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourDownloadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2382,26 +2382,24 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 rosterdate_iso = upload_dict.get('rosterdate')
                 emplhour_pk = f.get_dict_value(upload_dict, ('emplhour_pk',), 0)
                 rosterdate_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_iso)
                 if rosterdate_dte:
-                    sql_emplhour = """ SELECT o.id, CONCAT(c.code,' - ',o.code), COALESCE(oh.shift, '-'), eh.id, COALESCE(e.code, '---') 
+                    sql_emplhour = """ SELECT o.id, CONCAT(c.code,' - ',o.code), COALESCE(oh.shift, '---'), eh.id, e.id, COALESCE(e.code, '---') 
                         FROM companies_emplhour AS eh 
                         LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
                         INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
                         INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
                         INNER JOIN companies_customer AS c ON (c.id = o.customer_id)   
                         WHERE c.company_id = %(compid)s
-
+                        AND eh.rosterdate = CAST(%(rd)s AS DATE)
+                        AND NOT eh.id = %(ehid)s
+                        AND NOT oh.isabsence AND NOT oh.isrestshift
+                        AND eh.status < 2
                         """
-                    #                           WHERE c.company_id = %(compid)s
-                    #                         AND NOT eh.id = %(ehid)s
-                    #                         AND eh.rosterdate = CAST(%(rd)s AS DATE)
-                    #                         AND NOT oh.isabsence AND NOT oh.isrestshift
-                    #                         AND eh.status <= 1
                     newcursor = connection.cursor()
                     newcursor.execute(sql_emplhour, {
                         'compid': request.user.company_id,
@@ -2411,7 +2409,7 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
                     rows = newcursor.fetchall()
                     eplh_dict = {}
                     for row in rows:
-                        logger.debug ('row: ' + str(row))
+                        #logger.debug ('row: ' + str(row))
                         if row[0] not in eplh_dict:
                             eplh_dict[row[0]] = {'cust_ordr_code': row[1]}
                         ordr_dict = eplh_dict[row[0]]
@@ -2420,7 +2418,7 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
                                 ordr_dict[row[2]] = {'shft_code': row[2]}
                             shft_dict = ordr_dict[row[2]]
                             if shft_dict:
-                                shft_dict[row[3]] = row[4]
+                                shft_dict[row[3]] = {'pk': row[4], 'ppk': request.user.company_id, 'code': row[5]}
 
                     update_wrap['emplh_shift_dict'] = eplh_dict
 
@@ -2431,7 +2429,7 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ')
+        logger.debug(' ')
         logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
@@ -2529,6 +2527,14 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                     #logger.debug('absence_dict: ' + ' ' + str(absence_dict))
                                     if absence_dict:
                                         eplh_update_list.append(absence_dict)
+                            if shift_option == 'moveto_shift':
+                                # moveto_shift removes the current employee from the current emplhour record
+                                # and repleaces the employee of the selected emplhour with the current employee
+                                logger.debug('moveto_shift')
+                                moveto_shift_dict = moveto_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang, request)
+                                logger.debug('moveto_shift_dict: ' + ' ' + str(moveto_shift_dict))
+                                if moveto_shift_dict:
+                                    eplh_update_list.append(moveto_shift_dict)
                             elif mode == 'tab_switch':
                                 pass
                             elif shift_option == 'split_shift':
@@ -2828,6 +2834,50 @@ def change_absence_shift(emplhour, upload_dict, update_dict, request):  # PR2020
 # --- end of change_absence_shift
 
 
+def moveto_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang, request):
+    logger.debug(' --- moveto_shift --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
+
+    # moveto_shift removes the current employee from the current emplhour record
+    # and repleaces the employee of the selected emplhour with the current employee
+
+#  upload_dict: {'id': {'pk': 9048, 'ppk': 8527, 'table': 'emplhour', 'shiftoption': 'moveto_shift', 'rowindex': 8},
+    #  'move_to_emplhour_pk': '9029'}
+
+    update_dict = {}
+
+# - lookup moveto_orderhour
+    # don't show when status is START_CONFIRMED or higher (this is also filtered in EmplhourDownloadView)
+    moveto_emplhour_pk = upload_dict.get('moveto_emplhour_pk')
+    moveto_emplhour = None
+    if moveto_emplhour_pk:
+        moveto_emplhour = m.Emplhour.objects.get_or_none(
+            pk=moveto_emplhour_pk,
+            orderhour__order__customer__company_id=request.user.company,
+            status__lt=c.STATUS_02_START_CONFIRMED
+        )
+
+    if moveto_emplhour:
+
+# - get employee from current emplhour
+        employee = emplhour.employee
+        if employee:
+            moveto_emplhour.employee = employee
+            moveto_emplhour.isreplacement = False
+            moveto_emplhour.save(request=request)
+        logger.debug('moveto_emplhour: ' + str(moveto_emplhour))
+
+ # create new emplhour record with current employee
+        row_index = f.get_dict_value(upload_dict, ('id','rowindex'), -1)
+        item_dict = {'id': {'updated': True, 'rowindex': row_index},
+                     'employee':{'updated': True}}
+        update_dict = d.create_emplhour_itemdict_from_instance(moveto_emplhour, item_dict, comp_timezone, timeformat, user_lang)
+
+                    #logger.debug('================> update_dict: ' + str(update_dict))
+    return update_dict
+# --- end of make_absence_shift
+
+
 def make_split_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang, request):
     #logger.debug(' ------------- make_split_shift ------------- ')
     #logger.debug('upload_dict: ' + str(upload_dict))
@@ -3019,6 +3069,8 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
                         if new_employee_pk != old_employee_pk:
                 # - update field employee in emplhour
                             setattr(emplhour, field, new_employee)
+                # - reset 'isreplacement'
+                            setattr(emplhour, 'isreplacement', False)
                             is_updated = True
                             #logger.debug('save new_employee')
 # ---   save changes in field 'shift'.

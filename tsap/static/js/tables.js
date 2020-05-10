@@ -15,9 +15,8 @@
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        console.log("===== t_Fill_SelectTable ===== ", tblName);
+        //console.log("===== t_Fill_SelectTable ===== ", tblName);
         //console.log("filter_ppk_int = ", filter_ppk_int)
-
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -498,6 +497,21 @@
             return null;
 
         return elt.options[elt.selectedIndex].text;
+    }
+
+
+//========= set_fieldvalue_in_tblrow  ============= PR2020-05-10
+    function set_fieldvalue_in_tblRow(tblRow, fldName, value) {
+        //console.log(" --- set_fieldvalue_in_tblRow ---")
+        for (let i = 0, td, fld, el; td = tblRow.cells[i]; i++) {
+            fld = get_attr_from_el(td, "data-field")
+            if (!!fld && fld === fldName){
+                el = td.clildren[0];
+        //console.log("el:", el)
+                el.value = value
+                break;
+            }
+        }  // for (let i = 0,
     }
 
 

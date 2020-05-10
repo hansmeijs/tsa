@@ -485,6 +485,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['All_customers'] = TXT_All_customers
         dict['All_orders'] = TXT_All_orders
         dict['All_employees'] = TXT_All_employees
+        dict['Current_teammember'] = TXT_Current_teammember
+        dict['Current_teammembers'] = TXT_Current_teammembers
+
+        dict['for'] = TXT_for
 
         # mod rosterdate
         dict['TXT_Create_another_roster'] = TXT_Create_another_roster
@@ -884,6 +888,8 @@ TXT_Add_employee = _('Add employee')
 TXT_Delete_employee = _('Delete employee')
 TXT_No_employees = _('No employees')
 TXT_All_employees = _('All employees')
+TXT_Current_teammember = _('Current teammember')
+TXT_Current_teammembers = _('Current teammembers')
 
 TXT_Pease_select_employee_first = _('Please select an employee first.')
 
@@ -945,6 +951,8 @@ TXT_Date = _('Date')
 TXT_Print_date = _('Print date')
 TXT_Page = _('Page')
 
+TXT_for = _('for')
+
 TXT_Grand_total = _('Grand total')
 TXT_Total_hours = _('Total hours')
 TXT_Total = _('Total')
@@ -954,7 +962,6 @@ TXT_thisnight = _('This night')
 TXT_thismorning = _('This morning')
 TXT_thisafternoon = _('This afternoon')
 TXT_thisevening = _('This evening')
-
 
 TXT_today = _('Today')
 TXT_tomorrow = _('Tomorrow')

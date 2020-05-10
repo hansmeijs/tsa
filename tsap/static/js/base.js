@@ -248,9 +248,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= function add_or_remove_class_with_qsAll  ====================================
     function add_or_remove_class_with_qsAll(el_container, classname, is_add, filter_class){
         // add or remove selected cls_hide from all elements with class 'filter_class' PR2020-04-29
-console.log(" @@@@@@@@@@@@@@--- add_or_remove_class_with_qsAll --- ")
-console.log("is_add: ", is_add)
-console.log("filter_class: ", filter_class)
+//console.log(" --- add_or_remove_class_with_qsAll --- ")
+//console.log("is_add: ", is_add)
+//console.log("filter_class: ", filter_class)
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
@@ -260,9 +260,9 @@ console.log("filter_class: ", filter_class)
         let elements = el_container.querySelectorAll(filter_class)
         for (let i = 0, len = elements.length; i < len; i++) {
             add_or_remove_class (elements[i], classname, is_add)
-console.log(elements[i])
+//console.log(elements[i])
         };
-console.log(" @@@@@@@@@@@@@@--- end of add_or_remove_class_with_qsAll --- ")
+//console.log(" --- end of add_or_remove_class_with_qsAll --- ")
     }
 //========= function add_or_remove_class  ====================================
     function add_or_remove_class (el, classname, is_add) {
@@ -276,21 +276,21 @@ console.log(" @@@@@@@@@@@@@@--- end of add_or_remove_class_with_qsAll --- ")
     }
 
 //========= function add_or_remove_attr_with_qsAll  ======== PR2020-05-01
-    function add_or_remove_attr_with_qsAll(el_container, filter_class, atr_name, is_add, atr_value){
-        // add or remove attribute from all elements with class 'filter_class' PR2020-04-29
-console.log(" --- add_or_remove_attr_with_qsAll --- ")
-console.log("is_add: ", is_add)
-console.log("filter_class: ", filter_class)
+    function add_or_remove_attr_with_qsAll(el_container, filter_str, atr_name, is_add, atr_value){
+        // add or remove attribute from all elements with filter 'filter_str' PR2020-04-29
+    //console.log(" --- add_or_remove_attr_with_qsAll --- ")
+    //console.log("is_add: ", is_add)
+    //console.log("filter_str: ", filter_str)
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
 
          // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_class)
-        let elements = el_container.querySelectorAll(filter_class)
+        //let elements =  document.querySelectorAll("." + filter_str)
+        let elements = el_container.querySelectorAll(filter_str)
         for (let i = 0, len = elements.length; i < len; i++) {
             add_or_remove_attr(elements[i], atr_name, is_add, atr_value)
-console.log(elements[i])
+    //console.log(elements[i])
         };
     }  // add_or_remove_attr_with_qsAll
 
@@ -305,6 +305,20 @@ console.log(elements[i])
         }
     }  // add_or_remove_attr
 
+//========= set_focus_on_id_with_timeout  =========== PR2020-05-09
+    function set_focus_on_id_with_timeout(id, ms) {
+        if(!!id && ms){
+            const el = document.getElementById(id);
+            set_focus_on_el_with_timeout(el, ms);
+        }
+    }  // set_focus_on_id_with_timeout
+
+//========= set_focus_on_el_with_timeout  =========== PR2020-05-09
+    function set_focus_on_el_with_timeout(el, ms) {
+        if(!!el && ms){
+            setTimeout(function() { el.focus() }, ms);
+        }
+    }  // set_focus_on_el_with_timeout
 
 // ================ MAP FUNCTIONS ========================
 
@@ -422,7 +436,7 @@ console.log(elements[i])
 
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
-        console.log(" --- update_map_item ---")
+        //console.log(" --- update_map_item ---")
         const id_dict = get_dict_value(update_dict, ["id"]);
         if(!!data_map && !isEmpty(id_dict)){
             const tblName = get_dict_value(id_dict, ["table"]);
@@ -444,7 +458,7 @@ console.log(elements[i])
                 data_map.set(map_id, update_dict)
             }
         }  // if(!isEmpty(id_dict))
-        console.log(data_map) // PR2019-11-26
+        //console.log(data_map) // PR2019-11-26
     }  // update_map_item
 
 //========= insertAtIndex  ================== PR2020-01-20

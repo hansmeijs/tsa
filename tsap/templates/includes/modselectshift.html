@@ -18,10 +18,13 @@
                             <div class="mx-2 my-2">
                                 <h6 id="id_MSS_select_header" class="mx-2 my-1">{% trans 'Orders' %}:</h6>
                             </div>
+                             <div id="id_MSS_loader" class="image_container display_hide">
+                                    <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                             </div>
                             <div class="mx-2 my-1">
                                  <!-- this div is necessary to get standard structure for FilterTableRows -->
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
-                                <div style="overflow-x:hidden;overflow-y:auto;height:390px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <div style="overflow-x:hidden;overflow-y:auto;height:260px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table tsa_tbl mx-1 my-1">
                                         <tbody id="id_MSS_tblbody_select" data-table="customer">
                                         </tbody>
@@ -30,12 +33,14 @@
                             </div>
                         </div>
                         <div class="modal_body_right mx-2 my-0">
+
                             <div class="mx-2 mb-2">
                                 <label class="mx-2 my-1">{% trans 'Date' %}:</label>
                                 <div class="form-group">
                                     <input id="id_MSS_input_date" type="date" required class="form-control">
                                 </div>
                             </div>
+                            <div id="id_MSS_input_container">
                             <div class="mx-2 my-2">
                                 <label class="mx-2 my-1">{% trans 'Customer and order' %}:</label>
                                 <div class="form-group">
@@ -60,9 +65,8 @@
                                         placeholder="{% trans 'Type a few letters and select a shift in the list ...' %}">
                                 </div>
                             </div>
-
-                            <div class="mx-2 mt-2">
-                                <label class="mx-2 my-1">{% trans 'Employee' %}:</label>
+                            <div class="mx-2 my-2">
+                                <label class="mx-2 my-1">{% trans 'Current teammember' %}:</label>
                                 <div class="form-group">
                                     <input id="id_MSS_input_employee"
                                         type="text"
@@ -72,6 +76,19 @@
                                         class="form-control"
                                         placeholder="{% trans 'Type a few letters and select an employee in the list ...' %}">
                                 </div>
+                            </div>
+                            <div class="modal_flexcontainer mt-2">
+                                <div class="modal_flex1 mx-1">
+                                    <input id="id_MSS_replace" type="checkbox" data-field="excludepublicholiday" class="td_width_032 ">
+                                    <label for="id_MSS_replace" class="mt-1">{% trans 'Replace teammember' %}</label>
+                                </div>
+                                <div class="modal_flex1 mx-1 display_hideXXX">
+                                    <input id="id_MSS_switch" type="checkbox" data-field="excludecompanyholiday" class="td_width_032">
+                                    <label for="id_MSS_switch" class="mt-1">{% trans 'Switch teammembers' %}</label>
+                                </div>
+                            </div>
+
+
                             </div>
                         </div>
                     </div>
