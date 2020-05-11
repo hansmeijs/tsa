@@ -1624,12 +1624,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSE_Save(mode) {
         //console.log("========= MSE_Save ===" );
         if (mode === "delete") {
-            mod_upload_dict.employee.pk = 0;
+            mod_upload_dict.employee_pk = 0;
             selected_employee_pk = 0;
         }
         const datalist_request = {
             review_period: {
-                employee_pk: mod_upload_dict.employee.pk
+                employee_pk: mod_upload_dict.employee_pk
             },
             review:  true
         };
@@ -1650,9 +1650,10 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.classList.add(cls_selected)
 
 // ---  get employee_pk and code from selected tblRow
+        console.log( "mod_upload_dict", mod_upload_dict);
             selected_employee_pk = get_attr_from_el_int(tblRow, "data-pk", 0)
             const code_value = get_attr_from_el_str(tblRow, "data-value")
-            mod_upload_dict.employee.pk = selected_employee_pk;
+            mod_upload_dict.employee_pk = selected_employee_pk;
 // ---  put code_value in el_input_employee
             document.getElementById("id_ModSelEmp_input_employee").value = code_value
 // save selected employee
@@ -1731,7 +1732,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // if only one employee in filtered list: put value in el_input /  mod_upload_dict
         if (has_selection && !has_multiple ) {
                 selected_employee_pk = selected_pk
-                mod_upload_dict.employee.pk = selected_pk
+                mod_upload_dict.employee_pk = selected_pk
 // put code_value of selected employee in el_input
                 el_input.value = select_value
 // instead of enabling save on 'Enter', set focus to save button. Is easier and more obvious

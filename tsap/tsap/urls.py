@@ -149,7 +149,6 @@ urlpatterns = [
         path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
         path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
         path('uploaddata', customer_views.OrderImportUploadData.as_view(), name='orderimport_uploaddata_url'),
-
     ])),
 
     path('employee/', include([

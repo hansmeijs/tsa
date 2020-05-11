@@ -705,23 +705,21 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
 class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= OrderImportUploadData ============= ')
+        logger.debug(' ============= OrderImportUploadData ============= ')
 
-# 1. Reset language
+# - Reset language
         # PR2019-03-15 Debug: language gets lost, get request.user.lang again
         user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
         activate(user_lang)
 
-# 2. get stored setting from Companysetting
+# - get stored setting from Companysetting
         stored_setting_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
-        #logger.debug('stored_setting_json: ' + str(stored_setting_json) + ' ' + str(type(stored_setting_json)))
 
         tsaKey_list = []
         if stored_setting_json:
             stored_setting = json.loads(stored_setting_json)
             #logger.debug('stored_setting: ' + str(stored_setting) + ' ' + str(type(stored_setting)))
             if stored_setting:
-
                 stored_coldefs = stored_setting.get('coldefs')
                 #logger.debug('stored_coldefs: ' + str(stored_coldefs))
                 # stored_coldefs: {'namelast': 'ANAAM', 'namefirst': 'Voor_namen', 'identifier': 'ID', ...}
@@ -735,7 +733,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
         order_list = []
         if request.user is not None:
             if request.user.company is not None:
-                upload_json = request.POST.get('upload', None)
+                upload_json = request.POST.get('upload')
                 if upload_json:
                     upload_dict = json.loads(upload_json)
                     if upload_dict:

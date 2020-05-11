@@ -725,7 +725,8 @@ class Orderhour(TsaBaseModel):
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     issplitshift = BooleanField(default=False)
-    isbillable = BooleanField(default=False)
+    isbillable = BooleanField(default=False)  # isbillable: worked hours will be billed when true, planned hours otherwise
+    nobill = BooleanField(default=False)    # nobill: billed hours will be zero
 
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
@@ -775,7 +776,8 @@ class Emplhour(TsaBaseModel):
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
-    exceldate = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899
+    excelstart = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
+    excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
 
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)

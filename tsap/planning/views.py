@@ -2659,15 +2659,11 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 # - subtract 1 from used entries
     #  > individual entries will be calculated at the beginning of each month
 
-# - get exceldate
-    excel_date = f.get_Exceldate_from_datetime(orderhour.rosterdate)
-
 # +++ create emplhour
     if orderhour:
         emplhour = m.Emplhour(
             orderhour=orderhour,
-            rosterdate=orderhour.rosterdate,
-            exceldate=excel_date
+            rosterdate=orderhour.rosterdate
         )
         emplhour.save(request=request)
     if emplhour is None:
@@ -3106,6 +3102,13 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
                     # - also save offsetstart, offsetend PR2020-04-09
                             offset_field = 'offsetstart' if field == 'timestart' else  'offsetend'
                             setattr(emplhour, offset_field, new_offset_int)
+                    # - also save excelstart, excelend PR2020-05-11
+                            excel_field = 'excelstart' if field == 'timestart' else  'excelend'
+                            excel_date = f.get_Exceldate_from_datetime(saved_rosterdate_dte)
+                            offset_nonull = new_offset_int if new_offset_int else 0
+                            excel_value = excel_date * 1440 + offset_nonull
+                            setattr(emplhour, excel_field, excel_value)
+                    # - set is_updated and  recalc_duration to True
                             is_updated = True
                             recalc_duration = True
 # ---   save changes in breakduration and timeduration field

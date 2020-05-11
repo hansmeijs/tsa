@@ -1,13 +1,14 @@
 # PR2018-05-28
-import datetime
+# import datetime
+
+from django.db import connection
 from datetime import date, time, datetime, timedelta
 from django.db.models.functions import Lower
 from django.utils.translation import ugettext_lazy as _
 
-
 from tsap.settings import TIME_ZONE
-from tsap import constants as c
 from companies import models as m
+from tsap import constants as c
 
 import math
 import re
@@ -2232,14 +2233,14 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 def calc_amount_addition_tax_rounded(time_duration, billing_duration,
                              is_absence, is_restshift, is_billable,
                              price_rate, addition_rate, tax_rate):  # PR2020-04-28
-    logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
+    #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     amount, addition, tax = 0, 0, 0
     if price_rate and not is_absence and not is_restshift:
         base_duration = billing_duration # if is_billable else time_duration
-        logger.debug('base_duration: ' + str(base_duration))
-        logger.debug('price_rate: ' + str(price_rate))
-        logger.debug('addition_rate: ' + str(addition_rate))
-        logger.debug('tax_rate: ' + str(tax_rate))
+        #logger.debug('base_duration: ' + str(base_duration))
+        #logger.debug('price_rate: ' + str(price_rate))
+        #logger.debug('addition_rate: ' + str(addition_rate))
+        #logger.debug('tax_rate: ' + str(tax_rate))
         if base_duration:
             amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
             # use math.floor instead of int(), to get correct results when amount is negative
@@ -2251,9 +2252,9 @@ def calc_amount_addition_tax_rounded(time_duration, billing_duration,
             tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
             tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
-    logger.debug('amount: ' + str(amount))
-    logger.debug('addition: ' + str(addition))
-    logger.debug('tax: ' + str(tax))
+    #logger.debug('amount: ' + str(amount))
+    #logger.debug('addition: ' + str(addition))
+    #logger.debug('tax: ' + str(tax))
     return amount, addition, tax
 
 
@@ -2853,3 +2854,53 @@ def get_code_with_sequence(table, parent, user_lang):
 
         new_code = default_code + ' ' + str(max_index + 1)
     return new_code
+
+
+def check_emplhour_overlap(datefirst, datelast, employee_pk, request):
+    logger.debug(' =============== check_emplhour_overlap ============= ')
+    logger.debug('datefirst' + str(datefirst) + ' ' + str(type(datefirst)))
+    logger.debug('datelast' + str(datelast) + ' ' + str(type(datelast)))
+
+    # - create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
+    datefirst_dte = get_date_from_ISO(datefirst)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+    datefirst_minus_one_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
+    datefirst_minus_one = datefirst_minus_one_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
+    # this is not necessary: rosterdate_minus_one = rosterdate_minus_one_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
+    # logger.debug('datefirst_minusone: ' + str(datefirst_minusone) + ' ' + str(type(datefirst_minusone)))
+
+    datelast_dte = get_date_from_ISO(datelast)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+    datelast_plus_one_dtm = datelast_dte + timedelta(days=1)
+    datelast_plus_one = datelast_plus_one_dtm.isoformat()
+
+    if datefirst_minus_one and datelast_plus_one:
+        sql_emplhour = """ SELECT eh.id, e.id, COALESCE(e.code, '---'), 
+            eh.excelstart,
+            eh.excelend
+
+            FROM companies_emplhour AS eh 
+            INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)   
+            WHERE c.company_id = %(compid)s
+            AND (eh.employee_id = %(eid)s OR %(eid)s IS NULL)
+            AND (eh.rosterdate >= CAST(%(rdf)s AS DATE) AND eh.rosterdate <= CAST(%(rdl)s AS DATE))
+            AND (eh.rosterdate IS NOT NULL)  
+            ORDER BY eh.employee_id, eh.excelstart 
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_emplhour, {
+            'compid': request.user.company_id,
+            'eid': employee_pk,
+            'rdf': datefirst_minus_one_dtm,
+            'rdl': datelast_plus_one
+        })
+        # dictrow{'id': 2623, 'coalesce': 'Wu XX Y', 'excelstart': 63306720, 'excelend': 63307260}
+
+        rows = newcursor.fetchall()
+        i = 0
+        for row in rows:
+            i += 1
+            logger.debug( str(i) +  ' ...................................')
+            logger.debug('dictrow' + str(row))
+

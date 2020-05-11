@@ -1073,6 +1073,8 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             amount = 0
             tax = 0
             excel_date = f.get_Exceldate_from_datetime(orderhour.rosterdate)
+            excel_start = excel_date * 1440 + row[idx_sh_os_nonull]
+            excel_end = excel_date * 1440 + row[idx_sh_oe_nonull]
 
             # TODO give value
             # new_emplhour.wagecode = employee.wagecode
@@ -1168,7 +1170,8 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 timeend=timeend,
                 offsetstart=offset_start,
                 offsetend=offset_end,
-                exceldate=excel_date,
+                excelstart=excel_start,
+                excelend=excel_end,
                 breakduration=break_duration,
                 timeduration=time_duration,
                 plannedduration=time_duration,
@@ -3621,7 +3624,6 @@ sql_customer_calendar_team_sub11 = """
     AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
 """
 
-
 def get_customer_calendar_rows(rosterdate, company_pk, customer_pk, order_pk, is_publicholiday, is_companyholiday):
     #logger.debug(' =============== get_customer_calendar_rows =============  order_pk: ' + str(order_pk)+ ' customer_pk: ' + str(customer_pk))
     #logger.debug('rosterdate' + str(rosterdate))
@@ -3654,3 +3656,4 @@ def get_customer_calendar_rows(rosterdate, company_pk, customer_pk, order_pk, is
     rows = newcursor.fetchall()
     return rows
 
+#==================================================================

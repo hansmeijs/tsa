@@ -79,17 +79,6 @@ class EmployeeListView(View):
             lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
             months_json = json.dumps(c.MONTHS_ABBREV[lang])
 
-            # add employee_list to headerbar parameters PR2019-03-02
-            employees = m.Employee.objects.filter(company=request.user.company)
-            employee_list = []
-            for employee in employees:
-                dict = {}
-                dict['id'] = employee.id
-                dict['name'] = employee.name
-                employee_list.append(dict)
-            employee_list = json.dumps(employee_list)
-            #logger.debug('employee_list: ' + str(employee_list))
-
             param = get_headerbar_param(request, {
                 'lang': user_lang,
                 'timezone': comp_timezone,
