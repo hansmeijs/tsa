@@ -3044,7 +3044,7 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
 # check condition to end loop:
                     #logger.debug('while value of base_idx: ' + str(base_idx))
         # - end at first row of this employee
-                    if i == base_idx:
+                    if i <= base_idx:
                         #logger.debug('i == base_idx: ' + str(i))
                         break
         # - end when excelstart at least 2880 less than excelstart of row
@@ -3052,7 +3052,8 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
         # because excelend is not in ascending order, lookup_excelend < row_excelstart cannot be used
         # instead check lookup_excelstart + 2880 < row_excelstart. Exc
 
-                    elif lookup_excstart + 2880 < row_excend:
+                    # PR2020-05-14 debug: error when row_excend = None. Added: if row_excend
+                    elif row_excend and lookup_excstart + 2880 < row_excend:
                         #.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
                         break
                     else:
