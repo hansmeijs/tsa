@@ -278,6 +278,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                 # mode = f.get_dict_value(upload_dict, ('id','mode'))
                 shift_option = f.get_dict_value(upload_dict, ('id','shiftoption'))
                 is_absence = f.get_dict_value(upload_dict, ('id','isabsence'))
+                logger.debug('is_absence: ' + str(is_absence))
 
                 # key 'mode' is used in calendar_employee_upload etc .
                 # from customer_calendar shiftoption': 'schemeshift'
@@ -323,12 +324,12 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
                 else:
                     table = f.get_dict_value(upload_dict, ('id','table'), '')
-                    #logger.debug('table: ' + str(table))
+                    logger.debug('table: ' + str(table))
                     if table == 'teammember':
                         # called by scheme page, teammember table update
                         # TODO replace 'id.isabsence' by shift_option == 'isabsence':
                         if is_absence:
-                            #logger.debug('teammember is_absence')
+                            logger.debug('teammember is_absence')
                             update_dict = absence_upload(request, upload_dict, user_lang)
                         else:
                             update_dict = teammember_upload(request, upload_dict, user_lang)
@@ -1326,8 +1327,8 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
 
 
 def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
-    #logger.debug(' --- absence_upload ---')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --- absence_upload ---')
+    logger.debug('upload_dict: ' + str(upload_dict))
 
     update_dict = {}
 
@@ -1350,9 +1351,9 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
     if id_dict:
         pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
         #logger.debug('is_delete: ' + str(is_delete))
-        #logger.debug('is_create: ' + str(is_create))
-        #logger.debug('mode: ' + str(mode))
-        #logger.debug('temp_pk_str: ' + str(temp_pk_str))
+        logger.debug('is_create: ' + str(is_create))
+        logger.debug('mode: ' + str(mode))
+        logger.debug('temp_pk_str: ' + str(temp_pk_str))
 
 # 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         update_dict = f.create_update_dict(
@@ -1392,7 +1393,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             is_order_update = False
             new_order_dict = upload_dict.get('order')
 
-            #logger.debug('new_order_dict: ' + str(new_order_dict))
+            logger.debug('new_order_dict: ' + str(new_order_dict))
             if new_order_dict:
                 is_order_update = new_order_dict.get('update', False)
                 if is_order_update:
@@ -1422,7 +1423,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             datelast_dte = None
             field_dict = upload_dict.get('datelast')
             if field_dict:
-                is_datelast_update= field_dict.get('update', False)
+                is_datelast_update = field_dict.get('update', False)
                 datelast_iso = field_dict.get('value', '')
                 datelast_dte = f.get_date_from_ISO(datelast_iso)
                 #logger.debug('datelast_iso: ' + str(datelast_iso))
@@ -1464,20 +1465,20 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 # C: if is_create: create new scheme, shift, team, teammember and schemeitem(s)
             teammember = None
             if is_create:
-                #logger.debug('is_create: ' + str(is_create))
+                logger.debug('is_create: ' + str(is_create))
 # D. get absence order
                 if new_order is not None:
                     # employee is required
                     employee = None
                     employee_dict = upload_dict.get('employee')
-                    #logger.debug('employee_dict: ' + str(employee_dict))
+                    logger.debug('employee_dict: ' + str(employee_dict))
                     if employee_dict:
                         employee_pk = employee_dict.get('pk')
                         if employee_pk:
                             employee = m.Employee.objects.get_or_none(
                                 pk=employee_pk,
                                 company=request.user.company)
-                    #logger.debug('employee: ' + str(employee))
+                    logger.debug('employee: ' + str(employee))
 
                     if employee is not None:
         # - create new scheme with cycle = 7

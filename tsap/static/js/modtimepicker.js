@@ -8,7 +8,7 @@
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        console.log("=== MODAL  ModTimepickerOpen  =====");
+        //console.log("=== MODAL  ModTimepickerOpen  =====");
         //console.log( "tp_dict: ", tp_dict);
         //console.log( "st_dict: ", st_dict);
 
@@ -108,9 +108,16 @@
                 //btn_delete.setAttribute("data-toggle", "modal");
                 //btn_delete.setAttribute("href", "#id_mod_timepicker");
 
+                AppendChildIcon(btn_delete, st_dict.imgsrc_delete, "18")
+
                 btn_delete.addEventListener("click", function() {
                     ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_delete")}, false )
-                AppendChildIcon(btn_delete, st_dict["imgsrc_delete"], "18")
+//- add hover delete img
+                btn_delete.addEventListener("mouseenter", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_deletered)});
+                btn_delete.addEventListener("mouseleave", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_delete)});
+
+
+
             el_footer.appendChild(btn_delete);
         }
 

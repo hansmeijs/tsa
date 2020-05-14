@@ -1406,6 +1406,7 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
     return has_overlap
 
 
+
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
     #logger.debug(' --- check_shift_overlap --- ')
     # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
@@ -1479,6 +1480,45 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
                     pass
     return has_overlap, delete_this_row
 
+
+
+def check_shift_overlap_with_startend(a, b, x, y):  # PR2020-05-12
+    #logger.debug(' --- check_shift_overlap_with_startend --- ')
+    # parameterss are excelstart and excelend. Value of excelstart = exceldate * 1440 + offsetstart
+    # function returns:
+    # - None if no overlap, or if not all parameters have value
+    # - 'error' if offsetend before offsetstart
+
+    # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
+
+    overlap_start = False
+    overlap_end = False
+
+    if a and b and x and y:
+        #   overlap           x|____________|y
+        #               a|________|b   a|________|b
+        #                         a|___|b
+
+# validate if timeend before timestart
+        if b < a or y < x:
+            pass
+            # error if timeend before timestart: skip, no overlap. validation happens outside this function
+        elif a == b or x == y:
+            pass
+            # no overlap when start and end time are the same
+# shifts have overlap
+        elif a < y and b > x:
+            has_overlap = True
+            if a < x:
+                overlap_end = True
+            if b > y:
+                overlap_start = True
+            if a >= x and b <= y:
+                # a-b is fully within x-y : set overlap_start and overlap_end True
+                overlap_start = True
+                overlap_end = True
+
+    return overlap_start, overlap_end
 
 def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
     #logger.debug(' --- check_overlap --- ')
@@ -2855,28 +2895,57 @@ def get_code_with_sequence(table, parent, user_lang):
         new_code = default_code + ' ' + str(max_index + 1)
     return new_code
 
+def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, request):
+    #logger.debug(' =============== create_emplhourdict_of_employee ============= ') # PR2020-05-13
+    emplhour_dict = {}
+    if datefirst_iso and datelast_iso and employee_pk:
+        sql_emplhour = """ 
+            SELECT eh.id
+            FROM companies_emplhour AS eh 
+            INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)   
+            WHERE c.company_id = %(compid)s
+            AND (eh.employee_id = %(eid)s)
+            AND (eh.rosterdate >= CAST(%(rdf)s AS DATE) AND eh.rosterdate <= CAST(%(rdl)s AS DATE))
+            AND (eh.rosterdate IS NOT NULL)  
+        """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_emplhour, {
+            'compid': request.user.company_id,
+            'eid': employee_pk,
+            'rdf': datefirst_iso,
+            'rdl': datelast_iso
+        })
+        rows = newcursor.fetchall()
+        for row in rows:
+            emplhour_dict[row[0]] = {}
+        return emplhour_dict
 
-def check_emplhour_overlap(datefirst, datelast, employee_pk, request):
+
+
+def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
     logger.debug(' =============== check_emplhour_overlap ============= ')
-    logger.debug('datefirst' + str(datefirst) + ' ' + str(type(datefirst)))
-    logger.debug('datelast' + str(datelast) + ' ' + str(type(datelast)))
+    #logger.debug('datefirst' + str(datefirst) + ' ' + str(type(datefirst)))
+    #logger.debug('datelast' + str(datelast) + ' ' + str(type(datelast)))
 
     # - create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
-    datefirst_dte = get_date_from_ISO(datefirst)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+    datefirst_dte = get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
     datefirst_minus_one_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
-    datefirst_minus_one = datefirst_minus_one_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
+    datefirst_minus_one_iso = datefirst_minus_one_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
     # this is not necessary: rosterdate_minus_one = rosterdate_minus_one_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
-    # logger.debug('datefirst_minusone: ' + str(datefirst_minusone) + ' ' + str(type(datefirst_minusone)))
+    #logger.debug('datefirst_minusone: ' + str(datefirst_minusone) + ' ' + str(type(datefirst_minusone)))
 
-    datelast_dte = get_date_from_ISO(datelast)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+    datelast_dte = get_date_from_ISO(datelast_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
     datelast_plus_one_dtm = datelast_dte + timedelta(days=1)
-    datelast_plus_one = datelast_plus_one_dtm.isoformat()
+    datelast_plus_one_iso = datelast_plus_one_dtm.isoformat()
 
-    if datefirst_minus_one and datelast_plus_one:
-        sql_emplhour = """ SELECT eh.id, e.id, COALESCE(e.code, '---'), 
-            eh.excelstart,
-            eh.excelend
-
+    overlap_dict = {}
+    if datefirst_minus_one_iso and datelast_plus_one_iso:
+        sql_emplhour = """ 
+            SELECT eh.id, e.id, eh.excelstart, eh.excelend, 
+            oh.isabsence OR oh.isrestshift
             FROM companies_emplhour AS eh 
             INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
@@ -2887,20 +2956,117 @@ def check_emplhour_overlap(datefirst, datelast, employee_pk, request):
             AND (eh.rosterdate >= CAST(%(rdf)s AS DATE) AND eh.rosterdate <= CAST(%(rdl)s AS DATE))
             AND (eh.rosterdate IS NOT NULL)  
             ORDER BY eh.employee_id, eh.excelstart 
-            """
+        """
         newcursor = connection.cursor()
         newcursor.execute(sql_emplhour, {
             'compid': request.user.company_id,
             'eid': employee_pk,
-            'rdf': datefirst_minus_one_dtm,
-            'rdl': datelast_plus_one
+            'rdf': datefirst_minus_one_iso,
+            'rdl': datelast_plus_one_iso
         })
-        # dictrow{'id': 2623, 'coalesce': 'Wu XX Y', 'excelstart': 63306720, 'excelend': 63307260}
-
+        # dictrow: {'eh.id': 29055, 'eh.id': 2623, excelstart': 63306720, 'excelend': 63307260, absence_or_restshift: false}
         rows = newcursor.fetchall()
-        i = 0
-        for row in rows:
-            i += 1
-            logger.debug( str(i) +  ' ...................................')
-            logger.debug('dictrow' + str(row))
+        previous_eid = -1
+        base_idx = -1
+        for idx, row in enumerate(rows):
+            #logger.debug( str(idx) + ' ...................................')
+            #logger.debug('dictrow: ' + str(row))
+            # get row info
+            row_eh_id = row[0]
+            row_e_id = row[1]
+            row_excstart = row[2]
+            row_excend = row[3]
+            row_absence_or_rest = row[4]
+            # reset base_idx when row_e_id changes
+            if row_e_id != previous_eid:
+                base_idx = idx
+            # e_idx is index of list of emplhours of this employee
+            # e_idx starts with 0, idx = base_idx + e_idx
+            e_idx = idx - base_idx
 
+            #logger.debug('row_e_id: ' + str(row_e_id) + ' previous_eid: ' + str(previous_eid))
+            #logger.debug('idx: ' + str(idx) + ' e_idx: ' + str(e_idx) + ' base_idx: ' + str(base_idx))
+            # start lookup backward from second row
+            if e_idx > 0:
+                # Point i to the previous row
+                i = base_idx + e_idx - 1 # i.e. i = idx - 1
+                # Iterate till 1st element and keep on decrementing i
+
+                while i >= 0:
+
+                    #logger.debug('while value of i: ' + str(i))
+            # reset when row_e_id changes
+                    lookup = rows[i]
+                    lookup_eh_id = lookup[0]
+                    lookup_excstart = lookup[2]
+                    lookup_row_excend = lookup[3]
+                    lookup_absence_or_rest = lookup[4]
+
+                    # check for overlap
+
+                    overlap_start, overlap_end = check_shift_overlap_with_startend(
+                        lookup_excstart, lookup_row_excend,
+                        row_excstart, row_excend)
+
+                    #logger.debug('overlap_start: ' + str(overlap_start) + 'overlap_end: ' + str(overlap_end))
+                    if overlap_start or overlap_end:
+
+# check if row emplhour id already in overlap_dict, create if not found
+                        if row_eh_id not in overlap_dict:
+                            overlap_dict[row_eh_id] = {}
+                        row_dict = overlap_dict[row_eh_id]
+
+# check if lookup emplhour id already in overlap_dict, create if not found
+                        if lookup_eh_id not in overlap_dict:
+                            overlap_dict[lookup_eh_id] = {}
+                        lookup_dict = overlap_dict[lookup_eh_id]
+# put lookup_eh_id in 'overlapstart' list of lookup_dict, not when absence or restshift
+                        if overlap_start:
+                            # if not lookup_absence_or_rest:
+                            if 'start' not in lookup_dict:
+                                lookup_dict['start'] = []
+                            lookup_dict['start'].append(row_eh_id)
+                            # if not row_absence_or_rest:
+                            if 'end' not in row_dict:
+                                row_dict['end'] = []
+                            row_dict['end'].append(lookup_eh_id)
+# put lookup_eh_id in 'overlap_end' list of lookup_dict, not when absence or restshift
+                        if overlap_end :
+                            # if not lookup_absence_or_rest:
+                            if 'end' not in lookup_dict:
+                                lookup_dict['end'] = []
+                            lookup_dict['end'].append(row_eh_id)
+                            # if not row_absence_or_rest:
+                            if 'start' not in row_dict:
+                                row_dict['start'] = []
+                            row_dict['start'].append(lookup_eh_id)
+
+# check condition to end loop:
+                    #logger.debug('while value of base_idx: ' + str(base_idx))
+        # - end at first row of this employee
+                    if i == base_idx:
+                        #logger.debug('i == base_idx: ' + str(i))
+                        break
+        # - end when excelstart at least 2880 less than excelstart of row
+        # explanation: lookup emplhours with excelend before excelstart of row do't have te be checked
+        # because excelend is not in ascending order, lookup_excelend < row_excelstart cannot be used
+        # instead check lookup_excelstart + 2880 < row_excelstart. Exc
+
+                    elif lookup_excstart + 2880 < row_excend:
+                        #.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
+                        break
+                    else:
+        # goto next lookup
+                        i -= 1
+                        #logger.debug('i -= 1: ' + str(i))
+                    #logger.debug('end value of i: ' + str(i))
+
+                #logger.debug('exit value of i: ' + str(i))
+            # goto next row
+            previous_eid = row_e_id
+    # overlap_dict{
+    # 9057: {'end': [9059], 'start': [9058]},
+    # 9058: {'end': [9057, 9059]}}
+    # 9059: {'start': [9057, 9058]},
+    logger.debug('overlap_dict' + str(overlap_dict))
+    return overlap_dict

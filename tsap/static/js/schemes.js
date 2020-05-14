@@ -367,24 +367,19 @@ document.addEventListener('DOMContentLoaded', function() {
             success: function (response) {
                 console.log("response")
                 console.log(response)
-
-                // hide loader
+// ---  hide loader
                 el_loader.classList.add(cls_hide)
 
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
-
-                    // --- create Submenu after downloading locale
+// --- create Submenu after downloading locale
                     CreateSubmenu()
-
-                    // --- create header row and addnew rows after downloading locale
+// --- create select header row and addnew rows after downloading locale
                     CreateSelectHeaderRows();
                     CreateSelectAddnewRows();
-
 // --- create header row and footer
                     CreateTblHeaders();
                     CreateTblFooters();
-
                 }
                // if ("period" in response) {
                 //    period_dict= response["period"];
@@ -394,23 +389,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("setting_dict" in response) {
                     UpdateSettings(response["setting_dict"])
                 }
-
-                if ("rosterdate_check" in response) {
-                    ModRosterdateChecked(response["rosterdate_check"]);
-                };
-
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                     //console.log( "quicksave", quicksave, typeof quicksave)
                 }
 
-    // after select customer the following lists will be downloaded, filtered by selected.customer_pk:
-                  // datalist_request = "scheme" "schemeitem" "shift" "team" "teammember"
+// ---  after select customer the following lists will be downloaded, filtered by selected.customer_pk:
+                // datalist_request = "scheme" "schemeitem" "shift" "team" "teammember"
                 //SBR_FillSelectTable fills selecttable and makes visible
 
 // --- refresh maps and fill tables
                 refresh_maps(response);
-
                 UpdateTablesAfterResponse(response);
             },
             error: function (xhr, msg) {
@@ -441,9 +430,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("customer_list" in response) {
             get_datamap(response["customer_list"], customer_map)
 
-    // fill the three select customer elements
+// fill the three select customer elements
             FillOption_Copyfrom_CustomerOrder("customer", "customer_list response");
             //HandleSelectCustomer(el_select_customer, "customer_list response")
+            HandleSelectOrder()
         }
         if ("team_list" in response) {
             get_datamap(response["team_list"], team_map)
@@ -467,7 +457,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("employee_list" in response) {
             get_datamap(response["employee_list"], employee_map)
         }
-
     }  // refresh_maps
 
 //=========  selected_item_exists_in_map  === PR2020-05-01
@@ -513,9 +502,30 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_menubtn_show_templates").innerText = btn_txt;
 
 // reset selected customer and order
-        selected.customer_pk = (!is_template_mode) ? settings.customer_pk : 0;
-        selected.order_pk = (!is_template_mode) ? settings.order_pk : 0;
-        selected.scheme_pk =  (!is_template_mode) ? settings.scheme_pk : 0;
+        if(is_template_mode){
+            selected.customer_pk = 0;
+            selected.order_pk = 0;
+            selected.scheme_pk = 0;
+// lookup template order in order_map
+            if(!!order_map.size){
+                for (const [map_id, item_dict] of order_map.entries()) {
+                    const is_template = get_dict_value(item_dict, [ "id", "istemplate"], false)
+                    if (is_template) {
+                       selected.order_pk = get_dict_value(item_dict, [ "id", "pk"], 0)
+                        selected.customer_pk = get_dict_value(item_dict, [ "id", "ppk"], 0)
+                        //mod_MSO_dict.order_pk = get_dict_value(item_dict, [ "id", "pk"], 0)
+                       // mod_MSO_dict.customer_pk = get_dict_value(item_dict, [ "id", "ppk"], 0)
+
+                        break;
+            }}};
+        } else {
+            selected.customer_pk = settings.customer_pk;
+            selected.order_pk = settings.order_pk;
+            selected.scheme_pk =  settings.scheme_pk;
+        }
+
+        //console.log("selected.order_pk: ", selected.order_pk)
+        //console.log("selected.customer_pk: ", selected.customer_pk)
 
 // reset scheme, team, shift
         sidebar_tblBody_scheme.innerText = null;
@@ -523,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebar_tblBody_team.innerText = null;
 
         FillOption_Copyfrom_CustomerOrder("customer", "HandleSubmenubtnTemplateShow");
-        //HandleSelectCustomer(el_select_customer, "HandleSubmenubtnTemplateShow")
+        HandleSelectOrder()
 
         add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
         add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
@@ -572,7 +582,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "btn_mode: ", btn_mode );
 
         selected.btn = (btn_mode) ? btn_mode : "btn_gridlayout";
-
+        // dont save btn_mode when clicked on btn_absence PR2020-05-11
+        if (selected.btn === "btn_absence"){ skip_update = true }
 // ---  upload new selected.btn, not after loading page (then skip_update = true)
         if(!skip_update){
             const upload_dict = {page_scheme: {btn: selected.btn}};
@@ -599,12 +610,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  highlight row in list table
-            let tblBody = document.getElementById("id_tbody_" + selected.btn);
-            if(!!tblBody){
-                FilterTableRows(tblBody)
-            }
+        let tblBody = document.getElementById("id_tbody_" + selected.btn);
+        if(!!tblBody){
+            FilterTableRows(tblBody)
+        }
 // --- update header text
         // not necessary, text stays the same on all buttons. Was: UpdateHeaderText("HandleBtnSelect");
+         if (selected.btn === "btn_absence"){
+            "open modal absence"
+            }
     }  // HandleBtnSelect
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
@@ -645,7 +659,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // after first DatalistDownload, when there is only 1 customer, selected.customer_pk gets this value
         //  HandleSelectCustomer has then no parameter 'el' and selected.customer_pk has value
         if(!!el){
-
         // get selected customer from select element
             const sel_cust_value = parseInt(el.value);
             if (!!sel_cust_value){
@@ -721,8 +734,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset lists
         // don't reset, all items from this customer are already downloaded
 // reset selected.order_pk, selected.scheme_pk
-        selected.order_pk = 0
-        selected.scheme_pk = 0;
+        //selected.order_pk = 0
+        //selected.scheme_pk = 0;
 // reset select tables
         el_sidebar_select_order.value = null;
         sidebar_tblBody_scheme.innerText = null;
@@ -1393,9 +1406,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= SBR_FillSelectTable  ============= PR2019-09-23
     function SBR_FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
-        //console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
-        //console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
-        //console.log( "selected_pk: ", selected_pk, "selected.order_pk: ", selected.order_pk);
+        console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
+        console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
+        console.log( "selected_pk: ", selected_pk, "selected.order_pk: ", selected.order_pk);
 
         let selected_ppk_int = 0;
         const selected_map_id = get_map_id(tblName, selected_pk.toString());
@@ -1488,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                 const row_id = "sel_" + map_id;
                 tblRow.setAttribute("id", row_id);
-                 tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-pk", pk_int);
                 tblRow.setAttribute("data-ppk", ppk_int);
                 tblRow.setAttribute("data-map_id", map_id);
                 tblRow.setAttribute("data-table", tblName);
@@ -2946,6 +2959,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ModRosterdateFinished(response["rosterdate"]);
                     }
                     if ("refresh_tables" in response) {
+                        // only returned by SchemeTemplateUploadView
                         UpdateTablesAfterResponse(response);
                     }
                 },
@@ -3059,7 +3073,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };  // Grid_UpdateFromResponse_shift
 
-
 //=========  UpdateFromResponse  ================ PR2019-10-14
     function UpdateFromResponse(update_dict) {
         console.log(" ==== UpdateFromResponse ====");
@@ -3154,7 +3167,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (tblName === "schemeitem"){
                         tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                     };
-
 // ---  clear addnew row
                     console.log("ResetAddnewRow UpdateFromResponse")
                      ResetAddnewRow(tblName, "UpdateFromResponse")
@@ -4842,7 +4854,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "===== MSO_SelectCustomer ========= ");
         console.log( "tblRow: ", tblRow);
 
-
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
         // eventhandler added in t_Fill_SelectTable: HandleSelect_Row(tblRow, event.target, data_map, loc)
 // ---  deselect all highlighted rows
@@ -4870,8 +4881,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  put value in input box
             const cust_code =  get_attr_from_el(tblRow, "data-value");
             document.getElementById("id_MSO_input_customer").value = cust_code
-        } else {
-
         }
         MSO_FillSelectTableOrder();
         MSO_headertext();
@@ -4885,7 +4894,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  deselect all highlighted rows
         DeselectHighlightedTblbody(document.getElementById("id_MSO_tblbody_order") , cls_selected)
-// ---  get clicked tablerow
+// ---  get clicked select_tblRow
         if(!!tblRow) {
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
@@ -6369,7 +6378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                             url_settings_upload: url_settings_upload,
                             text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
-                            txt_dateheader: txt_dateheader,
+                            txt_dateheader: txt_dateheader, txt_title_btndelete: loc.Remove_time,
                             txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
                             show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
                             };
@@ -6629,7 +6638,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!order_map.size){
                 // --- loop through order_map
                     for (const [map_id, item_dict] of order_map.entries()) {
-                        istemplate: {value: true}
+                        //istemplate: {value: true}
                         const is_template = get_dict_value(item_dict, ["istemplate", "value"], false)
                         if (is_template === is_template_mode) {
                             has_records = true;
@@ -6768,8 +6777,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= Grid_FillGrid  ====================================
     function Grid_FillGrid(scheme_dict, calledby) {
-        console.log(" === Grid_FillGrid ===", calledby) // PR2020-03-13
-        console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
+        //console.log(" === Grid_FillGrid ===", calledby) // PR2020-03-13
+        //console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
 
         let el_btn_datefirstlast = document.getElementById("id_grid_scheme_btn_datefirstlast")
         let el_btn_exph = document.getElementById("id_grid_scheme_btn_exph")

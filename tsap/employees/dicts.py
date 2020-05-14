@@ -13,29 +13,130 @@ import logging
 import json
 logger = logging.getLogger(__name__)
 
-def create_employee_list(company, user_lang, inactive=None, rangemin=None, rangemax=None):
+def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, datelast_iso=None):
     # --- create list of all active employees of this company PR2019-06-16
     #logger.debug(' --- create_employee_list   ')
-    crit = Q(company=company)
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-    if rangemax is not None:
-        crit.add(Q(datefirst__lte=rangemax) | Q(datefirst__isnull=True), crit.connector)
-    if rangemin is not None:
-        crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
+    # PR2020-05-11 with Django model it took 10 seconds - with sql it takes ??? to be tested
 
-    employees = m.Employee.objects\
-        .select_related('wagecode')\
-        .filter(crit)\
-        .order_by(Lower('code'))
+    #logger.debug(' =============== create_employee_list ============= ')
+
+    sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
+        e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
+        e.identifier, e.payrollcode, e.workhours, e.workdays, e.leavedays,
+        fc.code AS functioncode, wc.code AS wagecode, pc.code AS paydatecode, 
+        e.locked, e.inactive
+    
+        FROM companies_employee AS e 
+        LEFT JOIN companies_wagecode AS wc ON (wc.id = e.wagecode_id) 
+        LEFT JOIN companies_wagecode AS fc ON (wc.id = e.functioncode_id) 
+        LEFT JOIN companies_wagecode AS pc ON (wc.id = e.paydatecode_id) 
+ 
+        WHERE e.company_id = %(compid)s
+        AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
+        AND ( e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL OR %(rdf)s IS NULL )
+        AND ( e.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
+        ORDER BY e.code 
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_employee, {
+        'compid': company.id,
+        'rdf': datefirst_iso,
+        'rdl': datelast_iso,
+        'inactive': inactive
+    })
+    employees = f.dictfetchall(newcursor)
 
     employee_list = []
     for employee in employees:
+        #logger.debug('...................................')
+        #logger.debug('employee' + str(employee))
         item_dict = {}
-        create_employee_dict(employee, item_dict, user_lang)
+        create_employee_dict_from_sql(employee, item_dict, user_lang)
         if item_dict:
             employee_list.append(item_dict)
     return employee_list
+
+
+def create_employee_dict_from_sql(instance,  item_dict, user_lang):
+    # --- create dict of this employee from dictfetchall PR2020-05-11
+
+    # FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
+    #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
+    #                    'address', 'zipcode', 'city', 'country',
+    #                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
+    #                    'priceratejson', 'additionjson', 'inactive', 'locked')
+
+    if instance:
+
+# ---  get min max date
+        datefirst = instance.get('datefirst')
+        datelast = instance.get('datelast')
+
+        workhours = instance.get('workhours', 0)  # workhours per week * 60, unit is minute
+        workdays = instance.get('workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
+        workhoursperday = 0
+        if workhours and workdays:
+            workhoursperday = round(workhours / workdays * 1440)  # round to whole minutes
+
+        for field in c.FIELDS_EMPLOYEE:
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = instance.get('id')
+                field_dict['ppk'] = instance.get('company_id')
+                field_dict['table'] = 'employee'
+                item_dict['pk'] = instance.get('id')
+
+            elif field == 'company':
+                pass
+
+            elif field in ['datefirst', 'datelast']:
+            # also add date when empty, to add min max date
+                if datefirst or datelast:
+                    if field == 'datefirst':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_obj=datefirst,
+                            maxdate=datelast)
+                    elif field == 'datelast':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_obj=datelast,
+                            mindate=datefirst)
+
+            elif field == 'workhours':
+                if workhours:
+                    field_dict['value'] = workhours
+            elif field == 'workdays':
+                if workdays:
+                    field_dict['value'] = workdays
+
+            elif field in ['priceratejson']:
+                pricerate = instance.get(field)
+                if pricerate is not None:
+                    field_dict['value'] = pricerate
+                field_dict['display'] = f.display_pricerate(pricerate, False, user_lang)
+
+            else:
+                value = instance.get(field)
+                if value:
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+        if workhours and workdays:
+            fld = 'workhoursperday'
+            if fld not in item_dict:
+                item_dict[fld] = {}
+            item_dict[fld]['value'] = workhoursperday
+
+# 7. remove empty attributes from item_update
+    f.remove_empty_attr_from_dict(item_dict)
+    return create_employee_dict_from_sql
+# >>>   end create_employee_dict
+
+
 
 
 def create_employee_dict(instance, item_dict, user_lang):

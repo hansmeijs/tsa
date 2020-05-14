@@ -1075,9 +1075,9 @@ def get_teamcode_abbrev(team_code):
 
 
 def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' ============== period_get_and_save ================ ')
     #logger.debug(' key: ' + str(key))
-    logger.debug(' period_dict: ' + str(period_dict))
+    #logger.debug(' period_dict: ' + str(period_dict))
 
     # create_employee_planning / create_customer_planning / review_list use  rosterdatefirst / rosterdatelasst in filter
     # emplhour_list uses  periodstart (= periodstart_local_withtimezone) /  'periodend'
@@ -1232,9 +1232,9 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     # get now_usercomp_dtm from now_arr
     # now is the time of the computer of the current user. May be different from company local
 
-    logger.debug(' now_arr: ' + str(now_arr))
+    #logger.debug(' now_arr: ' + str(now_arr))
     today_dte = f.get_date_from_arr(now_arr)
-    logger.debug(' today_dte: ' + str(today_dte) + ' type: ' + str(type(today_dte)))
+    #logger.debug(' today_dte: ' + str(today_dte) + ' type: ' + str(type(today_dte)))
     now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
     # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
 
@@ -1482,8 +1482,8 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    #logger.debug(' ============= create_emplhour_list ============= ')
-    #logger.debug('period_dict: ' + str(period_dict))
+    logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
@@ -1515,8 +1515,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
     rosterdatelast = period_dict.get('period_datelast')
     rosterdatefirst_minus1 = period_dict.get('period_datefirst_minus1')
     rosterdatelast_plus1 = period_dict.get('period_datelast_plus1')
-    # TODO for testing overlap PR2020-05-11
-    f.check_emplhour_overlap(rosterdatefirst, rosterdatelast, None, request)
+
     # Exclude template.
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -1834,9 +1833,9 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
             #logger.debug('..........item_dict[shift]: ' + str(field_dict))
 
         elif field == 'employee':
-            logger.debug('.......... e_id: ' + str(e_id))
-            logger.debug('.......... e_code: ' + str(e_code))
-            logger.debug('.......... field_dict: ' + str(field_dict))
+            #logger.debug('.......... e_id: ' + str(e_id))
+            #logger.debug('.......... e_code: ' + str(e_code))
+            #logger.debug('.......... field_dict: ' + str(field_dict))
             if e_id is not None:
                 # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
                 field_dict['pk'] = e_id  # employee.id

@@ -727,7 +727,7 @@ class Orderhour(TsaBaseModel):
     issplitshift = BooleanField(default=False)
     isbillable = BooleanField(default=False)  # isbillable: worked hours will be billed when true, planned hours otherwise
     nobill = BooleanField(default=False)    # nobill: billed hours will be zero
-
+    # TODO add nobill to pricepage
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)

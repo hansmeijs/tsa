@@ -131,6 +131,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
         dict['Add_employee'] = TXT_Add_employee
         dict['Delete_employee'] = TXT_Delete_employee
+
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
         dict['Click_show_inactive_employees'] = TXT_Click_show_inactive_employees
@@ -488,7 +489,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Current_teammember'] = TXT_Current_teammember
         dict['Current_teammembers'] = TXT_Current_teammembers
 
-        dict['for'] = TXT_for
+        dict['for_txt'] = TXT_for_txt
 
         # mod rosterdate
         dict['TXT_Create_another_roster'] = TXT_Create_another_roster
@@ -509,6 +510,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['This_shift'] = TXT_This_shift
 
         dict['This_order'] = TXT_This_order
+
+        dict['Remove_employee'] = TXT_Remove_employee
 
         dict['period_select_list'] = (
             ('now', TXT_now),
@@ -623,6 +626,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['With_restshifts'] = TXT_With_restshifts
         dict['Without_restshifts'] = TXT_Without_restshifts
         dict['Restshifts_only'] = TXT_Restshifts_only
+        dict['Shift_has_overlap_with'] = TXT_Shift_has_overlap_with
+        dict['has_overlapping_shift'] = TXT_has_overlapping_shift
+        dict['Shift_outside_display_period'] = TXT_Shift_outside_display_period
 
         dict['You_must_first_select'] = _('You must first select ')
         dict['before_confirm_shift'] = _(', before you can confirm a shift.')
@@ -886,6 +892,7 @@ TXT_This_employee = _('This employee')
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
 TXT_Delete_employee = _('Delete employee')
+TXT_Remove_employee = _('Remove employee')
 TXT_No_employees = _('No employees')
 TXT_All_employees = _('All employees')
 TXT_Current_teammember = _('Current teammember')
@@ -923,6 +930,11 @@ TXT_Absence_only = _("Absence only")
 TXT_With_restshifts = _('With restshifts')
 TXT_Without_restshifts = _("Without restshifts")
 TXT_Restshifts_only = _("Restshifts only")
+TXT_Shift_has_overlap_with = _("This shift has overlap with")
+TXT_has_overlapping_shift = _("has overlapping shift")
+
+TXT_Shift_outside_display_period = _("Shift outside display period")
+
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')
@@ -951,7 +963,7 @@ TXT_Date = _('Date')
 TXT_Print_date = _('Print date')
 TXT_Page = _('Page')
 
-TXT_for = _('for')
+TXT_for_txt = _('for')
 
 TXT_Grand_total = _('Grand total')
 TXT_Total_hours = _('Total hours')

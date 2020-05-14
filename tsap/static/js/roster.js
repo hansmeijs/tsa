@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+        const imgsrc_deletered = get_attr_from_el(el_data, "data-imgsrc_deletered");
         const imgsrc_warning = get_attr_from_el(el_data, "data-imgsrc_warning");
         const imgsrc_questionmark = get_attr_from_el(el_data, "data-imgsrc_questionmark");
         const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
@@ -329,14 +330,14 @@ document.addEventListener('DOMContentLoaded', function() {
             employee: {inactive: null},
             abscat: {inactive: false}
         };
-        DatalistDownload(datalist_request);
+        DatalistDownload(datalist_request, false);
 
         // TODO employee list can be big. Get separate after downloading emplhour
 
 //  #############################################################################################################
 
 //========= DatalistDownload  ====================================
-    function DatalistDownload(datalist_request) {
+    function DatalistDownload(datalist_request, no_loader) {
         console.log( "=== DatalistDownload ")
         console.log("request: ", datalist_request)
 
@@ -346,12 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset requested lists
         let is_replacement = false
 
-        // show loader
+        // show loader, except when no_loader
+        add_or_remove_class(el_loader, cls_visible_hide, no_loader )
+        // show loader in MRE
         if (is_replacement) {
             document.getElementById("id_modroster_employee_loader").classList.remove(cls_hide)
         }
-        el_loader.classList.remove(cls_visible_hide)
-
         let param = {"download": JSON.stringify (datalist_request)};
         let response = "";
         $.ajax({
@@ -405,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_sidebar_select_restshift.value = sel_value_restshift;
 
                     call_DisplayCustomerOrder = true;
+
                 }
                 if (call_DisplayCustomerOrder) {
                     Sidebar_DisplayCustomerOrder();
@@ -424,6 +426,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     fill_table = true;
                     check_status = true;
                 }
+
+                if ("overlap_dict" in response) {
+                    UpdateOverlap(response["overlap_dict"], false); // / false  = don't skip_reset_all
+                }
                 if ("replacement_list" in response) {
                     get_datamap(response["replacement_list"], replacement_map)
                     ModEmployeeFillOptionDates(replacement_map);
@@ -440,7 +446,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
 
                 if (fill_table) {FillTableRows()}
-                if (check_status) {CheckStatus()}
+                if (check_status) {
+
+// check for overlap
+                    const datalist_request = {overlap: {get: true}, roster_period: selected_period};
+                    DatalistDownload(datalist_request, true); // true = no_loader
+
+                CheckStatus()
+                }
 
             },
             error: function (xhr, msg) {
@@ -1036,7 +1049,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  create id_dict
             let id_dict = get_iddict_from_element(tr_changed);
             if (!isEmpty(id_dict) && !!fieldname){
-                let upload_dict = {"id": id_dict};
+                let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                                    period_datelast: selected_period.period_datelast,
+                                id: id_dict};
                 let field_dict = {};
 
 // if is_create and field = orderhour: add orderhour.pk as ook
@@ -1609,7 +1624,7 @@ document.addEventListener('DOMContentLoaded', function() {
             roster_period: roster_period_dict,
             emplhour: true
         };
-        DatalistDownload(datalist_request, "MSO_Save");
+        DatalistDownload(datalist_request);
 // hide modal
         $("#id_modselectorder").modal("hide");
     }  // MSO_Save
@@ -1945,7 +1960,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
         if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
             add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
-            const upload_dict = {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}
+            const upload_dict =  {shiftdict: {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}}
             UploadChanges(upload_dict, url_emplhour_download);
             // response handled in  MSS_UploadResponse
         }
@@ -1967,7 +1982,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const employee_ppk = (mod_upload_dict.is_switch && mod_upload_dict.employee_ppk) ? mod_upload_dict.employeep_pk : null;
         other_employee_dict = {pk: employee_pk, ppk: employee_ppk, table: "employee", update: true};
 
-        let upload_dict = {id: {pk: mod_upload_dict.emplhour.pk,
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast,
+                            id: {pk: mod_upload_dict.emplhour.pk,
                                 ppk: mod_upload_dict.emplhour.ppk,
                                 table: "emplhour",
                                 shiftoption: "moveto_shift",
@@ -2017,9 +2034,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  reset table and input field
 // ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
         if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
-            const upload_dict = {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}
-            console.log("upload_dict", upload_dict)
+            const upload_dict =  {shiftdict: {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}};
             UploadChanges(upload_dict, url_emplhour_download);
+            // response handled in  MSS_UploadResponse
         }
     }  // MSS_RosterdateEdit
 
@@ -2100,7 +2117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // set header text
         const el_header = document.getElementById("id_MSS_header");
         const employee_code = get_dict_value(mod_upload_dict, ["employee", "code"])
-        const header_text = (employee_code) ? loc.Select_shift + " " + loc.for + " " + employee_code : loc.Select_shift + ":"
+        const header_text = (employee_code) ? loc.Select_shift + " " + loc.for_txt + " " + employee_code : loc.Select_shift + ":"
         el_header.innerText = header_text;
 // ---  reset input boxes
         const el_MSS_input_container = document.getElementById("id_MSS_input_container");
@@ -2394,8 +2411,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_pk = get_attr_from_el(el_body, "data-pk")
         let tr_changed = document.getElementById(data_pk)
 
-        const id_dict = get_iddict_from_element(el_body);;
-        let upload_dict = {"id": id_dict}
+        const id_dict = get_iddict_from_element(el_body);
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast,
+                            id: id_dict}
 
         //console.log("---------------status_value: ", status_value);
         //console.log("---------------data_field: ", data_field);
@@ -2499,8 +2518,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // ModalStatusSave
 
 
-
 //  #############################################################################################################
+
+//=========  UpdateOverlap  === PR2020-05-13
+    function UpdateOverlap(overlap_dict, skip_reset_all) {
+        //console.log("===  UpdateOverlap == ");
+        //console.log(overlap_dict);
+        // --- lookup input field with name: fieldname
+        // --- lookup input field with name: fieldname
+                //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                // CSS.escape not supported by IE, Chrome and Safari,
+                // CSS.escape is not necessary, there are no special characters in fieldname
+                // a space between two selecors makes it a descendant selector
+                // from https://developer.mozilla.org/en-US/docs/Web/CSS/Descendant_combinator
+        const filter = "[data-field='timestart'], [data-field='timeend']";
+
+// remove all red background from timestart/timeend elements. Not when refreshing one employee
+        if(!skip_reset_all){
+            let elements = tBody_roster.querySelectorAll(filter);
+            for (let i = 0, el; el = elements[i]; i++) {
+                add_or_remove_class(el, "border_bg_invalid", false)
+                add_or_remove_attr(el, "title", false, title_overlap)
+            };
+        } else {
+
+        }
+// loop through overlap_dict
+        // overlap_dict: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
+        for(var key in overlap_dict) {
+            if(overlap_dict.hasOwnProperty(key)) {
+                const item_dict = overlap_dict[key];
+                const row_id = "emplhour_" + key.toString();
+                const emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, row_id)
+                const employee_code = get_dict_value(emplhour_dict, ["employee", "code"], "")
+                const row = document.getElementById(row_id)
+                if(row){
+                    const fields = ["start", "end"];
+                    for (let i = 0, field; i<2; i++) {
+                        field = fields[i];
+                        const filter = "[data-field='time" + field + "']";
+                        let el = row.querySelector(filter);
+                        if (field in item_dict){
+                            let title_overlap = (employee_code) ? employee_code + " " + loc.has_overlapping_shift + ":" :
+                                                                  loc.Shift_has_overlap_with + ":"
+                            const arr = item_dict[field];
+                            for (let j = 0, emplh_pk; emplh_pk = arr[j]; j++) {
+                                const emplh_dict = get_mapdict_from_datamap_by_tblName_pk(emplhour_map, "emplhour", emplh_pk.toString())
+                                const order = get_dict_value(emplh_dict, ["order", "display"], "")
+                                const timestart = get_dict_value(emplh_dict, ["timestart", "display"], "")
+                                const timeend = get_dict_value(emplh_dict, ["timeend", "display"], "")
+                                const is_restshift = get_dict_value(emplh_dict, ["id", "isrestshift"], "")
+
+                                if(order) {
+                                    if(is_restshift){
+                                        title_overlap += "\n" + order + ", " + loc.Rest_shift.toLowerCase()
+                                        if(timestart || timeend) {title_overlap += " " + timestart + " - " + timeend}
+                                    } else {
+                                        title_overlap += "\n" + order + ", " + timestart + " - " + timeend
+
+                                    }
+                                } else {
+                                    title_overlap += "\n" + "<" + loc.Shift_outside_display_period + ">"
+                                }
+                            }
+                            add_or_remove_class(el, "border_bg_invalid", true)
+                            add_or_remove_attr(el, "title", true, title_overlap)
+                        } else {
+// remove red background when field not found in emplhour record
+                            add_or_remove_class(el, "border_bg_invalid", false)
+                            add_or_remove_attr(el, "title", false, title_overlap)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     function CheckStatus() {
         //console.log( "=== CheckStatus ")
@@ -2926,10 +3018,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadTimepickerResponse  ============= PR2019-10-12
     function UploadTimepickerResponse(tp_dict) {
-        //console.log("=== UploadTimepickerResponse");
+        console.log("=== UploadTimepickerResponse");
         //console.log("tp_dict", tp_dict);
-
-        let upload_dict = {id: tp_dict.id};
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast,
+                            id: tp_dict.id};
 
         // new value of quicksave is uploaded to server in ModTimepicker
         if("quicksave" in tp_dict) {is_quicksave = tp_dict.quicksave};
@@ -2987,7 +3080,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         let update_list = response["update_list"];
                         UpdateFromResponseNEW(tblName, update_list)
                     }
-
+                    if ("overlap_dict" in response) {
+                        UpdateOverlap(response["overlap_dict"], true); // true = skip_reset_all
+                    }
                 },
                 error: function (xhr, msg) {
                     //console.log(msg + '\n' + xhr.responseText);
@@ -3055,6 +3150,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     if("emplh_shift_dict" in response){
                         MSS_UploadResponse(response.emplh_shift_dict)
+                    }
+                    if ("overlap_dict" in response) {
+                        UpdateOverlap(response["overlap_dict"], true); // / true  =  skip_reset_all
                     }
                     if ("logfile" in response) {
                         const new_rosterdate = get_dict_value(response, ["rosterdate", "rosterdate", "rosterdate"], "")
@@ -3399,6 +3497,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // hide loader
         document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
 
+// check for overlap
+        const datalist_request = {overlap: {get: true}, roster_period: selected_period};
+        DatalistDownload(datalist_request, true); // true = no_loader
+
     // set info textboxes
         const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
 
@@ -3622,8 +3724,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let id_dict = mod_upload_dict.id_dict;
             id_dict.delete = true;
             id_dict.rowindex = tblRow.rowIndex;
-
-            const upload_dict = {"id": id_dict};
+            let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                                period_datelast: selected_period.period_datelast,
+                                id: id_dict};
 
             mod_upload_dict.id_dict = id_dict
             // delete emplhour row:
@@ -3741,8 +3844,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const new_rosterdate = mod_upload_dict.rosterdate
         console.log( "new_rosterdate: ", new_rosterdate , typeof new_rosterdate);
-
-        let upload_dict = {id: {create: true},
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                           period_datelast: selected_period.period_datelast,
+                           id: {create: true},
                            rosterdate: {value: new_rosterdate},
                            orderhour: {order_pk: mod_upload_dict.order.pk}
                            };
@@ -4170,7 +4274,6 @@ console.log("?????????? employee_dict", employee_dict)
 
         MRO_SetHeaderAndEnableBtnSave();
 
-
     }  // MRO_InputDateChanged
 
 //=========  MRO_SetHeaderAndEnableBtnSave  ================ PR2020-04-12
@@ -4304,7 +4407,6 @@ console.log("?????????? employee_dict", employee_dict)
             if (!mod_upload_dict.isrestshift){
                 const header_text = (!!mod_upload_dict.employee.code) ? mod_upload_dict.employee.code : loc.Select_employee + ":";
                 document.getElementById("id_MRE_header").innerText = header_text
-        console.log("header_text: ", header_text)
 
         // reset values in mod_employee
                 el_MRE_input_employee.value = null
@@ -4409,7 +4511,9 @@ console.log("?????????? employee_dict", employee_dict)
         console.log("shift_option", shift_option);
 
 // ---  create id_dict of current emplhour record
-        let upload_dict = {id: {pk: mod_upload_dict.emplhour.pk,
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast,
+                                id: {pk: mod_upload_dict.emplhour.pk,
                                 ppk: mod_upload_dict.emplhour.ppk,
                                 table: "emplhour",
                                 isabsence: is_absence,
@@ -4584,7 +4688,7 @@ console.log("?????????? employee_dict", employee_dict)
             show_hide_element(btn_container, show_btns)
 
     // set text of delete button 'Delete employee', if absence: Delete absence
-            el_MRE_btn_delete.innerText = (mod_upload_dict.isabsence) ? loc.Delete_absence : loc.Delete_employee;
+            el_MRE_btn_delete.innerText = (mod_upload_dict.isabsence) ? loc.Delete_absence : loc.Remove_employee;
 
     // ---  show only the elements that are used in this selected_btn
             show_hide_selected_btn_elements("mod_show", selected_btn)
@@ -4777,7 +4881,7 @@ console.log("?????????? employee_dict", employee_dict)
                                (fldName === "timeduration") ? loc.Working_hours :
                                (fldName === "offsetsplit") ? loc.Split_time : null
         let st_dict = { interval: interval, comp_timezone: comp_timezone, user_lang: user_lang,
-                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete,
+                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered,
                         weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                         url_settings_upload: url_settings_upload,
                         txt_dateheader: txt_dateheader,
