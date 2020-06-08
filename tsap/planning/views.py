@@ -42,6 +42,8 @@ logger = logging.getLogger(__name__)
 # === DatalistDownloadView ===================================== PR2019-05-23
 @method_decorator([login_required], name='dispatch')
 class DatalistDownloadView(View):  # PR2019-05-23
+    #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
+    logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ')
@@ -62,7 +64,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
 # ----- get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-                    #logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 
 # ----- get interval
@@ -70,7 +71,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if request.user.company.interval:
                         interval = request.user.company.interval
                     datalist_dict = json.loads(request.POST['download'])
-                    #logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
+                    logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
 # ----- settings -- first get settings, to be used in other downlaods
                     selected_page = None
@@ -104,9 +105,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                     if btn:
                                         selected_btn = btn
                         datalists['setting_dict'] = new_setting_dict
-                        #logger.debug('selected_page: ' + str(selected_page) + ' ' + str(type(selected_page)))
-                        #logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
-                        #logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
+                        logger.debug('selected_page: ' + str(selected_page) + ' ' + str(type(selected_page)))
+                        logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
+                        logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
                         # page_customer: {btn: "planning"}
 
 # ----- company setting

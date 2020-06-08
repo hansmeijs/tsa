@@ -757,7 +757,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     # this enables the logger
     logging.disable(logging.NOTSET)
 
-    logging.debug('looging turned on again')
+    logging.debug('logging turned on again')
  # J. return update_wrap
     return update_wrap
 
