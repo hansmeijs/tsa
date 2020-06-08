@@ -870,7 +870,9 @@ def create_schemeitem_dict_from_sql(schemeitem, item_dict):
 
             elif field == 'rosterdate':
                 rosterdate = schemeitem.get('rosterdate')
-                field_dict['value'] = rosterdate.isoformat()
+                # PR2020-06-08 debug: gave error: 'NoneType' object has no attribute 'isoformat'. if rosterdate added
+                if rosterdate:
+                    field_dict['value'] = rosterdate.isoformat()
 
 # --- get excel_start from rosterdate and offsetstart, used to sort schemeitems in datatable on page planning
                 excel_date = f.get_Exceldate_from_datetime(rosterdate)
