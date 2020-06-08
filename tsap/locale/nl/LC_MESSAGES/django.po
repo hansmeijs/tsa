@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-07 17:11-0400\n"
+"POT-Creation-Date: 2020-06-08 14:58-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -61,7 +61,7 @@ msgstr ""
 "Selecteer een of meer permissies in de lijst. Houd de Ctrl knop ingedrukt om "
 "meerdere permissies te selecteren"
 
-#: .\accounts\forms.py:179 .\employees\views.py:2341
+#: .\accounts\forms.py:179 .\employees\views.py:2340
 #: .\templates\includes\modemployee.html:65 .\tsap\constants.py:283
 msgid "Email address"
 msgstr "E-mail adres"
@@ -289,7 +289,7 @@ msgstr "Deze klant kon niet worden bijgewerkt."
 msgid "This order could not be updated."
 msgstr "Deze locatie kon niet worden bijgewerkt."
 
-#: .\customers\views.py:435 .\planning\views.py:3341 .\planning\views.py:3704
+#: .\customers\views.py:435 .\planning\views.py:3345 .\planning\views.py:3708
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
@@ -297,7 +297,7 @@ msgstr "Dit item kon niet worden bijgewerkt."
 msgid "This order could not be created."
 msgstr "Deze locatie kon niet worden aangemaakt."
 
-#: .\customers\views.py:584 .\planning\views.py:3672
+#: .\customers\views.py:584 .\planning\views.py:3676
 msgid "This field could not be updated."
 msgstr "Dit veld kon niet worden bijgewerkt."
 
@@ -311,11 +311,11 @@ msgstr "Dit %(tbl)s kon niet worden gewist."
 msgid "You don't have permission to view this page."
 msgstr "Je hebt geen permissie om deze pagina te bekijken."
 
-#: .\employees\dicts.py:709
+#: .\employees\dicts.py:716
 msgid "This employee already exists."
 msgstr "Deze medewerker komt al voor."
 
-#: .\employees\forms.py:16 .\employees\views.py:2337
+#: .\employees\forms.py:16 .\employees\views.py:2336
 #: .\templates\includes\modemployee.html:23 .\tsap\constants.py:280
 msgid "Last name"
 msgstr "Achternaam"
@@ -346,26 +346,26 @@ msgstr "Dit ploeglid kon niet worden aangemaakt."
 msgid "This teammember could not be updated."
 msgstr "Dit ploeglid kon niet worden bijgewerkt."
 
-#: .\employees\views.py:1978
+#: .\employees\views.py:1977
 msgid "Import employees"
 msgstr "Importeer medewerkers"
 
-#: .\employees\views.py:1978
+#: .\employees\views.py:1977
 msgid "date"
 msgstr "datum"
 
-#: .\employees\views.py:1982
+#: .\employees\views.py:1981
 msgid ""
 "There is no field given to lookup employees. Employees cannot be imported."
 msgstr ""
 "Er is geen veld opgegeven om medewerkers op te zoeken. Medewerkers kunnen "
 "niet geïmporteerd worden."
 
-#: .\employees\views.py:1986
+#: .\employees\views.py:1985
 msgid "This is a test. Employee data are not saved."
 msgstr "Dit is een test. De medewerker gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:1988
+#: .\employees\views.py:1987
 msgid "Employee data are saved."
 msgstr "De medewerker gegevens zijn opgeslagen."
 
@@ -379,162 +379,162 @@ msgstr "Medewerkers worden opgezocht met het veld: '%(fld)s'."
 msgid "The date format is: '%(fld)s'."
 msgstr "Het datum formaat is: '%(fld)s'."
 
-#: .\employees\views.py:2086
+#: .\employees\views.py:2085
 msgid "is skipped."
 msgstr "is overgeslagen."
 
-#: .\employees\views.py:2087
+#: .\employees\views.py:2086
 msgid "Skipped."
 msgstr "Overgeslagen."
 
-#: .\employees\views.py:2091
+#: .\employees\views.py:2090
 #, python-format
 msgid "%(fld)s '%(val)s' is not unique in Excel file."
 msgstr "%(fld)s '%(val)s' is niet uniek in Excel bestand."
 
-#: .\employees\views.py:2095 .\employees\views.py:2099
+#: .\employees\views.py:2094 .\employees\views.py:2098
 #, python-format
 msgid "No value for required field: '%(fld)s'."
 msgstr "Het verplichte veld: '%(fld)s' is niet ingevuld."
 
-#: .\employees\views.py:2102
+#: .\employees\views.py:2101
 #, python-format
 msgid "No value for lookup field: '%(fld)s'."
 msgstr "Het opzoek veld: '%(fld)s' is niet ingevuld."
 
-#: .\employees\views.py:2105
+#: .\employees\views.py:2104
 #, python-format
 msgid "Value '%(fld)s' is too long."
 msgstr "Waarde '%(fld)s' is te lang."
 
-#: .\employees\views.py:2106
+#: .\employees\views.py:2105
 #, python-format
 msgid "Max %(fld)s characters."
 msgstr "Maximaal %(fld)s tekens."
 
-#: .\employees\views.py:2110
+#: .\employees\views.py:2109
 #, python-format
 msgid "Value '%(fld)s' is found multiple times."
 msgstr "Waarde '%(fld)s' komt meer dan 1 keer voor."
 
-#: .\employees\views.py:2134
+#: .\employees\views.py:2133
 msgid "is added."
 msgstr "is toegevoegd."
 
-#: .\employees\views.py:2137
+#: .\employees\views.py:2136
 msgid "An error occurred. The employee is not added."
 msgstr "Er is een fout opgetreden. De medewerker is niet toegevoegd."
 
-#: .\employees\views.py:2142
+#: .\employees\views.py:2141
 msgid "already exists."
 msgstr "komt al voor."
 
-#: .\employees\views.py:2153
+#: .\employees\views.py:2152
 msgid "blank"
 msgstr "blanco"
 
-#: .\employees\views.py:2154
+#: .\employees\views.py:2153
 msgid "was"
 msgstr ""
 
-#: .\employees\views.py:2175
+#: .\employees\views.py:2174
 #, python-format
 msgid "'%(val)s' is too long. Maximum is %(max)s characters'."
 msgstr "'%(val)s' is te lang, Maximaal %(max)s tekens."
 
-#: .\employees\views.py:2220
+#: .\employees\views.py:2219
 #, python-format
 msgid "'%(val)s' is not a valid date."
 msgstr "'%(val)s' is geen geldige datum."
 
-#: .\employees\views.py:2300
+#: .\employees\views.py:2299
 msgid "Last date in service is in the past."
 msgstr "Laatste datum in dienst is in het verleden."
 
-#: .\employees\views.py:2301
+#: .\employees\views.py:2300
 msgid "Employee is made inactive."
 msgstr "Deze medewerker is niet-aktief gemaakt."
 
-#: .\employees\views.py:2325
+#: .\employees\views.py:2324
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:2335 .\templates\includes\modemployee.html:18
+#: .\employees\views.py:2334 .\templates\includes\modemployee.html:18
 #: .\tsap\constants.py:279 .\tsap\locale.py:799
 msgid "Short name"
 msgstr "Korte naam"
 
-#: .\employees\views.py:2339 .\templates\includes\modemployee.html:28
+#: .\employees\views.py:2338 .\templates\includes\modemployee.html:28
 #: .\tsap\constants.py:281
 msgid "First name"
 msgstr "Voornaam"
 
-#: .\employees\views.py:2343 .\templates\includes\modemployee.html:56
+#: .\employees\views.py:2342 .\templates\includes\modemployee.html:56
 #: .\tsap\constants.py:284
 msgid "Telephone"
 msgstr "Telefoon"
 
-#: .\employees\views.py:2345 .\templates\includes\modemployee.html:46
+#: .\employees\views.py:2344 .\templates\includes\modemployee.html:46
 #: .\tsap\constants.py:282
 msgid "ID-number"
 msgstr "Identiteitsnummer"
 
-#: .\employees\views.py:2347 .\templates\includes\modemployee.html:51
+#: .\employees\views.py:2346 .\templates\includes\modemployee.html:51
 #: .\tsap\constants.py:290 .\tsap\locale.py:837
 msgid "Payroll code"
 msgstr "Code loonadministratie"
 
-#: .\employees\views.py:2349
+#: .\employees\views.py:2348
 msgid "Address"
 msgstr "Adres"
 
-#: .\employees\views.py:2351
+#: .\employees\views.py:2350
 msgid "Zip code"
 msgstr "Postcode"
 
-#: .\employees\views.py:2353
+#: .\employees\views.py:2352
 msgid "City"
 msgstr "Plaats"
 
-#: .\employees\views.py:2355
+#: .\employees\views.py:2354
 msgid "Country"
 msgstr "Land"
 
-#: .\employees\views.py:2357 .\templates\includes\modemployee.html:70
+#: .\employees\views.py:2356 .\templates\includes\modemployee.html:70
 #: .\tsap\constants.py:285 .\tsap\locale.py:1104
 msgid "First date in service"
 msgstr "Begindatum in dienst"
 
-#: .\employees\views.py:2359 .\templates\includes\modemployee.html:75
+#: .\employees\views.py:2358 .\templates\includes\modemployee.html:75
 #: .\tsap\constants.py:286 .\tsap\locale.py:1105
 msgid "Last date in service"
 msgstr "Laatste datum in dienst"
 
-#: .\employees\views.py:2361
+#: .\employees\views.py:2360
 msgid "Workhours per week"
 msgstr "Werkuren per week"
 
-#: .\employees\views.py:2363
+#: .\employees\views.py:2362
 msgid "Workdays per week"
 msgstr "Werkdagen per week"
 
-#: .\employees\views.py:2365 .\templates\includes\modemployee.html:101
+#: .\employees\views.py:2364 .\templates\includes\modemployee.html:101
 msgid "Leave days per year"
 msgstr "Vakantiedagen per jaar"
 
-#: .\employees\views.py:2445
+#: .\employees\views.py:2444
 msgid "This employee could not be created."
 msgstr "Deze medewerker kon niet worden aangemaakt."
 
-#: .\employees\views.py:2598
+#: .\employees\views.py:2597
 msgid "This employee could not be updated."
 msgstr "Deze medewerker kon niet worden bijgewerkt."
 
-#: .\planning\dicts.py:892 .\tsap\locale.py:911
+#: .\planning\dicts.py:893 .\tsap\locale.py:911
 msgid "Rest shift"
 msgstr "Rust dienst"
 
-#: .\planning\dicts.py:2264
+#: .\planning\dicts.py:2265
 msgid "Daylight saving time has changed. This has been taken into account."
 msgstr "Er is rekening gehouden met de wijziging van zomer / wintertijd."
 
@@ -594,63 +594,63 @@ msgstr "%(count)s diensten zijn bevestigd. Ze zijn niet gewist."
 msgid "(absent)"
 msgstr "(afwezig)"
 
-#: .\planning\views.py:817 .\planning\views.py:1518
+#: .\planning\views.py:818 .\planning\views.py:1522
 #, python-format
 msgid "Scheme '%(suffix)s'"
 msgstr "Schema '%(suffix)s'"
 
-#: .\planning\views.py:1607
+#: .\planning\views.py:1611
 #, python-format
 msgid "Shift '%(suffix)s'"
 msgstr "Dienst '%(suffix)s'"
 
-#: .\planning\views.py:1609 .\planning\views.py:2184 .\planning\views.py:2584
+#: .\planning\views.py:1613 .\planning\views.py:2188 .\planning\views.py:2588
 #: .\tsap\locale.py:909
 msgid "This shift"
 msgstr "Deze dienst"
 
-#: .\planning\views.py:1673
+#: .\planning\views.py:1677
 #, python-format
 msgid "Team %(suffix)s"
 msgstr "Ploeg %(suffix)s"
 
-#: .\planning\views.py:1834
+#: .\planning\views.py:1838
 msgid "This team could not be updated."
 msgstr "Deze ploeg kon niet worden bijgewerkt."
 
-#: .\planning\views.py:2766 .\planning\views.py:2780
+#: .\planning\views.py:2770 .\planning\views.py:2784
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
-#: .\planning\views.py:3514
+#: .\planning\views.py:3518
 msgid "Cycle cannot be blank"
 msgstr "Cyclus moet ingevuld zijn."
 
-#: .\planning\views.py:3559
+#: .\planning\views.py:3563
 msgid "This scheme could not be updated."
 msgstr "Dit schema kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3634 .\planning\views.py:3643
+#: .\planning\views.py:3638 .\planning\views.py:3647
 msgid "Shift cannot be blank."
 msgstr "De dienst moet ingevuld zijn."
 
-#: .\planning\views.py:3852
+#: .\planning\views.py:3856
 msgid "Shift is blank. Time cannot be calculated."
 msgstr "De dienst is niet ingevuld. De tijd kan niet worden berekend."
 
-#: .\planning\views.py:3950 .\planning\views.py:4217
+#: .\planning\views.py:3954 .\planning\views.py:4223
 msgid "This shift could not be created."
 msgstr "Deze dienst kon niet worden aangemaakt."
 
-#: .\planning\views.py:4082
+#: .\planning\views.py:4086
 msgid "This shift could not be updated."
 msgstr "Deze dienst kon niet worden bijgewerkt."
 
-#: .\planning\views.py:4135
+#: .\planning\views.py:4139
 msgid "This team could not be created."
 msgstr "Deze ploeg kon niet worden aangemaakt."
 
-#: .\planning\views.py:4173
+#: .\planning\views.py:4177
 msgid "This scheme could not be created."
 msgstr "Dit schema kon niet worden aangemaakt."
 
@@ -2024,10 +2024,8 @@ msgid "Type a few letters and select an employee in the list ..."
 msgstr "Type een paar letters en kies een medewerker in de lijst ..."
 
 #: .\templates\includes\modscheme.html:27
-#, fuzzy
-#| msgid "The short name cannot be blank."
 msgid "The scheme name cannot be blank."
-msgstr "De korte naam moet ingevuld zijn."
+msgstr "De schema naam moet ingevuld zijn."
 
 #: .\templates\includes\modscheme.html:33
 msgid "Cycle days"
@@ -2322,7 +2320,7 @@ msgstr "Deze dienst overlapt een andere dienst van deze medewerker"
 msgid "Templates"
 msgstr "Sjablonen"
 
-#: .\templates\planning\schemes.html:72 .\tsap\locale.py:307
+#: .\templates\planning\schemes.html:72
 msgid "Copy from template"
 msgstr "Kopieer van sjabloon"
 
@@ -2642,6 +2640,10 @@ msgstr "Er zijn geen werkbladen met gegevens."
 #: .\tsap\locale.py:111
 msgid "The employee data will be saved"
 msgstr "De medewerker gegevens worden opgeslagen."
+
+#: .\tsap\locale.py:307
+msgid "Copy to order"
+msgstr "Kopieer naar locatie"
 
 #: .\tsap\locale.py:308
 msgid "Copy to template"
@@ -4016,36 +4018,3 @@ msgstr "Begindatum kan niet na einddatum liggen"
 msgid "Last date cannot be before first date."
 msgstr "Einddatum kan niet voor begindatum liggen"
 
-#~ msgid "Hourly wage"
-#~ msgstr "Uurloon"
-
-#~ msgid "Wage code"
-#~ msgstr "Looncode"
-
-#~ msgid "Please enter the name of the scheme."
-#~ msgstr "Vul de naam van het schema in."
-
-#~ msgid "Enter the length of the cycle in days, from 1 day thru 28 days."
-#~ msgstr "Voer het aantal dagen van de cyclus in, tussen 1 en 28 dagen."
-
-#~ msgid "'%(fld)s' is not a valid number."
-#~ msgstr "'%(fld)s' is geen geldig getal."
-
-#~ msgid "This text is truncated because it has more than %(fld)s characters."
-#~ msgstr "Deze tekst is afgekapt omdat het meer dan %(fld)s tekens heeft."
-
-#~ msgid "'%(fld)s' is not a valid date in format '%(format)s'."
-#~ msgstr "'%(fld)s' is geen geldige datum in formaat '%(format)s'."
-
-#~ msgid "This field must be a number."
-#~ msgstr "Dit veld moet een getal zijn."
-
-#~ msgctxt "updated from .. to"
-#~ msgid " to: "
-#~ msgstr " in: "
-
-#~ msgid "Old value was: "
-#~ msgstr "Oude waarde was: "
-
-#~ msgid " is updated from: "
-#~ msgstr " is gewijzigd van: "

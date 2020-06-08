@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
             shift: {istemplate: false},
             //team: {istemplate: false},
             //teammember: {datefirst: null, datelast: null, employee_nonull: false},
-            employee: {inactive: null},
+            employee_list: {inactive: null},
             abscat: {inactive: false}
         };
         DatalistDownload(datalist_request, false);

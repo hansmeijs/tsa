@@ -820,7 +820,7 @@ def create_schemeitem_list(filter_dict, company):
 
     schemeitem_list = []
     for schemeitem in schemeitems:
-        logger.debug('schemeitem: ' + str(schemeitem))
+        #logger.debug('schemeitem: ' + str(schemeitem))
         item_dict = {}
         create_schemeitem_dict_from_sql(schemeitem, item_dict)
 
@@ -834,8 +834,8 @@ def create_schemeitem_list(filter_dict, company):
 def create_schemeitem_dict_from_sql(schemeitem, item_dict):
     # --- create dict of this schemeitem PR2019-07-22
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug ('--- create_schemeitem_dict ---')
-    logger.debug ('schemeitem' + str(schemeitem))
+    #logger.debug ('--- create_schemeitem_dict ---')
+    #logger.debug ('schemeitem' + str(schemeitem))
 
     if schemeitem:
         # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
@@ -1071,7 +1071,7 @@ def create_shift_list(filter_dict, company, user_lang):
     return shift_list
 
 def create_shift_dict_from_sql(shift, update_dict, user_lang):  # PR2020-05-23
-    logger.debug(' ----- create_shift_dict_from_sql ----- ')
+    #logger.debug(' ----- create_shift_dict_from_sql ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
@@ -1289,13 +1289,13 @@ def create_shift_dict(shift, update_dict, user_lang):
 
 def create_team_list(filter_dict, company):
     # create list of teams of this order PR2019-09-02 PR2020-05-24
-    logger.debug(' ----- create_team_list  -----  ')
+    #logger.debug(' ----- create_team_list  -----  ')
 
     order_pk = None
     customer_pk = filter_dict.get('customer_pk')
     if customer_pk is None:
         order_pk = filter_dict.get('order_pk')
-    logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
+    #logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
 
     sql_teams = """SELECT 
         t.id AS t_id, 
@@ -1338,8 +1338,8 @@ def create_team_list(filter_dict, company):
 def create_team_dict_from_sql(team, item_dict):
     # --- create dict of this team PR2019-08-08
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug(' --- create_team_dict ---')
-    logger.debug('item_dict: ' + str(item_dict))
+    #logger.debug(' --- create_team_dict ---')
+    #logger.debug('item_dict: ' + str(item_dict))
 
     team_update = {}
     # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
@@ -1384,8 +1384,8 @@ def create_team_dict_from_sql(team, item_dict):
 def create_team_dict(team, item_dict):
     # --- create dict of this team PR2019-08-08
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug(' --- create_team_dict ---')
-    logger.debug('item_dict: ' + str(item_dict))
+    #logger.debug(' --- create_team_dict ---')
+    #logger.debug('item_dict: ' + str(item_dict))
 
     team_update = {}
     # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')

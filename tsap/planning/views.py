@@ -863,7 +863,6 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
         logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
-
         if request.user is not None and request.user.company is not None:
 
  # - Reset language
@@ -874,8 +873,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
 # get comp_timezone
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-            # - get upload_dict from request.POST
-            # logger.debug('request.POST: ' + str(request.POST))
+# - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
@@ -976,7 +974,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
 # - check if copyfrom_order exists (order is parent of scheme)
         copyfrom_order = m.Order.objects.get_or_none(id=copyfrom_scheme_ppk, customer__company=request.user.company)
         if copyfrom_order:
-# - get scheme
+# - check if copyfrom_scheme exists
             copyfrom_scheme = m.Scheme.objects.get_or_none(id=copyfrom_scheme_pk, order=copyfrom_order)
 # - check if newtemplate_order exists, create if not exists
             newtemplate_order = cust_dicts.get_or_create_template_order(request)
@@ -997,7 +995,10 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                 cycle=copyfrom_scheme.cycle,
                 # dont copy: billable=template_billable,
                 excludecompanyholiday=copyfrom_scheme.excludecompanyholiday,
+                divergentonpublicholiday=copyfrom_scheme.divergentonpublicholiday,
                 excludepublicholiday=copyfrom_scheme.excludepublicholiday,
+                nohoursonweekend=copyfrom_scheme.nohoursonweekend,
+                nohoursonpublicholiday=copyfrom_scheme.nohoursonpublicholiday,
                 # dont copy: pricecode=template_pricecode,
                 # dont copy: additioncode=template_additioncode,
                 # dont copy: taxcode=template_taxcode
@@ -1059,8 +1060,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                     # dont copy employee, replacement and datfirst datelast
                     newtemplate_teammember = m.Teammember(
                         team=newtemplate_team,
-                        issingleshift=teammember.issingleshift,
                         istemplate=True
+                        # dont copy: issingleshift=teammember.issingleshift,
                         # dont copy: cat=teammember.cat,
                         # dont copy: isabsence=teammember.isabsence,
                         # dont copy: wagefactorcode=teammember.wagefactorcode,
@@ -1095,7 +1096,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                     team=template_team,
                     rosterdate=schemeitem.rosterdate,
                     onpublicholiday=schemeitem.onpublicholiday,
-                    issingleshift=schemeitem.issingleshift,
+                    # dont copy: issingleshift=schemeitem.issingleshift,
                     istemplate=True
                     # dont copy: cat=schemeitem.cat,
                     # dont copy: isabsence=schemeitem.isabsence,
@@ -1122,7 +1123,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
     item_update_dict = {}
     new_scheme_pk = 0
 
-# get scheme_pk and ppk of the template from which will be copied
+# - get scheme_pk and ppk of the template from which will be copied
     table = 'scheme'
     template_scheme_pk = f.get_dict_value(upload_dict, ('id','pk'), 0)
     template_order_pk = f.get_dict_value(upload_dict, ('id','ppk'), 0)
@@ -1152,14 +1153,15 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 cycle=template_scheme.cycle,
                 # dont copy: billable=template_scheme.billable,
                 excludecompanyholiday=template_scheme.excludecompanyholiday,
+                divergentonpublicholiday=template_scheme.divergentonpublicholiday,
                 excludepublicholiday=template_scheme.excludepublicholiday,
-
+                nohoursonweekend=template_scheme.nohoursonweekend,
+                nohoursonpublicholiday=template_scheme.nohoursonpublicholiday,
                 # dont copy: cat=template_scheme.cat,
                 # dont copy: isabsence=template_scheme.isabsence,
                 # dont copy: pricecode=template_scheme.pricecode,
                 # dont copy: additioncode=template_scheme.additioncode,
                 # dont copy: taxcode=template_scheme.taxcode
-
             )
             new_scheme.save(request=request)
         except:
@@ -1177,20 +1179,19 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 new_shift = m.Shift(
                     scheme=new_scheme,
                     code=template_shift.code,
-                    cat=template_shift.cat,
                     isrestshift=template_shift.isrestshift,
                     istemplate=False,
-                    billable=template_shift.billable,
-
                     offsetstart=template_shift.offsetstart,
                     offsetend=template_shift.offsetend,
                     breakduration=template_shift.breakduration,
                     timeduration=template_shift.timeduration,
 
-                    pricecode=template_shift.pricecode,
-                    additioncode=template_shift.additioncode,
-                    taxcode=template_shift.taxcode,
-                    wagefactorcode=template_shift.wagefactorcode
+                    # dont copy: cat=template_shift.cat,
+                    # dont copy: billable=template_shift.billable,
+                    # dont copy: pricecode=template_shift.pricecode,
+                    # dont copy: additioncode=template_shift.additioncode,
+                    # dont copy: taxcode=template_shift.taxcode,
+                    # dont copy: wagefactorcode=template_shift.wagefactorcode
                 )
                 new_shift.save(request=request)
                 # make dict with mapping of old and new team_id
@@ -1210,9 +1211,9 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 new_team = m.Team(
                     scheme=new_scheme,
                     code=template_team.code,
-                    cat=template_team.cat,
-                    isabsence=template_team.isabsence,
                     istemplate=False
+                    # dont copy: cat=template_team.cat,
+                    # dont copy: isabsence=template_team.isabsence,
                 )
                 new_team.save(request=request)
                 # make dict with mapping of old and new team_id
@@ -1257,10 +1258,10 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                     team=new_team,
                     rosterdate=template_schemeitem.rosterdate,
                     onpublicholiday=template_schemeitem.onpublicholiday,
-                    cat=template_schemeitem.cat,
-                    isabsence=template_schemeitem.isabsence,
-                    issingleshift=template_schemeitem.issingleshift,
                     istemplate=False
+                    # dont copy: cat=template_schemeitem.cat,
+                    # dont copy: isabsence=template_schemeitem.isabsence,
+                    # dont copy: issingleshift=template_schemeitem.issingleshift,
                     # don't copy these fields: billable, pricerate, priceratejson, additionjson
                 )
                 new_schemeitem.save(request=request)

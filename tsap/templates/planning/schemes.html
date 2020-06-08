@@ -222,22 +222,22 @@
         <div id="id_div_gridlayout" class=" display_hide">
             <div class="tsa_main_container m-4">
                 <div class="tsa_team_container">
-                    <div class="grid_scheme tbl_border tsa_bc_lightlightgrey">
+                    <div id="id_grid_scheme_container" class="grid_scheme tbl_border tsa_bc_lightlightgrey">
                         <div class="m-2">
                             <h6 class="mx-1 my-0">{% trans 'Scheme' %}:</h6>
                         </div>
                         <div class=" m-1">
-                            <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="code" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
-                            <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
+                            <button id="id_grid_scheme_btn_code" type="button" data-field="code" class="tsa_input_text td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
+                            <button id="id_grid_scheme_btn_cycle" type="button" data-field="cycle" class="tsa_input_text td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
                         </div>
                         <div class=" mx-1">
-                            <a id="id_grid_scheme_btn_datefirstlast" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
+                            <a id="id_grid_scheme_btn_datefirstlast" data-field="datefirstlast" class="tsa_input_text btn-smallfont pointer_show td_width_180 mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
                         </div>
                         <div class=" mx-1">
-                            <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
+                            <a id="id_grid_scheme_btn_exph" data-field="dvg_excl_ph" class="tsa_input_text btn-smallfont pointer_show td_width_180 mx-2 my-0"></a>
                         </div>
                         <div class=" mx-1 mb-1">
-                            <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
+                            <a id="id_grid_scheme_btn_exch" data-field="excludecompanyholiday" class="tsa_input_text btn-smallfont pointer_show td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
                         </div>
                     </div>
                     <div class="grid_teams tbl_border">

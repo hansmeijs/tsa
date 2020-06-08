@@ -304,7 +304,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['months_long'] = c.MONTHS_LONG[user_lang]
 
         # submenu
-        dict['menubtn_copy_from_template'] = _('Copy from template')
+        dict['menubtn_copy_to_order'] = _('Copy to order')
         dict['menubtn_copy_to_template'] = _('Copy to template')
         dict['menubtn_show_templates'] = _('Show templates')
         dict['menubtn_hide_templates'] = _('Hide templates')

@@ -1962,8 +1962,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05 PR2020-06-04
                                 lookup_field = 'payrollcode'
                             elif 'identifier' in tsaKey_list:
                                 lookup_field = 'identifier'
-                                lookup_caption = str(_('identifier'))
-                            logger.debug('lookup_field: ' + str(lookup_field))
+
 # - get upload_dict from request.POST
                             employee_list = upload_dict.get('employees')
                             if employee_list:

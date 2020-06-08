@@ -1544,8 +1544,8 @@ let planning_list = [] // for export and printing - can replace map?
                 selectRow = document.getElementById(rowid_str);
             };
         //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
-            UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
-
+            const imgsrc_default = imgsrc_inactive_grey, imgsrc_black = imgsrc_inactive_black
+            t_UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_default, imgsrc_black)
         }  // if( tblName === "customer")
 
 // ++++ update table filter when inactive changed ++++
@@ -3719,6 +3719,7 @@ let planning_list = [] // for export and printing - can replace map?
             td.appendChild(el);
         }
         return tblRow
+
 
     };  // MSO_TblTeammember_CreateRow
 

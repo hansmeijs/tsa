@@ -1700,11 +1700,13 @@
     }
 
 //=========  ShowOkElement  ================ PR2019-11-27
-    function ShowOkElement(el_input) {
+    function ShowOkElement(el_input, cur_class) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
+        if(cur_class) {el_input.classList.remove(cur_class)};
         el_input.classList.add("border_bg_valid");
         setTimeout(function (){
             el_input.classList.remove("border_bg_valid");
+            if(cur_class) {el_input.classList.add(cur_class)};
         }, 2000);
     }
 
