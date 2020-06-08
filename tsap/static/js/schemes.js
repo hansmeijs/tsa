@@ -182,22 +182,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MOD GRID SHIFT ------------------------------------
         let el_MGS_shiftcode = document.getElementById("id_MGS_shiftcode");
-            el_MGS_shiftcode.addEventListener("change", function() {MGS_ShiftcodeChanged(el_MGS_shiftcode)}, false)
+            el_MGS_shiftcode.addEventListener("change", function() {MGS_ShiftcodeChanged(el_MGS_shiftcode)}, false);
         let el_MGS_offsetstart = document.getElementById("id_MGS_offsetstart");
-            el_MGS_offsetstart.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetstart, "grid_shift")}, false)
+            el_MGS_offsetstart.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetstart, "grid_shift")}, false);
         let el_MGS_offsetend = document.getElementById("id_MGS_offsetend");
-            el_MGS_offsetend.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetend, "grid_shift")}, false)
+            el_MGS_offsetend.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetend, "grid_shift")}, false);
         let el_MGS_breakduration = document.getElementById("id_MGS_breakduration");
-            el_MGS_breakduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_breakduration, "grid_shift")}, false)
+            el_MGS_breakduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_breakduration, "grid_shift")}, false);
         let el_MGS_timeduration = document.getElementById("id_MGS_timeduration");
-            el_MGS_timeduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_timeduration, "grid_shift")}, false)
+            el_MGS_timeduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_timeduration, "grid_shift")}, false);
         let el_MGS_restshift = document.getElementById("id_MGS_isrestshift");
-            el_MGS_restshift.addEventListener("change", function() {MGS_RestshiftClicked(el_MGS_restshift)}, false)
+            el_MGS_restshift.addEventListener("change", function() {MGS_RestshiftClicked(el_MGS_restshift)}, false);
 
         let el_MGS_btn_save = document.getElementById("id_MGS_btn_save");
-                el_MGS_btn_save.addEventListener("click", function() {MGS_Save("update")}, false )
+                el_MGS_btn_save.addEventListener("click", function() {MGS_Save("update")}, false );
         let el_MGS_btn_delete = document.getElementById("id_MGS_btn_delete");
-                el_MGS_btn_delete.addEventListener("click", function() {MGS_Save("delete")}, false )
+                el_MGS_btn_delete.addEventListener("click", function() {MGS_Save("delete")}, false );
 
 // ---  Modal Employee
         let el_mod_employee_body = document.getElementById("id_ModSelEmp_select_employee_body");
@@ -492,11 +492,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if( (selected.scheme_pk && !is_absence_mode) || (selected.teammember_pk && is_absence_mode) ){
-            btn_delete.removeAttribute("aria-disabled");
-            btn_delete.classList.remove("tsa_color_mediumgrey");
+            btn_delete_scheme.removeAttribute("aria-disabled");
+            btn_delete_scheme.classList.remove("tsa_color_mediumgrey");
         } else {
-            btn_delete.setAttribute("aria-disabled", true);
-            btn_delete.classList.add("tsa_color_mediumgrey");
+            btn_delete_scheme.setAttribute("aria-disabled", true);
+            btn_delete_scheme.classList.add("tsa_color_mediumgrey");
         }
     }
 
