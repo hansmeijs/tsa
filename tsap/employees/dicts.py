@@ -22,14 +22,15 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
     sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
         e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
-        e.identifier, e.payrollcode, e.workhours, e.workdays, e.leavedays,
+        e.identifier, e.payrollcode, e.workhours, e.workdays, e.leavedays, e.nohoursonweekend, e.nohoursonpublicholiday, 
+        CASE WHEN e.workhours = 0 OR e.workdays = 0 THEN 0 ELSE 1440 * e.workhours / e.workdays END AS e_workhoursperday,
         fc.code AS functioncode, wc.code AS wagecode, pc.code AS paydatecode, 
         e.locked, e.inactive
     
         FROM companies_employee AS e 
         LEFT JOIN companies_wagecode AS wc ON (wc.id = e.wagecode_id) 
-        LEFT JOIN companies_wagecode AS fc ON (wc.id = e.functioncode_id) 
-        LEFT JOIN companies_wagecode AS pc ON (wc.id = e.paydatecode_id) 
+        LEFT JOIN companies_wagecode AS fc ON (fc.id = e.functioncode_id) 
+        LEFT JOIN companies_wagecode AS pc ON (pc.id = e.paydatecode_id) 
  
         WHERE e.company_id = %(compid)s
         AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
@@ -60,12 +61,6 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 def create_employee_dict_from_sql(instance,  item_dict, user_lang):
     # --- create dict of this employee from dictfetchall PR2020-05-11
 
-    # FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
-    #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
-    #                    'address', 'zipcode', 'city', 'country',
-    #                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
-    #                    'priceratejson', 'additionjson', 'inactive', 'locked')
-
     if instance:
 
 # ---  get min max date
@@ -74,9 +69,7 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
 
         workhours = instance.get('workhours', 0)  # workhours per week * 60, unit is minute
         workdays = instance.get('workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
-        workhoursperday = 0
-        if workhours and workdays:
-            workhoursperday = round(workhours / workdays * 1440)  # round to whole minutes
+        workhoursperday = instance.get('e_workhoursperday', 0)
 
         for field in c.FIELDS_EMPLOYEE:
 # --- get field_dict from  item_dict if it exists
@@ -111,6 +104,9 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
             elif field == 'workdays':
                 if workdays:
                     field_dict['value'] = workdays
+
+            elif field in ('nohoursonweekend', 'nohoursonpublicholiday'):
+                field_dict['value'] = instance.get(field, False)
 
             elif field in ['priceratejson']:
                 pricerate = instance.get(field)
@@ -219,57 +215,263 @@ def create_employee_dict(instance, item_dict, user_lang):
 
 
 def create_teammember_list(filter_dict, company, user_lang):
-    # --- create list of all teammembers of this order PR2019-08-29
-    #logger.debug(' ----- create_teammember_list  -----  ')
-    #logger.debug('filter_dict' + str(filter_dict) )
+    logger.debug(' >>>>>>>>>>>>>>>>>>----- create_teammember_list  -----  ')
+    logger.debug('filter_dict: ' + str(filter_dict) )
     # teammember: {customer_pk: selected_customer_pk, order_pk: selected_order_pk},
+    # create list of all teammembers of this order PR2020-05-16
 
+    order_pk = None
     customer_pk = filter_dict.get('customer_pk')
-    order_pk = filter_dict.get('order_pk')
-    employee_nonull = filter_dict.get('employee_nonull', False)
-    is_template = filter_dict.get('is_template')
+    if customer_pk is None:
+        order_pk = filter_dict.get('order_pk')
 
-    crit = Q(team__scheme__order__customer__company=company)
-    if is_template is not None:
-        crit.add(Q(istemplate=is_template), crit.connector)
-    if employee_nonull:
-        crit.add(Q(employee__isnull=False), crit.connector)
-    if order_pk:
-        crit.add(Q(team__scheme__order_id=order_pk), crit.connector)
-    elif customer_pk:
-        crit.add(Q(team__scheme__order__customer_id=customer_pk), crit.connector)
+    employee_nonull = f.get_dict_value(filter_dict, ('employee_nonull',), False)
+    employee_allownull = not employee_nonull
 
-    teammembers = m.Teammember.objects\
-        .select_related('employee')\
-        .select_related('team')\
-        .select_related('team__scheme')\
-        .select_related('team__scheme__order')\
-        .select_related('team__scheme__order__customer') \
-        .filter(crit).order_by(Lower('employee__code'))
-    # was:
-        # .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
-        # .filter(crit).order_by('employee__code', '-datelast_nonull')  # .filter(crit).order_by('-datelast_nonull')
+    logger.debug('employee_allownull: ' + str(employee_allownull) )
+    datelast_iso =  filter_dict.get('datelast')
 
-    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    #logger.debug('teammembers.query')
-    #logger.debug(teammembers.query)
+    sql_schemeitem_shift = """
+        SELECT si.team_id AS t_id, 
+            ARRAY_AGG(si.id) AS si_id_arr,
+            ARRAY_AGG(si.shift_id) AS sh_id_arr,
+            ARRAY_AGG(sh.code) AS sh_code_arr,
+            ARRAY_AGG(si.isabsence) AS si_abs_arr,
+            ARRAY_AGG(sh.isrestshift) AS sh_rest_arr,
+            ARRAY_AGG(sh.offsetstart) AS sh_os_arr,
+            ARRAY_AGG(sh.offsetend) AS sh_oe_arr,
+            ARRAY_AGG(sh.breakduration) AS sh_bd_arr,
+            ARRAY_AGG(sh.timeduration) AS sh_td_arr
+
+            FROM companies_schemeitem AS si 
+            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
+            GROUP BY si.team_id
+        """
+
+    sql_teammmember = """ SELECT  tm.id AS tm_id, t.id AS t_id, s.id AS s_id, o.id AS o_id, c.id AS c_id,
+        c.company_id AS comp_id,
+        e.id AS e_id,
+        r.id AS r_id,
+
+        tm.isabsence AS tm_isabsence, 
+        tm.istemplate AS tm_istemplate, 
+        COALESCE(t.code, '') AS t_code,
+        COALESCE(s.code, '') AS s_code,
+        COALESCE(o.code, '') AS o_code,
+        COALESCE(c.code, '') AS c_code,
+        COALESCE(e.code, '') AS e_code,
+        COALESCE(r.code, '') AS r_code,
+        s.nohoursonweekend AS s_nowk,
+        s.nohoursonpublicholiday AS s_noph,
+        e.nohoursonweekend AS e_nowk,
+        e.nohoursonpublicholiday AS e_noph,
+        
+        e.inactive AS e_inactive,
+        CASE WHEN e.workhours = 0 OR e.workdays = 0 THEN 0 ELSE 1440 * e.workhours / e.workdays END AS e_workhoursperday,
+        r.inactive AS r_inactive,
+        r.workhours AS r_workhours,
+
+        tm.datefirst AS tm_df, tm.datelast AS tm_dl, 
+        s.datefirst AS s_df, s.datelast AS s_dl, 
+        o.datefirst AS o_df, o.datelast AS o_dl, 
+        e.datefirst AS e_df, e.datelast AS e_dl, 
+        r.datefirst AS r_df, r.datelast AS r_dl, 
+
+        GREATEST( s.datefirst, o.datefirst) AS o_s_datemin,
+        LEAST( s.datelast, o.datelast) AS o_s_datemax,
+
+        si_sh_sub.si_id_arr,
+        si_sh_sub.sh_id_arr,
+        si_sh_sub.sh_code_arr,
+        si_sh_sub.si_abs_arr,
+        si_sh_sub.sh_rest_arr,
+        si_sh_sub.sh_os_arr,
+        si_sh_sub.sh_oe_arr,
+        si_sh_sub.sh_bd_arr,
+        si_sh_sub.sh_td_arr
+
+        FROM companies_teammember AS tm 
+        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
+        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+        LEFT JOIN companies_employee AS e ON (e.id = tm.employee_id) 
+        LEFT JOIN companies_employee AS r ON (r.id = tm.replacement_id) 
+        
+        LEFT JOIN (""" + sql_schemeitem_shift + """) AS si_sh_sub ON (si_sh_sub.t_id = t.id)    
+ 
+        WHERE c.company_id = CAST(%(compid)s AS INTEGER)
+        AND ( c.id = CAST(%(cust_id)s AS INTEGER) OR %(cust_id)s IS NULL )    
+        AND ( o.id = CAST(%(ord_id)s AS INTEGER) OR %(ord_id)s IS NULL )
+        AND ( e.id IS NOT NULL OR %(empl_allownull)s )
+        ORDER BY e.code 
+        """
+        #AND ( e.datelast >= CAST(%(rdl)s AS DATE) OR e.datelast IS NULL OR %(rdl)s IS NULL )
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_teammmember, {
+        'compid': company.id,
+        'cust_id': customer_pk,
+        'ord_id': order_pk,
+        'empl_allownull': employee_allownull,
+        'rdl': datelast_iso
+    })
+    teammembers = f.dictfetchall(newcursor)
 
     teammember_list = []
     for teammember in teammembers:
-
         item_dict = {}
-        create_teammember_dict(teammember, item_dict, user_lang)
+        create_teammember_dict_from_sql(teammember, item_dict, user_lang)
 
         if item_dict:
             teammember_list.append(item_dict)
 
     return teammember_list
 
-def create_teammember_dict(teammember, item_dict, user_lang):
+def create_teammember_dict_from_sql(tm, item_dict, user_lang):
+    # --- create dict of this teammember PR2019-07-26
+    logger.debug ('--- create_teammember_dict ---')
+    logger.debug ('tm: ' + str(tm))
+    logger.debug ('item_dict: ' + str(item_dict))
+
+    # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
+    # FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
+    #                      'scheme', 'order',
+    #                      'cat', 'isabsence', 'issingleshift', 'istemplate',
+    #                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
+
+    if tm:
+        #is_singleshift = teammember.issingleshift
+        is_absence = tm.get('tm_isabsence')
+        is_template = tm.get('tm_istemplate')
+
+        #logger.debug('is_absence ' + str(is_absence) + str(type(is_absence)))
+        #logger.debug('teammember.datefirst ' + str(teammember.datefirst) + str(type(teammember.datefirst)))
+        #logger.debug('teammember.datelast ' + str(teammember.datelast) + str(type(teammember.datelast)))
+# ---  get datefirst/ datelast of scheme, order and employee
+        employee_datefirst = tm.get('e_df')
+        employee_datelast = tm.get('e_dl')
+
+        for field in c.FIELDS_TEAMMEMBER:
+# --- get field_dict from  item_dict if it exists
+        # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            logger.debug('field: ' + str(field))
+            if field == 'id':
+                field_dict['pk'] = tm.get('tm_id')
+                field_dict['ppk'] = tm.get('t_id') # team_id is parent of tm
+                field_dict['table'] = 'teammember'
+                field_dict['isabsence'] = is_absence
+                #if teammember.issingleshift:
+                    #field_dict['issingleshift'] = True
+                field_dict['istemplate'] =is_template
+                # item_dict['pk'] = tm.get('tm_id')
+
+            # team is parent of teammember
+            elif field == 'team':
+                field_dict['pk'] = tm.get('t_id')
+                field_dict['ppk'] = tm.get('s_id')  # used in page scheme, grid team
+                field_dict['code'] = tm.get('t_code')
+                field_dict['display'] = tm.get('t_code') if is_absence else ' - '.join([tm.get('s_code'), tm.get('t_code')])
+
+            elif field == 'scheme':
+                field_dict['pk'] = tm.get('s_id')
+                #field_dict['ppk'] = tm.o_id
+                field_dict['code'] = tm.get('s_code')
+                field_dict['datefirst'] = tm.get('s_df')
+                field_dict['datelast'] = tm.get('s_dl')
+                field_dict['nohoursonweekend'] = tm.get('s_nowk')
+                field_dict['nohoursonpublicholiday'] = tm.get('s_noph')
+
+            elif field == 'order':
+                field_dict['pk'] = tm.get('o_id')
+                field_dict['ppk'] = tm.get('c_id')
+                field_dict['code'] = tm.get('o_code')
+                field_dict['display'] = ' - '.join([tm.get('c_code'), tm.get('o_code')])
+                field_dict['datefirst'] = tm.get('o_df')
+                field_dict['datelast'] = tm.get('o_dl')
+
+            elif field == 'shift':
+                # only when is_absence, to get timestart etc
+                #if is_absence:
+                field_dict['si_id_arr'] = tm.get('si_id_arr')
+                field_dict['sh_id_arr'] = tm.get('sh_id_arr')
+                field_dict['sh_code_arr'] = tm.get('sh_code_arr')
+                field_dict['si_abs_arr'] = tm.get('si_abs_arr')
+                field_dict['sh_rest_arr'] = tm.get('sh_rest_arr')
+                field_dict['sh_os_arr'] = tm.get('sh_os_arr')
+                field_dict['sh_oe_arr'] = tm.get('sh_oe_arr')
+                field_dict['sh_bd_arr'] = tm.get('sh_bd_arr')
+                field_dict['sh_td_arr'] = tm.get('sh_td_arr')
+
+            elif field == 'employee':
+                if tm.get('e_id'):
+                    field_dict['pk'] = tm.get('e_id')
+                    #field_dict['ppk'] = tm.comp_id
+                    field_dict['code'] = tm.get('e_code')
+                    field_dict['inactive'] = tm.get('e_inactive', False)
+                    field_dict['datefirst'] = tm.get('e_df')
+                    field_dict['datelast'] = tm.get('e_dl')
+                    field_dict['workhoursperday'] = tm.get('e_workhoursperday')
+                    field_dict['nohoursonweekend'] = tm.get('e_nowk')
+                    field_dict['nohoursonpublicholiday'] = tm.get('e_noph')
+
+            elif field == 'replacement':
+                logger.debug('>>>>>>>>>>>>>>>>>>>> field: ' + str(field))
+                logger.debug('tm.get(r_id' + str(tm.get('r_id')))
+                if tm.get('r_id'):
+                    field_dict['pk'] = tm.get('r_id')
+                    #field_dict['ppk'] = tm.comp_id
+                    field_dict['code'] = tm.get('r_code')
+                    field_dict['inactive'] = tm.get('r_inactive', False)
+                    field_dict['workhours'] = tm.get('r_workhours')
+                    field_dict['datefirst'] = tm.get('r_df')
+                    field_dict['datelast'] = tm.get('r_dl')
+
+            elif field in ['datefirst', 'datelast']:
+                # if is_absence or is_singleshift: get datefirst / datelast from scheme
+                # is restshift or schemshift: get datefirst / datelast from teammember
+
+                if field == 'datefirst':
+                    value = tm.get('tm_df')
+                    mindate = tm.get('o_s_datemin')
+                    maxdate = f.date_earliest_of_two(tm.get('tm_dl'), tm.get('o_s_datemax'))
+                else:
+                    value = tm.get('tm_dl')
+                    mindate = f.date_latest_of_two(tm.get('tm_df'), tm.get('o_s_datemin'))
+                    maxdate = tm.get('o_s_datemax')
+                #logger.debug( '>>>>>>>>> field: ' + field + ' ' +    'value: ' + str(value))
+                if value or mindate or maxdate:
+                    f.set_fielddict_date(
+
+                        field_dict=field_dict,
+                        date_obj=value,
+                        mindate=mindate,
+                        maxdate=maxdate)
+
+            elif field in ('isabsence', 'issingleshift', 'istemplate'):
+                pass
+
+            #else:
+                #value = getattr(teammember, field)
+            #    if value:
+            #        field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+# 7. remove empty attributes from item_update
+        f.remove_empty_attr_from_dict(item_dict)
+    return item_dict
+# === end of create_teammember_dict_from_sql
+
+
+def create_teammember_dict_from_model(teammember, item_dict, user_lang):
     # --- create dict of this teammember PR2019-07-26
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    #logger.debug ('--- create_teammember_dict ---')
-    #logger.debug ('item_dict' + str(item_dict))
+    logger.debug ('--- create_teammember_dict_from_model ---')
+    logger.debug ('teammember: ' + str(teammember))
+    logger.debug ('item_dict' + str(item_dict))
 
     # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
     # FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
@@ -281,9 +483,11 @@ def create_teammember_dict(teammember, item_dict, user_lang):
         is_singleshift = teammember.issingleshift
         is_absence = teammember.isabsence
 
-        #logger.debug('teammember ' + str(teammember) + str(type(teammember)))
+        #logger.debug('is_absence ' + str(is_absence) + str(type(is_absence)))
         #logger.debug('teammember.datefirst ' + str(teammember.datefirst) + str(type(teammember.datefirst)))
         #logger.debug('teammember.datelast ' + str(teammember.datelast) + str(type(teammember.datelast)))
+        logger.debug('teammember.replacement ' + str(teammember.replacement) + str(type(teammember.replacement)))
+
 # ---  get datefirst/ datelast of scheme, order and employee
         team = teammember.team
         scheme = team.scheme
@@ -301,37 +505,33 @@ def create_teammember_dict(teammember, item_dict, user_lang):
 # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
+
+            logger.debug('field_dict ' + str(field) + ' ' + str(field_dict))
             if field == 'id':
                 field_dict['pk'] = teammember.pk
                 field_dict['ppk'] = teammember.team.pk
                 field_dict['table'] = 'teammember'
-                if teammember.isabsence:
-                    field_dict['isabsence'] = True
-                if teammember.issingleshift:
-                    field_dict['issingleshift'] = True
-                if teammember.istemplate:
-                    field_dict['istemplate'] = True
-                item_dict['pk'] = teammember.pk
+                field_dict['isabsence'] = True
+                #field_dict['issingleshift'] = True
+                field_dict['istemplate'] = True
+                # item_dict['pk'] = teammember.pk
 
             # team is parent of teammember
             elif field == 'team':
                 if team:
                     field_dict['pk'] = team.pk
-                    field_dict['ppk'] = team.scheme.pk
+                    #field_dict['ppk'] = team.scheme.pk
                     if team_code:
                         field_dict['code'] = team_code
-                    schemeteam_code = team_code if is_absence or is_singleshift else ' - '.join([scheme.code, team_code])
+                    schemeteam_code = team_code if is_absence else ' - '.join([scheme.code, team_code])
                     field_dict['display'] = schemeteam_code
 
             elif field == 'scheme':
-                if scheme:
-                    field_dict['pk'] = scheme.pk
-                    field_dict['ppk'] = order.pk
-                    scheme_code = scheme.code if scheme.code else ''
-                    if scheme_code:
-                        field_dict['code'] = scheme_code
-                    schemeteam_code = ' - '.join([scheme.code, team_code]) if is_singleshift else scheme_code
-                    field_dict['value'] = schemeteam_code
+                field_dict['pk'] = scheme.pk
+                #field_dict['ppk'] = order.pk
+                field_dict['code'] = scheme.code if scheme.code else ''
+                field_dict['datefirst'] = scheme.datefirst
+                field_dict['datelast'] = scheme.datelast
 
             elif field == 'order':
                 if order:
@@ -341,28 +541,45 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     field_dict['pk'] = order.pk
                     field_dict['ppk'] = order.customer_id
                     field_dict['code'] = order_code
-                    field_dict['cust_order_code'] = cust_order_code
+                    field_dict['display'] = cust_order_code
                     field_dict['value'] = cust_order_code
+                    field_dict['datefirst'] = order.datefirst
+                    field_dict['datelast'] = order.datelast
+
+            elif field == 'shift':
+                # get shift, only if is_absence, cycle = 1 , get first oe
+                if scheme and scheme.cycle == 1:
+                    shift = m.Shift.objects.filter(scheme=scheme).first()
+                    if shift:
+                        field_dict['pk'] = shift.pk
+                        field_dict['ppk'] = scheme.pk
+                        field_dict['code'] = shift.code
+                        field_dict['offsetstart'] = shift.offsetstart
+                        field_dict['offsetend'] = shift.offsetend
+                        field_dict['breakduration'] = shift.breakduration
+                        field_dict['timeduration'] = shift.timeduration
 
             elif field == 'employee':
                 employee = teammember.employee
                 if employee:
                     field_dict['pk'] = employee.pk
                     field_dict['ppk'] = employee.company_id
-                    if employee.code:
-                        field_dict['code'] = employee.code
-                    if employee.inactive:
-                        field_dict['inactive'] = employee.inactive
-                    if employee.workhours:
-                        field_dict['workhours'] = employee.workhours
+                    field_dict['code'] = employee.code
+                    field_dict['inactive'] = employee.inactive
+                    field_dict['workhours'] = employee.workhours
+                    field_dict['datefirst'] = employee.datefirst
+                    field_dict['datelast'] = employee.datelast
 
             elif field == 'replacement':
                 replacement = teammember.replacement
                 if replacement:
                     field_dict['pk'] = replacement.pk
                     field_dict['ppk'] = replacement.company_id
-                    if replacement.code:
-                        field_dict['code'] = replacement.code
+                    field_dict['code'] = replacement.code
+                    field_dict['inactive'] = replacement.inactive
+                    field_dict['workhours'] = replacement.workhours
+                    field_dict['datefirst'] = replacement.datefirst
+                    field_dict['datelast'] = replacement.datelast
 
             elif field in ['datefirst', 'datelast']:
                 # if is_absence or is_singleshift: get datefirst / datelast from scheme
@@ -379,7 +596,6 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     outer_maxdate = f.date_earliest_of_two(scheme.datelast, order.datelast)
 
                 value = getattr(instance, field)
-
                 if field == 'datefirst':
                     mindate = outer_mindate
                     maxdate = f.date_earliest_of_two(instance.datelast, outer_maxdate)
@@ -397,18 +613,17 @@ def create_teammember_dict(teammember, item_dict, user_lang):
             elif field in ('isabsence', 'issingleshift', 'istemplate'):
                 pass
 
-            else:
-                value = getattr(teammember, field)
-                if value:
-                    field_dict['value'] = value
+            #else:
+                #value = getattr(teammember, field)
+            #    if value:
+            #        field_dict['value'] = value
 
             item_dict[field] = field_dict
 
 # 7. remove empty attributes from item_update
         f.remove_empty_attr_from_dict(item_dict)
     return item_dict
-# === end of create_teammember_dict
-
+# === end of create_teammember_dict_from_model
 
 def create_employee_pricerate_list(company, user_lang):
     #logger.debug(' --- create_employee_pricerate_list --- ')

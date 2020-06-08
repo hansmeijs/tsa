@@ -553,6 +553,9 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                     if key == 'selected_pk':
                         settings_dict = Usersetting.get_jsonsetting(key, request.user)
                         #logger.debug('settings_dict: ' + str(settings_dict))
+                        # key 'sel_cust_pk' is replaced by 'sel_customer_pk'. remove olfd key (temporary) PR2020-05-21
+                        if 'sel_cust_pk' in settings_dict:
+                            settings_dict.pop('sel_cust_pk')
                 # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
                         for sel_pk in new_setting:
                             sel_value = new_setting[sel_pk]

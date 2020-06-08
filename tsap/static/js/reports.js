@@ -1599,7 +1599,7 @@
         let noOfRows = 60;
         let z = 1;
 
-        const pos_x = 25
+        const pos_x = 15
         const line_height = 4
         if (!!log_list && log_list.length > 0){
             const len = log_list.length;

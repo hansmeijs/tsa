@@ -11,12 +11,13 @@ logger = logging.getLogger(__name__)
 
 # ===============================
 def get_companysetting(table_dict, user_lang, request):  # PR2020-04-17
-    logger.debug(' ---------------- get_companysetting ---------------- ')
+    #logger.debug(' ---------------- get_companysetting ---------------- ')
+    # only called by DatalistDownloadView
     # companysetting: {coldefs: "order"}
     companysetting_dict = {}
     if 'coldefs' in table_dict:
         tblName = table_dict.get('coldefs')
-        logger.debug('tblName: ' + str(tblName) + ' ' + str(type(tblName)))
+        #logger.debug('tblName: ' + str(tblName) + ' ' + str(type(tblName)))
         coldefs_dict = get_stored_coldefs_dict(tblName, user_lang, request)
         if coldefs_dict:
             companysetting_dict['coldefs'] = coldefs_dict
@@ -33,6 +34,7 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
 
     has_header = True
     worksheetname = ''
+    code_calc = ''
     stored_coldefs = {}
     settings_key = c.KEY_ORDER_COLDEFS if(tblName == 'order') else c.KEY_EMPLOYEE_COLDEFS
     stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
@@ -42,12 +44,13 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
         if stored_setting:
             has_header = stored_setting.get('has_header', True)
             worksheetname = stored_setting.get('worksheetname', '')
+            code_calc = stored_setting.get('codecalc', '')
             if 'coldefs' in stored_setting:
                 stored_coldefs = stored_setting['coldefs']
                 #logger.debug('stored_coldefs: ' + str(stored_coldefs))
 
     coldef_list = []
-    default_coldef_list = c.COLDEF_ORDER if (tblName == 'order') else c.COLDEF_EMPLOYEE[user_lang]
+    default_coldef_list = c.COLDEF_ORDER if (tblName == 'order') else c.COLDEF_EMPLOYEE
     for default_coldef_dict in default_coldef_list:
         # default_coldef_dict = {'tsaKey': 'custcode', 'caption': _('Customer - Short name')
         #logger.debug('default_coldef_dict: ' + str(default_coldef_dict))
@@ -65,14 +68,13 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
                     break
             if stored_excKey:
                 dict['excKey'] = stored_excKey
-
         coldef_list.append(dict)
-
         #logger.debug('coldef_list: ' + str(coldef_list))
 
     coldefs_dict = {
         'worksheetname': worksheetname,
         'has_header': has_header,
+        'codecalc': code_calc,
         'coldefs': coldef_list
         }
     #logger.debug('coldefs_dict: ' + str(coldefs_dict))

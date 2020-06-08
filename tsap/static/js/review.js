@@ -167,9 +167,9 @@ document.addEventListener('DOMContentLoaded', function() {
             company: true,
             review_period: {now: now_arr},
             review: true,
-            customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            employee: {inactive: false}
+            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            employee_list: {inactive: false}
         };
 
     DatalistDownload(datalist_request, "DOMContentLoaded");
@@ -821,18 +821,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!row_id) {
             tblRow.setAttribute("id", row_id)
         };
-/*
-        console.log(">>>>>>>>>>>> row_id", row_id);
-        console.log("rptName", rptName);
-        console.log("tblName", tblName);
-        console.log("empl_id", empl_id);
-        console.log("cust_id", cust_id);
-        console.log("ordr_id", ordr_id);
-        console.log("ehoh_id", ehoh_id);
-        console.log("rosterdate_iso", rosterdate_iso);
-        console.log("row_id", row_id);
-        console.log("tblRow", tblRow);
-*/
 
 // ---  add EventListener to tblRow.
         // dont add this EventListener to tblRow - to td's except last one instead
@@ -1425,12 +1413,13 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
         let tblHead = null;
-        const filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
+        const filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
+
         t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
-            HandleSelect_Filter, null,
-            MSO_SelectCustomer, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+            HandleSelect_Filter, null, MSO_SelectCustomer, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+             filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected)
     }  // MSO_FillSelectTableCustomer
 
@@ -1444,12 +1433,14 @@ document.addEventListener('DOMContentLoaded', function() {
         el_modorder_tblbody_order.innerText = null;
 
         if (!!mod_upload_dict.customer.pk){
-            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+            const filter_ppk_int = mod_upload_dict.customer.pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
+
             t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
-                HandleSelect_Filter, null, MSO_SelectOrder, null,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt, null, cls_selected
-            );
+                HandleSelect_Filter, null, MSO_SelectOrder, null, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
+                null, cls_selected);
     // select first tblRow
             const rows_length = el_modorder_tblbody_order.rows.length;
             if(!!rows_length) {
@@ -1579,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MSE_Open  ================ PR2019-08-23
     function MSE_Open() {
-       //console.log(" -----  MSE_Open   ----")
+       console.log(" -----  MSE_Open   ----")
 
         mod_upload_dict = {
             employee_pk: selected_employee_pk,
@@ -1747,11 +1738,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSE_FillSelectTableEmployee  ============= PR2019-08-18
     function MSE_FillSelectTableEmployee() {
-        //console.log( "=== MSE_FillSelectTableEmployee ");
+        console.log( "=== MSE_FillSelectTableEmployee ");
 
         let tableBody = document.getElementById("id_ModSelEmp_tbody_employee");
         tableBody.innerText = null;
 
+        console.log( "employee_map: ", employee_map);
 //--- when no items found: show 'select_employee_none'
         if (employee_map.size === 0){
             let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.

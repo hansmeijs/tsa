@@ -320,8 +320,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // inactive=null: both active and inactive customers and orders
             // In this way it shows items that are made inactive after creating roster PR2020-04-10
             // filter inactive and datefirst/datelast in select table
-            customer: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_list: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             scheme: {istemplate: false, inactive: null, issingleshift: null},
             //schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let fill_table = false, check_status = false;
                 if ("abscat_list" in response) {
                     get_datamap(response["abscat_list"], abscat_map)
+                    // TODO change from ekldata to loc
                     const select_txt = get_attr_from_el(el_data, "data-txt_select_abscat");
                     const select_none_txt = get_attr_from_el(el_data, "data-txt_select_abscat_none");
                     FillOptionsAbscat(el_MRE_select_abscat, abscat_map, select_txt, select_none_txt)
@@ -913,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             if (fieldname === "rosterdate") {
                                 const hide_weekday = false, hide_year = true;
-                                format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                format_date_elementMOMENT (el_input, el_msg, field_dict, month_list, weekday_list,
                                                     user_lang, comp_timezone, hide_weekday, hide_year)
                         // when row is new row: remove data-o_value from dict,
                         // otherwise will not recognize rosterdate as a new value and will not be saved
@@ -1720,11 +1721,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSO_FillSelectTableCustomer() {
         console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
-        const tblHead = null, filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
+        const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
+
         t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
-            MSO_MSE_Filter_SelectRows, null, MSO_SelectCustomer, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+            MSO_MSE_Filter_SelectRows, null, MSO_SelectCustomer, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected)
 // ---  lookup selected tblRow
         let tr_selected = null;
@@ -1761,12 +1764,14 @@ document.addEventListener('DOMContentLoaded', function() {
         el_modorder_tblbody_order.innerText = null;
 
         if (!!mod_upload_dict.customer.pk){
-            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+            const filter_ppk_int = mod_upload_dict.customer.pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
+
             t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
-                MSO_MSE_Filter_SelectRows, null, MSO_SelectOrder, null,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt, null, cls_selected
-            );
+                MSO_MSE_Filter_SelectRows, null, MSO_SelectOrder, null, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
+                null, cls_selected);
     // select first tblRow
             const rows_length = el_modorder_tblbody_order.rows.length;
             if(!!rows_length) {
@@ -1817,14 +1822,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // reset el_MRO_input_order
         el_MRO_input_order.innerText = null;
 
-        const tblHead = null, filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
+        const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
                         addall_to_list_txt = "<" + loc.All_employees + ">";
+
         t_Fill_SelectTable(tblBody, tblHead, employee_map, "employee", selected_period.employee_pk, null,
-            MSO_MSE_Filter_SelectRows, null,
-            MSE_SelectEmployee, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected
-            );
+            MSO_MSE_Filter_SelectRows, null, MSE_SelectEmployee, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
+            null, cls_selected );
 
         MSE_headertext();
 
@@ -3586,7 +3591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 'These shifts will be replaced.' / deleted
                 text_list[2] = ((count === 1) ? loc.rosterdate_shift_willbe : loc.rosterdate_shifts_willbe) +
                                 ((is_delete) ? loc.deleted : loc.replaced) + ".";
-                text_list[3] =  loc.want_to_continue;
+                text_list[3] =  loc.Do_you_want_to_continue;
                 ok_txt = (is_delete) ? loc.Yes_delete :loc.Yes_create;
                 cancel_txt = loc.No_cancel;
             } else if(confirmed_only){
@@ -3597,7 +3602,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancel_txt = loc.Close;
                 } else {
                     text_list[2] = (confirmed === 1) ? loc.This_confirmed_shift_willbe_skipped : loc.These_confirmed_shifts_willbe_skipped;
-                    text_list[3] =  loc.want_to_continue;
+                    text_list[3] =  loc.Do_you_want_to_continue;
                     ok_txt = (is_delete) ? loc.Yes_delete : loc.Yes_create;
                     cancel_txt = loc.No_cancel;
                 }
@@ -3612,7 +3617,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 text_list[2] = loc.rosterdate_skip01 +
                                ((is_delete) ? loc.deleted : loc.replaced) +
                                loc.rosterdate_skip02;
-                text_list[3] =  loc.want_to_continue
+                text_list[3] =  loc.Do_you_want_to_continue
                 ok_txt = (is_delete) ? loc.Yes_delete : loc.Yes_create;
                 cancel_txt = loc.No_cancel;
             }
@@ -3702,7 +3707,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const this_shift_code =  (!shift_code) ? loc.This_shift + " "  :  loc.Shift + " '" + shift_code + "' "
                 msg01_txt = this_shift_code + loc.of + " order '" + customer_code + " - " + order_code + "' " + loc.will_be_deleted
             }
-            msg02_txt = loc.want_to_continue
+            msg02_txt = loc.Do_you_want_to_continue
         }
 
 // ---  show modal confirm with message 'First select employee'
@@ -3897,11 +3902,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  filter select rows
             // if filter results have only one order: put selected order in el_MRO_input_order
-            // filter_dict: {row_count: 1, selected_pk: "730", selected_parentpk: "3", selected_value: "Rabo", selected_display: null}
+            // filter_dict: {row_count: 1, selected_pk: "730", selected_ppk: "3", selected_value: "Rabo", selected_display: null}
             // selected_pk only gets value when there is one row
             const filter_dict = t_Filter_SelectRows(tblBody_select, new_filter);
             const only_one_selected_pk = get_dict_value(filter_dict, ["selected_pk"])
-            const ppk_str = get_dict_value(filter_dict, ["selected_parentpk"])
+            const ppk_str = get_dict_value(filter_dict, ["selected_ppk"])
             const code_value = get_dict_value(filter_dict, ["selected_value"])
 
             if (!!only_one_selected_pk) {
@@ -4868,6 +4873,7 @@ console.log("?????????? employee_dict", employee_dict)
        console.log("fldName", fldName);
         let tp_dict = {id: id_dict,  // used in UploadTimepickerResponse
                        field: fldName,  // used in UploadTimepickerResponse
+                       page: "TODO",
                        rosterdate: rosterdate,
                        offset: offset_value,
                        minoffset: minoffset,

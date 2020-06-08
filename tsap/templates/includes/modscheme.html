@@ -1,0 +1,97 @@
+{% load i18n %}
+{% load static %}
+
+ <!-- =================== MODAL SCHEME =================== -->'
+    <div class="modal" id="id_modscheme" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MSCH_header" class="modal-title mx-2" ></h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div id="id_div_form_controls" class="modal-body">
+                    <div class="modal_container">
+                        <div class="modal_body_right mx-2 my-0">
+                            <div class="modal_flexcontainer">
+                                <div class="modal_flex1 mx-1">
+                                   <label class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
+                                    <input id="id_MSCH_input_code"
+                                        type="text" data-field="code"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control tsa_input_text">
+                                    <div class="mx-2"><small id="id_MSCH_err_code" class="text-danger">{% trans 'The scheme name cannot be blank.' %}</small></div>
+                                </div>
+                            </div>
+
+                            <div class="modal_flexcontainer">
+                                <div class="modal_flex1 mx-1">
+                                    <label for="id_MSCH_input_cycle" class="tsa_margin_form_label">{% trans 'Cycle days' %}:</label>
+                                    <input id="id_MSCH_input_cycle" type="text" data-field="cycle"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control tsa_input_text">
+                                    <div class="mx-2"><small id="id_MSCH_msg_cycle"></small></div>
+
+                                </div>
+                            </div>
+
+                            <div id="id_MSCH_date_container" class="modal_flexcontainer">
+                                <div class="modal_flex1 mx-1">
+                                    <label for="id_MSCH_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                    <input id="id_MSCH_input_datefirst" type="date" data-field="datefirst"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control tsa_input_text mb-0">
+                                </div>
+                                <div class="modal_flex1 mx-1">
+                                    <label for="id_MSCH_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                    <input id="id_MSCH_input_datelast" type="date" data-field="datelast"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control tsa_input_text">
+                                </div>
+                            </div>
+
+                            <div class="mx-1">
+                                <small class="tsa_margin_form_label">
+                                {% trans "You can leave the start- and end date blank." %}
+                                </small>
+                            </div>
+
+                            <div class="modal_flexcontainer mt-2">
+                                <div class="modal_flex1 mx-1">
+                                    <input id="id_MSCH_excl_ph" type="checkbox" data-field="excludepublicholiday" class="tsa_input_checkbox td_width_032 ">
+                                    <label for="id_MSCH_excl_ph" class="mt-1">{% trans 'Not on public holidays' %}</label>
+                                </div>
+                                <div class="modal_flex1 mx-1 display_hideXXX">
+                                    <input id="id_MSCH_excl_ch" type="checkbox" data-field="excludecompanyholiday" class="tsa_input_checkbox td_width_032">
+                                    <label for="id_MSCH_excl_ch" class="mt-1">{% trans 'Not on company holidays' %}</label>
+                                </div>
+                            </div>
+                            <div class="modal_flexcontainer mt-0">
+                                <div class="modal_flex1 mx-1">
+                                    <input id="id_MSCH_dvg_ph" type="checkbox" data-field="divergentonpublicholiday" class="tsa_input_checkbox td_width_032 ">
+                                    <label for="id_MSCH_dvg_ph" class="mt-1">{% trans 'Divergent shift on public holidays' %}</label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1">
+                        <button id="id_MSCH_btn_delete" type="button" class="btn btn-outline-danger">{% trans 'Delete scheme' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MSCH_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL ORDER  =================== -->
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

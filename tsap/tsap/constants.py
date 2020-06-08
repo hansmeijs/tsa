@@ -276,39 +276,31 @@ SCHEMEITEM_24H_DEFAULT = ((1, 0, 0), (1, 1, 1), (1, 2, 2),  # 0 = cycleday, 1 = 
 
 # LOCALE #
 
-COLDEF_EMPLOYEE = {LANG_EN: [
-                                {'tsaKey': 'code', 'caption': 'Short name'},
-                                {'tsaKey': 'namelast', 'caption': 'Last name'},
-                                {'tsaKey': 'namefirst', 'caption': 'First name'},
-                                {'tsaKey': 'identifier', 'caption': 'Identity number'},
-                                {'tsaKey': 'email', 'caption': 'Email address'},
-                                {'tsaKey': 'tel', 'caption': 'Telephone'},
-                                {'tsaKey': 'datefirst', 'caption': 'First date in service'},
-                                {'tsaKey': 'datelast', 'caption': 'Last date in service'},
-                                {'tsaKey': 'workhours', 'caption': 'Working hours per week'},
-                                {'tsaKey': 'workdays', 'caption': 'Working days per week'},
-                                {'tsaKey': 'leavedays', 'caption': 'Vacation days per year'},
-                                {'tsaKey': 'payrollcode', 'caption': 'Payroll code'}
-                                # {'tsaKey': 'wagecode', 'caption': 'Wage code'}
-                            ],
-                    LANG_NL: [
-                                {'tsaKey': 'code', 'caption': 'Korte naam'},
-                                {'tsaKey': 'namelast', 'caption': 'Achternaam'},
-                                {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
-                                {'tsaKey': 'identifier', 'caption': 'Identiteitsnummer'},
-                                {'tsaKey': 'email', 'caption': 'E-mail adres'},
-                                {'tsaKey': 'tel', 'caption': 'Telefoon'},
-                                {'tsaKey': 'datefirst', 'caption': 'Begindatum in dienst'},
-                                {'tsaKey': 'datelast', 'caption': 'Einddatum in dienst'},
-                                {'tsaKey': 'workhours', 'caption': 'Uren in dienst per week'},
-                                {'tsaKey': 'workdays', 'caption': 'Dagen in dienst per week'},
-                                {'tsaKey': 'leavedays', 'caption': 'Vakantiedagen per jaar'},
-                                {'tsaKey': 'payrollcode', 'caption': 'Code loonadministratie'}
-                               #  {'tsaKey': 'wagecode', 'caption': 'Looncode'}
-                            ]
-                    }
+COLDEF_EMPLOYEE = ( {'tsaKey': 'code', 'caption': _('Short name')},
+                    {'tsaKey': 'namelast', 'caption': _('Last name')},
+                    {'tsaKey': 'namefirst', 'caption': _('First name')},
+                    {'tsaKey': 'identifier', 'caption': _('ID-number')},
+                    {'tsaKey': 'email', 'caption': _('Email address')},
+                    {'tsaKey': 'tel', 'caption': _('Telephone')},
+                    {'tsaKey': 'datefirst', 'caption': _('First date in service')},
+                    {'tsaKey': 'datelast', 'caption': _('Last date in service')},
+                    {'tsaKey': 'workhours', 'caption': _('Working hours per week')},
+                    {'tsaKey': 'workdays', 'caption': _('Working days per week')},
+                    {'tsaKey': 'leavedays', 'caption': _('Vacation days per year')},
+                    {'tsaKey': 'payrollcode', 'caption': _('Payroll code')}
+                    # {'tsaKey': 'wagecode', 'caption': 'Wage code'}
+                   )
 
-CAPTION_IMPORT = {LANG_EN: {'no_file': 'No file is currently selected',
+
+
+CAPTION_IMPORT =  {'no_file': _('No file is currently selected'),
+                                 'link_columns': _('Link columns'),
+                                 'click_items': _('Click items to link or unlink columns'),
+                                 'excel_columns': _('Excel columns'),
+                                 'tsa_columns': _('TSA columns'),
+                                 'linked_columns': _('Linked columns')}
+
+CAPTION_IMPORTXX = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'link_columns': 'Link columns',
                                  'click_items': 'Click items to link or unlink columns',
                                  'excel_columns': 'Excel columns',
@@ -347,34 +339,6 @@ COLDEF_ORDER = ( {'tsaKey': 'custcode', 'caption': _('Customer - Short name')},
                 {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}
                  )
 
-"""
-                    LANG_NL: [
-                                {'tsaKey': 'custcode', 'caption':  _('Customer - Short name')},  #  'Klant - Korte naam'},
-                                {'tsaKey': 'custname', 'caption': 'Klant - Naam '},
-                                {'tsaKey': 'custidentifier', 'caption': 'Klant - Identificatiecode'},
-                                # {'tsaKey': 'custcontactname', 'caption': 'Klant - Contactpersoon'},
-                                # {'tsaKey': 'custaddress', 'caption': 'Klant - Adres'},
-                                # {'tsaKey': 'custzipcode', 'caption': 'Klant - Postcode'},
-                                # {'tsaKey': 'custcity', 'caption': 'Klant - Plaats'},
-                                #  {'tsaKey': 'custcountry', 'caption': 'Klant - Land'},
-                                # {'tsaKey': 'custemail', 'caption': 'Klant - Email adres'},
-                                # {'tsaKey': 'custtelephone', 'caption': 'Klant - Telefoon'},
-
-                                {'tsaKey': 'ordercode', 'caption': 'Locatie - Korte naam'},
-                                {'tsaKey': 'ordername', 'caption': 'Locatie - Naam'},
-                                {'tsaKey': 'orderidentifier', 'caption': 'Locatie - Identificatiecode'},
-                                # {'tsaKey': 'ordercontactname', 'caption': 'Locatie - Contactpersoon'},
-                                # {'tsaKey': 'orderaddress', 'caption': 'Locatie - Adres'},
-                                # {'tsaKey': 'orderzipcode', 'caption': 'Locatie - Postcode'},
-                                # {'tsaKey': 'ordercity', 'caption': 'Locatie - Plaats'},
-                                # {'tsaKey': 'ordercountry', 'caption': 'Locatie - Land'},
-                                # {'tsaKey': 'orderemail', 'caption': 'Locatie - Email adres'},
-                                # {'tsaKey': 'ordertelephone', 'caption': 'Locatie - Telefoon'},
-                                {'tsaKey': 'orderdatefirst', 'caption': 'Locatie - Begindatum opdracht'},
-                                {'tsaKey': 'orderdatelast', 'caption': 'Locatie - Einddatum opdracht'},
-                            ]
-                    }
-"""
 FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
@@ -387,16 +351,18 @@ FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'n
 
 FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
-                'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
+                'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'nopay',
+                'inactive', 'locked')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-                   'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'lockedpaydate',
+                   'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'lockedpaydate', 'nopay',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
+                   'offsetstart', 'offsetend', 'excelstart', 'excelend',
                    'wagerate', 'wagefactor', 'wage',
-                   'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+                   'pricerate', 'additionrate', 'additionisamount', 'taxrate', 'amount', 'addition', 'tax',
                     # fields: order, shift, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status
                    'order', 'shift', 'confirmstart', 'confirmend',
@@ -405,6 +371,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
+                 'nohoursonweekend', 'nohoursonpublicholiday',
                  'pricecode', 'additioncode', 'taxcode', 'inactive')
 
 
@@ -415,14 +382,16 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'bil
 FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
 
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
-                   'namelast', 'namefirst', 'email', 'telephone', 'identifier',
+                   'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
                    'address', 'zipcode', 'city', 'country',
-                   'functioncode', 'wagecode', 'paydatecode', 'workhours', 'workdays', 'leavedays',
+                   'workhours', 'workdays', 'leavedays',
+                    'nohoursonweekend', 'nohoursonpublicholiday',
+                   'functioncode', 'wagecode', 'paydatecode',
                    'pricecode', 'additioncode', 'inactive', 'locked')
 
-# PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
+# PR2019-12-20 Note: 'scheme', 'order' and 'shift' are not fields of teammember, but necessary for absence update
 FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
-                     'scheme', 'order',
+                     'scheme', 'order', 'shift',
                      'cat', 'isabsence', 'issingleshift', 'istemplate',
                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
 

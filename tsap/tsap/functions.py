@@ -64,6 +64,7 @@ def get_date_from_ISO(date_iso):  # PR2019-09-18 PR2020-03-20
             pass
     return dte
 
+
 def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
     dte = None
     if date_ISOstring:
@@ -71,8 +72,8 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
             arr = get_datetimearray_from_dateISO(date_ISOstring)
             dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
         except:
-            logger.debug('ERROR: get_dateobj_from_dateISOstring: date_ISOstring' +
-                         str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
+            logger.debug('ERROR: get_dateobj_from_dateISOstring: date_ISOstring: ' +
+                         str(date_ISOstring) + ' type: ' + str(type(date_ISOstring)))
     return dte
 
 
@@ -278,7 +279,6 @@ def get_today_dateobj():
 
 # <<<<<<<<<< SO FAR checked and approved PR2019-09-17 <<<<<<<<<<<<<<<<<<<
 # ########################################################################<
-
 
 def get_Exceldate_from_datetime(date_obj):
     #logger.debug(' --- get_Exceldate_from_datetime --- ')
@@ -784,17 +784,19 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
     return new_dat_str
 
 
-def detect_dateformat(dict_list, field):
+def detect_dateformat(dict_list, field_list):
     #logger.debug(' --- detect_dateformat ---')
-    #logger.debug('field: ' + str(field) + ' ' + ' dict_list: ' + str(dict_list))
-    # PR2019-08-05  detect date format
-    format_str = ''
-    date_string = ''
-    try:
-        arr00_max = 0
-        arr01_max = 0
-        arr02_max = 0
-        for dict in dict_list:
+    #logger.debug('field_list: ' + str(field_list) )
+    #logger.debug('dict_list: ' + str(dict_list))
+    # detect date format PR2019-08-05  PR2020-06-04
+
+    # TODO move to js. In import_employee already done, not yet in customer_import PR2020-06-05
+
+    arr00_max = 0
+    arr01_max = 0
+    arr02_max = 0
+    for dict in dict_list:
+        for field in field_list:
             arr00 = 0
             arr01 = 0
             arr02 = 0
@@ -802,7 +804,7 @@ def detect_dateformat(dict_list, field):
             date_string = dict.get(field)
             if date_string:
                 arr = get_datetimearray_from_dateISO(date_string)
-
+# - skip when date has an unrecognizable format
                 isok = False
                 if len(arr) > 2:
                     if arr[0].isnumeric():
@@ -812,6 +814,7 @@ def detect_dateformat(dict_list, field):
                             if arr[2].isnumeric():
                                 arr02 = int(arr[2])
                                 isok = True
+# - get max values
                 if isok:
                     if arr00 > arr00_max:
                         arr00_max = arr00
@@ -819,48 +822,44 @@ def detect_dateformat(dict_list, field):
                         arr01_max = arr01
                     if arr02 > arr02_max:
                         arr02_max = arr02
+# - get position of year and day
+    year_pos = -1
+    day_pos = -1
 
-        year_pos = -1
-        day_pos = -1
+    if arr00_max > 31 and arr01_max <= 31 and arr02_max <= 31:
+        year_pos = 0
+        if arr01_max > 12 and arr02_max <= 12:
+            day_pos = 1
+        elif arr02_max > 12 and arr01_max <= 12:
+            day_pos = 2
+    elif arr02_max > 31 and arr00_max <= 31 and arr01_max <= 31:
+        year_pos = 2
+        if arr00_max > 12 and arr01_max <= 12:
+            day_pos = 0
+        elif arr01_max > 12 and arr00_max <= 12:
+            day_pos = 1
 
-        if arr00_max > 31 and arr01_max <= 31 and arr02_max <= 31:
-            year_pos = 0
-            if arr01_max > 12 and arr02_max <= 12:
-                day_pos = 1
-            elif arr02_max > 12 and arr01_max <= 12:
-                day_pos = 2
-        elif arr01_max > 31 and arr00_max <= 31 and arr02_max <= 31:
-            year_pos = 1
-            if arr00_max > 12 and arr02_max <= 12:
-                day_pos = 0
-            elif arr02_max > 12 and arr00_max <= 12:
-                day_pos = 2
-        elif arr02_max > 31 and arr00_max <= 31 and arr01_max <= 31:
-            year_pos = 2
-            if arr00_max > 12 and arr01_max <= 12:
-                day_pos = 0
-            elif arr01_max > 12 and arr00_max <= 12:
-                day_pos = 1
+    if day_pos == -1:
+        if year_pos == 0:
+            day_pos = 2
+        elif year_pos == 2:
+            day_pos = 0
 
-        if day_pos == -1:
-            if year_pos == 0:
-                day_pos = 2
-            elif year_pos == 2:
-                day_pos = 0
-
-        if year_pos > -1 and day_pos > -1:
-            if year_pos == 0 and day_pos == 2:
-                    format_str = 'yyyy-mm-dd'
-            if year_pos == 2:
-                if day_pos == 0:
-                    format_str = 'dd-mm-yyyy'
-                if day_pos == 1:
-                    format_str = 'mm-dd-yyyy'
+# - format
+    format_str = ''
+    if year_pos > -1 and day_pos > -1:
+        if year_pos == 0 and day_pos == 2:
+            format_str = 'yyyy-mm-dd'
+        elif year_pos == 2:
+            if day_pos == 0:
+                format_str = 'dd-mm-yyyy'
+            if day_pos == 1:
+                format_str = 'mm-dd-yyyy'
 
         #logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
 
-    except:
-        pass
+    #except:
+    #    pass
         #logger.debug('detect_dateformat error: ' + str(date_string))
 
     return format_str
@@ -1354,7 +1353,7 @@ def get_float_from_string(value_str):  # PR2019-09-01
             value_str = value_str.replace("'", "")
             number = float(value_str) if value_str != '' else 0
         except:
-            msg_err = _('This field must be a number.')
+            msg_err = str(_("'%(value)s' is not a valid number.") % { 'value': value_str})
 
     return number, msg_err
 
@@ -2516,10 +2515,10 @@ def display_offset_range(offset_start, offset_end, timeformat, user_lang, skip_p
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-# <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
+# <<<<<<<<<< calc_timeduration_from_values >>>>>>>>>>>>>>>>>>> PR2020-01-04 PR2020-05-23
 def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakduration, saved_timeduration):
 
-    timeduration_minus_break = 0
+    timeduration = 0
     if not is_restshift:
         if not breakduration:
             breakduration = 0
@@ -2527,12 +2526,11 @@ def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakdur
             saved_timeduration = 0
 
         if offsetstart is not None and offsetend is not None:
-            timeduration = offsetend - offsetstart
+            timeduration = offsetend - offsetstart - breakduration
         else:
-            timeduration = saved_timeduration
-        timeduration_minus_break = timeduration - breakduration
+            timeduration = saved_timeduration - breakduration
 
-    return timeduration_minus_break
+    return timeduration
 
 
 # <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
@@ -2542,6 +2540,7 @@ def calc_timeduration_from_shift(shift):
     # if both offsetstart and offsetend have value: timeduration is calculated
     # else: use stored value of timeduration
     # timeduration = 0 in restshift
+    # timeduration = 0 in absence when weekend and not on weekends or ph and not on ph
     # timeduration_minus_break is used in field 'timeduration' in shift_dict
     # timeduration is used for minoffset and maxoffset
 
@@ -2561,7 +2560,6 @@ def calc_timeduration_from_shift(shift):
 
         if not is_restshift:
             if offsetstart is not None and offsetend is not None:
-                #logger.debug('offsetstart is not None and offsetend is not None ')
                 timeduration = offsetend - offsetstart
             else:
                 timeduration = saved_timeduration
@@ -2570,10 +2568,11 @@ def calc_timeduration_from_shift(shift):
     return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
 
 
-# <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
-def calc_timestart_time_end_from_offset(rosterdate_dte,
+# <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10 PR2020-06-01
+def calc_timestart_time_end_from_offset(rosterdate_dte, is_weekend, is_publicholiday,
                                         offsetstart, offsetend, breakduration, timeduration,
-                                        is_restshift, comp_timezone):
+                                        nohoursonweekend, nohoursonpublicholiday,
+                                        is_restshift, is_absence, comp_timezone):
     #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
     # called by add_orderhour_emplhour
 
@@ -2613,6 +2612,11 @@ def calc_timestart_time_end_from_offset(rosterdate_dte,
             # when rest shift : timeduration = 0
             if is_restshift:
                 timeduration = 0
+            if is_absence:
+                if nohoursonweekend and is_weekend:
+                    timeduration = 0
+                if nohoursonpublicholiday and is_publicholiday:
+                    timeduration = 0
             #logger.debug('is_restshift  timeduration:  ' + str(timeduration))
 
     return starttime_local, endtime_local, timeduration
@@ -2895,6 +2899,7 @@ def get_code_with_sequence(table, parent, user_lang):
         new_code = default_code + ' ' + str(max_index + 1)
     return new_code
 
+
 def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, request):
     #logger.debug(' =============== create_emplhourdict_of_employee ============= ') # PR2020-05-13
     emplhour_dict = {}
@@ -2924,9 +2929,8 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
         return emplhour_dict
 
 
-
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
-    logger.debug(' =============== check_emplhour_overlap ============= ')
+    #logger.debug(' =============== check_emplhour_overlap ============= ')
     #logger.debug('datefirst' + str(datefirst) + ' ' + str(type(datefirst)))
     #logger.debug('datelast' + str(datelast) + ' ' + str(type(datelast)))
 
@@ -3069,5 +3073,5 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
     # 9057: {'end': [9059], 'start': [9058]},
     # 9058: {'end': [9057, 9059]}}
     # 9059: {'start': [9057, 9058]},
-    logger.debug('overlap_dict' + str(overlap_dict))
+    #logger.debug('overlap_dict' + str(overlap_dict))
     return overlap_dict

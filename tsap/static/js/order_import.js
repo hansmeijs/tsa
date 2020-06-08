@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cls_cell_saved_odd = "cell_saved_odd";
     const cls_cell_unchanged_even = "cell_unchanged_even";
     const cls_cell_unchanged_odd = "cell_unchanged_odd";
+
     const cls_ea_flex = "ea_flex";
     const cls_li_flex= "li_flex";
     const cls_display_show = "display_show";
@@ -54,11 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if(!!el_worksheet_list){el_worksheet_list.addEventListener("change", HandleWorksheetList, false)}
 
     let checkbox_hasheader = document.getElementById("checkBoxID");
-    if(!!checkbox_hasheader){checkbox_hasheader.addEventListener("change", handle_checkbox_hasheader_changed, false)}
+    if(!!checkbox_hasheader){checkbox_hasheader.addEventListener("change", HandleCheckboxHasheaderChanged, false)}
 
 // locale_dict with translated text
     let loc = {};
     let el_loader = document.getElementById("id_loader");
+
 // --- get data stored in page
     let el_data = document.getElementById("id_data");
     const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
@@ -95,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_btn = get_attr_from_el(btn,"data-btn")
         btn.addEventListener("click", function() {HandleBtnSelect(data_btn, false)}, false )
     }
-
     HighlightAndDisableSelectedButton();
     HandleBtnPrevNext()
 
@@ -305,9 +306,9 @@ document.addEventListener('DOMContentLoaded', function() {
         HighlightAndDisableSelectedButton();
     }  // HandleWorksheetList()
 
-//=========   handle_checkbox_hasheader_changed   ======================
-    function handle_checkbox_hasheader_changed() {
-console.log(" ========== handle_checkbox_hasheader_changed ===========");
+//=========   HandleCheckboxHasheaderChanged   ======================
+    function HandleCheckboxHasheaderChanged() {
+console.log(" ========== HandleCheckboxHasheaderChanged ===========");
         if(!!worksheet && !!worksheet_range) {
             stored_has_header = checkbox_hasheader.checked;
 // ---  fill worksheet_data with data from worksheet
@@ -321,7 +322,7 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
             // upload new settings tsaCaption
             UploadSettingsImport ("hasheader");
         }  // if(!!worksheet){
-    }; //handle_checkbox_hasheader_changed
+    }; //HandleCheckboxHasheaderChanged
 
 //=========   handle_select_code_calc   ======================
     function handle_select_code_calc() {
@@ -415,7 +416,8 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
 //--------- delete existing rows
         tblHead.innerText = null
         tblBody.innerText = null
-        const no_excel_data = (!worksheet_data || !excel_columns);
+        // was: const no_excel_data = (!worksheet_data || !excel_columns);
+        const no_excel_data = (!worksheet_data.length || !excel_columns.length);
         if (!no_excel_data){
 //--------- insert tblHead row of datatable
             let tblHeadRow = tblHead.insertRow();
@@ -1009,7 +1011,7 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
             let linked_coldefs = {};
 
 
-            // NIU only in emplyee upload
+            // NIU only in employee upload
             // get value of code_calc
             //let el_select_code_calc = document.getElementById("id_select_code_calc");
             //if (!!el_select_code_calc.value){upload_dict["codecalc"] = el_select_code_calc.value}
@@ -1139,7 +1141,7 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
         //--------- print log file
                             log_list = get_dict_value_by_key(response, "logfile")
                             if (!!log_list && log_list.length > 0) {
-                                printPDFlogfile(log_list, "logimportcustomers")
+                                printPDFlogfile(log_list, "log_import_customers_orders")
                             }
                         },
                         error: function (xhr, msg) {
@@ -1213,7 +1215,8 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
                             no_identifier_linked = false;
                             break;
             }}}}
-            const no_excel_data = (!worksheet_data || !excel_columns);
+            //was: const no_excel_data = (!worksheet_data || !excel_columns);
+            const no_excel_data = (!worksheet_data.length || !excel_columns.length);
 
             const step2_disabled = (no_worksheet || no_worksheet_with_data);
             const step3_disabled = (step2_disabled || no_linked_columns || no_identifier_linked || no_excel_data);

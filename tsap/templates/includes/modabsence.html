@@ -2,95 +2,128 @@
 {% load static %}
 
 <!-- =================== MODAL ABSENCE  =================== -->
-    <div class="modal" id="id_modroster_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal" id="id_mod_absence" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
-
-
-        <div id="id_MRE_div_select_employee" class="modal_body_left">
-            <div class="content_subheader_left mx-2 my-1">
-
-                <div id="id_MRE_btn_contXXainer_label" class="mx-2">
-                    <h6>{% trans 'Select employee' %}:</h6>
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MAB_hdr_absence" class="modal-title mx-2" >{% trans 'Absence' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
 
-                <div style="overflow-x:hidden;overflow-y:auto;height:385px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                <table class="table table-condensed tsa_tbl mx-1 my-1">
-                    <tbody id="id_MRE_tblbody_select" data-table="employee">
-                    </tbody>
-                </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="id_MRE_body_right"  class="modal_body_right mx-2 my-2">
-            <div id="id_MRE_btn_container_label" class="mx-2">
-                <h6>{% trans 'Select an option' %}:</h6>
-            </div>
-
-
-                            <div class="content_header mod_show absenceshift">
-                                <div class="content_subheader_left mx-1">
-                                    <label for="id_ModSftEmp_input_absence" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
-                                    <select id="id_ModSftEmp_input_absence" type="text" data-field="absence"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                    class="form-control mb-0"></select>
+                <div class="modal-body">
+                    <div class="modal_container">
+                        <div class="modal_body_left">
+                            <div class="content_subheader_left mx-2 my-1">
+                                <div class="mx-2">
+                                    <h6 id="id_MAB_hdr_select" >{% trans 'Employees' %}:</h6>
+                                </div>
+                                <div style="overflow-x:hidden;overflow-y:auto;height:390px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <table class="table tsa_tbl mx-1 my-1">
+                                    <tbody id="id_MAB_tblbody_select"></tbody>
+                                </table>
                                 </div>
                             </div>
-                            <div id="id_ModSftEmp_timefields" class="content_header mod_show singleshift absenceshift">
-                                <div class="content_subheader_left mx-1">
-                                    <label for="id_ModSftEmp_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
-                                    <p id="id_ModSftEmp_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
-                                       data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
-                                </div>
-                                <div class="content_subheader_left mx-1">
-                                    <label for="id_ModSftEmp_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
-                                    <p id="id_ModSftEmp_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
-                                       data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
-                                </div>
-                                <div class="content_subheader_left mx-1 mod_show singleshift schemeshift">
-                                    <label for="id_ModSftEmp_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
-                                    <p id="id_ModSftEmp_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
-                                       data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
-                                </div>
-                                <div class="content_subheader_left mx-1">
-                                    <label id="id_ModSftEmp_label_timeduration"  for="id_ModSftEmp_input_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
-                                    <p id="id_ModSftEmp_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
-                                       data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
-                                </div>
+                        </div>
+
+                        <div class="modal_body_right mx-2 my-1">
+                            <div id="id_MAB_div_input_employee" class="content_subheader_left mx-1 display_hide">
+                                <label for="id_MAB_input_employee" class="mx-2 mt-0 mb-1">{% trans 'Select employee' %}:</label>
+                                <input id="id_MAB_input_employee"
+                                    type="text"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                             </div>
-                            <div class="content_subheader_left mx-1 mod_show singleshift absenceshift">
-                                <small class="tsa_margin_form_label">{% trans "Instead of the start- and endtime you can also enter the hours." %}</small>
-                             </div>
-                            <div class="content_header mod_show singleshift schemeshift absenceshift">
+                            <div class="content_subheader_left mx-1">
+                                <label for="id_MAB_input_abscat" class="tsa_margin_form_label">{% trans 'Select absence category' %}:</label>
+                                <input id="id_MAB_input_abscat"
+                                    type="text"
+                                    data-field= "order"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select absence category in the list ...' %}">
+                            </div>
+
+                            <div class="content_header">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_ModSftEmp_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                                    <input id="id_ModSftEmp_input_datefirst" type="date" data-field= "datefirst" class="form-control">
+                                    <label for="id_MAB_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                    <input id="id_MAB_input_datefirst" type="date" data-field= "datefirst" class="form-control">
                                 </div>
                                     <div class="content_subheader_left mx-1">
-                                    <label for="id_ModSftEmp_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                                    <input id="id_ModSftEmp_input_datelast" type="date" data-field="datelast"
+                                    <label for="id_MAB_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                    <input id="id_MAB_input_datelast" type="date" data-field="datelast"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
                             </div>
-                            <div id="id_ModSftEmp_oneday_container"  class="content_subheader_left mx-1 mod_show absenceshift">
+                            <div id="id_MAB_oneday_container"  class="content_subheader_left mx-1">
                                 <span>
-                                    <input id="id_ModSftEmp_oneday" type="checkbox" class="td_width_032 mx-2">
-                                    <label for="id_ModSftEmp_oneday" class="mx-2 my-1">{% trans 'One day only' %}</label>
+                                    <input id="id_MAB_oneday" type="checkbox" data-field="oneday"class="td_width_032 mx-2">
+                                    <label for="id_MAB_oneday" class="mx-1 mt-2 mb-0">{% trans 'One day only' %}</label>
                                 </span>
+                            </div>
+                            <div class="content_header">
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MAB_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_MAB_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MAB_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_MAB_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MAB_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
+                                    <p id="id_MAB_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label id="id_MAB_label_timeduration"  for="id_MAB_input_timeduration" class="tsa_margin_form_label">{% trans 'Hours' %}:</label>
+                                    <p id="id_MAB_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                            </div>
+                            <div class="content_subheader_left mx-1">
+                                <small class="tsa_margin_form_label">{% trans "Instead of the start- and endtime you can also enter the hours." %}</small>
                              </div>
 
+                            <div class="content_header">
+                                <label class="tsa_margin_form_label">{% trans "Don't count absence hours" %}:</label>
+                            </div>
 
+                            <div class="content_header">
+                                <div class="content_subheader_left mx-1">
+                                    <span>
+                                        <input id="id_MAB_nowk" type="checkbox" data-field="nohoursonweekend" class="td_width_032 ml-2 mr-0">
+                                        <label for="id_MAB_nowk" class="mx-0 mt-2 mb-0">{% trans 'on weekends' %}</label>
+                                    </span>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <span>
+                                        <input id="id_MAB_noph" type="checkbox" data-field="nohoursonpublicholiday" class="td_width_032 ml-2 mr-0">
+                                        <label for="id_MAB_noph" class="mx-0 mt-2 mb-0">{% trans 'on public holidays' %}</label>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>  <!-- end modal_container -->
+                </div>
 
-        </div>
-
-
-    <div class="content_subheader_left mx-1 mt-4">
-        <button id="id_form_btn_add" type="button" class="btn btn-outline-primary">{% trans 'Add employee' %}</button>
-        <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete employee' %}</button>
-    </div>
-
-
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1">
+                        <button id="id_MAB_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete absence' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MAB_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

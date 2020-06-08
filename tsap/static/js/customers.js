@@ -310,14 +310,14 @@ let planning_list = [] // for export and printing - can replace map?
             planning_period: {now: now_arr},
             calendar_period: {now: now_arr},
             company: {value: true},
-            customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             scheme: {istemplate: false, inactive: null, issingleshift: null},
             schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
             team: {istemplate: false},
-            teammember: {datefirst: null, datelast: null, employee_nonull: false},
-            employee: {inactive: null}
+            teammember_list: {datefirst: null, datelast: null, employee_nonull: false},
+            employee_list: {inactive: null}
         };
         DatalistDownload(datalist_request, "DOMContentLoaded");
 
@@ -386,15 +386,20 @@ let planning_list = [] // for export and printing - can replace map?
 
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null, row_count = {};
-            const filter_include_absence = false, filter_istemplate = false;
+            const filter_show_inactive = true, filter_include_absence = false, filter_istemplate = false;
+
+            const imgsrc_default = imgsrc_inactive_grey;
+            const imgsrc_default_header = imgsrc_inactive_lightgrey;
+            const imgsrc_default_black = imgsrc_inactive_black;
+            const imgsrc_hover = imgsrc_inactive_black;
+            const header_txt = null;
             t_Fill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
-                HandleSelect_Filter, HandleFilterInactive,
-                HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+                HandleSelect_Filter, HandleFilterInactive, HandleSelect_Row, HandleSelectRowButton, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
-                imgsrc_inactive_grey, imgsrc_inactive_black,
-                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
-                loc.TXT_Cick_show_inactive_customers);
+                imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
+                header_txt, loc.TXT_Cick_show_inactive_customers);
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
 
             FillTableRows("customer");
@@ -408,14 +413,20 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["order_list"], order_map);
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-            const filter_include_absence = false, filter_istemplate = false;
+            const filter_show_inactive = true, filter_include_absence = false, filter_istemplate = false;
+
+            const imgsrc_default = imgsrc_inactive_grey;
+            const imgsrc_default_header = imgsrc_inactive_lightgrey;
+            const imgsrc_default_black = imgsrc_inactive_black;
+            const imgsrc_hover = imgsrc_inactive_black;
+            const header_txt = null;
             t_Fill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
-                HandleSelect_Filter, HandleFilterInactive,
-                HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+                HandleSelect_Filter, HandleFilterInactive, HandleSelect_Row,  HandleSelectRowButton, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
-                imgsrc_inactive_grey, imgsrc_inactive_black,
-                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
+                imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
+                header_txt, loc.TXT_Cick_show_inactive_orders);
             const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
 
             if ( !!has_rows_arr[0] && ["calendar", "planning"].indexOf(selected_btn) > -1){
@@ -439,7 +450,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         if ("customer_planning_list" in response) {
             // customer_planning_list is used for PDF planning (teammembers are grouped by team)
-            const duration_sum = get_datamap(response["customer_planning_list"], planning_customer_map, true)
+            const duration_sum = get_datamap(response["customer_planning_list"], planning_customer_map, null, true)
             planning_display_duration_total = display_duration (duration_sum, user_lang)
             if(print_planning_after_download){
                 print_planning_after_download = false;
@@ -450,7 +461,7 @@ let planning_list = [] // for export and printing - can replace map?
         if ("employee_planning_list" in response) {
             //console.log ("...................===== employee_planning_list in response ==== ")
             // employee_planning_list is used in table and Excel (each teammember on a separate row)
-            get_datamap(response["employee_planning_list"], planning_employee_map, true)
+            get_datamap(response["employee_planning_list"], planning_employee_map, null, true)
             FillTableRows("planning");
 
             t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
@@ -536,7 +547,7 @@ let planning_list = [] // for export and printing - can replace map?
         UpdateHeaderText();
 
 // --- save selected_customer_pk in Usersettings ( UploadSettings at the end of this function)
-        const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+        const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
         UploadSettings (setting_dict, url_settings_upload);
 
     };  // HandleTableRowClicked
@@ -735,7 +746,7 @@ let planning_list = [] // for export and printing - can replace map?
                     // reset filter tBody_customer
                         t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
 
-                        let tblRow = HighlightSelectedTblRowByPk(tBody_customer, selected_customer_pk)
+                        let tblRow = t_HighlightSelectedTblRowByPk(tBody_customer, selected_customer_pk)
                         // ---  scrollIntoView, only in tblBody customer
                         if (!!tblRow){
                             tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
@@ -767,10 +778,10 @@ let planning_list = [] // for export and printing - can replace map?
                     UpdateHeaderText()
 
     // --- save selected_customer_pk and selected_order_pk in Usersettings
-                    const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+                    const upload_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
     // ---  filter selectrows of tbody_select_order
-                    // has_rows_dict: {row_count: 2, selected_pk: null, selected_parentpk: null, selected_value: null}
+                    // has_rows_dict: {row_count: 2, selected_pk: null, selected_ppk: null, selected_value: null}
                     const has_rows_dict = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
                     if ( !!has_rows_dict.row_count && ["calendar", "planning"].indexOf(selected_btn) > -1){
                         document.getElementById("id_div_tbody_select_order").classList.remove(cls_hide)
@@ -1484,7 +1495,7 @@ let planning_list = [] // for export and printing - can replace map?
             if(sel_cust_pk !== selected_customer_pk || sel_order_pk !== selected_order_pk){
                 selected_customer_pk = sel_cust_pk;
                 selected_order_pk = sel_order_pk;
-                const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+                const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
                 UploadSettings (setting_dict, url_settings_upload);
             }
     // reset addnew row
@@ -1515,10 +1526,9 @@ let planning_list = [] // for export and printing - can replace map?
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
 
                 let row_count = {count: 0};  // NIU
-                const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = true;
+                const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = true, has_delete_btn = false;
                 selectRow = t_CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
-                                            HandleSelect_Row, HandleBtnInactiveDeleteClicked,
-
+                                            HandleSelect_Row, HandleBtnInactiveDeleteClicked, has_delete_btn,
                                             filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
                                             cls_bc_lightlightgrey, cls_bc_yellow_light,
                                             imgsrc_default, imgsrc_hover,
@@ -1562,22 +1572,6 @@ let planning_list = [] // for export and printing - can replace map?
          update_map_item(data_map, map_id, update_dict, loc.user_lang);
 
     }  // UpdateFromResponse
-
-//========= UpdateForm  ============= PR2019-10-05
-    function UpdateForm(){
-        //console.log("========= UpdateForm  =========");
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
-        const pk_int = Number(get_dict_value(map_dict, ["id", "pk"], 0));
-        const readonly = (!pk_int);
-
-// ---  customer form
-        let form_elements = document.getElementById("id_div_data_form").querySelectorAll(".form-control")
-        for (let i = 0, len = form_elements.length; i < len; i++) {
-            let el_input = form_elements[i];
-            el_input.readOnly = readonly;
-            UpdateField(el_input, map_dict, false);
-        }
-    };
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, update_dict){
@@ -1734,7 +1728,7 @@ let planning_list = [] // for export and printing - can replace map?
 
             } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                 const hide_weekday = true, hide_year = false;
-                format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
+                format_date_elementMOMENT (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
                             user_lang, comp_timezone, hide_weekday, hide_year)
 
             } else if (fldName === "offsetstart"){
@@ -1890,7 +1884,7 @@ let planning_list = [] // for export and printing - can replace map?
         const selected_pk_dict = get_dict_value_by_key(setting_dict, "selected_pk")
         if(!isEmpty(selected_pk_dict)){
         // selected_pk: {sel_cust_pk: 657, sel_order_pk: 1399, sel_scheme_pk: 1642}
-            selected_customer_pk = get_dict_value_by_key(selected_pk_dict, "sel_cust_pk", 0)
+            selected_customer_pk = get_dict_value_by_key(selected_pk_dict, "sel_customer_pk", 0)
             selected_order_pk = get_dict_value_by_key(selected_pk_dict, "sel_order_pk", )
 
         }  // if(!isEmpty(selected_pk_dict)){
@@ -2715,7 +2709,7 @@ let planning_list = [] // for export and printing - can replace map?
     // ---  put datefirst datelast in input boxes
             el_MSO_scheme_datefirst.value = get_dict_value(mod_upload_dict, ["scheme", "datefirst", "value"]);
             el_MSO_scheme_datelast.value = get_dict_value(mod_upload_dict, ["scheme", "datelast", "value"]);
-            MSO_MSE_DateSetMinMax(el_MSO_scheme_datefirst, el_MSO_scheme_datelast);
+            cal_SetDatefirstlastMinMax(el_MSO_scheme_datefirst, el_MSO_scheme_datelast);
             el_MSO_scheme_datefirst.readOnly = false;
             el_MSO_scheme_datelast.readOnly = false;
 
@@ -3072,7 +3066,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         tp_dict = {id: {pk: pk_int, ppk: ppk_int, table: "shift"},
                     field: fldName,
-                    mod: calledby,
+                    page: calledby,
                     rosterdate: rosterdate,
                     offset: offset, minoffset: min_offset, maxoffset: max_offset,
                     isampm: (timeformat === 'AmPm'), quicksave: quicksave}
@@ -3596,7 +3590,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const row_team_pk_str = get_dict_value(teammember_dict, ["id", "ppk"], "").toString()
                     const row_is_delete = (get_dict_value(teammember_dict, ["id", "mode"]) === "delete");
                     if((!!row_team_pk_str && row_team_pk_str === mod_upload_dict.selected_team_pk_str) && !row_is_delete) {
-                        let tblRow = MSO_CreateTblTeammemberRow(tblBody, teammember_dict);
+                        let tblRow = MSO_TblTeammember_CreateRow(tblBody, teammember_dict);
                         MSO_TeammemberUpdateTableRow(tblRow, teammember_dict);
                     }
                 }
@@ -3657,19 +3651,19 @@ let planning_list = [] // for export and printing - can replace map?
         }
     };  //MSO_CreateTblTeammemberFooter
 
-//=========  MSO_CreateTblTeammemberRow  ================ PR2019-09-04
-    function MSO_CreateTblTeammemberRow(tblBody, teammember_dict){
-        //console.log("--- MSO_CreateTblTeammemberRow  --------------");
+//=========  MSO_TblTeammember_CreateRow  ================ PR2019-09-04
+    function MSO_TblTeammember_CreateRow(tblBody, teammember_dict){
+        //console.log("--- MSO_TblTeammember_CreateRow  --------------");
 
         const tblName = "teammember";
         const id_dict = get_dict_value_by_key(teammember_dict, "id");
         const pk_int = get_dict_value(teammember_dict, ["id", "pk"]);
         const ppk_int = get_dict_value(teammember_dict, ["id", "ppk"]);
+        const map_id = get_map_id(tblName, pk_int)
 
 // --- insert tblRow ino tblBody or tFoot
         let tblRow = tblBody.insertRow(-1);
 
-        const map_id = get_map_id(tblName, pk_int)
         tblRow.setAttribute("id", map_id);
         tblRow.setAttribute("data-pk", pk_int);
         tblRow.setAttribute("data-ppk", ppk_int);
@@ -3692,12 +3686,12 @@ let planning_list = [] // for export and printing - can replace map?
 
 // --- add type and input_text to el.
                 el.classList.add("input_text");
-// --- add EventListener to td
 
+// --- add EventListeners to td
                 if ([0, 3].indexOf( j ) > -1){
                     el.setAttribute("type", "text")
                     el.addEventListener("click", function() {
-                        MSE_Open(el, ModEmployeeChanged)
+                        MSE_Open(el)
                     }, false);
                     el.setAttribute("tabindex", "0")
                     el.classList.add("pointer_show")
@@ -3708,11 +3702,9 @@ let planning_list = [] // for export and printing - can replace map?
                     // class input_popup_date is necessary to skip closing popup
                     el.classList.add("input_popup_date")
                 };
-
 // --- add margin to first column
                 if (j === 0 ){el.classList.add("ml-2")}
             }
-
 // --- add width to el
             el.classList.add("td_width_" + fieldsettings_teammember.width[j])
 // --- add text_align
@@ -3728,7 +3720,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
         return tblRow
 
-    };// MSO_CreateTblTeammemberRow
+    };  // MSO_TblTeammember_CreateRow
 
 //=========  CreateBtnDelete  ================ PR2019-10-23
     function CreateBtnDelete(el, BtnDeleteClicked, imgsrc_delete, imgsrc_deletered, title){
@@ -3878,7 +3870,7 @@ let planning_list = [] // for export and printing - can replace map?
             if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                 //const hide_weekday = true, hide_year = false;
                 //const el_msg = null;
-                //format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
+                //format_date_elementMOMENT (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
                 //            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
                 const value = get_dict_value_by_key(field_dict, "value")            ;
                 el_input.value = value;
@@ -4435,7 +4427,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
 //=========  MSE_Open  ================ PR2019-11-06
-    function MSE_Open(el_input, ModEmployeeChanged) {
+    function MSE_Open(el_input) {
         //console.log(" -----  MSE_Open   ----")
 
         mod_employee_dict = {};
@@ -5123,6 +5115,7 @@ let planning_list = [] // for export and printing - can replace map?
         const tblName = get_attr_from_el_str(el, "data-table");
         let tblBody = document.getElementById("id_tbody_" + tblName);
 
+// --- reset filter when clicked on 'Escape'
         let skip_filter = false
         if (el_key === 27) {
             filter_dict = {}
@@ -5174,7 +5167,7 @@ let planning_list = [] // for export and printing - can replace map?
         } //  if (!skip_filter) {
 
 
-    }; // function HandleFilterName
+    }; // HandleFilterName
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive(el) {
@@ -5246,7 +5239,7 @@ let planning_list = [] // for export and printing - can replace map?
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
 // --- save selected_customer_pk in Usersettings
-            const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+            const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
             UploadSettings (setting_dict, url_settings_upload)
 
 //--- reset highlighted

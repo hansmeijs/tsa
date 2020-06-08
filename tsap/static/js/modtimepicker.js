@@ -8,10 +8,10 @@
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        //console.log("=== MODAL  ModTimepickerOpen  =====");
-        //console.log( "tp_dict: ", tp_dict);
-        //console.log( "st_dict: ", st_dict);
-
+        console.log("=== MODAL  ModTimepickerOpen  =====");
+        console.log( "tp_dict: ", tp_dict);
+        console.log( "st_dict: ", st_dict);
+        // tp_dict.page is not used in Timepicker. It is used when returned to page
         document.getElementById("id_mtp_modal").classList.remove("hidden");
 
         // only retrieve is_quicksave from roster page when starting up page.
@@ -115,8 +115,6 @@
 //- add hover delete img
                 btn_delete.addEventListener("mouseenter", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_deletered)});
                 btn_delete.addEventListener("mouseleave", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_delete)});
-
-
 
             el_footer.appendChild(btn_delete);
         }
@@ -347,7 +345,6 @@
             if (within_range){
                 //el_timepicker.setAttribute("data-offset", new_offset);
             //console.log("setAttribute new_offset ", new_offset, typeof new_offset);
-
             }
 
             if (tp_dict["isampm"]) { HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict)};
@@ -375,11 +372,10 @@
         //console.log("SetHour mod_quicksave", mod_quicksave);
     // save when in quicksave mode
             if (mod_quicksave){
-
                 ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_hour")
             }
 
-            if (tp_dict["isampm"]) { HighlightAndDisableAmpm(ModTimepickerChanged, new_dict, st_dict)};
+            if (tp_dict["isampm"]) { HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict)};
 
             HighlightAndDisableHours(tp_dict, "SetHour");
             HighlightAndDisableMinutes(tp_dict);
@@ -407,16 +403,16 @@
     }  // SetMinute
 
 //=========  ModTimepickerSave  ================ PR2019-11-24 PR2020-04-10
-    function ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, mode) {
+    function ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, btn) {
         //console.log("===  ModTimepickerSave =========", mode);
         // close timepicker, except when clicked on quicksave off
 
         let save_changes = false, dont_return = false;
 
 // close timepicker, except when clicked on quicksave off
-        if (mode === "btn_save") {
+        if (btn === "btn_save") {
             save_changes = true;
-        } else if (mode === "btn_qs") {
+        } else if (btn === "btn_qs") {
 
 // ---  toggle quicksave
             // if old quicksave = true: set quicksave = false, show btn_save, don't exit
@@ -452,11 +448,11 @@
             UploadSettings (setting_dict, url_settings_upload);
 
 
-        } else if (mode === "btn_hour") {
+        } else if (btn === "btn_hour") {
             if(mod_quicksave){
                 save_changes = true
             };
-        } else if (mode === "btn_delete") {
+        } else if (btn === "btn_delete") {
             tp_dict.offset = null;
 
             CalcMinMax(tp_dict)
@@ -474,7 +470,7 @@
         if(!dont_return) {
             // hide modal PR2020-04-12 debug: struggle to let quicksave work.
             // added set/remove attribute toggle helped, but now quicksave button doesnt close form. This solved it
-            if (mode === "btn_qs") {
+            if (btn === "btn_qs") {
             //console.log("FORCE SLOSE id_mod_timepicker");
                 //let el_mod_timepicker = document.getElementById("id_mod_timepicker")
                 // use vanilla JS, this didnt work:  $("#id_mod_timepicker").modal("hide");
@@ -490,27 +486,27 @@
 //========= HighlightAndDisableAmpm  ====================================
     function HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        //console.log( ">>>>=== HighlightAndDisableAmpm  ");
-        //console.log( "tp_dict: ", tp_dict);
+        console.log( "=== HighlightAndDisableAmpm === ");
+        console.log( "tp_dict: ", tp_dict);
         const curDate_is_rosterdate = tp_dict["curDate_is_rosterdate"];
-        const prevday_disabled = tp_dict["prevday_disabled"];
-        const nextday_disabled = tp_dict["nextday_disabled"];
+        const prevday_disabled = tp_dict.prevday_disabled;
+        const nextday_disabled = tp_dict.nextday_disabled;
         // TODO fix, get rid of moment.js
         const comp_timezone = ''; // get_attr_from_el(el_timepicker, "data-timezone");
 
-        const curDate = tp_dict["curDate"]
-        const curDateMidnight = curDate.clone()
-        const curDateMidday = curDate.clone().hour(12);
-        const curDateEndOfDay = curDate.clone().add(1, 'days');
+        //const curDate = tp_dict["curDate"]
+        const curDateMidnight = 0; // was  curDate.clone()
+        const curDateMidday = 720; // was  curDate.clone().hour(12);
+        const curDateEndOfDay = 1440; // curDate.clone().add(1, 'days');
 
-        const range_min = tp_dict["min_datetime_local"];
-        const range_max = tp_dict["max_datetime_local"];
+        const range_min = tp_dict.minoffset;
+        const range_max = tp_dict.maxoffset;
 
-        let curAmPm = tp_dict["curAmpm"];
-        let curHoursAmpm = tp_dict["curHoursAmpm"];
+        let curAmPm = tp_dict.curAmpm;
+        let curHoursAmpm = tp_dict.curHoursAmpm;
         //console.log("curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
 
-        if (tp_dict["isampm"]) {
+        if (tp_dict.isampm) {
             const tbody = document.getElementById("id_timepicker_tbody_hour");
             let tds = tbody.getElementsByClassName("timepicker_ampm")
             for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
@@ -526,7 +522,7 @@
                     period_min =  curDateMidday;
                     period_max =  curDateEndOfDay;
                 }
-                period_within_range = PeriodWithinRangeMOMENTJS(period_min, period_max, range_min, range_max)
+                period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
                 //console.log("period_min", period_min.format(), "period_max", period_max.format())
                 //console.log("range_min", range_min.format(), "range_max", range_max.format())
                 //console.log("period_within_range", period_within_range)
@@ -717,6 +713,7 @@ function CalcMinMax(dict) {
         dict["maxMinutes"] = maxMinutes
         dict["maxDayOffset"] = maxDayOffset
 
+        dict["curAmPm"] = (curHours >= 12) ? 1 : 0
         dict["curHoursAmpm"] = (dict["isampm"]) ? (curHours < 12) ? curHours : curHours - 12 : 0
         dict["prevday_disabled"] = (curOffset != null && curDayOffset <= minDayOffset);
         dict["nextday_disabled"] = (curOffset != null && curDayOffset >= maxDayOffset);
@@ -916,21 +913,21 @@ function CalcMinMax(dict) {
                 td.classList.remove("tr_hover")}}
     }
 
-//========= PeriodWithinRangeMOMENTJS  ====================================
-    function PeriodWithinRangeMOMENTJS(period_min, period_max, range_min, range_max) {
+//========= PeriodWithinRange  ====================================
+    function PeriodWithinRange(period_min, period_max, range_min, range_max) {
     // PR2019-08-04 Note: period is also out of range when diff === 0
 
         let out_of_range = false;
         if (!!range_min && !!period_max){
-            out_of_range = (period_max.diff(range_min) <= 0)  // out_of_range when period_max <= range_min
+            out_of_range = period_max <= range_min; // was:  (period_max.diff(range_min) <= 0)  // out_of_range when period_max <= range_min
         }
         if (!out_of_range) {
             if (!!range_max && !!period_min){
-                out_of_range = (period_min.diff(range_max) >= 0) // period_min >= range_max
+                out_of_range = period_min >= range_max // was:  (period_min.diff(range_max) >= 0) // period_min >= range_max
             }
         }
         const within_range = !out_of_range;
         return within_range
-    }  // PeriodWithinRangeMOMENTJS
+    }  // PeriodWithinRange
 
 

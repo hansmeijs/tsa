@@ -18,9 +18,17 @@
 {% endblock %}
 
 {% block sidebar %}
-    <nav id="id_sidebar" class="tsa_sidebar">
+    <nav id="id_sidebar" class="tsa_sidebar ">
         <div class="sidebar_header">
             <h3>{% trans 'Upload employees' %}</h3>
+                    <!-- BUTTON GROUP -->
+                <div id="id_btn_container" class="sidebar_btngroup btn-group-vertical btn-block" role="group" aria-label="Choose option" >
+                    <button data-btn="btn_step1" class="btn btn-secondary">{% trans 'Step' %} 1: <br>{% trans 'Select file' %}</button>
+                    <button data-btn="btn_step2" class="btn btn-secondary">{% trans 'Step' %} 2: <br>{% trans 'Link colums' %}</button>
+                    <button data-btn="btn_step3" class="btn btn-secondary">{% trans 'Step' %} 3: <br>{% trans 'Calculate short name' %}</button>
+                    <button data-btn="btn_step4" class="btn btn-secondary">{% trans 'Step' %} 4: <br>{% trans 'Upload data' %}</button>
+                </div>
+            <!-- end BUTTON GROUP -->
         </div>
     </nav>
 {% endblock %}
@@ -28,41 +36,46 @@
 
 {% block content %}
 
+<!-- =================== MODAL CONFIRM  =================== -->
+{% include 'includes/confirm.html' %}
+
 <div class="container">
   {% if user.is_authenticated %}
     {% if user.is_authenticated %}
         <div class="text_align_left tsa_margin_top_48">
             <h4 class="text_align_left mx-4 mt-4">{% trans 'Upload employees' %}</h4>
 
-<!-- BUTTON GROUP -->
-            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                <button id="id_btn_mod_step1" type="button" data-mode="mod_step1" class="btn btn-secondary">{% trans 'Step' %} 1: {% trans 'Select file' %}</button>
-                <button id="id_btn_mod_step2" type="button" data-mode="mod_step2" class="btn btn-secondary">{% trans 'Step' %} 2: {% trans 'Calculate short name' %}</button>
-                <button id="id_btn_mod_step3" type="button" data-mode="mod_step3" class="btn btn-secondary">{% trans 'Step' %} 3: {% trans 'Link colums' %}</button>
-                <button id="id_btn_mod_step4" type="button"  data-mode="mod_step4" class="btn btn-secondary ">{% trans 'Step' %} 4: {% trans 'Upload data' %}</button>
+            <div id="id_header_container" class="mx-4 mt-4">
+                <h4 data-btn="btn_step1">{% trans 'Step' %} 1: {% trans 'Select file' %}</h4>
+                <h4 data-btn="btn_step2" class="display_hide">{% trans 'Step' %} 2: {% trans 'Link colums' %}</h4>
+                <h4 data-btn="btn_step3" class="display_hide">{% trans 'Step' %} 3: {% trans 'Calculate short name' %}</h4>
+                <h4 data-btn="btn_step4" class="display_hide">{% trans 'Step' %} 4: {% trans 'Upload data' %}</h4>
             </div>
-    <!-- end BUTTON GROUP -->
-            <div class="content_subheader_left mx-2 my-2">
-                <button id="id_btn_mod_prev" type="button" class="btn btn-secondary"> &lt;  {% trans 'Previous step' %}</button>
-                <button id="id_btn_mod_next"  type="button" class="btn btn-secondary">{% trans 'Next step' %} &gt; </button>
-            </div>
-
-            <div class="text_align_left m-4 mod_show mod_step1">
-                <h5 class="text_align_left mt-4">{% trans 'Select Excel file with employees' %}:</h5>
+<!-- STEP 1 -->
+            <div class="text_align_left m-4 btn_show btn_step1">
+                <h6 class="m-2">{% trans 'Select an Excel file with employees' %}:</h6>
                 <div class="content_subheader_left mx-1">
-                    <input id="id_filedialog" type="file"  name="file" accept=".xlsx, .xls, csv">
+                    <input id="id_filedialog" type="file"  name="file" class="mb-0" accept=".xlsx, .xls, csv">
                 </div>
-                <h5 class="text_align_left mt-4">{% trans 'Select a worksheet' %}:</h5>
+                <div class="mx-2 my-0"><small id="id_msg_filedialog" class="text-danger display_hide"></small></div>
+
+                <h6 class="mx-2 mt-4 mb-2">{% trans 'Select a worksheet' %}:</h6>
                 <div class="content_header">
                     <div class="content_subheader_left mx-1">
-                            <select id="id_worksheet_list" type="text" data-field="team"
+                            <select id="id_worksheet_list" type="text"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
                             class="form-control mb-0"></select>
                     </div>
-                    <div class="content_subheader_left mx-1">
+                    <div class="content_subheader_left mx-2 my-0"></div>
+                </div>
+
+                <div class="content_header">
+                    <div class="content_subheader_left mx-2 my-0">
+                        <small id="id_msg_worksheet" class="text-danger display_hide"></small>
                     </div>
                 </div>
-                <h5 class="text_align_left mt-4">{% trans 'Select if the worksheet has a header row' %}:</h5>
+
+                <h6 class="mx-2 mt-4 mb-2">{% trans 'Select if the worksheet has a header row:' %}</h6>
                 <div class="content_subheader_left mx-1">
                     <span>
                         <input id="checkBoxID" type="checkbox" value="true" class="td_width_032 mx-2">
@@ -71,21 +84,74 @@
                  </div>
             </div>
 
-            <div class="text_align_left m-4 mod_show mod_step2">
-                <h5 class="text_align_left mt-4">{% trans 'How do you want the short name to be calculated?' %}</h5>
+<!-- STEP 2 -->
+            <div class="m-4 btn_show btn_step2 display_hide">
+                <div class="mt-4">
+                    <div><small>{% trans "Click corresponding names in the left and right list to link an Excel column to a TSA-column." %}</small></div>
+                    <div><small >{% trans "Click linked names in the lower list to unlink these columns." %}</small></div>
+                    <div><small>{% trans "One of the fields 'Payroll code', 'ID-number' or 'Short name' must be linked and contain unique values." %}</small></div>
+
+                    <div class="mt-2">
+                        <div class="content_header tsa_bc_lightlightgrey">
+                            <div class="content_subheader_left ea_flex">
+                                <table class="tsa_tbl_unlinked" width="100%">
+                                    <thead class="tsa_tbl_hdr_unlinked">
+                                        <tr><th class="text_align_center">{% trans 'TSA columns' %}</th></tr>
+                                    </thead>
+                                    <tbody id="id_tbody_tsa" data-tbody="tsa">
+                                        <tr><td class="px-2">{% trans 'TSA columns' %}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="content_subheader_left excel-columns ">
+                                <table class="tsa_tbl_unlinked" width="100%">
+                                    <thead class="tsa_tbl_hdr_unlinked">
+                                        <tr><th class="text_align_center">{% trans 'Excel columns' %}</th></tr>
+                                    </thead>
+                                    <tbody id="id_tbody_exc" data-tbody="exc">
+                                        <tr><td class="px-2">{% trans 'Excel columns' %}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="content_header">
+                            <div class="content_subheader_left linked-columns">
+                                 <table class="tsa_tbl_linked" width="100%">
+                                    <thead class="tsa_tbl_hdr_linked">
+                                        <tr><th class="text_align_center" colspan="2">{% trans 'Linked columns' %}</th></tr>
+                                    </thead>
+                                    <tbody id="id_tbody_lnk" data-tbody="lnk">
+                                        <tr>
+                                            <td class="px-2">{% trans 'TSA columns' %}</td>
+                                            <td class="px-2">{% trans 'Excel columns' %}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="id_msg_err_no_identifier_linked" class="m-0 px-2 py-0" >
+                        <small class="text-danger">{% trans "One of the fields 'Payroll code' or 'ID-number' must be linked and contain unique values." %}</small>
+                    </div>
+                </div>
+            </div>
+
+<!-- STEP 3-->
+            <div class="text_align_left m-4 btn_show btn_step3 display_hide">
                 <div class="content_header">
                     <div class="content_subheader_left mx-1">
-                        <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                        <h6 class="text_align_left mt-2 mx-2">{% trans 'How do you want the short name to be calculated?' %}</h6>
+                        <div><small class="tsa_Xmargin_form_label mx-2 my-0">
                             {% trans "Instead of importing the short name, you can also let TSA calculate the short name based on the first and last name." %}
                         </small></div>
-                        <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                        <div><small class="tsa_Xmargin_form_label mx-2 my-0">
                             {% trans "Select how you want TSA to calculate the short name." %} {% trans "If the short name is calculated, a linked short name will be ignored." %}
                         </small></div>
                         <div class="content_header">
                             <div class="tsa_flex_2  mx-1">
                                 <select id="id_select_code_calc" type="text" size="4"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                        class="form-control mt-2">
+                                    class="form-control mt-2">
                                     <option value="linked">{% trans "Don't calculate, but link to an Excel column" %}</option>
                                     <option value="firstname">{% trans "Calculate like: Smith, John" %}</option>
                                     <option value="initials">{% trans "Calculate like: Smith J S A" %}</option>
@@ -97,56 +163,94 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="text_align_left m-4 mod_show mod_step3">
+                <div class="content_header">
+                    <div id="id_div_dateformat" class="content_subheader_left mx-1 display_hide">
+                        <h6 class="text_align_left mt-4 mx-2">{% trans 'Date format' %}</h6>
+                        <div id="id_msg_dateformat"><small class="text-danger mx-2 my-0">
+                            {% trans "TSA was not able to determine the format of dates in date fields. Please select a date format." %}
+                        </small></div>
 
-                <h5 class="text_align_left mt-4"> {% trans 'Link colums' %}</h5>
-                <div>
-                    <h6 id="div_infoID" class="text_align_left mx-2 mt-2"></h6>
+                        <div class="content_header">
+                            <div class="tsa_flex_2  mx-1">
+                                <select id="id_select_dateformat" type="text" size="3"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                    class="form-control mt-2">
+                                    <option value="yyyy-mm-dd">yyyy-mm-dd</option>
+                                    <option value="dd-mm-yyyy">dd-mm-yyyy</option>
+                                    <option value="mm-dd-yyyy">mm-dd-yyyy</option>
+                                </select>
+                            </div>
+                            <div class="tsa_flex_1 mx-1">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div><small class="tsa_Xmargin_form_label mx-4 my-0">
-                    {% trans "Click corresponding names in the left and right list to link these columns." %}
-                    {% trans "Click linked names in the lower list to unlink these columns." %}
-                </small></div>
-                <div><small class="tsa_Xmargin_form_label mx-4 my-0">
-                    {% trans "One of the fields 'Payroll code' or 'Identifier' must be linked and contain unique values." %}
-                </small></div>
-                <div class="container mt-2">
-                    <div id="id_basediv_col" class="c_link_columns"></div>
-                </div>
             </div>
-
-            <div class="text_align_left m-4 mod_show mod_step4">
-                <h5 class="text_align_left mt-4">{% trans 'Upload employees' %}</h5>
+<!-- STEP 4-->
+            <div class="text_align_left m-4 btn_show btn_step4 display_hide">
+                <h6 class="text_align_left mx-2 mt-4 mb-2">{% trans 'Upload employees' %}</h6>
                 <div class="content_subheader_left mx-2 my-2">
-                    <button id="btn_upload" type="button" class="btn btn-secondary">{% trans 'Upload' %}</button>
+                    <button id="id_btn_test" type="button" class="btn btn-secondary">{% trans 'Test upload' %}</button>
+                    <button id="id_btn_upload" type="button" class="btn btn-secondary">{% trans 'Upload' %}</button>
                     <span>
-                        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
+                        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="mx-4 visibility_hide" >
                     </span>
                 </div>
-                <table class="c_table_stud" id="id_table" width="100%" class="display_hide">
-                    <thead id="id_thead" class="c_thead"></thead>
-                    <tbody id="id_tbody" class="c_tbody"></tbody>
-                    <tfoot id="id_tfoot" class="c_tfoot"></tfoot>
-                </table>
+                <div >
+                    <small class="text-muted">
+                        {% trans "'Test upload' validates the new data and compares it with the existing database. It will not save the new data." %}
+                        {% trans "You can review the results in a log file that will be downloaded." %}
+                    </small>
+                </div>
             </div>
+
+            <div class="content_header">
+                <div class="content_subheader_left mx-4 mb-4">
+                    <div id="id_btn_container2" class="sidebar_btngroup btn-group btn-block" role="group" aria-label="Choose option" >
+                        <button id="id_btn_mod_prev" type="button" class="btn btn-secondary"> &lt;  {% trans 'Previous step' %}</button>
+                        <button id="id_btn_mod_next"  type="button" class="btn btn-secondary">{% trans 'Next step' %} &gt; </button>
+                    </div>
+                    <div id="id_msg_err01" class="m-0 px-2 py-0" >
+                        <small class="text-danger">
+                            {% trans "You must select a valid Excel file before you can proceed." %}
+                        </small>
+                    </div>
+                </div>
+                <div class="content_subheader_left mx-2 my-0">
+                </div>
+            </div>
+
+            <div class="mx-4 mb-0 btn_show btn_step1 btn_step4 display_hide">
+                <div>
+                    <h6 class="mb-0">{% trans 'Excel file data' %}:</h6>
+                </div>
+                <div >
+                    <small class="text-muted">
+                        {% trans "The columns with a red header will be uploaded." %}
+                    </small>
+                </div>
+                <div class="mb-4">
+                    <table id="id_table" class="tsa_tbl_blue" width="100%">
+                        <thead id="id_thead" class="c_theadXX"></thead>
+                        <tbody id="id_tbody" class="c_tbody"></tbody>
+                        <tfoot id="id_tfoot" class="c_tfoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+
 
 <!-- DIV ID DATA -->
             <div id="id_data"
+                data-datalist_download_url="{% url 'datalist_download_url' %}"
+                data-settings_upload_url="{% url 'settings_upload_url' %}"
+
                 data-employee_uploadsetting_url= "{% url 'employee_uploadsetting_url' %}"
                 data-employee_uploaddata_url= "{% url 'employee_uploaddata_url' %}"
-                data-captions = "{{ captions }}"
-                data-settings = "{{ setting }}"
-                data-txt_no_worksheets= "{% trans 'There are no worksheets.' %}"
-                data-txt_no_worksheets_with_data= "{% trans 'There are no worksheets with data.' %}"
 
-                data-txt_filename= "{% trans 'File name' %}"
-                data-txt_novalidtype= "{% trans 'Not a valid file type.' %}"
-                data-txt_updateyourselection= "{% trans 'Update your selection.' %}"
-
-
+                 data-captionsXX = "{{ captions }}"
+                data-settingsXX = "{{ setting }}"
             ></div>
 
         </div>

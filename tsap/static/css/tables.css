@@ -155,6 +155,8 @@
 }
 
 .tsa_tbl td {
+    /* display: table-cell; /* PR2020-05-28 problems with right align offset field in datatable om planning page */
+    /*width: 100%;*/
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0;
     overflow: hidden;
@@ -354,7 +356,9 @@
 .tsa_color_red {
     color: #cc0000; /* bit dark red ; /* default light grey */
 }
-
+.tsa_color_black {
+    color: #000000;
+}
 .tsa_padding_20 {
     /* padding: <top><right><bottom><left> */
     padding: 20px 20px 20px 20px;
@@ -400,10 +404,10 @@
     max-height: 50vh;
     overflow: auto;
 }
-.tbl_div_400_220 {
+.tbl_div_390_220 {
     overflow-x: hidden;
     overflow-y: auto;
-    height: 400px;
+    height: 390px;
     width: 220px;
 }
 

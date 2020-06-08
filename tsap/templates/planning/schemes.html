@@ -9,6 +9,7 @@
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
     <script src="{% static 'js/modtimepicker.js' %}"></script>
+    <script src="{% static 'js/calendar.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -30,7 +31,6 @@
             <div id="id_select_template_div" class="display_hide my-2">
                 <h4 class="mx-2 my-2">{% trans 'Templates' %}</h4>
             </div>
-
             <table id="id_select_table_scheme" class="display_hide mt-4">
                 <thead id="id_select_thead_scheme" class="tsa_color_white m-1"></thead>
                 <tbody id="id_select_tbody_scheme"></tbody>
@@ -57,12 +57,12 @@
 {% block content %}
     {% if user.is_authenticated %}
 <!-- =================== msgbox  =================== -->
-        <div class="popup display_hide" >
+    <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
-        </div>
+    </div>
 
-<!-- =================== MODAL SCHEME ADD  =================== -->
-        {% include 'includes/modschemeadd.html' %}
+<!-- =================== MODAL SCHEME =================== -->
+    {% include 'includes/modscheme.html' %}
 
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
     <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
@@ -164,288 +164,160 @@
     {% include 'includes/modgridteam.html' %}
 <!-- =================== MODAL GRID SHIFT  =================== -->
     {% include 'includes/modgridshift.html' %}
-<!-- =================== MODAL SELECT ORDER  =================== -->
-    {% include 'includes/modselectorder.html' %}
+<!-- =================== MODAL SELECT CUSTOMER / ORDER  =================== -->
+    {% include 'includes/modselectcustorder.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
     {% include 'includes/modselectemployee.html' %}
+<!-- =================== MODAL ABSENCE  =================== -->
+        {% include 'includes/modabsence.html' %}
 
 <!-- =================== POPUP DATE  =================== -->
      <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
          <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
      </div>
 
-    <!-- =================== CONTAINER =================== -->
-        <div class="container">
+<!-- =================== CONTAINER =================== -->
+    <div class="container">
 
-        <!-- box with scheme input elements -->
-        <div class="mx-4 my-1">
-            <!-- CONTENT HEADER - LOADER -->
-            <div class="mt-5">
-                <div class="content_header">
-                    <div class="content_subheader_left tsa_flex_4 mx-2">
-                        <h5 id="id_hdr_text"></h5>
-                    </div>
-                    <div class="content_header_middle mx-4 p-2 ">
-                        <div id="id_loader" class="image_container">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
-                    </div>
-                    <div class="content_subheader_right tsa_flex_4 mx-2">
-                        <h5 id="id_hdr_right_text"></h5>
+    <!-- box with scheme input elements -->
+    <div class="mx-4 my-1">
+        <!-- CONTENT HEADER - LOADER -->
+        <div class="mt-5">
+            <div class="content_header">
+                <div class="content_subheader_left tsa_flex_4 mx-2">
+                    <h5 id="id_hdr_text"></h5>
+                </div>
+                <div class="content_header_middle mx-4 p-2 ">
+                    <div id="id_loader" class="image_container">
+                        <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                     </div>
                 </div>
+                <div class="content_subheader_right tsa_flex_4 mx-2">
+                    <h5 id="id_hdr_right_text"></h5>
+                </div>
             </div>
-            <!-- end CONTENT HEADER - LOADER -->
-
-            <!-- BUTTON GROUP -->
-            <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
-                <button type="button" data-mode="btn_gridlayout" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
-                <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
-                <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
-                <button type="button"  data-mode="btn_team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
-                <button type="button" data-mode="btn_scheme" class="btn btn-secondary">{% trans 'Scheme' %}</button>
-            </div>
-    <!-- end BUTTON GROUP -->
-
         </div>
+        <!-- end CONTENT HEADER - LOADER -->
+
+        <!-- BUTTON GROUP -->
+        <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
+            <button type="button" data-mode="btn_grid" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
+            <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
+            <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
+            <button type="button"  data-mode="btn_team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
+            <button type="button" data-mode="btn_scheme" class="btn btn-secondary">{% trans 'Schemes' %}</button>
+            <button type="button" data-mode="btn_absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
+        </div>
+<!-- end BUTTON GROUP -->
+
+    </div>
 <!-- END box with scheme input elements -->
 
-        <!-- end class content_subheader mt-5 -->
-        <!-- class content body mx-2 -->
-        <div class="content_body mx-2">
+    <!-- end class content_subheader mt-5 -->
+    <!-- class content body mx-2 -->
+    <div class="content_body mx-2">
 
 <!-- =================== GRID  =================== -->
 
-            <div id="id_div_tbl_newlayout" data-mode="btn_gridlayout" class="display_hide">
-                <div class="tsa_main_container m-4">
-                    <div class="tsa_team_container">
-                        <div class="grid_scheme tbl_border tsa_bc_lightlightgrey">
-                            <div class="m-2">
-                                <h6 class="mx-1 my-0">{% trans 'Scheme' %}:</h6>
-                            </div>
-                            <div class=" m-1">
-                                <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="code" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
-                                <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
-                            </div>
-                            <div class=" mx-1">
-                                <a id="id_grid_scheme_btn_datefirstlast" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
-                            </div>
-                            <div class=" mx-1">
-                                <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
-                            </div>
-                            <div class=" mx-1 mb-1">
-                                <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
-                            </div>
+        <div id="id_div_gridlayout" class=" display_hide">
+            <div class="tsa_main_container m-4">
+                <div class="tsa_team_container">
+                    <div class="grid_scheme tbl_border tsa_bc_lightlightgrey">
+                        <div class="m-2">
+                            <h6 class="mx-1 my-0">{% trans 'Scheme' %}:</h6>
                         </div>
-                        <div class="grid_teams tbl_border">
+                        <div class=" m-1">
+                            <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="code" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
+                            <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
+                        </div>
+                        <div class=" mx-1">
+                            <a id="id_grid_scheme_btn_datefirstlast" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
+                        </div>
+                        <div class=" mx-1">
+                            <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
+                        </div>
+                        <div class=" mx-1 mb-1">
+                            <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
+                        </div>
+                    </div>
+                    <div class="grid_teams tbl_border">
+                        <table class="grd_tbl">
+                            <tbody id="id_grid_tbody_team">
+                             </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tsa_shift_container">
+                    <h6 class="grid_schemeitem_hdr m-0 px-2 py-1">
+                        {% trans 'Planned shifts' %}
+                    </h6>
+                    <div class="grid_schemeitem tbl_XXborder">
+                        <div class=" tbl_border">
                             <table class="grd_tbl">
-                                <tbody id="id_grid_tbody_team">
-                                 </tbody>
+                                <tbody id="id_grid_tbody_shift">
+                                </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <div class="tsa_shift_container">
-                        <h6 class="grid_schemeitem_hdr m-0 px-2 py-1">
-                            {% trans 'Planned shifts' %}
-                        </h6>
-                        <div class="grid_schemeitem tbl_XXborder">
-                            <div class=" tbl_border">
-                                <table class="grd_tbl">
-                                    <tbody id="id_grid_tbody_shift">
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div><small id="id_msg_onph" class="mx-2">{% trans "If a date is a public holiday, you must enter the normal shifts in that column. Shifts of public holidays must be entered in the column 'Public holidays'." %}</small></div>
-                    </div>
+                    <div><small id="id_msg_onph" class="mx-2">{% trans "If a date is a public holiday, you must enter the normal shifts in that column. Shifts of public holidays must be entered in the column 'Public holidays'." %}</small></div>
                 </div>
             </div>
-
-<!-- =================== DATA TABLES  =================== -->
-            <div id="id_div_tbl_schemeitem" data-mode="btn_schemeitem" class="display_hide">
-                <div class="content_header mx-2 my-4">
-                    <div id="id_btns_schemeitem" class="content_subheader_left">
-                        <button id="id_btn_cycleprev" data-mode="prev" title="{% trans 'Show previous cycle. This does not affect the shifts.' %}" class="btn btn-add ml-2">&larr;</button>
-                        <button id="id_btn_cyclenext" data-mode="next" title="{% trans 'Show next cycle. This does not affect the shifts.' %}" class="btn btn-add">&rarr;</button>
-                        <button id="id_btn_dayup" data-mode="dayup" title="{% trans 'Set all rosterdates one day earlier.' %}" class="btn btn-add"> &uarr; </button>
-                        <button id="id_btn_daydown" data-mode="daydown" title="{% trans 'Set all rosterdates one day later.' %}" class="btn btn-add"> &darr; </button>
-                        <button id="id_btn_autofill" data-mode="autofill" title="{% trans 'Copy the entered shifts to the rest of the cycle dates.' %}" class="btn btn-add">{% trans 'Fill scheme' %}</button>
-                        <button id="id_btn_schemeitems_delete" data-mode="delete" class="btn btn-add">{% trans 'Delete all shifts from this scheme' %}</button>
-                    </div>
-                </div>
-
-                <table id="id_table_schemeitem" class="table tsa_tbl mx-2 my-2">
-                    <thead id="id_thead_schemeitem"></thead>
-                    <tbody id="id_tbody_schemeitem"></tbody>
-                    <tfoot id="id_tfoot_schemeitem"></tfoot>
-                </table>
-            </div>
-
-            <div id="id_div_tbl_shift" data-mode="btn_shift" class="display_hide">
-                <div class="content_header mx-2 my-4">
-                </div>
-                <table id="id_table_shift" class="table tsa_tbl mx-2 my-2">
-                    <thead id="id_thead_shift"></thead>
-                    <tbody id="id_tbody_shift"></tbody>
-                    <tfoot id="id_tfoot_shift"></tfoot>
-                </table>
-            </div>
-
-            <div id="id_div_tbl_teammember" data-mode="btn_team" class="display_hide">
-                <div class="content_header mx-4 my-4">
-                    <div class="content_subheader_left mx-2">
-                        <h6>{% trans 'Team' %}:</h6>
-                        <input id="id_team_code" type="text" data-table="team" data-field="code"
-                        class="td_width_220 my-1 pt-0 pb-0 " autocomplete="off">
-                    </div>
-                </div>
-                <table id="id_table_teammember" class="table tsa_tbl mx-2 my-2">
-                    <thead id="id_thead_teammember"></thead>
-                    <tbody id="id_tbody_teammember"></tbody>
-                    <tfoot id="id_tfoot_teammember"></tfoot>
-                </table>
-            </div>
-
-<!-- =================== DATA FORM  =================== -->
-            <div id="id_div_data_form" data-mode="btn_scheme"  class="tsa_bc_lightlightgrey display_hide m-4 p-4">
-                <div class="modal_flexcontainer">
-                    <div class="modal_flex1 px-2">
-                        <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
-                        <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
-                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                               class="form-control frm_input px-2">
-                        <div><small id="id_scheme_msg_code" class="mx-2"></small></div>
-                    </div>
-                    <div class="modal_flex1 px-2">
-                        <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
-                        <input id="id_scheme_cycle" type="number" min="1" max="28" data-table="scheme" data-field="cycle"
-                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                               class="form-control frm_input px-2">
-                        <div><small id="id_scheme_msg_cycle" class="mx-2"></small></div>
-                    </div>
-                </div>
-
-                <div class="modal_flexcontainer">
-                    <div class="modal_flex1 px-2">
-                        <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                        <input id="id_scheme_datefirst" type="date" data-table="scheme" data-field= "datefirst"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
-                    </div>
-                    <div class="modal_flex1 px-2">
-                       <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                        <input id="id_scheme_datelast" type="date" data-table="scheme" data-field="datelast"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
-                    </div>
-                </div>
-                <div class="modal_flexcontainer pt-3">
-                    <div class="modal_flex1 px-2">
-                        <input id="id_scheme_excludepublicholiday" type="checkbox" data-table="scheme" data-field="excludepublicholiday" class="frm_input td_width_032 ">
-                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on public holidays' %}</label>
-                    </div>
-                    <div class="modal_flex1 px-2">
-                         <input id="id_scheme_excludecompanyholiday" type="checkbox" data-table="scheme" data-field="excludecompanyholiday" class="frm_input td_width_032">
-                        <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
-                    </div>
-                </div>
-                <div class="modal_flexcontainer">
-                    <div class="modal_flex1 px-2">
-                        <input id="id_scheme_divergentonpublicholiday" type="checkbox" data-table="scheme" data-field="divergentonpublicholiday" class="frm_input td_width_032 ">
-                        <label for="id_scheme_divergentonpublicholiday" class="mt-1">{% trans 'Divergent on public holidays' %}</label>
-                    </div>
-                    <div class="modal_flex1 px-2">
-                    </div>
-                </div>
-
-            </div>
-
         </div>
+
+<!-- =================== DATA TABLE  =================== -->
+        <div id="id_div_tbl_schemeitem" class="display_hide">
+            <div class="content_header mx-2 my-4">
+                <div id="id_btns_schemeitem" class="content_subheader_left">
+                    <button id="id_btn_cycleprev" data-mode="prev" title="{% trans 'Show previous cycle. This does not affect the shifts.' %}" class="btn btn-add ml-2">&larr;</button>
+                    <button id="id_btn_cyclenext" data-mode="next" title="{% trans 'Show next cycle. This does not affect the shifts.' %}" class="btn btn-add">&rarr;</button>
+                    <button id="id_btn_dayup" data-mode="dayup" title="{% trans 'Set all rosterdates one day earlier.' %}" class="btn btn-add"> &uarr; </button>
+                    <button id="id_btn_daydown" data-mode="daydown" title="{% trans 'Set all rosterdates one day later.' %}" class="btn btn-add"> &darr; </button>
+                    <button id="id_btn_autofill" data-mode="autofill" title="{% trans 'Copy the entered shifts to the rest of the cycle dates.' %}" class="btn btn-add">{% trans 'Fill scheme' %}</button>
+                    <button id="id_btn_schemeitems_delete" data-mode="delete" class="btn btn-add">{% trans 'Delete all shifts from this scheme' %}</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="id_div_datatable" class="display_hide">
+            <table class="table tsa_tbl mx-2 my-2">
+                <thead id="id_tblHead_datatable"></thead>
+                <tbody id="id_tblBody_datatable"></tbody>
+                <tfoot id="id_tblFoot_datatable"></tfoot>
+            </table>
+        </div>
+    </div>
 <!-- flex_container -->
+ </div>
+    <div id="id_data"
+        data-datalist_download_url="{% url 'datalist_download_url' %}"
+        data-settings_upload_url="{% url 'settings_upload_url' %}"
+        data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
+        data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
+        data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
+        data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
+        data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
+        data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+        data-grid_upload_url="{% url 'grid_upload_url' %}"
 
-        <div id="id_data"
-            data-datalist_download_url="{% url 'datalist_download_url' %}"
-            data-settings_upload_url="{% url 'settings_upload_url' %}"
-            data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
-            data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
-            data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
-            data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
-            data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
-            data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+        data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
+        data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
+        data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
+        data-imgsrc_delete="{% static 'img/delete.gif' %}"
+        data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
+        data-imgsrc_warning="{% static 'img/warning.gif' %}"
+        data-imgsrc_b_black = "{% static 'img/b_black.png' %}"
+        data-imgsrc_b_grey = "{% static 'img/b_grey.png' %}"
+        data-imgsrc_d_black = "{% static 'img/d_black.png' %}"
+        data-imgsrc_d_grey = "{% static 'img/d_grey.png' %}"
+        data-imgsrc_chck01 = "{% static 'img/chck01.png' %}"
+        data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
+        data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
+        data-imgsrc_stat00="{% static 'img/stat00.png' %}"
+    >
+    </div>
 
-            data-grid_upload_url="{% url 'grid_upload_url' %}"
-
-            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
-            data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
-            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
-            data-imgsrc_delete="{% static 'img/delete.gif' %}"
-            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
-            data-imgsrc_warning="{% static 'img/warning.gif' %}"
-            data-imgsrc_b_black = "{% static 'img/b_black.png' %}"
-            data-imgsrc_b_grey = "{% static 'img/b_grey.png' %}"
-            data-imgsrc_d_black = "{% static 'img/d_black.png' %}"
-            data-imgsrc_d_grey = "{% static 'img/d_grey.png' %}"
-            data-imgsrc_rest_black = "{% static 'img/rest_black.png' %}"
-            data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
-            data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
-            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
-
-            data-lang ="{{ lang }}"
-            data-timezone ="{{ timezone }}"
-            data-interval ="{{ interval }}"
-            data-timeformat ="{{ timeformat }}"
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
-            data-today ="{{ today }}"
-
-            data-txt_save = "{% trans 'Save' %}"
-            data-txt_quicksave = "{% trans 'Quick save' %}"
-            data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
-
-            data-txt_scheme= "{% trans 'Scheme' %}"
-            data-txt_scheme_add= "{% trans 'Add scheme' %}"
-            data-txt_select_scheme= "{% trans 'Select scheme' %}"
-
-            data-txt_date= "{% trans 'Date' %}"
-            data-txt_cycle_once= "{% trans 'Once only' %}"
-            data-txt_roster_create= "{% trans 'Create roster' %}"
-            data-txt_rosterdate= "{% trans 'Rosterdate' %}"
-            data-txt_fill_roster = "{% trans 'Fill roster' %}"
-
-            data-txt_shifts= "{% trans 'Shifts' %}"
-            data-txt_shift_rest= "{% trans 'Rest shift' %}"
-            data-txt_shift_add= "{% trans 'Add shift' %}"
-            data-txt_shift_enter= "{% trans 'Enter shift' %}"
-            data-txt_shift_delete= "{% trans 'Delete shift' %}"
-            data-txt_show_shifts= "{% trans 'Go to shifts' %}"
-
-            data-txt_team= "{% trans 'Team' %}"
-            data-txt_teams= "{% trans 'Teams' %}"
-            data-txt_team_add= "{% trans 'Add new team' %}"
-            data-txt_team_delete= "{% trans 'Delete team' %}"
-            data-txt_show_teams= "{% trans 'Go to teams' %}"
-
-            data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_employees= "{% trans 'Employees' %}"
-
-            data-txt_datefirst= "{% trans 'Start date' %}"
-            data-txt_datelast= "{% trans 'End date' %}"
-            data-txt_pricerate= "{% trans 'Hourly rate' %}"
-            data-txt_billable = "{% trans 'Billable' %}"
-
-            data-timepicker_curday= "{% trans 'Current day' %}"
-            data-timepicker_prevday= "{% trans 'Previous day' %}"
-            data-timepicker_nextday= "{% trans 'Next day' %}"
-            data-timepicker_prevday_info= "{% trans 'Shift starts on the previous day' %}"
-            data-timepicker_nextday_info= "{% trans 'Shift ends on the next day' %}"
-
-            data-title_billable= "{% trans 'Billable hours. Changes in worked hours will be passed on to the invoice.' %}"
-            data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not be passed on to the invoice.' %}"
-
-        >
-        </div>
-
-        <datalist id="id_datalist_employees"></datalist>
     {% else %}
         <div class="alert alert-danger">{% trans 'Error' %}</div>
         <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>

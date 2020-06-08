@@ -386,18 +386,36 @@ class Usersetting(Model):
     def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
         # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
         if user and key_str:
-            try:
-                row = cls.objects.filter(user=user, key=key_str).first()
-                if row:
-                    row.jsonsetting = setting_dict
-                else:
-                    if setting_dict:
-                        row = cls(
-                            user=user,
-                            key=key_str,
-                            jsonsetting=setting_dict
-                        )
-                row.save()
-                # logger.debug('new_setting_json' + str(new_setting_json))
-            except:
-                pass
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                row.jsonsetting = setting_dict
+            else:
+                if setting_dict:
+                    row = cls(
+                        user=user,
+                        key=key_str,
+                        jsonsetting=setting_dict
+                    )
+            row.save()
+
+
+    @classmethod
+    def set_selected_pk(cls, new_setting, user):  # PR2020-05-24
+        # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
+        if user:
+            key_str = 'selected_pk'
+            selected_pk_dict = cls.get_jsonsetting(key_str, user)
+            # key 'sel_cust_pk' is replaced by 'sel_customer_pk'. remove old key (temporary) TODO remove PR2020-05-21
+            if 'sel_cust_pk' in selected_pk_dict:
+                selected_pk_dict.pop('sel_cust_pk')
+            # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
+            for sel_pk in new_setting:
+                sel_value = new_setting[sel_pk]
+                selected_pk_dict[sel_pk] = sel_value
+
+            # new_setting is in json format, no need for json.loads and json.dumps
+            # new_setting = json.loads(request.POST['setting'])
+            # new_setting_json = json.dumps(new_setting)
+            if selected_pk_dict:
+                cls.set_jsonsetting(key_str, selected_pk_dict, user)
+            return selected_pk_dict

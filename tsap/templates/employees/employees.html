@@ -21,9 +21,9 @@
         <div class="td_width_200 mx-2 mt-2 mb-5">
 
             <table >
-                <thead id="id_thead_select"class="mx-1 my-1 ">
+                <thead id="id_SBR_thead_select" class="mx-1 my-1 ">
                 </thead>
-                <tbody id="id_tbody_select"></tbody>
+                <tbody id="id_SBR_tbody_select"></tbody>
             </table>
         </div>
     </nav>
@@ -76,6 +76,12 @@
          <div id="id_popup_date_container" class="popup_box tsa_bc_yellow_lightlight display_hide">
              <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
          </div>
+
+modformemployee.html
+
+<!-- =================== MODAL EMPLOYEE  =================== -->
+        {% include 'includes/modemployee.html' %}
+
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
@@ -84,6 +90,8 @@
         {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL SHIFT EMPLOYEE   ===================-->
         {% include 'includes/modshiftemployee.html' %}
+<!-- =================== MODAL ABSENCE  =================== -->
+        {% include 'includes/modabsence.html' %}
 <!-- =================== MODAL TIMEPICKER  =================== -->
         {% include 'includes/modtimepicker.html' %}
 
@@ -108,12 +116,11 @@
     <!-- end class content_header -->
     <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
-                    <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                    <button id="id_btn_team" type="button"  data-mode="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-                    <button id="id_btn_calendar" type="button" data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
-                    <button id="id_btn_planning" type="button" data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <button id="id_btn_data" type="button" data-mode="form" class="btn btn-secondary ">{% trans 'Data' %}</button>
+                    <button id="id_btn_listXX" type="button" data-btn="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
+                    <button id="id_btn_absenceXX" data-btn="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
+                    <button id="id_btn_teamXX" data-btn="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
+                    <button id="id_btn_calendarXX" type="button" data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
+                    <button id="id_btn_planningXX" type="button" data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
             </div>
@@ -121,43 +128,24 @@
 
 <!-- CONTENT BODY -->
             <div class="content_body mx-2">
-    <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_tbl_employee" class="tab_show tab_employee display_hide">
-                     <table class="tableXX tsa_tbl ">
-                        <thead id="id_thead_employee"></thead>
-                        <tbody id="id_tbody_employee"></tbody>
-                        <tfoot id="id_tfoot_employee"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_absence" class="tab_show tab_absence display_hide">
-                     <table  class="tableXX tsa_tbl ">
-                        <thead id="id_thead_absence"></thead>
-                        <tbody id="id_tbody_absence"></tbody>
-                        <tfoot id="id_tfoot_absence"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_shifts" class="tab_show tab_shifts display_hide">
-                     <table  class="tableXX tsa_tbl ">
-                        <thead id="id_thead_shifts"></thead>
-                        <tbody id="id_tbody_shifts"></tbody>
-                        <tfoot id="id_tfoot_shifts"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_planning" class="content_header tab_show tab_planning display_hide">
-                    <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
+<!-- =================== DATA TABLE  =================== -->
+
+                <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_shifts tab_planning display_hide">
+                    <div class="content_subheader_left mx-2 tab_show tab_planning display_hide">
+                        <h5 id="id_hdr_datatable" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
                     </div>
                      <table class="table tsa_tbl">
-                        <thead id="id_thead_planning"></thead>
-                        <tbody id="id_tbody_planning"></tbody>
+                        <thead id="id_tblHead_datatable"></thead>
+                        <tbody id="id_tblBody_datatable"></tbody>
+                        <tfoot id="id_tblFoot_datatable"></tfoot>
                     </table>
                 </div>
+
                 <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
                     {% include 'includes/calendar.html' %}
                 </div>
 <!-- =================== DATA FORM  =================== -->
                 <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey tab_show tab_employee_form display_hide">
-                    {% include 'employees/employee_form.html' %}
                 </div>
             </div>
 <!-- END CONTENT BODY -->
@@ -204,10 +192,7 @@
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_team= "{% trans 'Team' %}"
             data-txt_of= "{% trans 'of' %}"
-            data-txt_absence= "{% trans 'Absence' %}"
-            data-txt_abscat = "{% trans 'Absence category' %}"
-            data-txt_select_abscat = "{% trans 'Select absence category' %}"
-            data-txt_select_abscat_none = "{% trans 'No absence categories' %}"
+
             data-txt_period = "{% trans 'Period' %}"
             data-txt_select_period = "{% trans 'Select period' %}"
             data-txt_planning = "{% trans 'Planning' %}"
@@ -218,8 +203,6 @@
             data-txt_date="{% trans 'Date' %}"
             data-txt_rosterdate="{% trans 'Rosterdate' %}"
 
-            data-txt_confirm_msg01_delete = "{% trans 'will be deleted.' %}"
-            data-txt_confirm_msg01_employee_delete = "{% trans 'This employee will be deleted.' %}"
             data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
             data-txt_confirm_msg01_inactive = "{% trans 'This employee will be made inactive.' %}"
             data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"

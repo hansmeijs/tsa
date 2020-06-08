@@ -50,6 +50,7 @@ idx_rpl_code = 15  # is r_code_arr in customer_calendar
 idx_si_id = 16
 idx_sh_id = 17
 idx_sh_code = 18
+
 idx_sh_isbill = 19
 idx_o_seq = 20
 idx_si_mod = 21
@@ -59,58 +60,61 @@ idx_tm_dl = 23  # is null in customer_calendar
 idx_s_df = 24
 idx_s_dl = 25
 idx_s_cycle = 26
+
 idx_s_exph = 27
 idx_s_exch = 28
+idx_s_dvgph = 29
+idx_s_nowk = 30
+idx_s_noph = 31
 
-idx_sh_os = 29
-idx_sh_oe = 30
-idx_sh_os_nonull = 31  # non zero os for sorting when creating rosterdate
-idx_sh_oe_nonull = 32  # non zero os for sorting when creating rosterdate
-idx_sh_bd = 33
-idx_sh_td = 34
+idx_sh_os = 32
+idx_sh_oe = 33
+idx_sh_os_nonull = 34  # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 35  # non zero os for sorting when creating rosterdate
+idx_sh_bd = 36
+idx_sh_td = 37
 
-idx_tm_rd = 35
-idx_tm_count = 36
+idx_tm_rd = 38
+idx_tm_count = 39
 
-idx_e_tm_id_arr = 37
-idx_e_si_id_arr = 38
-idx_e_mod_arr = 39 # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_os_arr = 40
-idx_e_oe_arr = 41
-idx_e_o_seq_arr = 42
+idx_e_tm_id_arr = 40
+idx_e_si_id_arr = 41
+idx_e_mod_arr = 42 # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_os_arr = 43
+idx_e_oe_arr = 44
+idx_e_o_seq_arr = 45
 
-idx_r_tm_id_arr = 43
-idx_r_si_id_arr = 44
-idx_r_mod_arr = 45
-idx_r_os_arr = 46
-idx_r_oe_arr = 47
-idx_r_o_seq_arr = 48
+idx_r_tm_id_arr = 46
+idx_r_si_id_arr = 47
+idx_r_mod_arr = 48
+idx_r_os_arr = 49
+idx_r_oe_arr = 50
+idx_r_o_seq_arr = 51
 
-# idx_e_sub_e_id = 49 # for testing only Necessary to write  idx_isreplacement in this field
-# idx_r_sub_e_id = 50 # for testing
+idx_isreplacement = 52# ispare_isreplacement = 52 # for testing only
 
-idx_tm_ovr = 51
-idx_tm_prc_id = 52
-idx_r_prc_id = 53
-idx_e_prc_id = 54
-idx_sh_prc_id = 55
+idx_tm_ovr = 53
+idx_tm_prc_id = 54
+idx_r_prc_id = 55
+idx_e_prc_id = 56
+idx_sh_prc_id = 57
 
-idx_tm_adc_id = 56
-idx_r_adc_id = 57
-idx_e_adc_id = 58
-idx_sh_adc_id = 59
-idx_sh_txc_id = 60
+idx_tm_adc_id = 58
+idx_r_adc_id = 59
+idx_e_adc_id = 60
+idx_sh_adc_id = 61
+idx_sh_txc_id = 62
 
-idx_o_inv_id = 61
-idx_e_fnc_id = 62
-idx_e_wgc_id = 63
-idx_e_pdc_id = 64
-idx_r_fnc_id = 65
-idx_r_wgc_id = 66
-idx_r_pdc_id = 67
-idx_sh_wfc_id = 68
+idx_o_inv_id = 63
+idx_e_fnc_id = 64
+idx_e_wgc_id = 65
+idx_e_pdc_id = 66
+idx_r_fnc_id = 67
+idx_r_wgc_id = 68
+idx_r_pdc_id = 69
+idx_sh_wfc_id = 70
 
-idx_isreplacement = 69  # not used in sql, but added in calculate_add_row_to_dict. Overwrites idx_e_sub_e_id
+idx_o_nopay = 71
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -172,6 +176,9 @@ sql_schemeitem_sub00 = """
         s.excludepublicholiday AS s_exph,
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
+        s.nohoursonweekend AS s_nowk,
+        s.nohoursonpublicholiday AS s_noph,
+
         si.onpublicholiday AS si_onph,
         CAST(si.rosterdate AS date) AS si_rd,
 
@@ -241,6 +248,9 @@ sql_schemeitem_norest_sub01 = """
         si_sub.s_exph,
         si_sub.s_exch,
         si_sub.s_dvgph,
+        si_sub.s_nowk,
+        si_sub.s_noph,
+        
         si_sub.si_onph,
         si_sub.si_rd, 
         
@@ -497,6 +507,7 @@ sql_employee_with_aggr_sub07 = """
    """
 
 # PR2020-04-04 called by: get_employee_calendar_rows
+# this sql is used to fill rosterdate
 sql_teammember_sub08 = """
     SELECT 
         tm.id AS tm_id,
@@ -544,15 +555,19 @@ sql_teammember_sub08 = """
 
         CASE WHEN o.isabsence THEN o.sequence ELSE -1 END AS o_seq,
 
-        si_sub.si_mod AS tm_mod,
+        si_sub.si_mod,
 
         tm.datefirst AS tm_df,
         tm.datelast AS tm_dl,
         s.datefirst AS s_df,
         s.datelast AS s_dl,
         s.cycle AS s_cycle,
+        
         s.excludepublicholiday AS s_exph,
         s.excludecompanyholiday AS s_exch,
+        s.divergentonpublicholiday AS s_dvgph,
+        s.nohoursonweekend AS s_nowk,
+        s.nohoursonpublicholiday AS s_noph,
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -574,12 +589,11 @@ sql_teammember_sub08 = """
         r_sub.tm_id_arr AS r_tm_id_arr,
         r_sub.si_id_arr AS r_si_id_arr,
         r_sub.mod_arr AS r_mod_arr,
-        r_sub.sh_os_arr AS r_osref_arr,
+        r_sub.sh_os_arr AS r_os_arr,
         r_sub.sh_oe_arr AS r_oe_arr,
         r_sub.o_seq_arr AS r_o_seq_arr, 
 
-        e_sub.e_id AS e_sub_e_id,
-        r_sub.e_id AS r_sub_e_id,
+        NULL AS spare_isreplacement,
 
         tm.override AS tm_ovr,
         tm.pricecode_id AS tm_prc_id,
@@ -635,8 +649,7 @@ sql_teammember_sub08 = """
         r_sub.e_pdc_id AS r_pdc_id,
 
         si_sub.sh_wfc_id,
-        
-        NULL AS spare_isreplacement
+        o.nopay AS o_nopay
 
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -798,7 +811,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             # - check if calendar contains dates of this year, fill if necessary
             f.check_and_fill_calendar(rosterdate_dte, rosterdate_dte, request)
 
-            # - create calendar_header of this date, get is_publicholiday and is_companyholiday
+            # - create calendar_header of this date, get is_publicholiday and is_companyholiday and is_weekend
             calendar_header_dict = pld.create_calendar_header(rosterdate_dte, rosterdate_dte, user_lang, request)
             rosterdate_dict = f.get_dict_value(calendar_header_dict, (rosterdate_iso,))
             #logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
@@ -807,13 +820,21 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             is_publicholiday = rosterdate_dict.get('ispublicholiday', False)
             is_companyholiday = rosterdate_dict.get('iscompanyholiday', False)
             publicholiday_text = rosterdate_dict.get('display', '-')
+
+            # add  rosterdate_is_weekend to skip absence hours when nohoursonweekend
+            rosterdate_isoWeekDay = rosterdate_dte.isoweekday()
+            is_weekend = (rosterdate_isoWeekDay in (6,7))
             #logger.debug('publicholiday_text: ' + str(publicholiday_text) + ' ' + str(type(publicholiday_text)))
             if is_publicholiday:
                 logfile.append('--- this is a public holiday (' + str(publicholiday_text) + ')')
                 logfile.append("    schemes with 'not on public holidays' set will be skipped.")
+                logfile.append("    absence with 'no hours on public holidays' will have hours set to zero.")
             if is_companyholiday:
                 logfile.append('--- this is a company holiday.')
                 logfile.append("    schemes with 'not on company holidays' set will be skipped.")
+            if is_weekend:
+                logfile.append('--- this is a weekend.')
+                logfile.append("    absence with 'no hours on weekends' will have hours set to zero.")
 
             # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -845,6 +866,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
                         rosterdate_dte=rosterdate_dte,
+                        is_weekend=is_weekend,
+                        is_publicholiday=is_publicholiday,
                         comp_timezone=comp_timezone,
                         request=request)
 
@@ -916,7 +939,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
     return return_dict, logfile
 
 
-def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR2020-01-5
+def add_orderhour_emplhour(row, rosterdate_dte, is_weekend, is_publicholiday, comp_timezone, request):  # PR2020-01-5
     #logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
@@ -936,17 +959,23 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     # - calculates timeduration, only when both start- and endtime have value.
     # - otherwise saved value of timedurationis used (shift '6:00 hours')
     # - when rest shift: timeduration is set to 0
+    # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday
     row_offsetstart = row[idx_sh_os]
     row_offsetend = row[idx_sh_oe]
     row_breakduration = row[idx_sh_bd]
-    row_timeduration = row[idx_sh_td]
+
     timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
-        offsetstart=row_offsetstart,
-        offsetend=row_offsetend,
+        is_weekend=is_weekend,
+        is_publicholiday=is_publicholiday,
+        offsetstart=row[idx_sh_os],
+        offsetend=row[idx_sh_oe],
         breakduration=row_breakduration,
-        timeduration=row_timeduration,
+        timeduration=row[idx_sh_td],
+        nohoursonweekend=row[idx_s_nowk],
+        nohoursonpublicholiday=row[idx_s_noph],
         is_restshift=is_restshift,
+        is_absence=is_absence,
         comp_timezone=comp_timezone
     )
 
@@ -2258,10 +2287,11 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 
     add_row_to_dict = False
 
-# >>>>> SHIFT IS ABSENCE
+# >>>>> SHIFT IS INACTIVE
     if row[idx_si_mod] == 'i':
         logfile.append('--- this is an inactive shift')
         logfile.append('--> inactive shift is skipped')
+# >>>>> SHIFT IS ABSENCE
     elif row[idx_si_mod] == 'a':
         logfile.append('--- this is absence')
         if skip_absence_and_restshifts:
@@ -3552,7 +3582,7 @@ sql_customer_calendar_team_sub11 = """
 
         tm_sub.e_id_arr AS e_id,
         tm_sub.e_code_arr AS e_code,
-        NULL AS e_n,
+        NULL AS e_nl,
         NULL AS e_nf,
 
         tm_sub.r_id_arr AS rpl_id,
@@ -3563,18 +3593,20 @@ sql_customer_calendar_team_sub11 = """
         si_sub.sh_code,
 
         NULL AS sh_isbill,
-
         NULL AS o_seq,
-        
-        si_sub.si_mod AS tm_mod,
+        si_sub.si_mod,
 
         NULL AS tm_df,
         NULL AS tm_dl,
         si_sub.s_df AS s_df,
         si_sub.s_dl AS s_dl,
         si_sub.s_cycle,
+        
         si_sub.s_exph,
         si_sub.s_exch,
+        si_sub.s_dvgph,
+        si_sub.s_nowk,
+        si_sub.s_noph,
 
         si_sub.sh_os,
         si_sub.sh_oe,

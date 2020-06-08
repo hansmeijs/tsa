@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ')
-        #logger.debug(' ++++++++++++++++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++++++++++++++++ ')
+        logger.debug(' ')
+        logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
         #logger.debug('request.POST' + str(request.POST))
         # {'download': ['{"period":{"period_index":5,"datefirst":"2019-11-16","datelast":"2019-11-16","extend_index":3}}']}
 
@@ -64,11 +64,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     #logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+
 # ----- get interval
                     interval = 15
                     if request.user.company.interval:
                         interval = request.user.company.interval
-
                     datalist_dict = json.loads(request.POST['download'])
                     #logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
@@ -77,6 +77,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     selected_btn = None
                     selected_customer_pk = None
                     selected_order_pk = None
+                    selected_scheme_pk = None
                     selected_employee_pk = None
                     table_dict = datalist_dict.get('setting')
 
@@ -92,8 +93,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if saved_setting_dict:
                                 new_setting_dict[key] = saved_setting_dict
                                 if key == 'selected_pk':
-                                    selected_customer_pk = saved_setting_dict.get('sel_cust_pk')
+                                    selected_customer_pk = saved_setting_dict.get('sel_customer_pk')
                                     selected_order_pk = saved_setting_dict.get('sel_order_pk')
+                                    selected_scheme_pk = saved_setting_dict.get('sel_scheme_pk')
                                     selected_employee_pk = saved_setting_dict.get('sel_employee_pk')
                                 elif key[:4] == 'page':
                                     # if 'page_' in request: and selected_btn == 'planning': also retrieve period
@@ -155,12 +157,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if dict_list:
                             datalists['abscat_list'] = dict_list
 # ----- employee
-                    table_dict = datalist_dict.get('employee')
+                    table_dict = datalist_dict.get('employee_list')
                     if table_dict:
                         dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
                         datalists['employee_list'] = dict_list
 # ----- customer
-                    table_dict = datalist_dict.get('customer')
+                    table_dict = datalist_dict.get('customer_list')
                     if table_dict:
                         dict_list = cust_dicts.create_customer_list(
                             company=request.user.company,
@@ -169,15 +171,87 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             inactive=table_dict.get('inactive'))
                         datalists['customer_list'] = dict_list
 # ----- order
-                    table_dict = datalist_dict.get('order')
+                    table_dict = datalist_dict.get('order_list')
                     if table_dict:
                         dict_list = cust_dicts.create_order_list(
                             company=request.user.company,
                             user_lang=user_lang,
                             is_absence=table_dict.get('isabsence'),
                             is_template=table_dict.get('istemplate'),
-                            inactive=table_dict.get('inactive'))
+                            is_inactive=table_dict.get('inactive'))
                         datalists['order_list'] = dict_list
+
+# ----- order_schemes_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
+                    table_dict = datalist_dict.get('order_schemes_list')
+                    if table_dict:
+                        new_order_pk = table_dict.get('order_pk')
+                        is_template = table_dict.get('istemplate', False)
+                        if 'isabsence' in table_dict:
+                            is_absence = table_dict.get('isabsence', False)
+                        else:
+                            is_absence = (selected_btn == 'btn_absence')
+                        logger.debug('is_template: ' + str(is_template)+ ' is_absence: ' + str(is_absence))
+                        absence_customer_pk = None
+                        if is_template:
+                            # - check if template_order exists, create if not exists
+                            template_order = cust_dicts.get_or_create_template_order(request)
+                            if template_order:
+                                new_order_pk = template_order.pk
+                        elif is_absence:
+                            # when btn_absence: get abscat list and all absence orders
+                            # - check if absence_customer exists, create if not exists
+                            absence_customer = cust_dicts.get_or_create_absence_customer(request)
+                            if absence_customer:
+                                absence_customer_pk = absence_customer.pk
+                                # get abscat_list
+                                abscat_list = cust_dicts.create_absencecategory_list(request)
+                                if abscat_list:
+                                    datalists['abscat_list'] = abscat_list
+                        elif new_order_pk is None:
+                            # get saved order if no new_order given (happens at opening of page),
+                            # not when is_template or is_absence
+                            new_order_pk = selected_order_pk
+
+                        filter_dict = {'customer_pk': absence_customer_pk, 'order_pk': new_order_pk, 'isabsence': is_absence}
+                        # PR2020-05-23 get all all schemes, shifts, teams, schemeitems and teammembers of selected order
+                        checked_customer_pk, checked_order_pk = d.create_order_schemes_list(
+                            filter_dict=filter_dict,
+                            datalists=datalists,
+                            company=request.user.company,
+                            comp_timezone=comp_timezone,
+                            user_lang=user_lang)
+
+                        logger.debug('checked_customer_pk' + str(checked_customer_pk))
+                        logger.debug('checked_order_pk' + str(checked_order_pk))
+                        if is_template or is_absence:
+                            # in template mode or absence mode: don't save setting
+                            selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
+                                           'sel_order_pk': checked_order_pk}
+                        elif checked_order_pk == selected_order_pk:
+                            # on opening page: order_pk has not changed: don't reset scheme_pk, dont update settings
+                            selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
+                                                'sel_order_pk': checked_order_pk,
+                                           'sel_scheme_pk': selected_scheme_pk}
+                        else:
+                            # when order has changed: update settings, reset scheme_pk in settings
+                            new_setting = {'sel_customer_pk': checked_customer_pk,
+                                           'sel_order_pk': checked_order_pk,
+                                           'sel_scheme_pk': 0}
+                            selected_pk_dict = Usersetting.set_selected_pk(new_setting, request.user)
+
+                        logger.debug('selected_pk_dict' + str(selected_pk_dict))
+                        # don't replace setting_dict, you will lose page info. Add key 'selected_pk' instead
+                        datalists_setting_dict = datalists.get('setting_dict')
+                        if datalists_setting_dict:
+                            # PR20202-06-07 debug: gave error: 'NoneType' object does not support item assignment
+                            # was: datalists_selected_pk_dict = datalists_setting_dict.get('selected_pk')
+                            datalists_selected_pk_dict = f.get_dict_value(datalists_setting_dict, ('selected_pk', ), {})
+                            if selected_pk_dict:
+                                datalists_selected_pk_dict['sel_customer_pk'] = selected_pk_dict.get('sel_customer_pk', 0)
+                                datalists_selected_pk_dict['sel_order_pk'] = selected_pk_dict.get('sel_order_pk', 0)
+                                datalists_selected_pk_dict['sel_scheme_pk'] = selected_pk_dict.get('sel_scheme_pk', 0)
+
+                                datalists['setting_dict']['selected_pk'] = datalists_selected_pk_dict
 # ----- schemes_dict - dict with all schemes with shifts, teams, schemeitems and teammembers
                     table_dict = datalist_dict.get('schemes_dict')
                     if table_dict:
@@ -214,13 +288,16 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             company=request.user.company)
                         datalists['team_list'] = dict_list
 # ----- teammember
-                    table_dict = datalist_dict.get('teammember')
+                    table_dict = datalist_dict.get('teammember_list')
                     if table_dict:
                         dict_list = ed.create_teammember_list(
                             filter_dict=table_dict,
                             company=request.user.company,
                             user_lang=user_lang)
+                        # is_absence = f.get_dict_value(table_dict, ('is_absence',), False)
+                        #key_str = 'absence_list' if is_absence else 'teammember_list'
                         datalists['teammember_list'] = dict_list
+
 # ----- schemeitem
                     table_dict = datalist_dict.get('schemeitem')
                     if table_dict:
@@ -467,12 +544,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['rosterdate_check'] = d.get_rosterdate_check(table_dict, request)
 
 # 9. return datalists
-        datalists_json = ""
-        if datalists:
-            elapsed_seconds = int(1000 * (timer() - starttime) ) /1000
-            datalists['elapsed_seconds'] = elapsed_seconds
+        # PR2020-05-23 debug: datalists = {} gives parse error.
+        # elapsed_seconds to the rescue: now datalists will never be empty
+        elapsed_seconds = int(1000 * (timer() - starttime) ) /1000
+        datalists['elapsed_seconds'] = elapsed_seconds
 
-            datalists_json = json.dumps(datalists, cls=LazyEncoder)
+        datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
         return HttpResponse(datalists_json)
 
@@ -686,26 +763,10 @@ class SchemesView(View):
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
 
-# --- get today
-            today_dict = {'value': str(date.today()),
-                          'wdm': f.get_date_WDM_from_dte(date.today(), user_lang),
-                          'wdmy': f.format_WDMY_from_dte(date.today(), user_lang),
-                          'dmy': f.format_DMY_from_dte(date.today(), user_lang),
-                          'offset': f.get_weekdaylist_for_DHM(date.today(), user_lang)}
-            today_json = json.dumps(today_dict)
-
 # --- check calendar_lastadte and fill calendar if necessary
             # f.check_and_fill_calendar()
 
-            param = get_headerbar_param(request, {
-                'lang': user_lang,
-                'timezone': comp_timezone,
-                'weekdays': weekdays_json,
-                'months': months_json,
-                'interval': interval,
-                'timeformat': timeformat,
-                'today': today_json
-            })
+            param = get_headerbar_param(request, {})
 
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
@@ -1432,9 +1493,11 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
         row_index = id_dict.get('rowindex', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
-        mode = id_dict.get('mode', '')
-        is_absence = ('isabsence' in id_dict)
+        # mode = id_dict.get('mode', '')
+        # is_absence = ('isabsence' in id_dict)
         # is_template = ('istemplate' in id_dict)
+        logger.debug('is_create: ' + str(is_create))
+        logger.debug('ppk_int: ' + str(ppk_int))
 
 # - create empty update_dict with fields
         update_dict = f.create_update_dict(
@@ -1643,7 +1706,10 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 
 # 3. update teammember_list when team is created or deleted
     if deleted_or_created_ok:
-        table_dict = {'order_pk': parent.order}
+        order_pk = None
+        if parent.order:
+            order_pk = parent.order.pk
+        table_dict = {'order_pk': order_pk}
         teammember_list = ed.create_teammember_list(table_dict, request.user.company, user_lang)
         if teammember_list:
             update_wrap['teammember_list'] = teammember_list
@@ -3216,6 +3282,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
 # --- recalculate timeduration and amount, addition, tax, wage
         # logger.debug('calculate working hours')
         if recalc_duration:
+            # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
             field = 'timeduration'
             if emplhour.timestart and emplhour.timeend:
@@ -4079,8 +4146,8 @@ def create_teXXXam(upload_dict, update_dict, request):
 def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
     # --- create scheme # PR2019-07-21
     # Note: all keys in update_dict must exist by running create_update_dict first
-    # logger.debug(' --- create_scheme')
-    # logger.debug(upload_dict)
+    logger.debug(' --- create_scheme')
+    logger.debug(upload_dict)
     # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
     instance = None
@@ -4110,6 +4177,8 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
 # 6. put info in update_dict
         update_dict['id']['created'] = True
 
+    logger.debug('update_dict: ' + str(update_dict))
+    logger.debug('instance: ' + str(instance))
     return instance
 
 def create_schemeitem_instance (parent, upload_dict, update_dict, request):

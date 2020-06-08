@@ -152,9 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
             review_period: {now: now_arr},
             price: {table: "customer"},
             pricecode: {rosterdate: null},
-            customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             employee: {inactive: false}
         };
 
@@ -1231,12 +1230,13 @@ selected_btn = "customer"
         let tblBody_select_customer = document.getElementById("id_MSO_tblbody_customer");
 
         let tblHead = null;
-        const filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
+        const filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_orders + ">";
+
         t_Fill_SelectTable(tblBody_select_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
-            HandleSelect_Filter, null,
-            MSO_SelectCustomer, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+            HandleSelect_Filter, null, MSO_SelectCustomer, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
             null, cls_selected)
     }  // MSO_FillSelectTableCustomer
 
@@ -1253,12 +1253,13 @@ selected_btn = "customer"
         } else {
             el_div_order.classList.remove(cls_hide)
             let tblHead = null;
-            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+            const filter_ppk_int = mod_upload_dict.customer.pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+
             const addall_to_list_txt = "<" + loc.All_orders + ">";
             t_Fill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
-                HandleSelect_Filter, null,
-                MSO_SelectOrder, null,
-                filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
+                HandleSelect_Filter, null, MSO_SelectOrder, null, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
                 null, cls_selected
             );
     // select first tblRow
@@ -1631,14 +1632,14 @@ selected_btn = "customer"
         filter_mod_employee = ""
         el_MSP_input_price.innerText = null;
 
-        const tblHead = null, filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
+        const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
                         addall_to_list_txt = "<" + loc.All_employees + ">";
+
         t_Fill_SelectTable(tblBody, tblHead, employee_map, "employee", selected_employee_pk, null,
-            HandleSelect_Filter, null,
-            MSE_SelectEmployee, null,
-            filter_ppk_int, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected
-            );
+            HandleSelect_Filter, null, MSE_SelectEmployee, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
+            null, cls_selected);
         MSE_headertext();
 
 // hide button /remove employee'
@@ -1995,10 +1996,8 @@ selected_btn = "customer"
             if (!!mod_upload_dict.pc_id) {
                 upload_dict[mod_upload_dict.field] = {pc_id: mod_upload_dict.pc_id, update: true }
             } else {
-                const input_value = el_MSP_input_price.value;
-                const multiplier =  100, min_value = 0, max_value = 100000;  // max $ 1000, max 1000%
                 //output_arr = [output_value, err_msg];
-                const arr = get_number_from_input(input_value, multiplier, min_value, max_value, loc);
+                const arr = get_number_from_input(loc, "price", el_MSP_input_price.value);
                 const pricerate = arr[0];
                 err_msg = arr[1];
                 upload_dict[mod_upload_dict.field] = {pricerate: pricerate, create: true }
@@ -2062,9 +2061,8 @@ selected_btn = "customer"
 // validate input
         let err_msg = null;
         if (!!el_MSP_input_price.value){
-            const multiplier = 100, min_value = 0, max_value = 100000;  // max $ 1000, max 1000%
             //output_arr = [output_value, err_msg];
-            const arr = get_number_from_input(el_MSP_input_price.value, multiplier, min_value, max_value, loc);
+            const arr = get_number_from_input(loc, "price", el_MSP_input_price.value);
             err_msg = arr[1];
         }
         document.getElementById("id_MSP_error_price").innerText = err_msg

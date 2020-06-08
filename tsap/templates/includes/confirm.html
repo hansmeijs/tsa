@@ -16,15 +16,15 @@
             <div id="id_mod_confirm_body"  class="modal-body">
                 <div class="modal_container">
                     <div class="modal_body_left mx-2">
-                        <a id="id_confirm_msg01" class="modal-title mx-2" >{% trans 'This item will be deleted.' %}</a><br>
-                        <a id="id_confirm_msg02" class="modal-title mx-2" ></a><br>
-                        <a id="id_confirm_msg03" class="modal-title mx-2" >{% trans 'Do you want to continue?' %}</a>
+                        <div id="id_confirm_msg01" class="modal-title mx-2" >{% trans 'This item will be deleted.' %}</div><br>
+                        <div id="id_confirm_msg02" class="modal-title mx-2" ></div><br>
+                        <div id="id_confirm_msg03" class="modal-title mx-2" >{% trans 'Do you want to continue?' %}</div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="id_confirm_btn_cancel" type="button" class="btn btn-outline-secondary" data-dismiss="modal">{% trans 'No, cancel' %}</button>
-                <button id="id_confirm_btn_save" type="button" class="btn btn-primary">{% trans 'Yes, delete' %}</button>
+                <button id="id_confirm_btn_cancel" type="button" class="btn btn-outline-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                <button id="id_confirm_btn_save" type="button" class="btn btn-primary">{% trans 'OK' %}</button>
             </div>
 
         </div>

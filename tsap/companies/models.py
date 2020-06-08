@@ -275,6 +275,8 @@ class Order(TsaBaseModel):
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
+    nopay = BooleanField(default=False)    # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
+
     class Meta:
         ordering = [Lower('code')]
 
@@ -448,8 +450,10 @@ class Scheme(TsaBaseModel):
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
     excludecompanyholiday = BooleanField(default=False)
-    excludepublicholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
+    excludepublicholiday = BooleanField(default=False)
+    nohoursonweekend = BooleanField(default=False)
+    nohoursonpublicholiday = BooleanField(default=False)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -534,13 +538,15 @@ class Employee(TsaBaseModel):
 
     address = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     zipcode = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
-
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
-    workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute
-    workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute (one day has 1440 minutes)
+    workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute. 40 hours = 2400 workhours
+    workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
+
+    nohoursonweekend = BooleanField(default=False) # this only determines the defaut value when entering a new absence
+    nohoursonpublicholiday = BooleanField(default=False) # this only determines the defaut value when entering a new absence
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True, blank=True)
@@ -766,6 +772,7 @@ class Emplhour(TsaBaseModel):
 
     paydate = DateField(db_index=True, null=True)
     lockedpaydate = BooleanField(default=False)
+    nopay = BooleanField(default=False)    # nopay: wage will be zero
 
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
@@ -924,7 +931,10 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def get_jsonsetting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of jsonsetting row that match the filter
-        #logger.debug('---  get jsonsetting  ------- ')
+        logger.debug(' ')
+        logger.debug('---  get jsonsetting  ------- ')
+        logger.debug('company: ' + company.code)
+        logger.debug('key_str: ' + key_str)
         setting = None
         if company and key_str:
             row = cls.objects.get_or_none(company=company, key=key_str)
@@ -934,13 +944,13 @@ class Companysetting(Model):  # PR2019-03-09
         if setting is None:
             if default_setting:
                 setting = default_setting
-        #logger.debug('setting: ' + str(setting))
+        logger.debug('setting: ' + str(setting))
         return setting
 
     @classmethod
     def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
-        #logger.debug('---  set_jsonsettingg  ------- ')
-        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+        logger.debug('---  set_jsonsettingg  ------- ')
+        logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
 
         if company and key_str:
             # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
@@ -954,7 +964,7 @@ class Companysetting(Model):  # PR2019-03-09
             # test
             row = None
             saved_row = cls.objects.filter(company=company, key=key_str).first()
-            #logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
+            logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
 
     @classmethod
     def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17

@@ -39,23 +39,23 @@
 }());
 
 
-document.addEventListener('DOMContentLoaded', function() {
-    "use strict";
+    document.addEventListener('DOMContentLoaded', function() {
+        "use strict";
 
-    $("#id_sidebar").mCustomScrollbar({
-         theme: "minimal"
-    });
+        $("#id_sidebar").mCustomScrollbar({
+             theme: "minimal"
+        });
 
-    $('#sidebarCollapse').on('click', function () {
-        // open or close navbar
-        $('#id_sidebar').toggleClass('active');
-        // close dropdowns
-        $('.collapse.in').toggleClass('in');
-        // and also adjust aria-expanded attributes we use for the open/closed arrows
-        // in our CSS
-        $('a[aria-expanded=true]').attr('aria-expanded', 'false');
-    });
-})
+        $('#sidebarCollapse').on('click', function () {
+            // open or close navbar
+            $('#id_sidebar').toggleClass('active');
+            // close dropdowns
+            $('.collapse.in').toggleClass('in');
+            // and also adjust aria-expanded attributes we use for the open/closed arrows
+            // in our CSS
+            $('a[aria-expanded=true]').attr('aria-expanded', 'false');
+        });
+    })
 
 //========= SUBMENU ==================================
 //========= SetMenubuttonActive  ====================================
@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function() {
         el_div.appendChild(el_a);
     };//function AddSubmenuButton
 
-
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
         //console.log("=== UploadSettings");
@@ -135,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     return true;
 }
+
 //========= dict_length  ============= PR2020-02-03
     //PR2020-02-03 https://stackoverflow.com/questions/5223/length-of-a-javascript-object
     function dict_length(obj) {
@@ -264,9 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 //console.log(" --- end of add_or_remove_class_with_qsAll --- ")
     }
+
 //========= function add_or_remove_class  ====================================
     function add_or_remove_class (el, classname, is_add) {
-        if(!!el){
+        if(el && classname){
             if (is_add){
                 el.classList.add(classname);
             } else {
@@ -304,6 +305,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }  // add_or_remove_attr
+
+//========= function add_hover  =========== PR2020-05-20
+    function add_hover(el) {
+//- add hover to element
+        if(!!el){
+            el.addEventListener("mouseenter", function(){el.classList.add("tr_hover")});
+            el.addEventListener("mouseleave", function(){el.classList.remove("tr_hover")});
+        }
+    }  // add_hover
 
 //========= set_focus_on_id_with_timeout  =========== PR2020-05-09
     function set_focus_on_id_with_timeout(id, ms) {
@@ -355,7 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         return item_dict
     }
- //========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01
+
+//========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01
     function get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str) {
         // function gets map_id form tblName and  pk_int, looks up 'map_id' in data_map
         let map_dict;
@@ -409,18 +420,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 //========= get_datamap  ================== PR2019-10-03
-    function get_datamap(data_list, data_map, calc_duration_sum) {
+    function get_datamap(data_list, data_map, tblName, is_calc_duration_sum) {
         data_map.clear();
         let duration_sum = 0
-        if (!!data_list) {
+        if (data_list && data_list.length) {
             for (let i = 0, len = data_list.length; i < len; i++) {
                 const item_dict = data_list[i];
-                const id_dict = get_dict_value(item_dict, ["id"]);
-                const pk_str = get_dict_value(id_dict, ["pk"]);
-                const table = get_dict_value(id_dict, ["table"]);
+                const pk_str = get_dict_value(item_dict, ["id", "pk"]);
+                // tblName ovverrules table in id, necessary for absence_map
+                const table = (tblName) ? tblName : get_dict_value(item_dict, ["id", "table"]);
                 const map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
-                if (calc_duration_sum){
+                if (is_calc_duration_sum){
                     const duration = get_dict_value(item_dict, ["timeduration"]);
                     const teammember_count = get_dict_value(item_dict, ["tm_count"]);
                     if(!!duration && !!teammember_count){
@@ -432,7 +443,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return duration_sum
     };
-
 
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
@@ -719,7 +729,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return dict_clone;
     }  // deepcopy_dict
 
-
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
@@ -738,7 +747,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }  //  get_dateJS_from_dateISO
 
 //=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
-
     function get_dateJS_from_dateISO_vanilla(date_iso) {
         //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
         let date_JS = null;
@@ -1210,6 +1218,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // get_Exceldate_from_date
 
+//=========  detect_dateformat  ================ PR2020-06-04
+    function detect_dateformat(dict_list, col_index_index_list){
+        //console.log(' --- detect_dateformat ---')
+        //console.log('col_index_index_list: ' + col_index_index_list)
+        // detect date format PR2019-08-05  PR2020-06-04
+
+        let arr00_max = 0
+        let arr01_max = 0
+        let arr02_max = 0
+
+        for (let i = 0, dict; i < dict_list.length; i++) {
+            dict = dict_list[i];
+        //console.log('dict: ' + dict)
+            for (let j = 0, col_index; j < col_index_index_list.length; j++) {
+                col_index = col_index_index_list[j];
+                let arr00 = 0, arr01 = 0, arr02 = 0
+                const date_string = dict[col_index];
+                if (date_string) {
+                    let arr = get_array_from_ISOstring(date_string)
+// - skip when date has an unrecognizable format
+                    let isok = false;
+                    if (arr.length > 2){
+                        if (Number(arr[0])) {
+                            arr00 = Number(arr[0]);
+                            if(Number(arr[1])) {
+                                arr01 = Number(arr[1]);
+                                if (Number(arr[2])){
+                                    arr02 = Number(arr[2]);
+                                    isok = true;
+                    }}}};
+// ---  get max values
+                    if (isok){
+                        if (arr00 > arr00_max){arr00_max = arr00};
+                        if (arr01 > arr01_max){arr01_max = arr01};
+                        if (arr02 > arr02_max){arr02_max = arr02};
+        }}}};
+// ---  get position of year and day
+        let year_pos = -1, day_pos = -1;
+        if (arr00_max > 31 && arr01_max <= 31 && arr02_max <= 31){
+            year_pos = 0;
+            if (arr01_max > 12 && arr02_max <= 12){
+                day_pos = 1;
+            } else if (arr02_max > 12 && arr01_max <= 12){
+                day_pos = 2
+            }
+        } else if (arr02_max > 31 && arr00_max <= 31 && arr01_max <= 31) {
+            year_pos = 2;
+            if (arr00_max > 12 && arr01_max <= 12){
+                day_pos = 0;
+            } else if (arr01_max > 12 && arr00_max <= 12){
+                day_pos = 1;
+        }};
+        if (day_pos === -1){
+            if (year_pos === 0){
+                day_pos = 2
+            } else if (year_pos === 2) {
+                day_pos = 0
+        }};
+// ---  format
+        format_str = ''
+        if (year_pos > -1 && day_pos > -1){
+            if (year_pos === 0 && day_pos === 2){
+                format_str = 'yyyy-mm-dd'
+            } else if (year_pos === 2){
+                if (day_pos === 0){
+                    format_str = 'dd-mm-yyyy'
+                } else if (day_pos === 1) {
+                    format_str = 'mm-dd-yyyy'
+        }}};
+        //console.log('format_str: ' + format_str)
+        return format_str;
+    }  // detect_dateformat
 
 //###########################################################
 
@@ -1228,33 +1308,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         return rosterdate_date_local;
     }  // get_date_moment_from_datetimeISO
-
-//========= format_period  ========== PR2019-07-09
-    function format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang) {
-        const hide_weekday = true, hide_year = false;
-        const datefirst_JS = get_dateJS_from_dateISO (datefirst_ISO);
-        const datefirst_formatted = format_date_vanillaJS (datefirst_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
-
-        const datelast_JS = get_dateJS_from_dateISO (datelast_ISO);
-        const datelast_formatted = format_date_vanillaJS (datelast_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
-
-        let formatted_period = "";
-        if (!!datefirst_formatted || !!datelast_formatted ) {
-            if(datefirst_ISO === datelast_ISO) {
-                formatted_period = datefirst_formatted;
-            } else {
-                if (datefirst_ISO.slice(0,8) === datelast_ISO.slice(0,8)) { //  slice(0,8) = 2019-11'
-                    // same month: show '13 - 14 nov 2019
-                    const day_first = Number(datefirst_ISO.slice(8)).toString()
-                    formatted_period = day_first + " - " + datelast_formatted
-                } else {
-                    formatted_period = datefirst_formatted + " - " + datelast_formatted
-                }
-            }
-        }
-        return formatted_period
-    }  // format_period
-
 
 //========= getWeek  ======== PR2019-11-03
     // from https://weeknumber.net/how-to/javascript
@@ -1308,8 +1361,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 //========= get_number_from_input  ========== PR2020-01-12
-    function get_number_from_input(input_value, multiplier, min_value, max_value, loc) {
+    function get_number_from_input(loc, fldName, input_value) {
         //console.log("--------- get_number_from_input ---------")
+        let caption_str = (loc.Number) ? loc.Number : null;
+
+        let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
+        let integer_only = false;
+        if(fldName === "cycle"){
+            caption_str = loc.Cycle ;
+            integer_only = true;
+            min_value = 1;
+            max_value = 28;
+       } else if(fldName === "price"){
+            caption_str = loc.Price
+            multiplier = 100;
+            max_value = 100000;  // max $ 1000, max 1000%
+       } else if(fldName === "workhours"){
+            caption_str = loc.Workhours
+            multiplier = 60;
+            max_value = 10080  // 7 * 1440 = 168 * 60
+        } else if(fldName === "workdays"){
+            caption_str = loc.Workdays
+            multiplier = 1440;
+            max_value = 10080  // 7 * 1440
+        } else if(fldName === "leavedays"){
+            caption_str = loc.Vacation_days
+            multiplier = 1440;
+            max_value = 525600 // 365 * 1440
+        }
+
         let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
         if(input_value === 0){
             output_value = 0;
@@ -1317,11 +1397,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // replace comma's with dots
             const value_with_dot = input_value.replace(/\,/g,".");
             const index_last_dot = value_with_dot.lastIndexOf(".")
-            //console.log("value_with_dot: ", value_with_dot)
             // check if input has dots
             if (index_last_dot === -1){
                 // if input has no dots: convert to integer
                 value_int = Number(value_with_dot);
+                // value is not valid when falsey, except when zero
                 is_not_valid = (!value_int && value_int !== 0)
             } else {
                 // if input has dots: split into integer and decimal
@@ -1332,23 +1412,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!is_not_valid){
                     // get decimal part
                     const dec_part = value_with_dot.slice(index_last_dot + 1 );
+
                     const value_after_dot = Number(dec_part);
+                    // not valid if NaN
                     is_not_valid = (!value_after_dot && value_after_dot !== 0);
                     if(!is_not_valid){
-                        // multiply by exp. length, i.e. convert '75' to '0.75'
-                        value_decimal = value_after_dot * (10 ** -dec_part.length);
+                        is_not_valid = (integer_only && value_after_dot)
+                        if(is_not_valid){
+                            err_msg = caption_str + " " + loc.err_msg_must_be_integer
+                        } else {
+                            // multiply by exp. length, i.e. convert '75' to '0.75'
+                            value_decimal = value_after_dot * (10 ** -dec_part.length);
+                        }
                     }
                 }
             }
             if(is_not_valid){
-                err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number;
+                if(!err_msg){err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
             } else {
                 // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
                 output_value = Math.round(multiplier * (value_int + value_decimal));
                 is_not_valid = (output_value < min_value || output_value > max_value) ;
                 if(is_not_valid){
-                    err_msg = loc.err_msg_number_between + " " + min_value / multiplier + " " + loc.err_msg_and +
-                    " " + max_value / multiplier + loc.err_msg_endof_sentence;
+                    if(!err_msg){
+                        err_msg = caption_str + " " + loc.err_msg_must_be_between + " " + min_value / multiplier + " " + loc.err_msg_and +
+                        " " + max_value / multiplier + loc.err_msg_endof_sentence;
+                    }
                 }
             }
         }
@@ -1471,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tr_changed = document.getElementById(tr_id);
         set_tblrow_error(tr_changed);
     }
+
 //========= set_tblrow_error set_element_class  ====  PR2020-04-13
     function set_tblrow_error(tr_changed) {
         const cls_error = "tsa_tr_error";
@@ -1509,3 +1599,4 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "el_datefirst: ", el_datefirst);
         }
     }  // set_other_datefield_minmax
+

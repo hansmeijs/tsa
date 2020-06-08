@@ -315,6 +315,36 @@
         return period_str;
     }
 
+
+//========= format_period  ========== PR2019-07-09
+    function format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang) {
+        const hide_weekday = true, hide_year = false;
+        const datefirst_JS = get_dateJS_from_dateISO (datefirst_ISO);
+        const datefirst_formatted = format_date_vanillaJS (datefirst_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+
+        const datelast_JS = get_dateJS_from_dateISO (datelast_ISO);
+        const datelast_formatted = format_date_vanillaJS (datelast_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+
+        let formatted_period = "";
+        if (!!datefirst_formatted || !!datelast_formatted ) {
+            if(datefirst_ISO === datelast_ISO) {
+                formatted_period = datefirst_formatted;
+            } else {
+                if (datefirst_ISO.slice(0,8) === datelast_ISO.slice(0,8)) { //  slice(0,8) = 2019-11'
+                    // same month: show '13 - 14 nov 2019
+                    const day_first = Number(datefirst_ISO.slice(8)).toString()
+                    formatted_period = day_first + " - " + datelast_formatted
+                } else {
+                    formatted_period = datefirst_formatted + " - " + datelast_formatted
+                }
+            }
+        }
+        return formatted_period
+    }  // format_period
+
+
+
+
 //========= format_time  ========== PR2019-06-27
     function format_time(datetime_local, timeformat, display24) {
         //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
@@ -518,6 +548,7 @@
         }
         return display_value;
     }  // format_entries
+
 //========= format_price_element  ======== PR2019-09-29
     function format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang) {
         //console.log("--- format_price_element ---")
@@ -558,18 +589,12 @@
     }  // format_price_element
 
 
-//========= function format_date_element  ======== PR2019-07-02
-    function format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+//========= function format_date_elementMOMENT  ======== PR2019-07-02
+    function format_date_elementMOMENT (el_input, el_msg, field_dict, month_list, weekday_list,
                                     user_lang, comp_timezone, hide_weekday, hide_year) {
         // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
-        //console.log(" --- format_date_element --- ");
+        //console.log(" --- format_date_elementMOMENT --- ");
         //console.log("field_dict: ", field_dict);
-        //console.log("month_list: ", month_list);
-        //console.log("weekday_list: ", weekday_list);
-        //console.log("user_lang: ", user_lang);
-        //console.log("comp_timezone: ", comp_timezone);
-        //console.log("hide_weekday: ", hide_weekday);
-        //console.log("hide_year: ", hide_year);
 
         if(!!el_input && !!field_dict){
         // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
@@ -586,9 +611,6 @@
             const offset = get_dict_value_by_key (field_dict, "offset");
             const minoffset = get_dict_value_by_key (field_dict, "minoffset");
             const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
-
-            //console.log("data_value: ", data_value);
-            //console.log("updated: ", updated, typeof updated);
 
             let wdmy = "", wdm = "", dmy = "", dm = "";
             if(!!data_value) {
@@ -671,7 +693,7 @@
                 el_input.removeAttribute("data-maxoffset")
             };
         };  // if(!!el_input)
-    }  // function format_date_element
+    }  // format_date_elementMOMENT
 
     function format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
         //console.log(" ----- format_date_iso", date_iso);
@@ -918,7 +940,6 @@
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
-
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
         //console.log("------ format_offset_element --------------", fieldname)
@@ -1004,7 +1025,7 @@
         }  // if(!!el_input)
     }  // function format_offset_element
 
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     //========= display_timerange  ======== PR2020-01-26
     function display_timerange (timestart, timeend, skip_hour_suffix, timeformat, user_lang) {
@@ -1170,16 +1191,13 @@
         }
     }
 
-//========= create_shift_code  ============= PR2020-02-02
+//========= create_shift_code  ============= PR2020-02-02 PR2020-05-27
     function create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code) {
         //console.log( "=== create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
         // const lastCharCode = shift_code.charCodeAt(shift_code.length - 1);
         // let shift_code_without_restchar = (lastCharCode === 9790) ? shift_code.slice(0, -1) : shift_code
-        // crescent symbol '(' is ASCII-code 9790, "\u263E";
-        // crescent symbol ')' is "\u263D"};
-        // emoji symbol crescent "\ud83c\udf12"};
 
         if(cur_shift_code == null) {cur_shift_code = ""};
         let code_trimmed = cur_shift_code.trim();
@@ -1214,8 +1232,8 @@
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
         // timeduration: {value: 540, hm: "9:00"}
-        //console.log("+++++++++ format_duration_element")
-        //console.log(field_dict)
+        console.log("+++++++++ format_duration_element")
+        console.log("field_dict", field_dict)
 
         if(!!el_input){
             const value_int = get_dict_value(field_dict, ["value"], 0);
@@ -1236,6 +1254,9 @@
             if (dst_warning) {display_value += "*"};
     //console.log("display_value: ", display_value)
             el_input.value = display_value;
+            el_input.innerText = display_value;
+
+        console.log("display_value", display_value)
 
         // lock element when locked
             el_input.disabled = is_locked
@@ -1391,8 +1412,6 @@
             if (is_negative){
                 value_int = value_int * -1
             }
-
-            //console.log("value_int", value_int)
             let hour_text;
             const hours = Math.trunc(value_int/60);
             if (hours < 100) {
@@ -1401,23 +1420,16 @@
             } else {
                 hour_text =  hours.toString()
             }
-            //console.log("hour_text", hour_text)
-
             const minutes = value_int % 60  // % is remainder operator
             const minute_str = "00" + minutes.toString()
             const minute_text = minute_str.slice(-2);
-
-            const delimiter = (user_lang === "en") ? ":" : ".";
+            const separator = (user_lang === "en") ? ":" : ".";
             const suffix = (!!hour_suffix && !!hour_suffix_plural) ?
                             (hours > 1) ? " " + hour_suffix_plural : " " + hour_suffix :
                             (user_lang === "en") ? "" :" u";
-
-            display_value = hour_text + delimiter + minute_text + suffix.toLowerCase();
-
+            display_value = hour_text + separator + minute_text + suffix.toLowerCase();
             if(is_negative){display_value = "-" + display_value}
         }  // if(!!value_int)
-
-        //console.log("display_value", display_value)
         return display_value
     }  // display_duration
 
@@ -1458,9 +1470,15 @@
             const is_restshift = get_dict_value_by_key(field_dict, "value", false)
             const imgsrc = (is_restshift) ? imgsrc_rest_black : imgsrc_stat00;
 
+        console.log("field_dict", field_dict);
+        console.log("is_restshift", is_restshift);
+
+
+
             let el_img = el_input.children[0];
             if(!!el_img){el_img.setAttribute("src", imgsrc);};
 
+        console.log("el_img", el_img);
             if(is_restshift){
                 el_input.setAttribute("title", title);
             } else {
@@ -1524,8 +1542,6 @@
     function format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active) {
         // inactive: {value: true}
         //console.log("+++++++++ format_inactive_element")
-        //console.log("imgsrc_inactive_black:", imgsrc_inactive_black)
-        //console.log("imgsrc_inactive:", imgsrc_inactive)
 
         if(!!el_input){
             let is_inactive = get_dict_value(field_dict, ["value"], false)
@@ -1662,6 +1678,18 @@
     }  // function format_status_element
 
 
+//=========  ShowOkRow  ================ PR2020-05-26
+    function ShowErrorRow(tblRow, cls_selected ) {
+        // make row red, / --- remove class 'error' after 2 seconds
+        const has_cls_selected = (tblRow.classList.contains(cls_selected));
+        if (has_cls_selected) { tblRow.classList.remove(cls_selected)};
+
+        tblRow.classList.add("tsa_tr_error");
+        setTimeout(function (){
+            tblRow.classList.remove("tsa_tr_error");
+            if (has_cls_selected) { tblRow.classList.add(cls_selected)};
+        }, 2000);
+    }
 //=========  ShowOkRow  ================ PR2019-05-31
     function ShowOkRow(tblRow ) {
         // make row green, / --- remove class 'ok' after 2 seconds

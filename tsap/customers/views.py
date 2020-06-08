@@ -635,7 +635,7 @@ class OrderImportView(View):
         # get user_lang
                 user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
         # get caption list order
-                caption_dict = c.CAPTION_IMPORT[user_lang]
+                caption_dict = c.CAPTION_IMPORT
         # get caption list coldefs_dict
                 tblName = 'order'
                 coldefs_dict = {}  # get_stored_coldefs_dict(tblName, user_lang, request)
@@ -867,7 +867,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                 if new_value != old_value:
                                     setattr(customer, field, new_value)
                                     is_updated = True
-                                    old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                    old_str = updated_from_str + (old_value or '<blank>') + ' to: ' if is_update else ''
                                     logfile.append((" " * 10 + 'first name' + " " * 25)[:35] + old_str + (value_str or '<blank>'))
 
                         customer.save(request=request)
@@ -934,7 +934,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                                 has_changes = True
                                                 old_date_str = old_date_dte.isoformat() if old_date_dte else '<blank>'
                                                 new_date_str = new_date_dte.isoformat() if new_date_dte else '<blank>'
-                                                old_str = ' is updated from: ' + old_date_str + ' to: ' if is_update else ''
+                                                old_str = updated_from_str + old_date_str + ' to: ' if is_update else ''
                                                 fieldtext = 'first date of order' if field == 'datefirst' else 'last date of order'
                                                 logfile.append((" " * 10 + fieldtext + " " * 25)[:35] + old_str + new_date_str)
                                         else:
@@ -953,7 +953,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                             if new_value != old_value:
                                                 setattr(order, field, new_value)
                                                 has_changes = True
-                                                old_str = ' is updated from: ' + (
+                                                old_str = updated_from_str + (
                                                             old_value or '<blank>') + ' to: ' if is_update else ''
                                                 logfile.append(
                                                     (" " * 10 + field + " " * 25)[:35] + old_str + (value_str or '<blank>'))

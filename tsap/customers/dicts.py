@@ -1,3 +1,4 @@
+from django.db import connection
 from django.db.models import Q
 from tsap import constants as c
 from tsap import functions as f
@@ -173,37 +174,148 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, is_absence=None, is_template=None, inactive=None):
-    #logger.debug(' --- create_order_list --- ')
+def create_order_list(company, user_lang, is_absence=None, is_template=None, is_inactive=None):
+    logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # TODO: make it possible to rename them as company setting
+    logger.debug('>>>>>>>>>>  is_absence ' + str(is_absence))
 
-# --- create list of orders of this company PR2019-06-16
-    crit = Q(customer__company=company)
-    if is_absence is not None:
-        crit.add(Q(isabsence=is_absence), crit.connector)
-    if is_template is not None:
-        crit.add(Q(istemplate=is_template), crit.connector)
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-        crit.add(Q(customer__inactive=inactive), crit.connector)
+    # date filter not in use (yet)
+    datefirst_iso, datelast_iso = None, None
 
-    if is_absence:
-        orders = m.Order.objects.filter(crit).order_by('sequence')
-    else:
-        orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')
-    #logger.debug(orders.query)
+    sql_order = """ SELECT o.id AS o_id, c.id AS c_id, 
+        COALESCE(o.code, '') AS o_code,
+        COALESCE(c.code, '') AS c_code,
+        CONCAT(c.code, ' - ', o.code) AS c_o_code,
+
+        COALESCE(o.contactname, '') AS contactname,
+        COALESCE(o.address, '') AS address,
+        COALESCE(o.zipcode, '') AS zipcode,
+        COALESCE(o.city, '') AS city,
+        COALESCE(o.country, '') AS country,
+        COALESCE(o.identifier, '') AS identifier,
+
+        o.billable AS o_billable,
+        o.sequence AS o_sequence,
+
+        o.pricecode_id AS o_pc_id, 
+        o.additioncode_id AS o_ac_id, 
+        o.taxcode_id AS o_tc_id, 
+        o.invoicecode_id AS o_ic_id,  
+        
+        o.datefirst, o.datelast,
+        o.isabsence, o.istemplate ,
+        o.inactive
+
+        FROM companies_order AS o 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)  
+
+        WHERE c.company_id = %(compid)s
+        AND ( o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL OR %(rdl)s IS NULL )
+        AND ( o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL OR %(rdf)s IS NULL )
+        AND ( o.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
+        AND ( o.isabsence = CAST(%(isabsence)s AS BOOLEAN) OR %(isabsence)s IS NULL )
+        AND ( o.istemplate = CAST(%(istemplate)s AS BOOLEAN) OR %(istemplate)s IS NULL )
+        AND ( c.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
+        ORDER BY c.code, o.code
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_order, {
+        'compid': company.id,
+        'rdf': datefirst_iso,
+        'rdl': datelast_iso,
+        'isabsence': is_absence,
+        'istemplate': is_template,
+        'inactive': is_inactive
+    })
+    orders = f.dictfetchall(newcursor)
 
     order_list = []
     for order in orders:
         item_dict = {}
-        create_order_dict(order, item_dict)
+        create_order_dict_from_sql(order, item_dict)
 
         if item_dict:
             order_list.append(item_dict)
 
     return order_list
 
+#????????????
+
+def create_order_dict_from_sql(instance, item_dict):
+    # --- create dict of this order PR2019-09-28
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+
+    # FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
+    #                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
+    #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
+
+    if instance:
+
+# ---  get min max date
+        datefirst = instance.get('datefirst')
+        datelast = instance.get('datelast')
+
+        for field in c.FIELDS_ORDER:
+
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = instance.get('o_id')
+                field_dict['ppk'] = instance.get('c_id')
+                field_dict['table'] = 'order'
+                field_dict['isabsence'] = instance.get('isabsence', False)
+                field_dict['istemplate'] = instance.get('istemplate', False)
+
+            elif field == 'customer':
+                field_dict['pk'] = instance.get('c_id')
+                field_dict['code'] = instance.get('c_code')
+
+            elif field == 'code':
+                field_dict['value'] = instance.get('o_code')
+                field_dict['code'] = instance.get('c_code')
+                field_dict['cust_ordr_code'] = instance.get('c_o_code')
+
+
+            elif field in ['datefirst', 'datelast']:
+                # also add date when empty, to add min max date
+                if datefirst or datelast:
+                    if field == 'datefirst':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_obj=datefirst,
+                            maxdate=datelast)
+                    elif field == 'datelast':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_obj=datelast,
+                            mindate=datefirst)
+
+            elif field == 'inactive':
+                field_dict['value'] = instance.get(field)
+
+            #elif field == 'billable':
+                # use billable only in price page
+                #value = instance.get('o_billable')
+                #if not value:
+                #    cust_billable = getattr(order.customer, field, 0)
+                #    if cust_billable:
+                #        value = cust_billable * -1  # inherited value gets negative sign
+                #    else:
+                #        comp_billable = getattr(order.customer.company, field, 0)
+                #        if comp_billable:
+                #            value = comp_billable * -1  # inherited value gets negative sign
+                #if value:
+                #    field_dict['value'] = value
+
+            if field_dict:
+                item_dict[field] = field_dict
+
+    f.remove_empty_attr_from_dict(item_dict)
+
+
+#?????????????????
 
 def create_order_dict(order, item_dict):
     # --- create dict of this order PR2019-09-28

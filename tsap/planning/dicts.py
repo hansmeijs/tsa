@@ -13,6 +13,7 @@ from companies import models as m
 from tsap.settings import TIME_ZONE
 from tsap import constants as c
 from tsap import functions as f
+from employees import dicts as ed
 
 import pytz
 import json
@@ -324,6 +325,7 @@ def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request
         period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
         #logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
+
     return period_starttime_utc, period_endtime_utc
 
 
@@ -528,37 +530,57 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 
 
 def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
-    #logger.debug(' --- create_scheme_list --- ')
-    #logger.debug('filter_dict: ' + str(filter_dict))
+   #logger.debug(' ------------- create_scheme_list ------------- ')
+   #logger.debug('filter_dict: ' + str(filter_dict))
 
+    order_pk = None
     customer_pk = filter_dict.get('customer_pk')
-    order_pk = filter_dict.get('order_pk')
-    is_absence = filter_dict.get('is_absence')
-    is_template = filter_dict.get('is_template')
-    inactive = filter_dict.get('inactive')
+    if customer_pk is None:
+        order_pk = filter_dict.get('order_pk')
 
-# --- create list of schemes of this company, absence=false PR2019-11-22
-    # filter on order__isabsence and order__is_template PR2020-03-22
-    crit = Q(order__customer__company=company)
+    sql_schemes = """SELECT 
+        s.id AS s_id, 
+        s.code,
+        s.cycle,
+        s.datefirst AS s_datefirst,
+        s.datelast  AS s_datelast,
+        s.inactive,
 
-    if is_absence is not None:
-        crit.add(Q(order__isabsence=is_absence), crit.connector)
-    if is_template is not None:
-        crit.add(Q(order__istemplate=is_template), crit.connector)
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-    if order_pk:
-        crit.add(Q(order_id=order_pk), crit.connector)
-    elif customer_pk:
-        crit.add(Q(order__customer_id=customer_pk), crit.connector)
+        o.id AS o_id, 
+        o.isabsence AS o_isabsence,
+        o.istemplate AS o_istemplate,
+        o.datefirst AS o_datefirst,
+        o.datelast  AS o_datelast,
 
-    schemes = m.Scheme.objects.filter(crit)
-    #logger.debug('schemes SQL: ' + str(schemes.query))
+        s.excludecompanyholiday,
+        s.excludepublicholiday,
+        s.divergentonpublicholiday,
+        s.nohoursonweekend,
+        s.nohoursonpublicholiday
+
+        FROM companies_scheme AS s
+        INNER JOIN companies_order AS o ON (o.id = s.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND ( c.id = CAST(%(c_id)s AS INTEGER) OR %(c_id)s IS NULL )
+        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )
+        ORDER BY s.code    
+        """
+    #        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )
+    newcursor = connection.cursor()
+    newcursor.execute(sql_schemes, {
+        'compid': company.id,
+        'c_id': customer_pk,
+        'o_id': order_pk
+    })
+    schemes = f.dictfetchall(newcursor)
 
     scheme_list = []
     for scheme in schemes:
+       #logger.debug('scheme: ' + str(scheme))
         item_dict = {}
-        create_scheme_dict(scheme, item_dict, user_lang)
+        create_scheme_dict_from_sql(scheme, item_dict, user_lang)
 
         if item_dict:
             scheme_list.append(item_dict)
@@ -566,7 +588,80 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
     return scheme_list
 
 
+def create_scheme_dict_from_sql(scheme, item_dict, user_lang):
+    #logger.debug(' ------------- create_scheme_dict_from_sql ------------- ')
+    # --- create dict of this order PR2019-09-28 PR2020-05-24
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+
+    if scheme:
+        for field in c.FIELDS_SCHEME:
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = scheme.get('s_id')
+                field_dict['ppk'] = scheme.get('o_id')
+                field_dict['table'] = 'scheme'
+                # get order.isabsence and order.istemplate
+                field_dict['isabsence'] = scheme.get('o_isabsence', False)
+                field_dict['istemplate'] = scheme.get('o_istemplate', False)
+
+            elif field in ['order']:
+                pass
+
+            elif field == 'code':
+                field_dict['value'] = scheme.get(field, '-')
+
+            elif field in ['cycle']:
+                field_dict['value'] = scheme.get(field, 0)
+
+            # also add date when empty, to add min max date
+            elif field in ('datefirst', 'datelast'):
+                scheme_datefirstlast = scheme.get('s_' + field)
+                if scheme_datefirstlast:
+                    field_dict['value'] = scheme_datefirstlast
+                order_datefirstlast = scheme.get('o_'+ field)
+                if order_datefirstlast:
+                    field_dict['o_' + field] = order_datefirstlast
+
+            # also add date when empty, to add min max date
+            elif field in ('excludecompanyholiday', 'divergentonpublicholiday', 'excludepublicholiday', 'nohoursonweekend', 'nohoursonpublicholiday'):
+                field_dict['value'] = scheme.get(field, False)
+
+            elif field == 'billable':
+                pass
+                """
+                value = getattr(scheme, field, 0)
+                if not value:
+                    ordr_billable = getattr(scheme.order, field, 0)
+                    if ordr_billable:
+                        value = ordr_billable * -1  # inherited value gets negative sign
+                    else:
+                        cust_billable = getattr(scheme.order.customer, field, 0)
+                        if cust_billable:
+                            value = cust_billable * -1  # inherited value gets negative sign
+                        else:
+                            comp_billable = getattr(scheme.order.customer.company, field, 0)
+                            if comp_billable:
+                                value = comp_billable * -1  # inherited value gets negative sign
+                if value:
+                    field_dict['value'] = value
+                """
+            elif field in ['pricecode', 'additioncode', 'taxcode']:
+                pass
+                #TODO
+
+            elif field in ['isabsence', 'istemplate']:
+                pass
+
+            if field_dict:
+                item_dict[field] = field_dict
+
+    f.remove_empty_attr_from_dict(item_dict)
+# ------------- end of create_scheme_dict_from_sql -------------
+
 def create_scheme_dict(scheme, item_dict, user_lang):
+   #logger.debug(' ------------- create_scheme_dict ------------- ')
     # --- create dict of this order PR2019-09-28
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
@@ -663,43 +758,164 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
+# ------------- end of create_scheme_dict -------------
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_schemeitem_list(filter_dict, company):
-    # create list of schemeitems of this scheme PR2019-09-28
-    # --- create list of all schemeitems of this cujstomere / order PR2019-08-29
-    #logger.debug(' ----- create_teammember_list  -----  ')
-    #logger.debug('filter_dict' + str(filter_dict) )
+    # ---  create list of all schemeitems of this order PR2019-08-29 PR2020-05-23
+   #logger.debug(' ----- create_schemeitem_list  -----  ')
+   #logger.debug('filter_dict' + str(filter_dict) )
 
-    customer_pk = filter_dict.get('customer_pk')
+    customer_pk = None
     order_pk = filter_dict.get('order_pk')
-    scheme_pk = filter_dict.get('scheme_pk')
-    is_absence = filter_dict.get('is_absence', False)
-    is_singleshift = filter_dict.get('is_singleshift', False)
+    if order_pk is None:
+        customer_pk = filter_dict.get('customer_pk')
+   #logger.debug('customer_pk: ' + str(customer_pk))
+   #logger.debug('order_pk: ' + str(order_pk))
 
-    crit = Q(scheme__order__customer__company=company)
-    if scheme_pk:
-        crit.add(Q(scheme_id=scheme_pk), crit.connector)
-    elif order_pk:
-        crit.add(Q(scheme__order_id=order_pk), crit.connector)
-    elif customer_pk:
-            crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
-    if is_absence:
-        crit.add(Q(isabsence=is_absence), crit.connector)
-    if is_singleshift:
-        crit.add(Q(issingleshift=is_singleshift), crit.connector)
-    schemeitems = m.Schemeitem.objects.filter(crit).order_by('rosterdate', 'shift__offsetstart')
+    sql_schemeitem = """SELECT 
+        si.id AS si_id, 
+        si.rosterdate,
+        si.onpublicholiday,
+        si.inactive,
+        si.cat,
+        
+        s.id AS s_id, 
+        s.code AS s_code,
+        
+        o.id AS o_id, 
+        o.isabsence,
+        o.istemplate,
+        
+        sh.id AS sh_id,
+        sh.code AS sh_code,
+        sh.isrestshift AS sh_isrestshift,
+        sh.offsetstart AS sh_offsetstart,
+        sh.offsetend  AS sh_offsetend,
+        sh.breakduration AS sh_breakduration,
+        sh.timeduration AS sh_timeduration,
+
+        t.id AS t_id,
+        t.code AS t_code
+        
+        FROM companies_schemeitem AS si 
+        INNER JOIN companies_scheme AS s ON (s.id = si.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        LEFT JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
+        LEFT JOIN companies_team AS t ON (t.id = si.team_id) 
+
+        WHERE c.company_id = %(compid)s
+        AND ( c.id = CAST(%(c_id)s AS INTEGER) OR %(c_id)s IS NULL )
+        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )
+        """
+    #         AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )
+    newcursor = connection.cursor()
+    newcursor.execute(sql_schemeitem, {
+        'compid': company.id,
+        'c_id': customer_pk,
+        'o_id': order_pk
+    })
+    schemeitems = f.dictfetchall(newcursor)
 
     schemeitem_list = []
     for schemeitem in schemeitems:
+       #logger.debug('schemeitem: ' + str(schemeitem))
         item_dict = {}
-        create_schemeitem_dict(schemeitem, item_dict)
+        create_schemeitem_dict_from_sql(schemeitem, item_dict)
 
         if item_dict:
             schemeitem_list.append(item_dict)
 
     return schemeitem_list
+# ----- end of create_schemeitem_list -----
+
+
+def create_schemeitem_dict_from_sql(schemeitem, item_dict):
+    # --- create dict of this schemeitem PR2019-07-22
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+   #logger.debug ('--- create_schemeitem_dict ---')
+   #logger.debug ('schemeitem' + str(schemeitem))
+
+    if schemeitem:
+        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
+         #                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+
+
+        for field in c.FIELDS_SCHEMEITEM:
+ # --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = schemeitem.get('si_id')
+                field_dict['ppk'] = schemeitem.get('s_id')
+                field_dict['table'] = 'schemeitem'
+                field_dict['istemplate'] = schemeitem.get('istemplate')
+                field_dict['isabsence'] = schemeitem.get('isabsence')
+
+            elif field in ( 'istemplate', 'isabsence'):
+                pass
+
+            elif field == 'scheme':
+                field_dict['pk'] = schemeitem.get('s_id')
+                field_dict['ppk'] = schemeitem.get('o_id')
+                field_dict['code'] = schemeitem.get('s_code')
+
+            elif field == 'cat':
+                pass
+
+            #elif field in ('onpublicholiday', 'cat', 'inactive'):
+            elif field in ('onpublicholiday', 'inactive'):
+                field_dict['value'] = schemeitem.get(field, False)
+
+            elif field == 'rosterdate':
+                rosterdate = schemeitem.get('rosterdate')
+                field_dict['value'] = rosterdate.isoformat()
+
+# --- get excel_start from rosterdate and offsetstart, used to sort schemeitems in datatable on page planning
+                excel_date = f.get_Exceldate_from_datetime(rosterdate)
+                if excel_date:
+                    excel_start = excel_date * 1440
+                    offset_start = schemeitem.get('sh_offsetstart')
+                    if offset_start:
+                        excel_start = excel_start + offset_start
+                    field_dict['excelstart'] = excel_start
+
+            elif field == 'shift':
+                shift_pk = schemeitem.get('sh_id')
+                if shift_pk:
+                    field_dict['pk'] = shift_pk
+                    shift_code = schemeitem.get('sh_code')
+                    is_restshift = schemeitem.get('sh_isrestshift')
+                    if is_restshift and shift_code is None:
+                        shift_code = _('Rest shift')
+                    field_dict['isrestshift'] = is_restshift
+                    field_dict['code'] = shift_code
+
+                    for fld in ('offsetstart', 'offsetend'):
+                        value = schemeitem.get('sh_' + fld)
+                        if value is not None:
+                            field_dict[fld] = value
+
+                    for fld in ('breakduration', 'timeduration'):
+                        value = schemeitem.get('sh_' + fld, 0)
+                        if value:
+                            field_dict[fld] = value
+
+            elif field == 'team':
+                team_pk = schemeitem.get('t_id')
+                if team_pk:
+                    team_code =  schemeitem.get('t_code')
+                    field_dict['pk'] = team_pk
+                    field_dict['code'] = team_code
+                    field_dict['abbrev'] = get_teamcode_abbrev(team_code)
+
+            if field_dict:
+                item_dict[field] = field_dict
+
+    f.remove_empty_attr_from_dict(item_dict)
+# ----------- end of create_schemeitem_dict_from_sql -----------
 
 
 def create_schemeitem_dict(schemeitem, item_dict):
@@ -796,36 +1012,155 @@ def create_schemeitem_dict(schemeitem, item_dict):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
-    #logger.debug ('---------------- item_dict' + str(item_dict))
+# ----------- end of create_schemeitem_dict -----------
 
 
 def create_shift_list(filter_dict, company, user_lang):
-    # create list of shifts of this order PR2019-08-08
+    # ---  create list of all shifts of this order  PR2019-08-08 PR2020-05-23
     #logger.debug(' --- create_shift_list --- ')
+    #logger.debug('filter_dict' + str(filter_dict))
 
+    order_pk = None
     customer_pk = filter_dict.get('customer_pk')
-    order_pk = filter_dict.get('order_pk')
-    scheme_pk = filter_dict.get('scheme_pk')
+    if customer_pk is None:
+        order_pk = filter_dict.get('order_pk')
+    #logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
 
-    crit = Q(scheme__order__customer__company=company)
-    if scheme_pk:
-        crit.add(Q(scheme_id=scheme_pk), crit.connector)
-    elif order_pk:
-        crit.add(Q(scheme__order_id=order_pk), crit.connector)
-    elif customer_pk:
-        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+    sql_shift = """SELECT 
+        sh.id AS sh_id, 
+        sh.isrestshift,
+        sh.code,
+        sh.offsetstart,
+        sh.offsetend ,
+        sh.breakduration,
+        sh.timeduration,
 
-    shifts = m.Shift.objects.select_related('scheme').filter(crit).order_by('offsetstart')
+        s.id AS s_id,
+         
+        o.id AS o_id,
+        o.isabsence AS o_isabsence,
+        o.istemplate AS o_istemplate
+
+        FROM companies_shift AS sh 
+        INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s
+        AND ( c.id = CAST(%(c_id)s AS INTEGER) OR %(c_id)s IS NULL ) 
+        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )      
+        """
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_shift, {
+        'compid': company.id,
+        'c_id': customer_pk,
+        'o_id': order_pk
+    })
+    shifts = f.dictfetchall(newcursor)
 
     shift_list = []
     for shift in shifts:
         update_dict = {}
-        create_shift_dict(shift, update_dict, user_lang)
+        create_shift_dict_from_sql(shift, update_dict, user_lang)
 
         if update_dict:
             shift_list.append(update_dict)
 
     return shift_list
+
+def create_shift_dict_from_sql(shift, update_dict, user_lang):  # PR2020-05-23
+    #logger.debug(' ----- create_shift_dict_from_sql ----- ')
+    # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+
+    # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
+    #                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+    #                 'wagefactor', 'priceratejson', 'additionjson')
+
+    if shift:
+        offsetstart_value = shift.get('offsetstart') # offsetstart can have value 'None'
+        offsetend_value = shift.get('offsetend') # offsetend can have value 'None'
+        breakduration_value = shift.get('breakduration', 0)
+        timeduration_value = shift.get('timeduration', 0)
+        is_restshift = shift.get('isrestshift', False)
+
+# calculate timeduration
+        # if both offsetstart and offsetend have value: calculate timeduration
+        # else: use stored value of timeduration
+        # timeduration = 0 in restshift
+        timeduration = f.calc_timeduration_from_values(
+            is_restshift=is_restshift,
+            offsetstart=offsetstart_value,
+            offsetend=offsetend_value,
+            breakduration=breakduration_value,
+            saved_timeduration=timeduration_value)
+
+        for field in c.FIELDS_SHIFT:
+
+# --- get field_dict from  item_dict if it exists
+            field_dict = update_dict[field] if field in update_dict else {}
+
+# --- create field_dict 'id'
+            if field == 'id':
+                field_dict['pk'] = shift.get('sh_id')
+                field_dict['ppk'] = shift.get('s_id')
+                field_dict['table'] = 'shift'
+                field_dict['istemplate'] = shift.get('o_istemplate')
+                field_dict['order_pk'] = shift.get('o_id')
+
+            elif field == 'istemplate':
+                pass
+
+            elif field == 'isrestshift':
+                 field_dict['value'] = is_restshift
+
+            elif field == 'code':
+                field_dict['value'] =  shift.get(field)
+
+            elif field == 'offsetstart':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                if offsetstart_value is not None:
+                    field_dict['value'] = offsetstart_value
+                field_dict["minoffset"] = -720
+
+                maxoffset = 1440
+                if offsetend_value is not None:
+                    maxoffset = offsetend_value - breakduration_value
+                    if maxoffset > 1440:
+                        maxoffset = 1440
+                field_dict["maxoffset"] = maxoffset
+
+            elif field == 'offsetend':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                if offsetend_value is not None:
+                    field_dict['value'] = offsetend_value
+                field_dict["maxoffset"] = 2160
+
+                minoffset = 0
+                if offsetstart_value is not None:
+                    minoffset = offsetstart_value + breakduration_value
+                    if minoffset < 0:
+                        minoffset = 0
+                field_dict["minoffset"] = minoffset
+
+            elif field == 'breakduration':
+                field_dict['value'] = breakduration_value
+                field_dict["minoffset"] = 0
+                field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
+
+            elif field == 'timeduration':
+                if timeduration:
+                    field_dict['value'] = timeduration
+
+            if field_dict:
+                update_dict[field] = field_dict
+
+# ---  remove empty attributes from update_dict
+    f.remove_empty_attr_from_dict(update_dict)
+
+    shift_update = update_dict
+    return shift_update
+# ----------- end of create_shift_dict_from_sql -----------
 
 
 def create_shift_dict(shift, update_dict, user_lang):
@@ -847,9 +1182,12 @@ def create_shift_dict(shift, update_dict, user_lang):
         # if both offsetstart and offsetend have value: calculate timeduration
         # else: use stored value of timeduration
         # timeduration = 0 in restshift
-
-        is_restshift, offsetstart, offsetend, breakduration, \
-            timeduration_minus_break, timeduration = f.calc_timeduration_from_shift(shift)
+        timeduration = f.calc_timeduration_from_values(
+            is_restshift=is_restshift,
+            offsetstart=offsetstart_value,
+            offsetend=offsetend_value,
+            breakduration=breakduration_value,
+            saved_timeduration=timeduration_value)
 
         for field in c.FIELDS_SHIFT:
 
@@ -912,8 +1250,8 @@ def create_shift_dict(shift, update_dict, user_lang):
 
  # calculate timeduration
             elif field == 'timeduration':
-                if timeduration_minus_break:
-                    field_dict['value'] = timeduration_minus_break
+                if timeduration:
+                    field_dict['value'] = timeduration
 
             elif field == 'billable':
                 value = getattr(shift, field, 0)
@@ -945,39 +1283,101 @@ def create_shift_dict(shift, update_dict, user_lang):
 
     shift_update = update_dict
     return shift_update
-# --- end of create_shift_dict
+# ----------- end of create_shift_dict -----------
 
 
 def create_team_list(filter_dict, company):
-    # create list of teams of this order PR2019-09-02
-    #logger.debug(' ----- create_team_list  -----  ')
+    # create list of teams of this order PR2019-09-02 PR2020-05-24
+   #logger.debug(' ----- create_team_list  -----  ')
 
+    order_pk = None
     customer_pk = filter_dict.get('customer_pk')
-    order_pk = filter_dict.get('order_pk')
-    scheme_pk = filter_dict.get('scheme_pk')
-    is_singleshift = filter_dict.get('is_singleshift', False)
+    if customer_pk is None:
+        order_pk = filter_dict.get('order_pk')
+   #logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
 
-    crit = Q(scheme__order__customer__company=company)
-    if is_singleshift:
-        crit.add(Q(issingleshift=is_singleshift), crit.connector)
-    if scheme_pk:
-        crit.add(Q(scheme_id=scheme_pk), crit.connector)
-    elif order_pk:
-        crit.add(Q(scheme__order_id=order_pk), crit.connector)
-    elif customer_pk:
-        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+    sql_teams = """SELECT 
+        t.id AS t_id, 
+        t.code AS t_code,
 
-    teams = m.Team.objects.select_related('scheme').filter(crit)
+        s.id AS s_id,
+        s.code AS s_code,
+        o.id AS o_id,
+        o.isabsence AS o_isabsence,
+        o.istemplate AS o_istemplate
+
+        FROM companies_team AS t 
+        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s
+        AND ( c.id = CAST(%(c_id)s AS INTEGER) OR %(c_id)s IS NULL )  
+        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )  
+        ORDER BY t.code    
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_teams, {
+        'compid': company.id,
+        'c_id': customer_pk,
+        'o_id': order_pk
+    })
+    teams = f.dictfetchall(newcursor)
 
     team_list = []
     for team in teams:
         item_dict = {}
-        create_team_dict(team, item_dict)
+        create_team_dict_from_sql(team, item_dict)
 
         if item_dict:
             team_list.append(item_dict)
 
     return team_list
+
+def create_team_dict_from_sql(team, item_dict):
+    # --- create dict of this team PR2019-08-08
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    #logger.debug(' --- create_team_dict ---')
+    #logger.debug('item_dict: ' + str(item_dict))
+
+    team_update = {}
+    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
+    if team:
+        for field in c.FIELDS_TEAM:
+
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+# --- create field_dict 'id'
+            if field == 'id':
+                field_dict['pk'] = team.get('t_id')
+                field_dict['ppk'] = team.get('s_id')
+                field_dict['table'] = 'team'
+                field_dict['isabsence'] = team.get('o_isabsence')
+                field_dict['istemplate'] = team.get('o_istemplate')
+
+        # scheme is parent of team
+            elif field == 'scheme':
+                field_dict['pk'] = team.get('s_id')
+                field_dict['ppk'] = team.get('o_id')
+                field_dict['code'] = team.get('s_code')
+
+            elif field == 'code':
+                team_code =  team.get('t_code')
+                team_abbrev = get_teamcode_abbrev(team_code)
+                field_dict['value'] = team_code if team_code else '-'
+                field_dict['abbrev'] = team_abbrev if team_abbrev else '-'
+
+# 5. add field_dict to item_dict
+            if field_dict:
+                item_dict[field] = field_dict
+
+# 6. remove empty attributes from item_dict
+    f.remove_empty_attr_from_dict(item_dict)
+
+    team_update = item_dict
+    return team_update
+# ----------- end of create_team_dict_from_sql -----------
 
 
 def create_team_dict(team, item_dict):
@@ -1033,44 +1433,20 @@ def create_team_dict(team, item_dict):
 
     team_update = item_dict
     return team_update
-# --- end of create_team_dict
+# ----------- end of create_team_dict -----------
 
-# =========  get_teamcode_abbrev  === PR2020-03-15
+# =========  get_teamcode_abbrev  === PR2020-03-15 PR2020-05-23
 def get_teamcode_abbrev(team_code):
     #logger.debug('get_teamcode_abbrev: ' + str(team_code))
-
-    abbrev = ""
-#  ---  Check if team_code starts with 'team ' (include space after 'team')
-    team_not_translated_plus_space = 'team '
-    length = len(team_not_translated_plus_space)
-    sliced = team_code[0:length].lower()
-    if sliced == team_not_translated_plus_space:
-        abbrev = team_code[length:length + 3]
-#  ---  if not, check if team_code starts with 'ploeg ' (include space after 'ploeg'
-    if not abbrev:
-        ploeg_not_translated_plus_space = 'ploeg '
-        length = len(ploeg_not_translated_plus_space)
-        sliced = team_code[0:length].lower()
-        if sliced == ploeg_not_translated_plus_space:
-            abbrev = team_code[length:length + 3]
-#  ---  if not, check if team_code starts with 'employee ' (include space after 'employee'
-    if not abbrev:
-        employee_not_translated_plus_space = 'employee '
-        length = len(employee_not_translated_plus_space)
-        sliced = team_code[0:length].lower()
-        if sliced == employee_not_translated_plus_space:
-            abbrev = team_code[length:length + 3]
-#  ---  if not, check if team_code starts with 'medewerker ' (include space after 'medewerker'
-    if not abbrev:
-        medewerker_not_translated_plus_space = 'medewerker '
-        length = len(medewerker_not_translated_plus_space)
-        sliced = team_code[0:length].lower()
-        if sliced == medewerker_not_translated_plus_space:
-            abbrev = team_code[length:length + 3]
-#  ---  if not, take abbrev from start of 'team_code
-    if not abbrev:
-        abbrev = team_code[0:3]
+#  ---  if team_code exists: get first 3 characters from last word as abbrev
+    abbrev = ''
+    if team_code:
+        arr = team_code.split()
+        length = len(arr)
+        if len:
+            abbrev = arr[length -1][0:3]
     return abbrev
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -1434,7 +1810,6 @@ def create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, r
     # and is is added with key 'rosterdate' to calendar_header_dict
     # calendar_header only has value when exists in table Calendar
     # calendar_header: {'2019-12-26': {'ispublicholiday': True, 'display': 'Tweede Kerstdag'}}
-
     calendar_header_dict = {}
 
     calendar_dates = m.Calendar.objects.filter(
@@ -1482,8 +1857,8 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+   #logger.debug(' ============= create_emplhour_list ============= ')
+   #logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
@@ -3016,6 +3391,7 @@ def get_team_code(team):
     team_title = ''
     count = 0
     if team:
+
         # 1. iterate through teammembers, latest enddate first
         teammembers = m.Teammember.objects\
             .select_related('employee')\
@@ -3040,6 +3416,74 @@ def get_team_code(team):
 
 
 # #####################################################################
+
+def create_order_schemes_list(filter_dict, datalists, company, comp_timezone, user_lang):
+    # PR2020-05-23 used in scheme page, to retrieve schemes, etc from selected order
+    logger.debug(' ================ create_order_schemes_list ================ ')
+    #logger.debug('filter_dict: ' + str(filter_dict))
+    # customer_pk is only used when is_absence
+    checked_customer_pk = None
+    checked_order_pk = None
+    new_filter_dict = {}
+    is_absence = False
+
+    if filter_dict:
+        is_absence = filter_dict.get('isabsence', False)
+    if is_absence:
+        absence_customer_pk = filter_dict.get('customer_pk')
+        if m.Customer.objects.filter(pk=absence_customer_pk, company=company).exists():
+            checked_customer_pk = absence_customer_pk
+    else:
+        order_pk = filter_dict.get('order_pk')
+        if m.Order.objects.filter(pk=order_pk, customer__company=company).exists():
+            checked_order_pk = order_pk
+
+    if checked_customer_pk is not None:
+        new_filter_dict['customer_pk'] = checked_customer_pk
+    elif checked_order_pk is not None:
+        new_filter_dict['order_pk']= checked_order_pk
+
+   #logger.debug('is_absence: ' + str(is_absence))
+   #logger.debug('new_filter_dict: ' + str(new_filter_dict))
+
+    if checked_order_pk is not None or checked_customer_pk is not None:
+       #logger.debug('new_filter_dict: ' + str(new_filter_dict))
+
+        if is_absence:
+# ----- absence_list
+            teammember_list = ed.create_teammember_list(filter_dict=new_filter_dict, company=company,
+                                                        user_lang=user_lang)
+            if teammember_list:
+                datalists['absence_list'] = teammember_list
+        else:
+# ----- scheme_list
+            scheme_list = create_scheme_list(
+                filter_dict=new_filter_dict,
+                company=company,
+                comp_timezone=comp_timezone,
+                user_lang=user_lang)
+            if scheme_list:
+                datalists['scheme_list'] = scheme_list
+# ----- shift_list
+            shift_list = create_shift_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
+            if shift_list:
+                datalists['shift_list'] = shift_list
+# ----- team_list
+            team_list = create_team_list( filter_dict=new_filter_dict, company=company)
+            if team_list:
+                datalists['team_list'] = team_list
+# ----- teammember_list
+            teammember_list = ed.create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
+            if teammember_list:
+                datalists['teammember_list'] = teammember_list
+# ----- schemeitem_list
+            schemeitem_list = create_schemeitem_list(filter_dict=new_filter_dict, company=company)
+            if schemeitem_list:
+                datalists['schemeitem_list'] = schemeitem_list
+
+    return checked_customer_pk, checked_order_pk
+#  --- end of create_schemes_extended_dict ---
+
 
 def create_schemes_extended_dict(filter_dict, company, comp_timezone, user_lang):
     # PR2020-05-06 to be used in calendar

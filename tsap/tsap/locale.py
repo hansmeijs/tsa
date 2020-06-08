@@ -1,7 +1,6 @@
 # PR2019-11-12
 
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import pgettext_lazy
+from django.utils.translation import pgettext_lazy, ugettext_lazy as _
 import json
 
 from tsap import constants as c
@@ -58,15 +57,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
     dict['Hour'] = TXT_Hour
     dict['Hours'] = TXT_Hours
-    dict['Working_hours'] = TXT_Working_hours
 
     # mod confirm
-    dict['will_be_deleted'] = TXT_will_be_deleted
-    dict['will_be_made_inactive'] = TXT_will_be_made_inactive
-    dict['want_to_continue'] = TXT_want_to_continue  # 'Do you want to continue?'
-    dict['Yes_delete'] = TXT_Yes_delete  # 'Yes, delete'
-    dict['Yes_make_inactive'] = TXT_Yes_make_inactive  # 'Yes, make inactive'
-    dict['No_cancel'] = TXT_No_cancel
+    dict['will_be_deleted'] = _('will be deleted.')
+    dict['will_be_made_inactive'] = _('will be made inactive.')
+    dict['Do_you_want_to_continue'] = _('Do you want to continue?')
+    dict['Yes_delete'] = _('Yes, delete')
+    dict['Yes_make_inactive'] = _('Yes, make inactive')
+    dict['No_cancel'] = _('No, cancel')
 
     # ModTimepicker
     dict['Working_hours'] = TXT_Working_hours
@@ -110,6 +108,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
             {'tsaKey': 'orderdatefirst', 'caption': _('Order - First date of order')},
             {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}]
 
+        dict['The_employee_data_will_be_saved'] = _('The employee data will be saved')
+        dict['Upload_employees'] = _('Upload employees')
+
 # ====== PAGE COMPANY =========================
     elif page == 'company':
         dict['Description'] = TXT_Description
@@ -127,6 +128,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Preview_planning'] = TXT_Preview_planning
         dict['Export_to_Excel'] = TXT_Export_to_Excel
 
+        dict['This_employee'] = TXT_This_employee
         dict['Replacement_employee'] = TXT_Replacement_employee
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
         dict['Add_employee'] = TXT_Add_employee
@@ -137,9 +139,19 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Click_show_inactive_employees'] = TXT_Click_show_inactive_employees
 
         dict['Hours_per_week'] = TXT_Hours_per_week
+        dict['Hours_per_day'] = TXT_Hours_per_day
         dict['Days_per_week'] = TXT_Days_per_week
         dict['Vacation_days'] = TXT_Vacation_days
-        dict['Identifier'] = TXT_Identifier
+
+        dict['Workhours'] = TXT_Workhours
+        dict['Workdays'] = TXT_Workdays
+        dict['Leavedays'] = TXT_Leavedays
+        dict['Leavedays_are_on_fulltime_basis'] = TXT_Leavedays_are_on_fulltime_basis
+
+        dict['ID_number'] = TXT_ID_number
+        dict['Payroll_code'] = TXT_Payroll_code
+        dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
+
         dict['Hourly_rate'] = TXT_Hourly_rate
         dict['Wage_rate'] = TXT_Wage_rate
 
@@ -155,8 +167,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['Absence'] = TXT_Absence
         dict['Absence_category'] = TXT_Absence_category
+        dict['Absence_categories'] = TXT_Absence_categories
         dict['Select_abscat'] = TXT_Select_abscat
-        dict['No_abscat'] = TXT_No_abscat
+        dict['No_absence_categories'] = TXT_No_absence_categories
 
         dict['Period'] = TXT_Period
         dict['Select_period'] = TXT_Select_period
@@ -165,19 +178,22 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['First_date'] = TXT_First_date
         dict['Last_date'] = TXT_Last_date
 
+        dict['First_date_in_service'] = TXT_First_date_in_service
+        dict['Last_date_in_service'] = TXT_Last_date_in_service
+
+
         dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
-        dict['err_msg_number_between'] = TXT_err_msg_number_between
+        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
+        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
         dict['err_msg_and'] = TXT_err_msg_and
+        dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
 
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
         dict['an_employee'] = TXT_an_employee
 
         # mod confirm
-        dict['TXT_Pease_select_employee_first'] = TXT_Pease_select_employee_first
-        dict['Yes_delete'] = TXT_Yes_delete
-        dict['Yes_make_inactive'] = TXT_Yes_make_inactive
-        dict['No_cancel'] = TXT_No_cancel
+        dict['Pease_select_employee_first'] = TXT_Pease_select_employee_first
 
         # print planning
         dict['Company'] = TXT_Company
@@ -294,12 +310,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['menubtn_hide_templates'] = _('Hide templates')
 
         # select table
-        dict['want_to_continue'] = TXT_want_to_continue  # 'Do you want to continue?'
         dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
-        dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
-        dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
-
-        dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
 
         dict['Customer'] = TXT_Customer
         dict['Customers'] = TXT_Customers
@@ -318,6 +329,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Customers_and_orders'] = _('Customers and orders')
 
         dict['Scheme'] = TXT_Scheme
+        dict['Schemes'] = TXT_Schemes
         dict['This_scheme'] = TXT_This_scheme
         dict['Select_scheme'] = TXT_Select_scheme
 
@@ -328,6 +340,17 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Edit_scheme'] = TXT_Edit_scheme
         dict['Select_scheme'] = _('Select scheme')
         dict['No_schemes'] = _('No schemes')
+        dict['No_schemes'] = _('No schemes')
+        dict['Cick_show_inactive_schemes'] = TXT_Cick_show_inactive_schemes
+        dict['Cick_show_inactive_orders'] = TXT_Cick_show_inactive_orders
+        dict['Cick_show_inactive_teams'] = TXT_Cick_show_inactive_teams
+
+        dict['Absence'] = TXT_Absence
+        dict['Add_absence'] = TXT_Add_absence
+        dict['Delete_absence'] = TXT_Delete_absence
+        dict['Absence_category'] = TXT_Absence_category
+        dict['Absence_categories'] = TXT_Absence_categories
+
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
         dict['Add_template'] = _('Add template')
@@ -371,6 +394,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Add_shift'] = TXT_Add_shift
 
         dict['Add_team'] = TXT_Add_team
+        dict['New_team'] = TXT_New_team
         dict['Save_and_add_team'] = TXT_Save_and_add_team
         dict['This_team'] = TXT_This_team
         dict['has'] = TXT_has
@@ -400,16 +424,23 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['err_msg_error'] = TXT_err_msg_error
         dict['err_msg_customer'] = TXT_err_msg_customer
         dict['Please_select_order'] = TXT_Please_select_order
+        dict['Please_select_scheme'] = TXT_Please_select_scheme
+
+        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
+        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
+        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
+        dict['err_msg_and'] = TXT_err_msg_and
+        dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
+
 
 
         dict['err_msg_template_select'] = _('Please select a template.')
         dict['err_msg_name_exists'] = TXT_err_msg_name_exists
         dict['err_msg_name_blank'] = TXT_err_msg_name_blank
-        dict['err_msg_Enter_scheme_name'] = _('Please enter the name of the scheme.')
-        dict['err_msg_Enter_cycle_days'] = _('Please enter the number of cycle days.')
-        dict['err_msg_Cycle_outof_range'] = _('The cycle days must be a number between 1 and 28.')
+        dict['err_msg_Enter_scheme_name'] = _('Please enter the scheme name.')
+        dict['Enter_number_of_cycledays'] = _('Please enter the number of cycle days, or blank for no cycle.')
+        dict['Cycledays_must_be_between'] = _('The cycle days must be between 1 and 28, or blank for no cycle.')
 
-        dict['Enter_cycle_days'] = _('Enter the length of the cycle in days, from 1 day thru 28 days.')
         dict['err_msg_template_blank'] = _('Please enter a template name.')
 
 # ====== PAGE PRICE =========================
@@ -454,10 +485,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Remove_tax'] = _('or remove the current tax rate')
 
         dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
-        dict['err_msg_number_between'] = TXT_err_msg_number_between
-        dict['err_msg_and'] = TXT_err_msg_and
+        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
 
+        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
+        dict['err_msg_and'] = TXT_err_msg_and
         dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
+
+
 
         dict['As_of_abbrev'] = TXT_As_of_abbrev
         dict['Through'] = TXT_Through
@@ -588,10 +622,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['replaced'] = TXT_replaced
 
         dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
-        dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
-        dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
-
-        dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
 
         dict['Confirm'] = TXT_Confirm
         dict['Start_and_endtime_confirmed'] = TXT_Start_and_endtime_confirmed
@@ -803,6 +833,10 @@ TXT_No_order_selected = _('There is no order selected.')
 TXT_Customer_list = _('Customer list')
 TXT_No_customers = _('No customers')
 TXT_Identifier = _('Identifier')
+TXT_ID_number = _('ID number')
+TXT_Payroll_code = _('Payroll code')
+
+TXT_Payroll_code_abbrev = pgettext_lazy('Code loonadm.', 'Payroll code')
 
 TXT_New = _('New')
 TXT_Add = _('Add')
@@ -817,6 +851,11 @@ TXT_Make_customer_inactive = _('Make customer inactive.')
 TXT_Make_order_inactive = _('Make order inactive.')
 TXT_Make_planned_shifts_inactive = _('Make planned shifts inactive.')
 
+TXT_Cick_show_inactive_orders = _('Click to show or hide inactive orders.')
+TXT_Cick_show_inactive_schemes = _('Click to show or hide inactive schemes.')
+TXT_Cick_show_inactive_shifts = _('Click to show or hide inactive shifts.')
+TXT_Cick_show_inactive_teams = _('Click to show or hide inactive teams.')
+
 TXT_Print_planning = _('Print planning')
 TXT_Preview_planning = _('Preview planning')
 TXT_Download_planning = _('Download planning')
@@ -830,6 +869,7 @@ TXT_Add_order = _('Add order')
 TXT_Delete_order = _('Delete order')
 
 TXT_Scheme = _('Scheme')
+TXT_Schemes = _('Schemes')
 TXT_New_scheme = _('New scheme')
 TXT_Add_scheme = _('Add scheme')
 TXT_Edit_scheme = _('Edit scheme')
@@ -908,21 +948,27 @@ TXT_Click_show_inactive_employees = _('Click to show or hide inactive employees'
 TXT_Employee_list = _('Employee list')
 TXT_Employee_data = _('Employee data')
 
+TXT_Hours_per_day = _('Hours per day')
 TXT_Hours_per_week = _('Hours per week')
 TXT_Days_per_week = _('Days per week')
 TXT_Vacation_days = _('Vacation days')
 TXT_Hourly_rate = _('Hourly rate')
 TXT_Wage_rate = _('Wage rate')
 
+TXT_Workhours = _('Workhours')
+TXT_Workdays = _('Workdays')
+TXT_Leavedays = _('Leavedays')
+
 # Note: absence/afwezig/afwezigheid translations is hardcoded in calc_roster_totals PR2020-04-23
 TXT_Absence = _('Absence')
 TXT_This_absence = _('This absence')
 
 TXT_Absence_category = _('Absence category')
+TXT_Absence_categories = _('Absence categories')
 TXT_Select_abscat = _('Select absence category')
-TXT_No_abscat = _('No absence categories')
+TXT_No_absence_categories = _('No absence categories')
+TXT_Add_absence = _('Add absence')
 TXT_Delete_absence = _('Delete absence')
-
 TXT_With_absence = _('With absence')
 TXT_Without_absence = _("Without absence")
 TXT_Absence_only = _("Absence only")
@@ -943,17 +989,10 @@ TXT_deleted = _('deleted')
 TXT_created = _('created')
 TXT_replaced = _('replaced')
 
-TXT_want_to_continue = _('Do you want to continue?')
-
 TXT_Yes_create = _('Yes, create')
-TXT_Yes_delete = _('Yes, delete')
-TXT_Yes_make_inactive = _('Yes, make inactive')
-TXT_No_cancel = _('No, cancel')
 
 TXT_This_customer = _('This customer')
 TXT_This_order = _('This order')
-TXT_will_be_deleted = _('will be deleted.')
-TXT_will_be_made_inactive = _('will be made inactive.')
 
 # print planning
 TXT_Planning = _('Planning')
@@ -989,9 +1028,10 @@ TXT_All_customers = _('All customers')
 TXT_All_orders = _('All orders')
 
 TXT_err_msg_error = _('An error occurred.')
-TXT_Please_select_order = _('Please select an order.')
+TXT_Please_select_order = _('Please select an order first.')
 TXT_err_msg_customer = _('Please select a customer.')
 TXT_err_msg_select_shift = _('Please select a shift.')
+TXT_Please_select_scheme = _('Please select a scheme.')
 
 TXT_err_msg_cannot_delete_shift_01 = _('This is ')
 TXT_err_msg_cannot_delete_shift_02 = _(', that cannot be deleted.')
@@ -1004,9 +1044,11 @@ TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
 TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
-TXT_err_msg_number_between = _('Number must be between')
+TXT_err_msg_must_be_integer = _('must be an integer.')
+TXT_err_msg_must_be_between = _('must be between')
 TXT_err_msg_and = _('and')
-TXT_err_msg_endof_sentence = pgettext_lazy('End of Number must be between', '.')
+TXT_err_msg_endof_sentence = pgettext_lazy('moet tussen ... liggen.', '.')
+TXT_Leavedays_are_on_fulltime_basis = _('Leave days are on a full time basis.')
 
 TXT_you_must_first_select = _('You must first select ')
 TXT_err_open_calendar_02 = _(', before you can add a calendar item.')
@@ -1058,6 +1100,9 @@ TXT_All = _('All')
 
 TXT_First_date = _('First date')
 TXT_Last_date = _('Last date')
+
+TXT_First_date_in_service = _('First date in service')
+TXT_Last_date_in_service = _('Last date in service')
 
 TXT_Duration = _('Duration')
 
