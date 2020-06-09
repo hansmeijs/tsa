@@ -520,7 +520,7 @@ def create_teammember_dict_from_model(teammember, item_dict, user_lang):
             elif field == 'team':
                 if team:
                     field_dict['pk'] = team.pk
-                    #field_dict['ppk'] = team.scheme.pk
+                    field_dict['ppk'] = team.scheme.pk
                     if team_code:
                         field_dict['code'] = team_code
                     schemeteam_code = team_code if is_absence else ' - '.join([scheme.code, team_code])
@@ -528,7 +528,7 @@ def create_teammember_dict_from_model(teammember, item_dict, user_lang):
 
             elif field == 'scheme':
                 field_dict['pk'] = scheme.pk
-                #field_dict['ppk'] = order.pk
+                field_dict['ppk'] = order.pk
                 field_dict['code'] = scheme.code if scheme.code else ''
                 field_dict['datefirst'] = scheme.datefirst
                 field_dict['datelast'] = scheme.datelast

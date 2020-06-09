@@ -2004,10 +2004,10 @@
         return new_code;
     } ; // get_schemecode_with_sequence
 
-    function get_teamcode_with_sequence(team_map, parent_pk, default_code){
+    function get_teamcode_with_sequence_from_map(team_map, parent_pk, default_code){
         "use strict";
-        //console.log(' --- get_teamcode_with_sequence --- ')
-        //console.log('parent_pk: ', parent_pk)
+        console.log(' --- get_teamcode_with_sequence_from_map --- ')
+        console.log('parent_pk: ', parent_pk)
         // create new code with sequence character 1 higher than existing code PR2019-12-28
         if (!default_code) {default_code = "Team" }
         const default_code_len = default_code.length
@@ -2019,22 +2019,31 @@
             if(!!team_ppk && team_ppk === parent_pk){
                 count += 1;
                 const code_value = get_dict_value(item_dict, ["code", "value"], "")
-                const index_str = code_value.slice(default_code_len).trim()
-                if(!!index_str && index_str.length === 1){
-                    const index = Number(index_str);
-                    if (!!index){
-                        if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
-                            if (index > max_index) {
-                                max_index = index
-        }}}}}};
 
+
+                if (code_value){
+                    const arr = code_value.split(" ");
+                    if (arr.length === 2){
+                        const index_str = arr[1];
+                        if(!!index_str && index_str.length === 1){
+                            const index = index_str.charCodeAt(0);
+                            if (!!index){
+                                if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
+                                    if (index > max_index) {
+                                        max_index = index
+                }}}}}}
+
+
+
+            }
+        };
         // when 4 teams exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {
             new_index = count + 65
         }
         return default_code + " " + String.fromCharCode(new_index);
-    } ; // get_teamcode_with_sequence
+    } ; // get_teamcode_with_sequence_from_map
 
 
     function get_teamcode_with_sequence_from_list(teams_list, parent_pk, default_code){
@@ -2054,15 +2063,20 @@
                 if(!isEmpty(item_dict)){
                     count += 1;
                     const code_value = get_dict_value(item_dict, ["code", "value"], "")
-                    const index_str = code_value.slice(default_code_len).trim()
-                    if(!!index_str && index_str.length === 1){
-                        const index = Number(index_str);
-                        if (!!index){
-                            if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
-                                if (index > max_index) {
-                                    max_index = index
-        }}}}}}};
-
+                    if (code_value){
+                        const arr = code_value.split(" ");
+                        if (arr.length === 2){
+                            const index_str = arr[1];
+                            if(!!index_str && index_str.length === 1){
+                                const index = index_str.charCodeAt(0);
+                                if (!!index){
+                                    if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
+                                        if (index > max_index) {
+                                            max_index = index
+                    }}}}}}
+                }
+            }
+        };
         // when 4 teams exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {

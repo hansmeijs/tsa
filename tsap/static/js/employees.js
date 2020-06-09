@@ -3997,7 +3997,7 @@ if(pgeName === "absence"){
             if(isEmpty(team_dict)){
                 id_new = id_new + 1
                 team_pk = "new" + id_new.toString();
-                const team_code = (!!employee_code) ? employee_code : get_teamcode_with_sequence(team_map, scheme_pk, loc.Team)
+                const team_code = (!!employee_code) ? employee_code : get_teamcode_with_sequence_from_map(team_map, scheme_pk, loc.Team)
                 team_dict = {pk: team_pk,
                               ppk: scheme_pk,
                               table: "team",

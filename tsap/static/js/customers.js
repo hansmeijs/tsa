@@ -2576,7 +2576,7 @@ let planning_list = [] // for export and printing - can replace map?
 // --- create new team_dict if calendar_team_dict is empty
                 id_new = id_new + 1;
                 team_pk_str = "new" + id_new.toString();
-                const team_code = get_teamcode_with_sequence(team_map, scheme_pk, loc.Team);
+                const team_code = get_teamcode_with_sequence_from_map(team_map, scheme_pk, loc.Team);
                 const new_team_dict = {id: {pk: team_pk_str,
                                             ppk: scheme_pk,
                                             table: "team",

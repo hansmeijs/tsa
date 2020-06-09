@@ -452,7 +452,7 @@
             } else if(updated){
                 // dont make el green when addnew row is cleared
                 if(!skip_ok){
-                    ShowOkElement(el_input);
+                    ShowOkElement(el_input, "border_bg_valid");
                 }
             }
             if (!!value){
@@ -492,7 +492,7 @@
             el_input.setAttribute("data-value", value);
             el_input.setAttribute("data-pk", pk_int);
 
-            if(is_updated){ShowOkElement(el_input)}
+            if(is_updated){ShowOkElement(el_input, "border_bg_valid")}
         }
     }  // format_select_element
 
@@ -570,7 +570,7 @@
                 if(!value) {value = null} // otherwise 'undefined will show in textbox
                 ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, display_value, value)
             } else if(updated){
-                ShowOkElement(el_input);
+                ShowOkElement(el_input, "border_bg_valid");
             }
 
             el_input.value = (!!display_value) ? display_value : null
@@ -651,7 +651,7 @@
             if(!!msg_err){
                ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value, data_value, display_title)
             } else if(updated){
-                ShowOkElement(el_input);
+                ShowOkElement(el_input, "border_bg_valid");
             }
 
             if(!!display_value){el_input.value = display_value} else {el_input.value = null}
@@ -917,7 +917,7 @@
                 if(!!msg_err){
                     ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
-                    ShowOkElement(el_input);
+                    ShowOkElement(el_input, "border_bg_valid");
                 }
             }  // if (!!datetime_iso)
 
@@ -984,7 +984,7 @@
                 if(!!msg_err){
                    ShowMsgError(el_input, el_msg, msg_err, offset, true, offset)
                 } else if(updated){
-                    ShowOkElement(el_input);
+                    ShowOkElement(el_input, "border_bg_valid");
                 }
             }  //  if(!!field_dict)
 
@@ -1267,7 +1267,7 @@
                 //console.log("+++++++++ ShowMsgError")
                ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
             } else if(updated){
-                ShowOkElement(el_input);
+                ShowOkElement(el_input, "border_bg_valid");
             }
 
             el_input.setAttribute("data-value", value_int);
@@ -1486,7 +1486,7 @@
             }
             const is_updated = get_dict_value_by_key(field_dict, "updated", false);
             if(is_updated){
-                ShowOkElement(el_input);
+                ShowOkElement(el_input, "border_bg_valid");
             }
         }  // if(!!el_input)
     }  // format_restshift_element
@@ -1531,7 +1531,7 @@
                 }
 
                 if(get_dict_value_by_key (field_dict, "updated")){
-                    ShowOkElement(el_input);
+                    ShowOkElement(el_input, "border_bg_valid");
                 }
             }  // if(isEmpty(field_dict)){
         }  // if(!!el_input)
@@ -1562,7 +1562,7 @@
                 }
             }
             // make el_input green for 2 seconds
-            if("updated" in field_dict){ShowOkElement(el_input)}
+            if("updated" in field_dict){ShowOkElement(el_input, "border_bg_valid")}
         }
     }  // format_inactive_element
 
@@ -1700,12 +1700,12 @@
     }
 
 //=========  ShowOkElement  ================ PR2019-11-27
-    function ShowOkElement(el_input, cur_class) {
+    function ShowOkElement(el_input, ok_class, cur_class) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
         if(cur_class) {el_input.classList.remove(cur_class)};
-        el_input.classList.add("border_bg_valid");
+        el_input.classList.add(ok_class);
         setTimeout(function (){
-            el_input.classList.remove("border_bg_valid");
+            el_input.classList.remove(ok_class);
             if(cur_class) {el_input.classList.add(cur_class)};
         }, 2000);
     }

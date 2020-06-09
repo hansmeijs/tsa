@@ -872,10 +872,10 @@ a:hover{
 }
 
 .cell_saved_odd {
-    background: #ccffcc;
+    background: #ccffcc; /* light green*/
 }
 .cell_saved_even {
-    background: #deffde;
+    background: #deffde;  /* light light green*/
 }
 
 .cell_unchanged_odd {

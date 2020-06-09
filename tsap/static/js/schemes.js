@@ -2750,17 +2750,17 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //=========  Grid_UpdateFromResponse_team  ================ PR2020-03-20
     function Grid_UpdateFromResponse_team(update_list) {
-        console.log(" ==== Grid_UpdateFromResponse_team ====");
+        //console.log(" ==== Grid_UpdateFromResponse_team ====");
         let cell_id_str = null, ppk_int = null;
 // --- loop through update_list
         for (let i = 0, len = update_list.length; i < len; i++) {
             let update_dict = update_list[i];
-            console.log("update_dict", update_dict);
+            //console.log("update_dict", update_dict);
 //----- get id_dict of updated item
             const tblName = get_dict_value(update_dict, ["id", "table"]);
             const pk_int = get_dict_value(update_dict, ["id", "pk"]);
             const map_id = get_map_id(tblName, pk_int);
-            console.log("map_id", map_id);
+            //console.log("map_id", map_id);
             if (!!map_id){
 //----- replace updated item in map or remove deleted item from map
                 const is_created = get_dict_value(update_dict, ["id", "created"], false);
@@ -3308,7 +3308,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
             if(is_updated){
                 // put hard return in display_text. Is necessary to display green OK field when it is empty
-                ShowOkElement(el_input)
+                ShowOkElement(el_input, "border_bg_valid")
             };
 
 
@@ -3408,7 +3408,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 // --- new created record
         } else if (is_created){
             const el_scheme_code = document.getElementById("id_scheme_code");
-            ShowOkElement(el_scheme_code)
+            ShowOkElement(el_scheme_code, "border_bg_valid")
         }
 
         const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday", "divergentonpublicholiday"];
@@ -3834,6 +3834,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
     function MGT_Open(mode, el_input, is_addnew_row) {
         console.log(" ======  MGT_Open  =======")
         console.log("mode", mode)
+        // NIU is_addnew_row
 // ---  reset mod_MGT_dict
         mod_MGT_dict = {};
 // ---  get scheme_pk and team_pk from el_input
@@ -3848,7 +3849,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         }
         console.log("scheme_pk", scheme_pk)
         console.log("team_pk", team_pk)
-        if(!!scheme_pk && team_pk){
+        if(scheme_pk && team_pk){
 // --- fill mod_MGT_dict, get is_add_new_mode = isEmpty(team_mapdict)
             const is_add_new_mode = MGT_fill_MGT_dict(scheme_pk, team_pk);
 // ---  put team_code in header
@@ -3902,7 +3903,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         if (add_new_mode){ mod_MGT_dict.team.id.create = true };
 // --- add team_code
         if (add_new_mode){
-            const team_code = get_teamcode_with_sequence(team_map, scheme_pk, loc.Team);
+            const team_code = get_teamcode_with_sequence_from_map(team_map, scheme_pk, loc.Team);
             mod_MGT_dict.team.code = {value: team_code, update: true};
         } else {
             const team_code = get_dict_value(team_mapdict, ["code", "value"]);
@@ -4405,7 +4406,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         id_new += 1;
         const pk_new = "new" + id_new.toString()
 
-        const team_code = get_teamcode_with_sequence(team_map, selected.scheme_pk, loc.Team);
+        const team_code = get_teamcode_with_sequence_from_map(team_map, selected.scheme_pk, loc.Team);
 
         el_MGT_teamcode.value = team_code
         mod_MGT_dict.team = {id: {temp_pk: pk_new, ppk: selected.scheme_pk, table : "team", create: true}, code: { value: team_code}}
@@ -7272,7 +7273,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                 display_text = (excl_ch) ? loc.Not_on_company_holidays : loc.Also_on_company_holidays;
             }
             el.innerText = display_text
-            if(is_updated){ShowOkElement(el, cur_class)};
+            if(is_updated){ShowOkElement(el, "border_bg_valid", cur_class)};
         };
 
 // ---  put scheme values in scheme section
@@ -7307,7 +7308,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
         grid_teams_dict = {};
 
-/*  structure of  grid_teams_dict:
+/*  structure of  grid_teams_dict:  {team_pk: { id: {col:, row_id:, code:, abbrev:}, tm_pk: {row:, row_id:, display:}, ..}
        - keys are team_pk's,
        - value has id_dict:  {id: {col: index, row_id: id, code: team_code, abbrev: abbrev}};
                               key = tm_pk for every teammember of team
@@ -7319,8 +7320,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         let tblRow_select = tblBody.insertRow (-1);
         let tblRow_header = tblBody.insertRow (-1);
 
-// --- loop through team_map and add column for each team
-        let col_index = 0;
+// +++  loop through team_map and add column for each team
+        let col_index = 0, colindex_createdcol = -1;
         if (!!scheme_pk){
             for (const [map_id, team_dict] of team_map.entries()) {
                 const ppk_int = get_dict_value(team_dict, ["id", "ppk"], 0);
@@ -7332,8 +7333,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 // ---  get abbrev of team_code
                         const team_code = get_dict_value(team_dict, ["code", "value"], "");
                         const abbrev = get_dict_value(team_dict, ["code", "abbrev"], "");
+                        const is_created = get_dict_value(team_dict, ["id", "created"],false);
+                        if(is_created){colindex_createdcol = col_index}
                         const row_id ="team_" + pk_int.toString();
-        //console.log("team_code", team_code);
 // ---  add info to grid_teams_dict
                         grid_teams_dict[pk_int] = {id: {col: col_index, row_id: row_id, code: team_code, abbrev: abbrev}};
                         col_index += 1
@@ -7348,6 +7350,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 // ---  add th to tblRow_header.
                         let th_header = document.createElement("th");
                         th_header.classList.add("grd_team_th");
+                        if(is_created){ ShowOkElement(th_header, "grd_team_th_create", "grd_team_th") }
+
                         th_header.innerText = get_dict_value(team_dict, ["code", "value"], "-");
 // ---  add EventListener to th_header
                         th_header.addEventListener("click", function() {MGT_Open("grid", th_header)}, false )
@@ -7394,19 +7398,20 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             let max_row_index = 0;
             for (const [map_id, tm_dict] of teammember_map.entries()) {
                 const scheme_pk_in_dict = get_dict_value(tm_dict, ["team", "ppk"], 0);
-        //console.log("tm_dict", tm_dict);
-        //console.log("scheme_pk_in_dict", scheme_pk_in_dict);
-        //console.log("scheme_pk", scheme_pk);
+        console.log("map_id", map_id);
+        console.log("tm_dict", tm_dict);
+        console.log("scheme_pk_in_dict", scheme_pk_in_dict);
+        console.log("scheme_pk", scheme_pk);
 // ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict,
                 if (!!scheme_pk_in_dict && scheme_pk === scheme_pk_in_dict) {
                     const team_pk = get_dict_value(tm_dict, ["id", "ppk"], 0);
-        //console.log(",,,,,,,,,,,,,,,,,,team_pk", team_pk);
-                    if(!!team_pk){
+        console.log(",,,,,,team_pk", team_pk);
+                    if(team_pk){
                         let team_dict = grid_teams_dict[team_pk];
-        //console.log("team_dict", team_dict);
+        console.log("team_dict", team_dict);
                         if (!!team_dict){
                             const tm_pk = get_dict_value(tm_dict, ["id", "pk"], 0);
-        //console.log("tm_pk", tm_pk);
+        console.log("tm_pk", tm_pk);
 // ---  count how many teammembers this team_dict already has
                             // team_dict also has key 'id', therefore count = length - 1
                             const tm_dict_length = Object.keys(team_dict).length;
@@ -7416,7 +7421,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                             // add row to table when necessary
                             if (row_index > max_row_index) {
                                 max_row_index = row_index
-// add new tblRow when row_index > max_row_index
+// ---  add new tblRow when row_index > max_row_index
                                 let tblRow = tblBody.insertRow (-1);  // index -1: insert new cell at last position.
             // ---  add td's to tblRow.
                                 for (let i = 0, td; i < col_index; i++) {
@@ -7449,6 +7454,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                                 const lookup_cell = lookup_tblRow.cells[col_idx]
                                 lookup_cell.innerText = employee_code
                                 lookup_cell.classList.add("grd_team_td");
+                                if(col_idx === colindex_createdcol){
+                                    ShowOkElement(lookup_cell, "grd_team_td_create", "grd_team_td")
+                                }
             // add EventListener to lookup_cell
                                 lookup_cell.addEventListener("click", function() {MGT_Open("grid", lookup_cell)}, false )
                                 lookup_cell.classList.add("pointer_show")
@@ -7460,7 +7468,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                     }
                 }
             }
-            //console.log( " grid_teams_dict", grid_teams_dict);
+            console.log( " grid_teams_dict", grid_teams_dict);
         }  // if (!!scheme_pk)
     };  // Grid_CreateTblTeams
 

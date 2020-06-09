@@ -704,7 +704,7 @@ selected_btn = "customer"
                             } else { imgsrc = (["empl", "cust"].indexOf(tblName)  > -1) ? imgsrc_bill00_lightlightgrey : imgsrc_bill00_lightgrey; }
                             IconChange(el, imgsrc)
                             if(get_dict_value(dict, ["billable", "updated"])) {
-                                ShowOkElement(el)
+                                ShowOkElement(el, "border_bg_valid");
                             }
 
                         } else if ([2, 3, 4].indexOf(i) > -1) {
@@ -881,7 +881,7 @@ selected_btn = "customer"
                         add_or_remove_class (el, "tsa_color_lightgrey", is_inherited);
 
                         if(get_dict_value(update_dict, [fldName, "updated"])) {
-                            ShowOkElement(tblRow.cells[i])
+                            ShowOkElement(tblRow.cells[i], "border_bg_valid")
                         }
                     }
 

@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 UpdateTableRow("emplhour", tblRow, item_dict)
 
 // --- highlight selected row
-                if (pk_int === selected_emplhour_pk) {
+                if (tblRow && pk_int === selected_emplhour_pk) {
                     tblRow.classList.add(cls_selected)
                 }
             }
