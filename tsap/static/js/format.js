@@ -1232,8 +1232,8 @@
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
         // timeduration: {value: 540, hm: "9:00"}
-        console.log("+++++++++ format_duration_element")
-        console.log("field_dict", field_dict)
+        //console.log("+++++++++ format_duration_element")
+        //console.log("field_dict", field_dict)
 
         if(!!el_input){
             const value_int = get_dict_value(field_dict, ["value"], 0);
@@ -1255,8 +1255,6 @@
     //console.log("display_value: ", display_value)
             el_input.value = display_value;
             el_input.innerText = display_value;
-
-        console.log("display_value", display_value)
 
         // lock element when locked
             el_input.disabled = is_locked
@@ -1470,15 +1468,9 @@
             const is_restshift = get_dict_value_by_key(field_dict, "value", false)
             const imgsrc = (is_restshift) ? imgsrc_rest_black : imgsrc_stat00;
 
-        console.log("field_dict", field_dict);
-        console.log("is_restshift", is_restshift);
-
-
-
             let el_img = el_input.children[0];
             if(!!el_img){el_img.setAttribute("src", imgsrc);};
 
-        console.log("el_img", el_img);
             if(is_restshift){
                 el_input.setAttribute("title", title);
             } else {
@@ -1538,31 +1530,33 @@
         return info_text;
     }  // format_billable_element
 
-//========= format_inactive_element  ======== PR2019-06-09
+//========= format_inactive_element  ======== PR2019-06-09 PR2020-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active) {
         // inactive: {value: true}
         //console.log("+++++++++ format_inactive_element")
 
         if(!!el_input){
             let is_inactive = get_dict_value(field_dict, ["value"], false)
-
+            let is_updated = get_dict_value(field_dict, ["updated"], false)
+            // TODO deprecate
             el_input.setAttribute("data-value", is_inactive);
+            // for row filtering
+            const tblRow = get_tablerow_selected(el_input)
+            if(tblRow){tblRow.setAttribute("data-inactive", is_inactive)};
 
             let el_img = el_input.children[0];
             if (!!el_img){
                 const imgsrc = (is_inactive) ? imgsrc_inactive_black : imgsrc_inactive;
                 const title = (is_inactive) ? title_inactive : title_active;
-
                 el_img.setAttribute("src", imgsrc);
-
-                if (!!title){
+                if (title){
                     el_input.setAttribute("title", title);
                 } else {
                     el_input.removeAttribute("title");
                 }
             }
             // make el_input green for 2 seconds
-            if("updated" in field_dict){ShowOkElement(el_input, "border_bg_valid")}
+            if(is_updated){ShowOkElement(el_input, "border_bg_valid")}
         }
     }  // format_inactive_element
 

@@ -160,6 +160,9 @@ urlpatterns = [
         path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
         path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(), name='employee_uploadsetting_url'),
         path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
+
+        path('payroll', employee_views.PayrollView.as_view(), name='payroll_url'),
+        path('payroll_upload', employee_views.PayrollUploadView.as_view(), name='payroll_upload_url'),
     ])),
 
     path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),

@@ -5487,6 +5487,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 // --- make input_abscat readOnly
         el_MAB_input_abscat.readOnly = (!selected.teammember_pk);
         // when is_addnew: get nowk and nowk from employee, otherwise: get from scheme
+        // TODO nohoursonsaturday / nohoursonsunday
         el_MAB_nowk.checked = (is_addnew) ? mod_dict.employee.nohoursonweekend : mod_dict.scheme.nohoursonweekend;
         el_MAB_noph.checked = (is_addnew) ? mod_dict.employee.nohoursonpublicholiday : mod_dict.scheme.nohoursonpublicholiday;
 

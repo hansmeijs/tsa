@@ -442,7 +442,8 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
 def create_order(parent, upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    #logger.debug(' --- create_order')
+    logger.debug(' >>>>>>>>>>>> --- create_order   ---- ')
+    logger.debug(' upload_dict ', str(upload_dict))
 
     instance = None
 
@@ -459,6 +460,7 @@ def create_order(parent, upload_dict, update_dict, request):
 # 3. Get value of 'code' and 'name'
         code = f.get_dict_value(upload_dict, ('code', 'value'))
         name = f.get_dict_value(upload_dict, ('name', 'value'))
+        is_absence = f.get_dict_value(upload_dict, ('id', 'isabsence'), False)
 
 # b. copy code to name if name is empty, also vice versa (slice name is necessary)
         if name is None:
@@ -466,17 +468,27 @@ def create_order(parent, upload_dict, update_dict, request):
         elif code is None:
             code = name[:c.CODE_MAX_LENGTH]
 
+        logger.debug('code' + str(code))
+        logger.debug('name' + str(name))
+
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
             has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
+            logger.debug('has_error' + str(has_error))
             if not has_error:
                 has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
 
-# 4. create and save 'customer' or 'order'
+# 4. create and save order
                 if not has_error:
-                    instance = m.Order(customer=parent, code=code, name=name)
+                    instance = m.Order(
+                        customer=parent,
+                        code=code,
+                        name=name,
+                        isabsence=is_absence
+                    )
                     instance.save(request=request)
+                    logger.debug('instance' + str(instance))
 
 # 5. return msg_err when instance not created
                     if instance.pk is None:
@@ -493,8 +505,8 @@ def create_order(parent, upload_dict, update_dict, request):
 def update_order(instance, parent, upload_dict, update_dict, user_lang, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    #logger.debug(' --- update_order --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --- update_order --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     if instance:
@@ -525,6 +537,13 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
+
+# 3. save changes in field 'sequence'
+                    elif field == 'sequence':
+                        saved_value = getattr(instance, field)
+                        if new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            is_updated = True
 
         # 3. save changes in field 'billable'
                     elif field in ['billable']:
@@ -558,6 +577,16 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                                 setattr(instance, field, new_date)
                                 is_updated = True
 
+                    if field in ( 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+        # a. get old value
+                        new_value = field_dict.get('value', False)
+                        saved_value = getattr(instance, field, False)
+                        # fields 'code', 'name' are required
+                        if new_value != saved_value:
+        # c. save field if changed
+                            setattr(instance, field, new_value)
+                            is_updated = True
+
     # 4. save changes in fields 'priceratejson'
                     elif field in ['priceratejson']:
                         #logger.debug('field: ' + str(field))
@@ -578,7 +607,11 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         new_taxcode_pk = int(field_dict.get('pk', 0))
                         if new_taxcode_pk:
             # b. check if new_taxcode exists
-                            taxcode = m.Taxcode.objects.get_or_none(id=new_taxcode_pk, company=request.user.company)
+                            taxcode = m.Pricecode.objects.get_or_none(
+                                id=new_taxcode_pk,
+                                istaxcode=True,
+                                company=request.user.company
+                            )
             # c. upate if exists. msg_err if not found
                             if taxcode is None:
                                 msg_err = _('This field could not be updated.')

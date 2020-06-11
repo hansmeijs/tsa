@@ -150,7 +150,7 @@ console.log("=========  function AddTableRow =========");
 // ---  get pk from id of tr_changed
                 // id_str: "4"
                 const id_str = tr_changed.getAttribute("id");
-                console.log( "id_str: ", id_str, typeof id_str);
+            vr    console.log( "id_str: ", id_str, typeof id_str);
 // ---  el_changed is cell 'inactive' of tr_changed
                 //el_changed.innerHTML = "";
                 const src_active = el_changed.getAttribute("src_active");

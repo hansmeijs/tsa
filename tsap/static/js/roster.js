@@ -320,8 +320,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // inactive=null: both active and inactive customers and orders
             // In this way it shows items that are made inactive after creating roster PR2020-04-10
             // filter inactive and datefirst/datelast in select table
-            customer_list: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order_list: {isabsence: null, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             scheme: {istemplate: false, inactive: null, issingleshift: null},
             //schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
@@ -3774,7 +3774,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL ROSTER ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= MRO_Open ====================================  PR2019-11-16
     function MRO_Open (selected_emplhour_pk) {
-        console.log(" ===  MRO_Open  =====") ;
+        console.log(">>>>>>>>>>> ===  MRO_Open  =====") ;
 
         const emplhour_mapid = get_map_id("emplhour", selected_emplhour_pk);
         const emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, emplhour_mapid)
@@ -3933,6 +3933,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_InputOnfocus  ================ PR2020-02-29
     function MRO_InputOnfocus(tblName) {
+
+        console.log(">>>>>>>>>>> ===  MRO_InputOnfocus  =====") ;
         MRO_MRE_MSS_FillSelectTable("MRO", tblName)
     }  // MRO_InputOnfocus
 
@@ -3956,9 +3958,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const order_dict = mod_upload_dict.emplh_shift_dict;
             const shift_dict = get_dict_value(order_dict, [mod_upload_dict.order_pk]);
             const employee_dict = get_dict_value(shift_dict, [mod_upload_dict.shift_code]);
-console.log("?????????? order_dict", order_dict)
-console.log("?????????? shift_dict", shift_dict)
-console.log("?????????? employee_dict", employee_dict)
             if(tblName === "order") {
                 data_dict = order_dict;
             } else if(tblName === "shift") {
@@ -3976,6 +3975,8 @@ console.log("?????????? employee_dict", employee_dict)
                 data_map = employee_map;
             };
         }
+        console.log("data_map", data_map)
+
         if(tblName === "order") {
             select_header_text = loc.Select_order + ":";
             caption_none = loc.No_orders;
@@ -4026,6 +4027,9 @@ console.log("?????????? employee_dict", employee_dict)
             };
         } else {
             for (const [map_id, item_dict] of data_map.entries()) {
+                //console.log("map_id", map_id)
+                //console.log("item_dict", item_dict)
+
                 const arr = MRO_MRE_MSS_FillSelectRow(item_dict, tableBody, tblName, pgeName, selected_pk, mod_upload_dict.rosterdate)
                 if (arr[0]) { row_count += 1 };  //add_to_list = arr[0];
                 if (arr[1]) { has_selected_pk = true }  //  is_selected_pk = arr[1];
@@ -4068,8 +4072,8 @@ console.log("?????????? employee_dict", employee_dict)
         //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
 
 //--- loop through data_map
-        let pk_str = get_dict_value(item_dict, ["id", "pk"]);
-        let ppk_str = get_dict_value(item_dict, ["id", "ppk"]);
+        let pk_int = get_dict_value(item_dict, ["id", "pk"]);
+        let ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
         let code_value = get_dict_value(item_dict, ["code", "value"], "");
         const is_inactive = get_dict_value(item_dict, ["inactive", "value"]);
         const date_first = get_dict_value(item_dict, ["datefirst", "value"]);
@@ -4093,21 +4097,27 @@ console.log("?????????? employee_dict", employee_dict)
             const is_absence = get_dict_value(item_dict, ["id", "isabsence"])
             const customer_inactive = get_dict_value(item_dict, ["customer", "inactive"])
             add_to_list = (!is_absence && !customer_inactive &&!is_inactive && within_range);
+
         } else if(tblName === "shift") {
             const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
+            console.log("item_dict", item_dict)
+            console.log("order_pk_int", order_pk_int)
+            console.log("mod_upload_dict.order.pk", mod_upload_dict.order.pk)
+            // PR2020-06-11 debug: no matches because mod_upload_dict.order.pk was str, not number.
             add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
         } else if(tblName === "employee") {
-            const skip_selected_pk = (!!selected_pk &&  pk_str === selected_pk)
+            const skip_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
             add_to_list = (!is_inactive && within_range && !skip_selected_pk);
         };
+
         if (add_to_list){
 
 
-            is_selected_pk = (!!selected_pk &&  pk_str === selected_pk)
+            is_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
 //- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
             let tblRow = tableBody.insertRow(-1);
-            if (pk_str) {tblRow.setAttribute("data-pk", pk_str)};
-            if (ppk_str) {tblRow.setAttribute("data-ppk", ppk_str)};
+            if (pk_int) {tblRow.setAttribute("data-pk", pk_int)};
+            if (ppk_int) {tblRow.setAttribute("data-ppk", ppk_int)};
             if (code_value) {tblRow.setAttribute("data-value", code_value)};
             if (item_dict.employee_pk) {tblRow.setAttribute("data-employee_pk", item_dict.employee_pk)};
             if (item_dict.employee_ppk) {tblRow.setAttribute("data-employee_ppk", item_dict.employee_ppk)};
@@ -4145,14 +4155,14 @@ console.log("?????????? employee_dict", employee_dict)
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
 // ---  get pk from id of select_tblRow
-            const pk_str = get_attr_from_el(tblRow, "data-pk")
-            const ppk_str = get_attr_from_el(tblRow, "data-ppk")
+            const pk_int = get_attr_from_el_int(tblRow, "data-pk")
+            const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
             const code_value = get_attr_from_el(tblRow, "data-value", "")
             if(pgeName === "MSS" && tblName === "employee"){
                 const employee_pk = get_attr_from_el(tblRow, "data-employee_pk")
                 const employee_ppk = get_attr_from_el(tblRow, "data-employee_ppk")
 
-                mod_upload_dict.selected_emplhour_pk = pk_str
+                mod_upload_dict.selected_emplhour_pk = pk_int
                 if (employee_pk) {mod_upload_dict.employee_pk = employee_pk};
                 if (employee_ppk) {mod_upload_dict.employee_ppk = employee_ppk};
 
@@ -4161,7 +4171,7 @@ console.log("?????????? employee_dict", employee_dict)
                 set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
 
             } else
-                MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_str, ppk_str, code_value)
+                MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value)
 // ---  when MRO_table: set header and enable btn csave
             if(pgeName === "MRO"){
                 MRO_SetHeaderAndEnableBtnSave();
@@ -4170,19 +4180,19 @@ console.log("?????????? employee_dict", employee_dict)
     }  // MRO_MRE_MSS_SelecttableClicked
 
 //=========  MRO_MRE_MSS_SelecttableUpdateAfterSelect  ================ PR2020-04-12
-    function MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_str, ppk_str, code_value) {
+    function MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value) {
         //console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
         // called when clicked on Selecttable and at Keyup of InputElement
         // called by MRO_MRE_MSS_SelecttableClicked and MRO_InputElementKeyup
         //console.log( "tblName:", tblName);
-        //console.log( "pk_str:", pk_str, typeof pk_str);
+        //console.log( "pk_int:", pk_int, typeof pk_int);
         //console.log( "code_value:", code_value);
-        if(!!pk_str) {
+        if(!!pk_int) {
             if (pgeName === "MSS") {
                 mod_upload_dict.skip_focus_event = true;
                 if (tblName === "order") {
-                    mod_upload_dict.order_pk = pk_str;
+                    mod_upload_dict.order_pk = pk_int;
                     mod_upload_dict.order_code = code_value;
 // ---  put value in input box
                     el_MSS_input_order.value = code_value
@@ -4191,7 +4201,7 @@ console.log("?????????? employee_dict", employee_dict)
                     el_MSS_input_shift.readOnly = false;
                     set_focus_on_el_with_timeout(el_MSS_input_shift, 50)
 // ---  fill selecttable shift
-                    MRO_MRE_MSS_FillSelectTable("MSS", "shift", pk_str)
+                    MRO_MRE_MSS_FillSelectTable("MSS", "shift", pk_int)
                 } else if (tblName === "shift") {
                     mod_upload_dict.shift_code = code_value;
 // ---  put value in input box
@@ -4201,21 +4211,25 @@ console.log("?????????? employee_dict", employee_dict)
                     el_MSS_input_employee.readOnly = false;
                     set_focus_on_el_with_timeout(el_MSS_input_employee, 50)
 // ---  fill selecttable shift
-                    MRO_MRE_MSS_FillSelectTable("MSS", "employee", pk_str)
+                    MRO_MRE_MSS_FillSelectTable("MSS", "employee", pk_int)
                 }
             } else {
                 if (tblName === "order") {
-                    mod_upload_dict.order.pk = pk_str;
+                    mod_upload_dict.order.pk = pk_int;
                     mod_upload_dict.order.code = code_value;
                     el_MRO_input_order.value = code_value
+
+
+        console.log(">>>>>>>>>>> ===  MRO_ shift  =====") ;
+
                     MRO_MRE_MSS_FillSelectTable("MRO", "shift")
                     setTimeout(function (){el_MRO_input_shift.focus()}, 50);
 
                 } else if (tblName === "shift") {
-                    mod_upload_dict.shift.pk = pk_str;
+                    mod_upload_dict.shift.pk = pk_int;
                     mod_upload_dict.shift.code = code_value;
 
-                    const shift_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_str);
+                    const shift_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_int);
                         mod_upload_dict.shift.offsetstart = get_dict_value(shift_dict, ["offsetstart", "value"]);
                         mod_upload_dict.shift.offsetend = get_dict_value(shift_dict, ["offsetend", "value"]);
                         mod_upload_dict.shift.breakduration = get_dict_value(shift_dict, ["breakduration", "value"], 0);
@@ -4231,7 +4245,7 @@ console.log("?????????? employee_dict", employee_dict)
 
                 } else if  (tblName === "employee") {
     // ---  put info of selected employee in mod_upload_dict.selected_employee
-                    mod_upload_dict.selected_employee = {pk: pk_str, ppk: ppk_str, code: code_value}
+                    mod_upload_dict.selected_employee = {pk: pk_int, ppk: ppk_int, code: code_value}
 
                     if(pgeName === "MRE"){
                         //  put selected employee in MRE employee input box
@@ -4243,14 +4257,14 @@ console.log("?????????? employee_dict", employee_dict)
                              el_MRE_btn_save.focus()
                         }
                     } else  if(pgeName === "MRO"){
-                        mod_upload_dict.employee = {pk: pk_str, ppk: ppk_str, table: "employee", code: code_value, update: true}
+                        mod_upload_dict.employee = {pk: pk_int, ppk: ppk_int, table: "employee", code: code_value, update: true}
                         el_MRO_input_employee.value = code_value
                         setTimeout(function (){el_MRO_btn_save.focus()}, 50);
                     }
                 }
 
             }  // if (pgeName === "MSS")
-        }  //  if(!!pk_str) {
+        }  //  if(!!pk_int) {
     }  // MRO_MRE_MSS_SelecttableUpdateAfterSelect
 
 //=========  MRO_InputDateChanged  ================ PR2020-04-14
@@ -4275,6 +4289,7 @@ console.log("?????????? employee_dict", employee_dict)
         el_MRO_breakduration.innerText = null;
         el_MRO_timeduration.innerText = null;
 
+        console.log(">>>>>>>>>>> ===  MRO_ order  =====") ;
         MRO_MRE_MSS_FillSelectTable("MRO", "order");
 
         MRO_SetHeaderAndEnableBtnSave();

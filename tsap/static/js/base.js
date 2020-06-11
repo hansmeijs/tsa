@@ -307,13 +307,32 @@
     }  // add_or_remove_attr
 
 //========= function add_hover  =========== PR2020-05-20
-    function add_hover(el) {
+    function add_hover(el, hover_class, default_class) {
 //- add hover to element
+        if(!hover_class){hover_class = "tr_hover" };
         if(!!el){
-            el.addEventListener("mouseenter", function(){el.classList.add("tr_hover")});
-            el.addEventListener("mouseleave", function(){el.classList.remove("tr_hover")});
+            el.addEventListener("mouseenter", function(){
+                if(default_class) {el.classList.remove(default_class)}
+                el.classList.add(hover_class)
+            });
+            el.addEventListener("mouseleave", function(){
+                if(default_class) {el.classList.add(default_class)}
+                el.classList.remove(hover_class)
+            });
         }
     }  // add_hover
+
+//========= function add_hover  =========== PR2020-06-09
+    function add_hover_image(el, hover_image, default_image) {
+        //console.log(" === add_hover_image === ")
+//- add hover image to element
+        if(el && hover_image && default_image){
+            const img = el.children[0];
+            if(img){
+                el.addEventListener("mouseenter", function() { img.setAttribute("src", hover_image) });
+                el.addEventListener("mouseleave", function() { img.setAttribute("src", default_image) });
+        }}
+    }  // add_hover_image
 
 //========= set_focus_on_id_with_timeout  =========== PR2020-05-09
     function set_focus_on_id_with_timeout(id, ms) {
@@ -561,7 +580,7 @@
         let value_int = null;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
-                value_int = parseInt(element.getAttribute(key))
+                value_int = Number(element.getAttribute(key))
             };
         }
         return value_int;
@@ -1360,90 +1379,6 @@
 
     }
 
-//========= get_number_from_input  ========== PR2020-01-12
-    function get_number_from_input(loc, fldName, input_value) {
-        //console.log("--------- get_number_from_input ---------")
-        let caption_str = (loc.Number) ? loc.Number : null;
-
-        let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
-        let integer_only = false;
-        if(fldName === "cycle"){
-            caption_str = loc.Cycle ;
-            integer_only = true;
-            min_value = 1;
-            max_value = 28;
-       } else if(fldName === "price"){
-            caption_str = loc.Price
-            multiplier = 100;
-            max_value = 100000;  // max $ 1000, max 1000%
-       } else if(fldName === "workhours"){
-            caption_str = loc.Workhours
-            multiplier = 60;
-            max_value = 10080  // 7 * 1440 = 168 * 60
-        } else if(fldName === "workdays"){
-            caption_str = loc.Workdays
-            multiplier = 1440;
-            max_value = 10080  // 7 * 1440
-        } else if(fldName === "leavedays"){
-            caption_str = loc.Vacation_days
-            multiplier = 1440;
-            max_value = 525600 // 365 * 1440
-        }
-
-        let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
-        if(input_value === 0){
-            output_value = 0;
-        } else if(!!input_value){
-            // replace comma's with dots
-            const value_with_dot = input_value.replace(/\,/g,".");
-            const index_last_dot = value_with_dot.lastIndexOf(".")
-            // check if input has dots
-            if (index_last_dot === -1){
-                // if input has no dots: convert to integer
-                value_int = Number(value_with_dot);
-                // value is not valid when falsey, except when zero
-                is_not_valid = (!value_int && value_int !== 0)
-            } else {
-                // if input has dots: split into integer and decimal
-                const int_part = value_with_dot.slice(0, index_last_dot);
-                // replace other dots with '', convert to integer
-                value_int = Number(int_part.replace(/\./g,""));
-                is_not_valid = (!value_int && value_int !== 0);
-                if(!is_not_valid){
-                    // get decimal part
-                    const dec_part = value_with_dot.slice(index_last_dot + 1 );
-
-                    const value_after_dot = Number(dec_part);
-                    // not valid if NaN
-                    is_not_valid = (!value_after_dot && value_after_dot !== 0);
-                    if(!is_not_valid){
-                        is_not_valid = (integer_only && value_after_dot)
-                        if(is_not_valid){
-                            err_msg = caption_str + " " + loc.err_msg_must_be_integer
-                        } else {
-                            // multiply by exp. length, i.e. convert '75' to '0.75'
-                            value_decimal = value_after_dot * (10 ** -dec_part.length);
-                        }
-                    }
-                }
-            }
-            if(is_not_valid){
-                if(!err_msg){err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
-            } else {
-                // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
-                output_value = Math.round(multiplier * (value_int + value_decimal));
-                is_not_valid = (output_value < min_value || output_value > max_value) ;
-                if(is_not_valid){
-                    if(!err_msg){
-                        err_msg = caption_str + " " + loc.err_msg_must_be_between + " " + min_value / multiplier + " " + loc.err_msg_and +
-                        " " + max_value / multiplier + loc.err_msg_endof_sentence;
-                    }
-                }
-            }
-        }
-        return [output_value, err_msg];
-    }  // get_number_from_input
-
 // NOT WORKING YET
 //========= addfunction removeItem to object prototype  ========== PR2019-09-15
 // from https://stackoverflow.com/questions/346021/how-do-i-remove-objects-from-a-javascript-associative-array
@@ -1599,4 +1534,128 @@
         //console.log( "el_datefirst: ", el_datefirst);
         }
     }  // set_other_datefield_minmax
+
+//###########################################################################
+// +++++++++++++++++ VALIDATORS ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+//========= get_number_from_input  ========== PR2020-06-10
+    function get_number_from_input(loc, fldName, input_value) {
+        //console.log("--------- get_number_from_input ---------")
+        let caption_str = (loc.Number) ? loc.Number : null;
+
+        let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
+        let integer_only = false;
+        if(fldName === "cycle"){
+            caption_str = loc.Cycle ;
+            integer_only = true;
+            min_value = 1;
+            max_value = 28;
+        } else if(fldName === "sequence"){
+            caption_str = loc.Sequence ;
+            integer_only = true;
+            min_value = 0;
+            max_value = null;
+        } else if(fldName === "price"){
+            caption_str = loc.Price
+            multiplier = 100;
+            max_value = 100000;  // max $ 1000, max 1000%
+        } else if(fldName === "workhours"){
+            caption_str = loc.Workhours
+            multiplier = 60;
+            max_value = 10080  // 7 * 1440 = 168 * 60
+        } else if(fldName === "workdays"){
+            caption_str = loc.Workdays
+            multiplier = 1440;
+            max_value = 10080  // 7 * 1440
+        } else if(fldName === "leavedays"){
+            caption_str = loc.Vacation_days
+            multiplier = 1440;
+            max_value = 525600 // 365 * 1440
+        }
+
+        let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
+        if(input_value === 0){
+            output_value = 0;
+        } else if(!!input_value){
+            // replace comma's with dots
+            const value_with_dot = input_value.replace(/\,/g,".");
+            const index_last_dot = value_with_dot.lastIndexOf(".")
+            // check if input has dots
+            if (index_last_dot === -1){
+                // if input has no dots: convert to integer
+                value_int = Number(value_with_dot);
+                // value is not valid when falsey, except when zero
+                is_not_valid = (!value_int && value_int !== 0)
+            } else {
+                // if input has dots: split into integer and decimal
+                const int_part = value_with_dot.slice(0, index_last_dot);
+                // replace other dots with '', convert to integer
+                value_int = Number(int_part.replace(/\./g,""));
+                is_not_valid = (!value_int && value_int !== 0);
+                if(!is_not_valid){
+                    // get decimal part
+                    const dec_part = value_with_dot.slice(index_last_dot + 1 );
+                    const value_after_dot = Number(dec_part);
+                    // not valid if NaN
+                    is_not_valid = (!value_after_dot && value_after_dot !== 0);
+                    if(!is_not_valid){
+                        is_not_valid = (integer_only && value_after_dot)
+                        if(is_not_valid){
+                            err_msg = caption_str + " " + loc.err_msg_must_be_integer
+                        } else {
+                            // multiply by exp. length, i.e. convert '75' to '0.75'
+                            value_decimal = value_after_dot * (10 ** -dec_part.length);
+                        }
+                    }
+                }
+            }
+            if(is_not_valid){
+                if(!err_msg){err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
+            } else {
+                // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
+                output_value = Math.round(multiplier * (value_int + value_decimal));
+                is_not_valid =( (min_value != null && output_value < min_value) || (max_value != null && output_value > max_value) ) ;
+                if(is_not_valid){
+                    if(!err_msg){
+                        if(min_value != null) {
+                            if(max_value != null) {
+                                err_msg = caption_str + " " + loc.err_msg_must_be_between + " " + min_value / multiplier + " " + loc.err_msg_and +
+                                " " + max_value / multiplier + ".";
+                            } else {
+                                err_msg = caption_str + " " + loc.err_msg_must_be_greater_than_or_equal_to + " " + max_value / multiplier + "."
+                            }
+                        } else if(max_value != null) {
+                            err_msg = caption_str + " " + loc.err_msg_must_be_less_than_or_equal_to + " " + max_value / multiplier + "."
+        }}}}};
+        return [output_value, err_msg];
+    }  // get_number_from_input
+
+//========= validate_blank_unique_text  ================= PR2020-06-10
+    function validate_blank_unique_text(loc, data_map, mapName, fldName, input_value, cur_pk_int, no_blank) {
+        //console.log(" ===== validate_blank_unique_text =====");
+        const field_caption = (mapName === "abscat" && fldName === "code") ? loc.The_absence_category :
+                              (mapName === "abscat" && fldName === "sequence") ? loc.The_priority : loc.This_field
+        const input_value_trimmed = input_value.trim();
+// ---  get tblName, is null when btn = "btn_grid"
+        let msg_err = null;
+        if (!input_value_trimmed){
+            if(no_blank){msg_err = field_caption + loc.must_be_completed};
+        } else if(cur_pk_int && data_map.size){
+            const input_value_lowercase = input_value_trimmed.toLowerCase();
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const item_pk_int = get_dict_value(item_dict, ["id", "pk"])
+                // skip current item
+                if (item_pk_int && item_pk_int !== cur_pk_int){
+                    const item_value = get_dict_value(item_dict, [fldName, "value"])
+                    const item_value_trimmed = item_value.trim();
+                    const item_value_lowercase = item_value_trimmed.toLowerCase();
+                    if(item_value){
+                        if(input_value_lowercase === item_value_lowercase){
+                            msg_err = field_caption + " '" + input_value + "' " + loc.already_exists;
+                            break;
+        }}}}};
+        return msg_err;
+    }  // validate_blank_unique_text
+
 

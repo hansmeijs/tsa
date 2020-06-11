@@ -2569,9 +2569,9 @@ def calc_timeduration_from_shift(shift):
 
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10 PR2020-06-01
-def calc_timestart_time_end_from_offset(rosterdate_dte, is_weekend, is_publicholiday,
+def calc_timestart_time_end_from_offset(rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
                                         offsetstart, offsetend, breakduration, timeduration,
-                                        nohoursonweekend, nohoursonpublicholiday,
+                                        nohoursonsaturday, nohoursonsunday, nohoursonpublicholiday,
                                         is_restshift, is_absence, comp_timezone):
     #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
     # called by add_orderhour_emplhour
@@ -2613,9 +2613,11 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, is_weekend, is_publichol
             if is_restshift:
                 timeduration = 0
             if is_absence:
-                if nohoursonweekend and is_weekend:
+                if nohoursonsaturday and is_saturday:
                     timeduration = 0
-                if nohoursonpublicholiday and is_publicholiday:
+                elif nohoursonsunday and is_sunday:
+                    timeduration = 0
+                elif nohoursonpublicholiday and is_publicholiday:
                     timeduration = 0
             #logger.debug('is_restshift  timeduration:  ' + str(timeduration))
 

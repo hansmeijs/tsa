@@ -64,57 +64,59 @@ idx_s_cycle = 26
 idx_s_exph = 27
 idx_s_exch = 28
 idx_s_dvgph = 29
-idx_s_nowk = 30
-idx_s_noph = 31
+idx_s_nosat = 30
+idx_s_nosun = 31
 
-idx_sh_os = 32
-idx_sh_oe = 33
-idx_sh_os_nonull = 34  # non zero os for sorting when creating rosterdate
-idx_sh_oe_nonull = 35  # non zero os for sorting when creating rosterdate
-idx_sh_bd = 36
-idx_sh_td = 37
+idx_s_noph = 32
 
-idx_tm_rd = 38
-idx_tm_count = 39
+idx_sh_os = 33
+idx_sh_oe = 34
+idx_sh_os_nonull = 35  # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 36  # non zero os for sorting when creating rosterdate
+idx_sh_bd = 37
+idx_sh_td = 38
 
-idx_e_tm_id_arr = 40
-idx_e_si_id_arr = 41
-idx_e_mod_arr = 42 # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_os_arr = 43
-idx_e_oe_arr = 44
-idx_e_o_seq_arr = 45
+idx_tm_rd = 39
+idx_tm_count = 40
 
-idx_r_tm_id_arr = 46
-idx_r_si_id_arr = 47
-idx_r_mod_arr = 48
-idx_r_os_arr = 49
-idx_r_oe_arr = 50
-idx_r_o_seq_arr = 51
+idx_e_tm_id_arr = 41
+idx_e_si_id_arr = 42
+idx_e_mod_arr = 43 # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_os_arr = 44
+idx_e_oe_arr = 45
+idx_e_o_seq_arr = 46
 
-idx_isreplacement = 52# ispare_isreplacement = 52 # for testing only
+idx_r_tm_id_arr = 47
+idx_r_si_id_arr = 48
+idx_r_mod_arr = 49
+idx_r_os_arr = 50
+idx_r_oe_arr = 51
+idx_r_o_seq_arr = 52
 
-idx_tm_ovr = 53
-idx_tm_prc_id = 54
-idx_r_prc_id = 55
-idx_e_prc_id = 56
-idx_sh_prc_id = 57
+idx_isreplacement = 53# ispare_isreplacement = 52 # for testing only
 
-idx_tm_adc_id = 58
-idx_r_adc_id = 59
-idx_e_adc_id = 60
-idx_sh_adc_id = 61
-idx_sh_txc_id = 62
+idx_tm_ovr = 54
+idx_tm_prc_id = 55
+idx_r_prc_id = 56
+idx_e_prc_id = 57
+idx_sh_prc_id = 58
 
-idx_o_inv_id = 63
-idx_e_fnc_id = 64
-idx_e_wgc_id = 65
-idx_e_pdc_id = 66
-idx_r_fnc_id = 67
-idx_r_wgc_id = 68
-idx_r_pdc_id = 69
-idx_sh_wfc_id = 70
+idx_tm_adc_id = 59
+idx_r_adc_id = 60
+idx_e_adc_id = 61
+idx_sh_adc_id = 62
+idx_sh_txc_id = 63
 
-idx_o_nopay = 71
+idx_o_inv_id = 64
+idx_e_fnc_id = 65
+idx_e_wgc_id = 66
+idx_e_pdc_id = 67
+idx_r_fnc_id = 68
+idx_r_wgc_id = 69
+idx_r_pdc_id = 70
+idx_sh_wfc_id = 71
+
+idx_o_nopay = 72
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -176,7 +178,8 @@ sql_schemeitem_sub00 = """
         s.excludepublicholiday AS s_exph,
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
-        s.nohoursonweekend AS s_nowk,
+        s.nohoursonsaturday AS s_nosat,
+        s.nohoursonsunday AS s_nosun,
         s.nohoursonpublicholiday AS s_noph,
 
         si.onpublicholiday AS si_onph,
@@ -248,7 +251,8 @@ sql_schemeitem_norest_sub01 = """
         si_sub.s_exph,
         si_sub.s_exch,
         si_sub.s_dvgph,
-        si_sub.s_nowk,
+        si_sub.s_nosat,
+        si_sub.s_nosun,
         si_sub.s_noph,
         
         si_sub.si_onph,
@@ -566,7 +570,8 @@ sql_teammember_sub08 = """
         s.excludepublicholiday AS s_exph,
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
-        s.nohoursonweekend AS s_nowk,
+        s.nohoursonsaturday AS s_nosat,
+        s.nohoursonsunday AS s_nosun,
         s.nohoursonpublicholiday AS s_noph,
 
         si_sub.sh_os,
@@ -823,7 +828,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
             # add  rosterdate_is_weekend to skip absence hours when nohoursonweekend
             rosterdate_isoWeekDay = rosterdate_dte.isoweekday()
-            is_weekend = (rosterdate_isoWeekDay in (6,7))
+            is_saturday = (rosterdate_isoWeekDay == 6)
+            is_sunday = (rosterdate_isoWeekDay == 7)
             #logger.debug('publicholiday_text: ' + str(publicholiday_text) + ' ' + str(type(publicholiday_text)))
             if is_publicholiday:
                 logfile.append('--- this is a public holiday (' + str(publicholiday_text) + ')')
@@ -832,9 +838,12 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             if is_companyholiday:
                 logfile.append('--- this is a company holiday.')
                 logfile.append("    schemes with 'not on company holidays' set will be skipped.")
-            if is_weekend:
-                logfile.append('--- this is a weekend.')
-                logfile.append("    absence with 'no hours on weekends' will have hours set to zero.")
+            if is_saturday:
+                logfile.append('--- this is a Saturday.')
+                logfile.append("    absence with 'no hours on Saturdays' will have hours set to zero.")
+            elif is_sunday:
+                logfile.append('--- this is a Sunday.')
+                logfile.append("    absence with 'no hours on Sundays' will have hours set to zero.")
 
             # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -866,7 +875,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
                         rosterdate_dte=rosterdate_dte,
-                        is_weekend=is_weekend,
+                        is_saturday=is_saturday,
+                        is_sunday=is_sunday,
                         is_publicholiday=is_publicholiday,
                         comp_timezone=comp_timezone,
                         request=request)
@@ -939,7 +949,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
     return return_dict, logfile
 
 
-def add_orderhour_emplhour(row, rosterdate_dte, is_weekend, is_publicholiday, comp_timezone, request):  # PR2020-01-5
+def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, comp_timezone, request):  # PR2020-01-5
     #logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
@@ -966,13 +976,15 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_weekend, is_publicholiday, co
 
     timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
-        is_weekend=is_weekend,
+        is_saturday=is_saturday,
+        is_sunday=is_sunday,
         is_publicholiday=is_publicholiday,
         offsetstart=row[idx_sh_os],
         offsetend=row[idx_sh_oe],
         breakduration=row_breakduration,
         timeduration=row[idx_sh_td],
-        nohoursonweekend=row[idx_s_nowk],
+        nohoursonsaturday=row[idx_s_nosat],
+        nohoursonsunday=row[idx_s_nosun],
         nohoursonpublicholiday=row[idx_s_noph],
         is_restshift=is_restshift,
         is_absence=is_absence,
@@ -2667,9 +2679,8 @@ def check_absencerow_for_doubles(row):
     # only absence rows with the same os and oe will be skipped
 
     skip_row = False
-    # row is alway absence row. Filtered in create_employee_calendar
+# - row is alway absence row. Filtered in create_employee_calendar
     if row[idx_si_mod] == 'a':
-
         #logger.debug("row is alway absence row: " + str(row[idx_si_mod]))
         row_os_ref = row[idx_sh_os] if row[idx_sh_os] else 0
         row_oe_ref = row[idx_sh_oe] if row[idx_sh_oe] else 1440
@@ -2678,15 +2689,15 @@ def check_absencerow_for_doubles(row):
         #logger.debug("idx_e_mod_arr mode: " + str(row[idx_e_mod_arr]))
         if row[idx_e_mod_arr]:
             for i, lookup_mode in enumerate(row[idx_e_mod_arr]):
-                # skip normal and single shifts, skip rest when row is absence
+# - skip normal and single shifts in lookup rows, skip rest_shifts when row is absence
                 if lookup_mode == 'a':
                     #logger.debug(' ---- lookup ----')
                     # skip when lookup row and this row are the same
                     # absence row has no schemeitem, but rest row does
-
                     lookup_tm_id = row[idx_e_tm_id_arr][i]
                     lookup_os_ref = row[idx_e_os_arr][i] if row[idx_e_os_arr][i] else 0
                     lookup_oe_ref = row[idx_e_oe_arr][i] if row[idx_e_oe_arr][i] else 1440
+                    lookup_o_seq = row[idx_e_o_seq_arr][i] if row[idx_e_o_seq_arr][i] else 0
                     #logger.debug('row_tm_id: ' + str(row_tm_id) + ' lookup_tm_id: ' + str(lookup_tm_id))
                     #logger.debug('row_os_ref: ' + str(row_os_ref) + ' lookup_os_ref: ' + str(lookup_os_ref))
                     #logger.debug('row_oe_ref: ' + str(row_oe_ref) + ' lookup_oe_ref: ' + str(lookup_oe_ref))
@@ -2696,21 +2707,22 @@ def check_absencerow_for_doubles(row):
                         #logger.debug('rows are the same')
                         pass
                     else:
-                        # only skip when os and oe are equal
+                        # only skip absence row when os and oe are equal
                         if row_os_ref == lookup_os_ref and row_oe_ref == lookup_oe_ref:
                             #logger.debug('os and oe are equal')
-                            # check which absence has priority (lower sequence is higher priority
-                            if row[idx_o_seq] > row[idx_e_o_seq_arr][i]:
+                            # check which absence has priority (higher sequence is higher priority
+                            if row[idx_o_seq] < lookup_o_seq:
                                 # skip row when it has lower priority than lookup row
                                 #logger.debug('skip row when it has lower priority than lookup row')
                                 skip_row = True
                                 break
-                            elif row[idx_o_seq] == row[idx_e_o_seq_arr][i]:
+                            elif row[idx_o_seq] == lookup_o_seq:
                                 #logger.debug('equal priority')
-                                # when equal priority: skip the one with the highest row_tm_id (absence has no si_id)
+                                # when equal priority: skip the one with the highest row_tm_id
+                                #  PR2020-06-11 absence has also si_id Was: note: (absence has no si_id)
                                 # tm_id's cannot be the same, is filtered out
-                                if row[idx_tm_id] > row[idx_e_tm_id_arr][i]:
-                                    #logger.debug('row[idx_tm_id] > row[idx_e_tm_id_arr][i]')
+                                if row[idx_tm_id] > lookup_tm_id:
+                                    #logger.debug('row[idx_tm_id] >lookup_tm_id')
                                     skip_row = True
                                     break
                         # else:
@@ -3605,7 +3617,8 @@ sql_customer_calendar_team_sub11 = """
         si_sub.s_exph,
         si_sub.s_exch,
         si_sub.s_dvgph,
-        si_sub.s_nowk,
+        si_sub.s_nosat,
+        si_sub.s_nosun,
         si_sub.s_noph,
 
         si_sub.sh_os,

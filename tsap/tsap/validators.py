@@ -385,7 +385,6 @@ def employee_email_exists(email, company, this_pk = None):
 
 def validate_employee_has_emplhours(instance, update_dict):
     # validate if employee has emplhour records PR2019-07-30
-
     has_emplhours = False
     if instance:
         has_emplhours = m.Emplhour.objects.filter(employee=instance).exists()
@@ -394,6 +393,16 @@ def validate_employee_has_emplhours(instance, update_dict):
             update_dict['id']['error'] = msg_err
     return has_emplhours
 
+def validate_order_has_emplhours(order, update_dict, is_abscat):
+    # validate if order has emplhour records PR2020-06-10
+    has_emplhours = False
+    if order:
+        has_emplhours = m.Emplhour.objects.filter(orderhour__order=order).exists()
+        if has_emplhours:
+            field = _('Absence category') if is_abscat else _('Order')
+            msg_err = _("%(fld)s '%(tbl)s' has shifts and cannot be deleted.") % {'fld': field, 'tbl': order.code}
+            update_dict['id']['error'] = msg_err
+    return has_emplhours
 
 def check_date_overlap(datefirst, datelast, datefirst_is_updated):
     # PR2019-03-29 check if first date is after last date

@@ -74,6 +74,18 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['Previous_day_title'] = TXT_Previous_day_title
     dict['Next_day_title'] = TXT_Next_day_title
 
+    # error messages
+    dict['This_field'] = _('This field ')
+    dict['already_exists'] = _(' already exists.')
+    dict['must_be_completed'] = _(' must be completed.')
+
+    dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
+    dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
+    dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
+    dict['err_msg_and'] = TXT_err_msg_and
+    dict['err_msg_must_be_less_than_or_equal_to'] = TXT_err_msg_must_be_less_than_or_equal_to
+    dict['err_msg_must_be_greater_than_or_equal_to'] = TXT_err_msg_must_be_greater_than_or_equal_to
+
 # ====== PAGE UPLOAD =========================
     if page == 'upload':
         dict['Select_valid_Excelfile'] = _('Please select a valid Excel file.')
@@ -182,11 +194,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Last_date_in_service'] = TXT_Last_date_in_service
 
 
-        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
-        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
-        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
-        dict['err_msg_and'] = TXT_err_msg_and
-        dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
 
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
@@ -202,6 +209,37 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Print_date'] = TXT_Print_date
         dict['Total_hours'] = TXT_Total_hours
         dict['Page'] = TXT_Page
+
+# ====== PAGE PAYROLL =========================
+    elif page == 'payroll':
+
+        dict['Absence_category'] = TXT_Absence_category
+        dict['The_absence_category'] = TXT_The_absence_category
+        dict['This_absence_category'] = TXT_This_absence_category
+        dict['Absence_categories'] = TXT_Absence_categories
+
+        dict['Add_abscat'] = TXT_Add_abscat
+        dict['Delete_abscat'] = TXT_Delete_abscat
+        dict['Make_abscat_inactive'] = TXT_Make_abscat_inactive
+
+        dict['Item_is_inactive'] = TXT_Item_is_inactive
+
+        dict['Payment'] = TXT_Payment
+
+        dict['Payroll_periods'] = TXT_Payroll_periods
+        dict['Overviews'] = TXT_Overviews
+
+        dict['Sequence'] = TXT_Sequence
+        dict['The_sequence'] = TXT_The_sequence
+
+        dict['Priority'] = TXT_Priority
+        dict['The_priority'] = TXT_The_priority
+
+        dict['The_sequence'] = TXT_The_sequence
+
+        dict['Saturday_hours'] = TXT_Saturday_hours
+        dict['Sunday_hours'] = TXT_Sunday_hours
+        dict['Public_holiday_hours'] = TXT_Public_holiday_hours
 
 # ====== PAGE CUSTOMER =========================
     elif page == 'customer':
@@ -426,14 +464,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Please_select_order'] = TXT_Please_select_order
         dict['Please_select_scheme'] = TXT_Please_select_scheme
 
-        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
-        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
-        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
-        dict['err_msg_and'] = TXT_err_msg_and
-        dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
-
-
-
         dict['err_msg_template_select'] = _('Please select a template.')
         dict['err_msg_name_exists'] = TXT_err_msg_name_exists
         dict['err_msg_name_blank'] = TXT_err_msg_name_blank
@@ -486,12 +516,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
         dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
-
-        dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
-        dict['err_msg_and'] = TXT_err_msg_and
-        dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
-
-
 
         dict['As_of_abbrev'] = TXT_As_of_abbrev
         dict['Through'] = TXT_Through
@@ -964,14 +988,34 @@ TXT_Absence = _('Absence')
 TXT_This_absence = _('This absence')
 
 TXT_Absence_category = _('Absence category')
+TXT_The_absence_category = _('The absence category')
+TXT_This_absence_category = _('This absence category')
 TXT_Absence_categories = _('Absence categories')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_absence_categories = _('No absence categories')
+TXT_Delete_abscat = _('Delete absence category')
+TXT_Make_abscat_inactive = _('Make absence category inactive')
+TXT_Add_abscat = _('Add absence category')
 TXT_Add_absence = _('Add absence')
 TXT_Delete_absence = _('Delete absence')
 TXT_With_absence = _('With absence')
 TXT_Without_absence = _("Without absence")
 TXT_Absence_only = _("Absence only")
+TXT_No_wage = _("No wage")
+TXT_Payment= pgettext_lazy('Wage payment = uitbetaling', 'Payment')
+TXT_Payroll_periods = _("Payroll periods")
+TXT_Overviews = _("Overviews")
+
+TXT_Saturday_hours = _("Count hours on Saturdays")
+TXT_Sunday_hours = _("Count hours on Sundays")
+TXT_Public_holiday_hours = _("Count hours on public holidays")
+
+TXT_Sequence = _("Sequence")
+TXT_The_sequence = _("The sequence")
+TXT_Priority = _("Priority")
+TXT_The_priority = _("The priority")
+
+TXT_Item_is_inactive = _("This item is inactive.")
 
 TXT_With_restshifts = _('With restshifts')
 TXT_Without_restshifts = _("Without restshifts")
@@ -1043,11 +1087,14 @@ TXT_err_msg_set_hours_to_0_instead = _('You can set the hours to zero instead.')
 TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
 TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
+
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_must_be_integer = _('must be an integer.')
-TXT_err_msg_must_be_between = _('must be between')
+TXT_err_msg_must_be_between = _('must be a number between')
 TXT_err_msg_and = _('and')
-TXT_err_msg_endof_sentence = pgettext_lazy('moet tussen ... liggen.', '.')
+TXT_err_msg_must_be_less_than_or_equal_to = _('must be a number less than or equal to ')
+TXT_err_msg_must_be_greater_than_or_equal_to = _('must be a number greater than or equal to ')
+
 TXT_Leavedays_are_on_fulltime_basis = _('Leave days are on a full time basis.')
 
 TXT_you_must_first_select = _('You must first select ')

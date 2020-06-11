@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+{% block title %}{% trans 'Payroll' %}{% endblock %}
+{% block script %}
+    <script src="{% static 'js/payroll.js' %}"></script>
+{% endblock %}
+
+
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
+            <h3>{% trans 'Payroll' %}</h3>
+        </div>
+
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
+
+{% block content %}
+    {% if user.is_authenticated %}
+<!-- =================== MODAL CONFIRM  =================== -->
+        {% include 'includes/confirm.html' %}
+<!-- =================== MODAL ABSCAT  =================== -->
+        {% include 'includes/modabscat.html' %}
+
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+        {% include 'includes/modselectemployee.html' %}
+<!-- =================== CONTAINER =================== -->
+        <div class="container ">
+
+<!-- CONTENT HEADER - LOADER -->
+            <div class="tsa_margin_top_72">
+    <!-- class content_header -->
+                <div class="content_header">
+         <!-- header_text -->
+                    <div class="content_subheader_left mx-2">
+                        <h5 id="id_hdr_text"></h5>
+                    </div>
+         <!-- loader -->
+                    <div class="content_header_middle">
+                        <div id="id_loader" class="image_container visibility_hide">
+                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                        </div>
+                    </div>
+                </div>
+    <!-- end class content_header -->
+    <!-- BUTTON GROUP -->
+                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                    <button data-btn="abscat" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
+                    <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
+                    <button data-btn="overviews" class="btn btn-secondary ">{% trans 'Overviews' %}</button>
+                </div>
+    <!-- end BUTTON GROUP -->
+            </div>
+<!-- end CONTENT HEADER - LOADER -->
+
+<!-- CONTENT BODY -->
+            <div class="content_body mx-2">
+<!-- =================== DATA TABLE  =================== -->
+                <div id="id_container_datatable" class="tab_show tab_abscat display_hide">
+                     <table class="table tsa_tbl">
+                        <thead id="id_tblHead_datatable"></thead>
+                        <tbody id="id_tblBody_datatable"></tbody>
+                        <tfoot id="id_tblFoot_datatable"></tfoot>
+                    </table>
+                </div>
+
+            </div>
+<!-- END CONTENT BODY -->
+         </div>
+<!-- =================== END CONTAINER =================== -->
+
+        <div id="id_data"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-settings_upload_url="{% url 'settings_upload_url' %}"
+            data-payroll_upload_url="{% url 'payroll_upload_url' %}"
+            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
+            data-imgsrc_warning="{% static 'img/warning.gif' %}"
+            data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
+            data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
+            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
+            data-imgsrc_chck01="{% static 'img/chck01.png' %}"
+        >
+        </div>
+
+    {% else %}
+        <div class="alert alert-danger">{% trans 'Error' %}</div>
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+    {% endif %}
+{% endblock %}

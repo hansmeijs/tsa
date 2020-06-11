@@ -269,13 +269,16 @@ class Order(TsaBaseModel):
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
-    sequence = IntegerField(null=True) #
+    sequence = IntegerField(null=True) # only used in abscat PR2020-06-11 changed to priority: was sequence Higher sequence has priority
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
-    nopay = BooleanField(default=False)    # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
+    nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
+    nohoursonsaturday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
+    nohoursonsunday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
+    nohoursonpublicholiday = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
@@ -452,7 +455,10 @@ class Scheme(TsaBaseModel):
     excludecompanyholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
-    nohoursonweekend = BooleanField(default=False)
+
+    nohoursonsaturday = BooleanField(default=False)
+    nohoursonsunday = BooleanField(default=False)
+    nohoursonweekend = BooleanField(default=False)  # TODO To be deprecated
     nohoursonpublicholiday = BooleanField(default=False)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -544,9 +550,6 @@ class Employee(TsaBaseModel):
     workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute. 40 hours = 2400 workhours
     workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
-
-    nohoursonweekend = BooleanField(default=False) # this only determines the defaut value when entering a new absence
-    nohoursonpublicholiday = BooleanField(default=False) # this only determines the defaut value when entering a new absence
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True, blank=True)

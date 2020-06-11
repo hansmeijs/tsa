@@ -326,7 +326,6 @@ def create_order_dict(order, item_dict):
     #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
 
     if order:
-
 # ---  get min max date
         datefirst = getattr(order, 'datefirst')
         datelast = getattr(order, 'datelast')
@@ -374,7 +373,6 @@ def create_order_dict(order, item_dict):
                 if value:
                     field_dict['value'] = value
 
-
             elif field in ['datefirst', 'datelast']:
                 # also add date when empty, to add min max date
                 if datefirst or datelast:
@@ -388,6 +386,12 @@ def create_order_dict(order, item_dict):
                             field_dict=field_dict,
                             date_obj=datelast,
                             mindate=datefirst)
+
+            elif field in ('nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+                value = getattr(order, field, False)
+                if value:
+                    field_dict['value'] = value
+
             elif field in [ 'pricecode', 'additioncode', 'taxcode', 'invoicecode']:
                 pass
                 """
@@ -450,6 +454,13 @@ def create_absencecat_dict(order, request):
         item_dict['pk'] = order.pk
         item_dict['ppk'] = order.customer.pk
         item_dict['code'] = {'value': abscat_code}
+        item_dict['sequence'] = {'value': getattr(order, 'sequence')}
+        item_dict['inactive'] = {'value': getattr(order, 'inactive', False)}
+        item_dict['nopay'] = {'value': getattr(order, 'nopay', False)}
+
+        item_dict['nohoursonsaturday'] = {'value': getattr(order, 'nohoursonsaturday', False)}
+        item_dict['nohoursonsunday'] = {'value': getattr(order, 'nohoursonsunday', False)}
+        item_dict['nohoursonpublicholiday'] = {'value': getattr(order, 'nohoursonpublicholiday', False)}
 
         item_dict['customer'] = {
             'pk': customer.pk,

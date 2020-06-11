@@ -351,7 +351,8 @@ FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'n
 
 FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
-                'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'nopay',
+                'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode',
+                'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'inactive', 'locked')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
@@ -371,7 +372,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
-                 'nohoursonweekend', 'nohoursonpublicholiday',
+                 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                  'pricecode', 'additioncode', 'taxcode', 'inactive')
 
 
@@ -385,7 +386,6 @@ FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
                    'address', 'zipcode', 'city', 'country',
                    'workhours', 'workdays', 'leavedays',
-                    'nohoursonweekend', 'nohoursonpublicholiday',
                    'functioncode', 'wagecode', 'paydatecode',
                    'pricecode', 'additioncode', 'inactive', 'locked')
 

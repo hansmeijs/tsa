@@ -23,6 +23,7 @@ from tsap.settings import TIME_ZONE
 
 from tsap import constants as c
 from tsap import functions as f
+from tsap import validators as v
 
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_namelast_namefirst, validate_code_name_identifier, validate_employee_has_emplhours
@@ -33,6 +34,7 @@ from companies import dicts as compdicts
 from employees.forms import EmployeeAddForm, EmployeeEditForm
 from employees import dicts as d
 from customers import dicts as cd
+from customers import views as cv
 from planning import dicts as pld
 from planning import views as plvw
 from planning import rosterfill as plrf
@@ -2602,6 +2604,189 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
 
     return has_error
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# === PayrollView ===================================== PR2020-06-09
+@method_decorator([login_required], name='dispatch')
+class PayrollView(View):
+
+    def get(self, request):
+        param = {}
+
+        if request.user.company is not None:
+            # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
+            #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
+            #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
+            #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
+# LOCALE #
+    # get user_lang
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+
+    # get coldef_list  and caption
+            coldef_list = c.COLDEF_EMPLOYEE
+            captions_dict = c.CAPTION_IMPORT
+
+            # oooooooooooooo get_mapped_coldefs_order ooooooooooooooooooooooooooooooooooooooooooooooooooo
+            # function creates dict of fieldnames of table Order
+            # and gets mapped coldefs from table Companysetting
+            # It is used in ImportOrdert to map Excel fieldnames to TSA fieldnames
+            # mapped_coldefs: {
+            #     "worksheetname": "Compleetlijst",
+            #     "no_header": 0,
+            #     "coldefs": [{"tsaKey": "idnumber", "caption": "ID nummer", "excKey": "ID"},
+            #                 {"tsapKey": "lastname", "caption": "Achternaam", "excKey": "ANAAM"}, ....]
+            #logger.debug('==============get_mapped_coldefs_order ============= ')
+
+            mapped_coldefs = {}
+
+            # get mapped coldefs from table Companysetting
+            # get stored setting from Companysetting
+            stored_setting = {}
+            settings_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
+            #logger.debug('settings_json: ' + str(settings_json))
+            if settings_json:
+                stored_setting = json.loads(m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
+            # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
+            #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
+
+            # don't replace keyvalue when new_setting[key] = ''
+            self.has_header = True
+            self.worksheetname = ''
+            self.codecalc = 'linked'
+            if 'has_header' in stored_setting:
+                self.has_header = False if Lower(stored_setting['has_header']) == 'false' else True
+            if 'worksheetname' in stored_setting:
+                self.worksheetname = stored_setting['worksheetname']
+            if 'codecalc' in stored_setting:
+                self.codecalc = stored_setting['codecalc']
+
+            if 'coldefs' in stored_setting:
+                stored_coldefs = stored_setting['coldefs']
+                #logger.debug('stored_coldefs: ' + str(stored_coldefs))
+
+                # skip if stored_coldefs does not exist
+                if stored_coldefs:
+                    # loop through coldef_list
+                    for coldef in coldef_list:
+                        # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
+                        # get fieldname from coldef
+                        fieldname = coldef.get('tsaKey')
+                        #logger.debug('fieldname: ' + str(fieldname))
+
+                        if fieldname:  # fieldname should always be present
+                            # check if fieldname exists in stored_coldefs
+                            if fieldname in stored_coldefs:
+                                # if so, add Excel name with key 'excKey' to coldef
+                                coldef['excKey'] = stored_coldefs[fieldname]
+                                #logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
+
+            coldefs_dict = {
+                'worksheetname': self.worksheetname,
+                'has_header': self.has_header,
+                'codecalc': self.codecalc,
+                'coldefs': coldef_list
+            }
+            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
+
+            captions = json.dumps(captions_dict, cls=LazyEncoder)
+
+            #param = get_headerbar_param(request, {'stored_columns': coldef_list, 'captions': captions})
+            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
+
+            #logger.debug('param: ' + str(param))
+
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'payroll.html', param)
+
+
+# === PayrollUploadView ===================================== PR2020-06-09
+@method_decorator([login_required], name='dispatch')
+class PayrollUploadView(UpdateView):  # PR2020-06-10
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= PayrollUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+
+# 1. Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+# 2. get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+
+                logger.debug('upload_dict' + str(upload_dict))
+                table = f.get_dict_value(upload_dict, ('id', 'table'))
+                pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
+                ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
+                row_index = f.get_dict_value(upload_dict, ('id', 'rowindex'))
+                is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
+                is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
+                is_absence = f.get_dict_value(upload_dict, ('id', 'isabsence'), False)
+                temp_pk_str = None
+
+# --- ABSENCE CATEGORIES (table = 'order')
+                if table == 'order':
+                    update_dict = {}
+        # - check if parent exists (customer is parent of order)
+                    if is_create:
+        # - get absence_customer, create if not exists
+                        parent = cd.get_or_create_absence_customer(request)
+                    else:
+                        parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
+                    logger.debug('parent: ' + str(parent) + ' pk: ' + str(parent.pk))
+                    if parent:
+                        # - create new update_dict with all fields and id_dict. Unused ones will be removed at the end
+                        update_dict = f.create_update_dict(
+                            c.FIELDS_ORDER,
+                            table=table,
+                            pk=pk_int,
+                            ppk=parent.pk,
+                            temp_pk=temp_pk_str,
+                            row_index=row_index)
+        # - Delete abscat order
+                        if is_delete:
+                            logger.debug('is_delete: ' + str(is_delete) + ' ' + str(type(is_delete)))
+                            instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
+                            if instance:
+                                this_text = _("Absence category '%(tbl)s'") % {'tbl': instance.code}
+                        # a. check if abscat has emplhours, put msg_err in update_dict when error
+                                is_abscat = True
+                                has_emplhours = v.validate_order_has_emplhours(instance, update_dict, is_abscat)
+                                if not has_emplhours:
+                        # b. TODO check if there are schemes with this abscat:
+                                    #delete_employee_from_teammember(instance, request)
+                        # c. delete abscat order
+                                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                                    if deleted_ok:
+                                        instance = None
+                        else:
+        # - Create new abscat order
+                            if is_create:
+                                instance = cv.create_order(parent, upload_dict, update_dict, request)
+        # - Get existing abscat order
+                            else:
+                                instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
+        # - Update abscat order, also when it is created
+                            if instance:
+                                cv.update_order(instance, parent, upload_dict, update_dict, user_lang, request)
+        # - put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+                        if instance:
+                            cd.create_order_dict(instance, update_dict)
+        # - remove empty attributes from update_dict
+                    f.remove_empty_attr_from_dict(update_dict)
+        # - add update_dict to update_wrap
+                    if update_dict:
+                        update_list = []
+                        update_list.append(update_dict)
+                        update_wrap['update_list'] = update_list
+
+        # - return update_wrap
+            return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
 def get_lastname_initials(namelast, namefirst, with_space):  # PR2019-08-05

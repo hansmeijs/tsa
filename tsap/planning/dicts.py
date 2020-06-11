@@ -554,7 +554,8 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
         s.excludecompanyholiday,
         s.excludepublicholiday,
         s.divergentonpublicholiday,
-        s.nohoursonweekend,
+        s.nohoursonsaturday,
+        s.nohoursonsunday,
         s.nohoursonpublicholiday
 
         FROM companies_scheme AS s
@@ -624,7 +625,7 @@ def create_scheme_dict_from_sql(scheme, item_dict, user_lang):
                     field_dict['o_' + field] = order_datefirstlast
 
             # also add date when empty, to add min max date
-            elif field in ('excludecompanyholiday', 'divergentonpublicholiday', 'excludepublicholiday', 'nohoursonweekend', 'nohoursonpublicholiday'):
+            elif field in ('excludecompanyholiday', 'divergentonpublicholiday', 'excludepublicholiday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
                 field_dict['value'] = scheme.get(field, False)
 
             elif field == 'billable':

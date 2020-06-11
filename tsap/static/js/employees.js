@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!sel_tr_clicked)
 
 // ---  enable add button, also when no employee selected
-        document.getElementById("id_form_btn_add").disabled = false;
+        //document.getElementById("id_form_btn_add").disabled = false;
     }  // HandleSelect_Row
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
@@ -677,9 +677,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         UpdateHeaderText();
         UpdateForm("HandleEmployeeAdd")
-        let el = document.getElementById("id_form_code")
-        el.readOnly = false;
-        el.focus();
+       // let el = document.getElementById("id_form_code")
+        //el.readOnly = false;
+        //el.focus();
     } // HandleEmployeeAdd
 
     function HandleBtnInactiveClicked(el_input) {
@@ -2285,9 +2285,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(tr_changed) {
                     el_input = tr_changed.querySelector("[data-field=" + fldName + "]");
                 } else if (fldName === "datefirst"){
-                    el_input = document.getElementById("id_form_datefirst")
+                    //el_input = document.getElementById("id_form_datefirst")
                 } else if (fldName === "datelast"){
-                    el_input = document.getElementById("id_form_datelast")
+                    //el_input = document.getElementById("id_form_datelast")
                 }
 
                 // --- lookup input field with name: fldName
@@ -2640,7 +2640,6 @@ if(pgeName === "absence"){
 
 
 // +++++++++++++++++ MODAL CONFIRM ++++++++++++++++++++++++++++++++++++++++++
-
 //=========  ModConfirmOpen  ================ PR2019-06-23
     function ModConfirmOpen(mode, tblRow) {
         //console.log("tblRow", tblRow)
@@ -3253,7 +3252,7 @@ if(pgeName === "absence"){
                 const fldName = get_attr_from_el(el_input, "data-field");
                 let new_value = null
                 if(["workhours", "workdays", "leavedays"].indexOf(fldName) > -1){
-                    const arr = get_workhours_days_leave_from_input(el_input, loc)
+                    const arr = get_number_from_input(loc, fldName, el_input.value);
                     new_value = arr[0];
                 } else {
                     new_value = (el_input.value) ? el_input.value : null;
@@ -3281,7 +3280,7 @@ if(pgeName === "absence"){
         if(el_input){
             const fldName = get_attr_from_el(el_input, "data-field");
             if(["workhours", "workdays", "leavedays"].indexOf(fldName) > -1){
-                const arr = get_workhours_days_leave_from_input(el_input, loc)
+                const arr = get_number_from_input(loc, fldName, el_input.value);
                 const msg_err = arr[1];
                 invalid_number = (msg_err);
                 const el_msg_err = document.getElementById("id_MFE_err_" + fldName)
@@ -5290,22 +5289,6 @@ console.log( "reset mod_dict: ");
         //console.log("search_rowindex", search_rowindex);
         return search_rowindex
     }  // get_rowindex_by_code_datefirst
-
-
-//========= get_workhours_days_leave_from_input  ================= PR2020-06-06
-    function get_workhours_days_leave_from_input(el_input, loc) {
-        console.log(" ===== get_workhours_days_leave_from_input =====");
-        let arr_newvalue_msgerr = [null, null];
-        const fldName = get_attr_from_el(el_input, "data-field");
-        if(["workhours", "workdays", "leavedays"].indexOf(fldName) > -1){
-            const multiplier = (fldName === "workhours") ? 60 : 1440;
-
-
-            arr_newvalue_msgerr = get_number_from_input(loc, fldName, el_input.value);
-        }
-        // arr = [new_value, msg_err]
-        return arr_newvalue_msgerr;
-    }  // get_workhours_days_leave_from_input
 
 //##################################################################################
 // +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++
