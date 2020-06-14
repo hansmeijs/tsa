@@ -711,3 +711,100 @@ def validate_employee_exists_in_teammembers(employee, team, this_pk):  # PR2019-
     if exists:
         msg_err = _('This employee already exists.')
     return msg_err
+
+
+#         AND ( o.code = CAST(%(c1)s AS TEXT) OR o.code = %(c2)s OR o.code = %(c3)s )
+def create_payroll_list(period_dict, request):
+    logger.debug(' ============= create_payroll_list ============= ')
+    logger.debug('period_dict:  ' + str(period_dict))
+    # create crosstab list of employees with absence hours PR2020-06-12
+
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    payroll_list = []
+    payroll_abscat_list = []
+    if request.user.company:
+        company_pk = request.user.company_id
+
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
+        if period_datefirst is None:
+            period_datefirst = '1900-01-01'
+        if period_datelast is None:
+            period_datelast = '2500-01-01'
+
+        #TODO remove dates, for testing only
+        period_datefirst = '2020-05-01'
+        period_datelast = '2020-05-31'
+        employee_pk = period_dict.get('employee_pk')
+        # change employee_pk = 0 to None, otherwise no records will be retrieved
+        employee_pk = employee_pk if employee_pk else None
+
+        sql_orders = """
+            SELECT DISTINCT o.id AS o_id, o.code AS o_code, o.sequence AS o_seq
+            FROM companies_emplhour AS eh
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE c.company_id = %(compid)s 
+            AND o.isabsence AND NOT oh.isrestshift
+            AND NOT eh.timeduration = 0
+            AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
+            ORDER BY o.sequence DESC
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_orders, {
+            'compid': company_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
+        })
+        payroll_abscat_list = newcursor.fetchall()
+
+        sql_absence = """
+            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, SUM(eh.timeduration) AS eh_td, 0 AS eh_pd
+            FROM companies_emplhour AS eh
+            INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE c.company_id = %(compid)s   
+            AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
+            AND (eh.employee_id = %(emplid)s OR %(emplid)s IS NULL)
+            AND o.isabsence AND NOT oh.isrestshift
+            AND NOT eh.timeduration = 0
+            GROUP BY eh.rosterdate, eh.employee_id, e.code, o.id
+            """
+
+        sql_noabsence = """
+            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, SUM(eh.timeduration) AS eh_td, SUM(eh.plannedduration) AS eh_pd
+            FROM companies_emplhour AS eh
+            INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE c.company_id = %(compid)s 
+            AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
+            AND (eh.employee_id = %(emplid)s OR %(emplid)s IS NULL)
+            AND NOT o.isabsence AND NOT oh.isrestshift
+            AND NOT eh.timeduration = 0
+            GROUP BY eh.rosterdate, eh.employee_id, e.code
+            """
+        sql_union = sql_absence + ' UNION ' + sql_noabsence + ' ORDER BY 2'
+        # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
+        sql_json = """ SELECT sub.e_id, sub.e_code, sub.eh_rd, json_object_agg(sub.o_id, sub.eh_td), CAST(SUM(sub.eh_pd) AS INT)
+                    FROM (""" + sql_union + """) AS sub 
+                    GROUP BY eh_rd, sub.e_id, sub.e_code
+                    ORDER BY 2,3 """
+        newcursor.execute(sql_json, {
+            'compid': company_pk,
+            'emplid': employee_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
+        })
+
+        payroll_list = newcursor.fetchall()
+    return payroll_list,  payroll_abscat_list
+
+
+

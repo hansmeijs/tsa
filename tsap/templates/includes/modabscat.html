@@ -14,7 +14,6 @@
                 <div class="modal-body">
                     <div class="modal_container">
                         <div id="id_MAC_input_container" class="modal_body_right mx-2 my-1">
-
                             <div class="content_header">
                                 <div class="tsa_flex_1 mx-1">
                                     <label for="id_MAC_input_code" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
@@ -27,7 +26,17 @@
                                         class="tsa_input_text form-control">
                                 </div>
                                 <div class="tsa_flex_1 mx-1">
-                                    <label for="id_MAC_input_sequence" class="tsa_margin_form_label">{% trans 'Sequence' %}:</label>
+                                    <label for="id_MAC_input_identifier" class="tsa_margin_form_label">{% trans 'Identifier' %}:</label>
+                                    <input id="id_MAC_input_identifier"
+                                        type="text"
+                                        data-field= "identifier"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="tsa_input_text form-control">
+                                </div>
+                                <div class="tsa_flex_1 mx-1">
+                                    <label for="id_MAC_input_sequence" class="tsa_margin_form_label">{% trans 'Priority' %}:</label>
                                     <input id="id_MAC_input_sequence"
                                         type="text"
                                         data-field= "sequence"
@@ -70,19 +79,19 @@
                             <div class="content_header">
                                 <div class="tsa_flex_2 mx-1">
                                     <span>
-                                        <input id="id_MAC_nosat" type="checkbox" data-field="nosat" class="tsa_input_checkbox td_width_032">
+                                        <input id="id_MAC_nosat" type="checkbox" data-field="nohoursonsaturday" class="tsa_input_checkbox td_width_032">
                                         <label for="id_MAC_nosat" class="mx-1 mt-2 mb-0">{% trans 'Saturdays' %}</label>
                                     </span>
                                 </div>
                                 <div class="tsa_flex_2 mx-1">
                                     <span>
-                                        <input id="id_MAC_nosun" type="checkbox" data-field="nosun" class="tsa_input_checkbox td_width_032">
+                                        <input id="id_MAC_nosun" type="checkbox" data-field="nohoursonsunday" class="tsa_input_checkbox td_width_032">
                                         <label for="id_MAC_nosun" class="mx-1 mt-2 mb-0">{% trans 'Sundays' %}</label>
                                     </span>
                                 </div>
                                 <div class="tsa_flex_3 mx-1">
                                     <span>
-                                        <input id="id_MAC_noph" type="checkbox" data-field="noph" class="tsa_input_checkbox td_width_032">
+                                        <input id="id_MAC_noph" type="checkbox" data-field="nohoursonpublicholiday" class="tsa_input_checkbox td_width_032">
                                         <label for="id_MAC_noph" class="mx-1 mt-2 mb-0">{% trans 'Public holidays' %}</label>
                                     </span>
                                 </div>

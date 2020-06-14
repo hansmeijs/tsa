@@ -1323,6 +1323,7 @@
                         const filter_text = filter_dict[key];
         //console.log("filter_text", filter_text);
                         const filter_blank = (filter_text === "#")
+                        const filter_non_blank = (filter_text === "@")
                         let tbl_cell = tblRow.cells[key];
                         if (!!tbl_cell){
                             let el = tbl_cell.children[0];
@@ -1343,21 +1344,17 @@
                                     }
                                     if (!el_value){el_value = get_attr_from_el(el, "data-value")}
         //console.log("el_tagName", el_tagName, "el_value",  el_value);
-                                    if (!!el_value){
-                                        if (filter_blank){
-                                            hide_row = true
-                                        } else {
-                                            el_value = el_value.toLowerCase();
-                                            // hide row if filter_text not found
-                                            if (el_value.indexOf(filter_text) === -1) {
-                                                hide_row = true
-                                            }
-                                        }
+
+                                    // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
+                                    if (filter_blank){
+                                        if (!!el_value){hide_row = true};
+                                    } else if (filter_non_blank){
+                                        if (!el_value){hide_row = true};
                                     } else {
-                                        if (!filter_blank){
-                                            hide_row = true
-                                        } // iif (filter_blank){
-                                    }   // if (!!el_value)
+                                        el_value = el_value.toLowerCase();
+                                        // hide row if filter_text not found
+                                        if (el_value.indexOf(filter_text) === -1) {hide_row = true};
+                                    }
                                 }  //  if(!!filter_text)
                             }  // if (!!el) {
                         }  //  if (!!tbl_cell){

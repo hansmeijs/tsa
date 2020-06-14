@@ -228,6 +228,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['Payroll_periods'] = TXT_Payroll_periods
         dict['Overviews'] = TXT_Overviews
+        dict['Identifier'] = TXT_Identifier
 
         dict['Sequence'] = TXT_Sequence
         dict['The_sequence'] = TXT_The_sequence
@@ -240,6 +241,23 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Saturday_hours'] = TXT_Saturday_hours
         dict['Sunday_hours'] = TXT_Sunday_hours
         dict['Public_holiday_hours'] = TXT_Public_holiday_hours
+
+        #overview
+        dict['Total_hours'] = TXT_Total_hours
+        dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
+        dict['Total_hours_2lines'] = TXT_Total_hours_2lines
+        dict['Planned_hours_2lines'] = TXT_Planned_hours_2lines
+        dict['Planned_hours'] = TXT_Planned_hours
+        dict['Worked_hours'] = TXT_Worked_hours
+
+        # excel
+
+        dict['Overview_hours_per_abscat'] = _("Overview of hours per absence category")
+
+        # menu
+        dict['Show_report'] = TXT_Show_report
+        dict['Download_report'] = TXT_Download_report
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
 
 # ====== PAGE CUSTOMER =========================
     elif page == 'customer':
@@ -713,6 +731,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
         dict['Absence_2lines'] = TXT_Absence_2lines
 
+
+
         dict['Total'] = TXT_Total
 
     # ====== PAGE REVIEW ========================= PR2019-11-19
@@ -836,6 +856,7 @@ TXT_Planned_hours_2lines = _('Planned\nhours')
 TXT_Break_hours_2lines = _('Break\nhours')
 TXT_Worked_hours_2lines = _('Worked\nhours')
 TXT_Absence_2lines = pgettext_lazy('2 lines', 'Absence')
+TXT_Total_hours_2lines = _('Total\nhours')
 
 TXT_Billing_hours_2lines = _('Billing\nhours')
 

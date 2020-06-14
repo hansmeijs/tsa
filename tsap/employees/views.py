@@ -1,8 +1,7 @@
-
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.db.models import Q, Value
+from django.db import connection
 from django.db.models.functions import Lower, Coalesce
 from django.shortcuts import render, redirect #, get_object_or_404
 from django.urls import reverse_lazy
@@ -2612,89 +2611,11 @@ class PayrollView(View):
 
     def get(self, request):
         param = {}
-
         if request.user.company is not None:
-            # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
-            #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
-            #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
-            #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
-# LOCALE #
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-
-    # get coldef_list  and caption
-            coldef_list = c.COLDEF_EMPLOYEE
-            captions_dict = c.CAPTION_IMPORT
-
-            # oooooooooooooo get_mapped_coldefs_order ooooooooooooooooooooooooooooooooooooooooooooooooooo
-            # function creates dict of fieldnames of table Order
-            # and gets mapped coldefs from table Companysetting
-            # It is used in ImportOrdert to map Excel fieldnames to TSA fieldnames
-            # mapped_coldefs: {
-            #     "worksheetname": "Compleetlijst",
-            #     "no_header": 0,
-            #     "coldefs": [{"tsaKey": "idnumber", "caption": "ID nummer", "excKey": "ID"},
-            #                 {"tsapKey": "lastname", "caption": "Achternaam", "excKey": "ANAAM"}, ....]
-            #logger.debug('==============get_mapped_coldefs_order ============= ')
-
-            mapped_coldefs = {}
-
-            # get mapped coldefs from table Companysetting
-            # get stored setting from Companysetting
-            stored_setting = {}
-            settings_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
-            #logger.debug('settings_json: ' + str(settings_json))
-            if settings_json:
-                stored_setting = json.loads(m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
-            # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
-            #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
-
-            # don't replace keyvalue when new_setting[key] = ''
-            self.has_header = True
-            self.worksheetname = ''
-            self.codecalc = 'linked'
-            if 'has_header' in stored_setting:
-                self.has_header = False if Lower(stored_setting['has_header']) == 'false' else True
-            if 'worksheetname' in stored_setting:
-                self.worksheetname = stored_setting['worksheetname']
-            if 'codecalc' in stored_setting:
-                self.codecalc = stored_setting['codecalc']
-
-            if 'coldefs' in stored_setting:
-                stored_coldefs = stored_setting['coldefs']
-                #logger.debug('stored_coldefs: ' + str(stored_coldefs))
-
-                # skip if stored_coldefs does not exist
-                if stored_coldefs:
-                    # loop through coldef_list
-                    for coldef in coldef_list:
-                        # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
-                        # get fieldname from coldef
-                        fieldname = coldef.get('tsaKey')
-                        #logger.debug('fieldname: ' + str(fieldname))
-
-                        if fieldname:  # fieldname should always be present
-                            # check if fieldname exists in stored_coldefs
-                            if fieldname in stored_coldefs:
-                                # if so, add Excel name with key 'excKey' to coldef
-                                coldef['excKey'] = stored_coldefs[fieldname]
-                                #logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
-
-            coldefs_dict = {
-                'worksheetname': self.worksheetname,
-                'has_header': self.has_header,
-                'codecalc': self.codecalc,
-                'coldefs': coldef_list
-            }
-            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
-
-            captions = json.dumps(captions_dict, cls=LazyEncoder)
-
             #param = get_headerbar_param(request, {'stored_columns': coldef_list, 'captions': captions})
-            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
-
-            #logger.debug('param: ' + str(param))
-
+            param = get_headerbar_param(request, {})
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'payroll.html', param)
 

@@ -65,31 +65,29 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-
 # ----- get interval
                     interval = 15
                     if request.user.company.interval:
                         interval = request.user.company.interval
+# ----- get datalist_dict
                     datalist_dict = json.loads(request.POST['download'])
                     logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
-
-# ----- settings -- first get settings, to be used in other downlaods
+# ----- get settings -- first get settings, these are used in other downloads
                     selected_page = None
                     selected_btn = None
                     selected_customer_pk = None
                     selected_order_pk = None
                     selected_scheme_pk = None
                     selected_employee_pk = None
-                    table_dict = datalist_dict.get('setting')
-
-                    if table_dict:
+                    setting_dict = datalist_dict.get('setting')
+                    if setting_dict:
                         # setting: {page_customer: {mode: "get"},
-                        #           selected_pk: {mode: "get"}}
+                        #          selected_pk: {mode: "get"}}
                         new_setting_dict = {'user_lang': user_lang,
                                         'comp_timezone': comp_timezone,
                                         'timeformat': timeformat,
                                         'interval': interval}
-                        for key in table_dict:
+                        for key in setting_dict:
                             saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
                             if saved_setting_dict:
                                 new_setting_dict[key] = saved_setting_dict
@@ -109,7 +107,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
                         logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
                         # page_customer: {btn: "planning"}
-
 # ----- company setting
                     table_dict = datalist_dict.get('companysetting')
                     if table_dict:
@@ -120,7 +117,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if table_dict:
                         # table_dict: {page: "employee"}
                         datalists['locale_dict'] = loc.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval)
-
 # ----- quicksave
                     table_dict = datalist_dict.get('quicksave')
                     if table_dict:
@@ -137,7 +133,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             submenu_dict['user_is_role_company_and_perm_admin'] = True
                         if submenu_dict:
                             datalists['submenu_dict'] = submenu_dict
-
 # ----- company
                     table_dict = datalist_dict.get('company')
                     if table_dict:
@@ -150,7 +145,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         companyinvoice_list= cust_dicts.create_companyinvoice_list(company=request.user.company)
                         if companyinvoice_list:
                             datalists['companyinvoice_list'] = companyinvoice_list
-
 # ----- abscat
                     table_dict = datalist_dict.get('abscat')
                     if table_dict:
@@ -316,13 +310,14 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         rosterdate = f.get_dict_value(table_dict, 'rosterdate')
                         datalists['pricecode_list'] = p.create_pricecode_list(rosterdate, request=request)
 
-# ----- 'planning_period', 'calendar_period', 'roster_period', 'review_period'
-                    for key in ('planning_period', 'calendar_period', 'roster_period', 'review_period'):
+# ----- 'planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'
+                    for key in ('planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'):
                         table_dict = datalist_dict.get(key)
                         # also get planning_period_dict at startup of page  when btn = 'planning'
                         # also get calendar_period_dict at startup of page when btn = 'calendar'
                         if (table_dict is not None) or \
                                 (key == 'planning_period' and selected_btn == 'planning') or \
+                                (key == 'payroll_period' and selected_btn == 'overview') or \
                                 (key == 'calendar_period' and selected_btn == 'calendar'):
                             # save new period and retrieve saved period
                             datalists[key] = d.period_get_and_save(key, table_dict,
@@ -370,6 +365,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 period_dict=review_period_dict,
                                 comp_timezone=comp_timezone,
                                 request=request)
+
+# ----- payroll
+                    table_dict = datalist_dict.get('payroll_list')
+                    payroll_period_dict = datalists.get('payroll_period')
+                    logger.debug('table_dict' + str(table_dict))
+                    logger.debug('payroll_period_dict' + str(payroll_period_dict))
+                    if table_dict and payroll_period_dict:
+                        datalists['payroll_list'], datalists['payroll_abscat_list'] = ed.create_payroll_list(
+                            period_dict=payroll_period_dict, request=request)
 
 # ----- employee_calendar
                     table_dict = datalist_dict.get('employee_calendar')

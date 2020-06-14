@@ -269,7 +269,7 @@ class Order(TsaBaseModel):
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
-    sequence = IntegerField(null=True) # only used in abscat PR2020-06-11 changed to priority: was sequence Higher sequence has priority
+    sequence = IntegerField(null=True) # only used in abscat PR2020-06-11 contains value of 'Priority'
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)

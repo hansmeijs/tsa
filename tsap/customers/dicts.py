@@ -422,8 +422,8 @@ def create_absencecategory_list(request):
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
     #logger.debug(" --- get_or_create_absence_customer ---")
-
-    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True).order_by('sequence')
+    # order by priority: which is sequence desc
+    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True).order_by('-sequence')
 
     for order in orders:
         #logger.debug(" --- for order in orders ---")
@@ -454,13 +454,15 @@ def create_absencecat_dict(order, request):
         item_dict['pk'] = order.pk
         item_dict['ppk'] = order.customer.pk
         item_dict['code'] = {'value': abscat_code}
+        item_dict['identifier'] = {'value': getattr(order, 'identifier')}
         item_dict['sequence'] = {'value': getattr(order, 'sequence')}
-        item_dict['inactive'] = {'value': getattr(order, 'inactive', False)}
-        item_dict['nopay'] = {'value': getattr(order, 'nopay', False)}
 
+        item_dict['nopay'] = {'value': getattr(order, 'nopay', False)}
         item_dict['nohoursonsaturday'] = {'value': getattr(order, 'nohoursonsaturday', False)}
         item_dict['nohoursonsunday'] = {'value': getattr(order, 'nohoursonsunday', False)}
         item_dict['nohoursonpublicholiday'] = {'value': getattr(order, 'nohoursonpublicholiday', False)}
+
+        item_dict['inactive'] = {'value': getattr(order, 'inactive', False)}
 
         item_dict['customer'] = {
             'pk': customer.pk,
