@@ -36,7 +36,7 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
         AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
         AND ( e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL OR %(rdf)s IS NULL )
         AND ( e.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
-        ORDER BY e.code 
+        ORDER BY LOWER(e.code) ASC
         """
     newcursor = connection.cursor()
     newcursor.execute(sql_employee, {
@@ -301,7 +301,7 @@ def create_teammember_list(filter_dict, company, user_lang):
         AND ( c.id = CAST(%(cust_id)s AS INTEGER) OR %(cust_id)s IS NULL )    
         AND ( o.id = CAST(%(ord_id)s AS INTEGER) OR %(ord_id)s IS NULL )
         AND ( e.id IS NOT NULL OR %(empl_allownull)s )
-        ORDER BY e.code 
+        ORDER BY LOWER(e.code) ASC 
         """
         #AND ( e.datelast >= CAST(%(rdl)s AS DATE) OR e.datelast IS NULL OR %(rdl)s IS NULL )
 

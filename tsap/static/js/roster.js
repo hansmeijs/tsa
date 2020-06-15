@@ -4112,7 +4112,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (add_to_list){
 
-
             is_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
 //- insert tblRow  //index -1 results in that the new row will be inserted at the last position.
             let tblRow = tableBody.insertRow(-1);
@@ -4170,8 +4169,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_MSS_btn_save.disabled = false;
                 set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
 
-            } else
+            } else {
                 MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value)
+            };
 // ---  when MRO_table: set header and enable btn csave
             if(pgeName === "MRO"){
                 MRO_SetHeaderAndEnableBtnSave();

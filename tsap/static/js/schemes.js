@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_names: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration", "timeduration", "delete"],
                         field_tags: ["div", "div", "div", "div", "div", "div", "div"],
                         field_width: ["180", "", "120", "120", "120", "120", "032"],
-                        field_align: ["left", "center", "right", "left", "right", "right", "center"]},
+                        field_align: ["left", "center", "right", "right", "right", "right", "center"]},
             teammember: { tbl_col_count: 6,
                         field_caption: ["Team", "Employee", "Start_date", "End_date", "Replacement_employee", ""],
                         field_names: ["team", "employee", "datefirst", "datelast", "replacement", "delete"],
@@ -5405,7 +5405,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         const fldName = get_attr_from_el(el_input, "data-field")
         if (["excludepublicholiday", "divergentonpublicholiday"].indexOf(fldName) > -1){
             if (el_input.checked){
-                const other_id = (fldName === "excludepublicholiday") ? "id_MSCH_dvg_ph" : "id_MSCH_excl_ph"
+                const other_id = (fldName === "excludepublicholiday") ? "id_MSCH_dvg_ph" : "id_MSCH_exph"
                 const other_el = document.getElementById(other_id)
                 other_el.checked = false;
             }

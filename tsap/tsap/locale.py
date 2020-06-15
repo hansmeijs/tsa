@@ -77,7 +77,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     # error messages
     dict['This_field'] = _('This field ')
     dict['already_exists'] = _(' already exists.')
+    dict['already_exists_but_inactive'] = _(' already exists, but is inactive.')
     dict['must_be_completed'] = _(' must be completed.')
+    dict['cannot_be_blank'] =  _(' cannot be blank.')
+
+
 
     dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
     dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
@@ -274,6 +278,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         # header
         dict['Short_name'] = TXT_Short_name
+        dict['Name'] = TXT_Name
 
         dict['Customer'] = TXT_Customer
         dict['Customers'] = TXT_Customers
@@ -841,6 +846,7 @@ TXT_Export_to_Excel = _('Export to Excel')
 # headers
 
 TXT_Short_name = _('Short name')
+TXT_Name = _('Name')
 
 TXT_Roster = _('Roster')
 TXT_Rosterdate = _('Rosterdate')
@@ -1108,6 +1114,7 @@ TXT_err_msg_set_hours_to_0_instead = _('You can set the hours to zero instead.')
 TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
 TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
+
 
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_must_be_integer = _('must be an integer.')

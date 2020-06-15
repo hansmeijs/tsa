@@ -219,7 +219,7 @@ class Customer(TsaBaseModel):
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=c.USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
-    interval = PositiveSmallIntegerField(default=0)
+    interval = PositiveSmallIntegerField(default=0) # not in use yet
 
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
@@ -562,7 +562,7 @@ class Employee(TsaBaseModel):
     name = None
 
     class Meta:
-        ordering = [Lower('namelast'), Lower('namefirst')]
+        ordering = (Lower('code'),)
 
     def __str__(self):
         return self.code

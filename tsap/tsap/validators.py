@@ -199,11 +199,12 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Employee name already exists.'))
         return value
 
-def validate_code_name_identifier(table, field, new_value, parent, update_dict, request, this_pk=None):
-    # validate if code already_exists in this table PR2019-07-30
+def validate_code_name_identifier(table, field, new_value, is_absence, parent, update_dict, request, this_pk=None):
+    # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
     # logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    # filter is_absence is only used in table 'order' PR2020-06-14
     msg_err = None
     if not parent:
         msg_err = _("No parent record.")
@@ -238,7 +239,8 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
                 crit = Q(company=request.user.company)
             elif table == 'order':
                 crit = Q(customer__company=request.user.company)
-                 # identifier is unique in company
+                crit.add(Q(isabsence=is_absence), crit.connector)
+                 # identifier is unique in company. PR2020-06-14 debug: gave err because of duplicate id in abscat. Filter absence added
                 if field != 'identifier':
                     crit.add(Q(customer=parent), crit.connector)
             elif table == 'scheme':

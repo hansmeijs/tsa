@@ -62,12 +62,10 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= CustomerUploadView ============= ')
+        logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-            #logger.debug('request.POST: ' + str(request.POST))
-
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -77,11 +75,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. get iddict variables
                 id_dict = f.get_dict_value(upload_dict, ('id',))
-                #logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
+                logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
                 if id_dict:
                     #logger.debug('upload_dict: ' + str(upload_dict))
                     table = f.get_dict_value(id_dict, ('table',), '')
@@ -97,8 +95,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
                     orders_list = f.get_dict_value(upload_dict, ('orders_list',))
 
-                    #logger.debug('table: ' + str(table))
-                    #logger.debug('is_delete: ' + str(is_delete))
+                    logger.debug('table: ' + str(table))
+                    logger.debug('is_delete: ' + str(is_delete))
 # TODO check identifier for duplicates
 
 # =====  CUSTOMER  ==========
@@ -107,7 +105,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # A. check if parent with ppk_int exists and is same as request.user.company
                         parent = m.Company.objects.get_or_none(id=ppk_int)
-                        #logger.debug('parent:', parent)
+                        logger.debug('parent:', parent)
                         if parent and ppk_int == request.user.company_id:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -145,8 +143,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 cd.create_customer_dict(instance, update_dict)
 
 # H. If new customer has orders_list: list contains new orders, add them to orders
-                                #logger.debug('orders_list: '+ str(orders_list))
-                                #logger.debug('is_create: ' + str(is_create))
+                                logger.debug('orders_list: '+ str(orders_list))
+                                logger.debug('is_create: ' + str(is_create))
                                 if is_create and orders_list:
                                     update_orders_list = []
                                     for new_order_dict in orders_list:
@@ -162,13 +160,13 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # =====  ORDER  ==========
                     elif table == "order":
-                        #logger.debug('table: ' + str(table))
-                        #logger.debug('ppk_int: ' + str(ppk_int))
+                        logger.debug('table: ' + str(table))
+                        logger.debug('ppk_int: ' + str(ppk_int))
 
 # A. check if parent exists (customer is parent of order)
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
-                        #logger.debug('parent: ' + str(parent))
-                        #logger.debug('is_delete: ' + str(is_delete))
+                        logger.debug('parent: ' + str(parent))
+                        logger.debug('is_delete: ' + str(is_delete))
                         if parent:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -337,9 +335,9 @@ def create_new_customer(parent, upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
+                has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
                 if not has_error:
-                    has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
+                    has_error = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
 
     # 4. create and save customer
                     if not has_error:
@@ -386,7 +384,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
                 # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field, new_value, parent, update_dict, request, this_pk=None)
+                            has_error = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
                             if not has_error:
                  # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
@@ -474,10 +472,10 @@ def create_order(parent, upload_dict, update_dict, request):
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
-            has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
+            has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
             logger.debug('has_error' + str(has_error))
             if not has_error:
-                has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
+                has_error = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
 
 # 4. create and save order
                 if not has_error:
@@ -510,8 +508,12 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
 
     has_error = False
     if instance:
-        # FIELDS_ORDER = ('id', 'customer', 'cat', 'code', 'name', 'datefirst', 'datelast',
-        #                 'sequence', 'identifier', 'priceratejson', 'taxcode', 'locked', 'inactive')
+        # FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
+        #                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
+        #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode',
+        #                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
+        #                 'inactive', 'locked')
+
         table = 'order'
         save_changes = False
         for field in c.FIELDS_ORDER:
@@ -522,7 +524,8 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                     is_updated = False
 # a. get new_value
                     new_value = field_dict.get('value')
-                    #logger.debug('new_value: ' + str(new_value))
+                    logger.debug('field: ' + str(field))
+                    logger.debug('new_value: ' + str(new_value))
 
 # 2. save changes in field 'code', 'name'
                     if field in ['code', 'name', 'identifier']:
@@ -532,7 +535,8 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         if new_value != saved_value:
         # b. validate code or name
                             has_error = v.validate_code_name_identifier(table, field,
-                                                                        new_value, parent, update_dict, request, instance.pk)
+                                                                        new_value, False, parent, update_dict, request, instance.pk)
+                            logger.debug('has_error: ' + str(has_error))
                             if not has_error:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)

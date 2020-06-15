@@ -2433,7 +2433,7 @@ def create_employee(upload_dict, update_dict, request):
             if code:
 
     # c. validate code checks null, max len and exists
-                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
+                has_error = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
                 if not has_error:
 # 4. create and save 'customer' or 'order'
                     try:
@@ -2486,6 +2486,7 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                                 table='employee',
                                 field=field,
                                 new_value=new_value, parent=parent,
+                                is_absence=False,
                                 update_dict=update_dict,
                                 request=request,
                                 this_pk=instance.pk)

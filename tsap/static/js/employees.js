@@ -859,6 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Get today's date and time - for elapsed time
         //let startime = new Date().getTime();
+
 // --- reset table
         tblHead_datatable.innerText = null
         tblBody_datatable.innerText = null
@@ -880,11 +881,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!data_map){
 // --- loop through data_map
             for (const [map_id, item_dict] of data_map.entries()) {
-                const id_dict = get_dict_value(item_dict, ["id"]);
-                    const row_tblName = get_dict_value(id_dict, ["table"]);
-                    const pk_int = get_dict_value(id_dict, ["pk"], 0);
-                    const ppk_int = get_dict_value(id_dict, ["ppk"], 0);
-                    const is_absence =  get_dict_value(id_dict, ["isabsence"], false);
+                const row_tblName = get_dict_value(item_dict, ["id", "table"]);
+                const pk_int = get_dict_value(item_dict, ["id", "pk"], 0);
+                const ppk_int = get_dict_value(item_dict, ["id", "ppk"], 0);
+                const is_absence =  get_dict_value(item_dict, ["id", "isabsence"], false);
                 const row_employee_pk = get_dict_value(item_dict, [data_key, "pk"])
 // in mode absence and shift: show only rows with parent = selected_employee_pk
                 let add_Row = false;

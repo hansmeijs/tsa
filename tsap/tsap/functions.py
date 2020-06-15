@@ -3058,8 +3058,8 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
         # because excelend is not in ascending order, lookup_excelend < row_excelstart cannot be used
         # instead check lookup_excelstart + 2880 < row_excelstart. Exc
 
-                    # PR2020-05-14 debug: error when row_excend = None. Added: if row_excend
-                    elif row_excend and lookup_excstart + 2880 < row_excend:
+                    # PR2020-05-14 debug: error when row_excend = None. Added: if row_excend, also lookup_excstart
+                    elif row_excend and lookup_excstart and lookup_excstart + 2880 < row_excend:
                         #.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
                         break
                     else:

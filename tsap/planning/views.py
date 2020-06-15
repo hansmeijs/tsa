@@ -1812,6 +1812,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                                 table=table,
                                 field=field,
                                 new_value=new_value,
+                                is_absence=False,
                                 parent=parent,
                                 update_dict=update_dict,
                                 request=request,
@@ -3475,7 +3476,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             # TODO code can have inactive duplicates
-                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, parent, update_dict, request,  this_pk=None)
+                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request,  this_pk=None)
                             if not has_error:
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -3945,7 +3946,7 @@ def create_shift_instance(parent, upload_dict, update_dict, request):
             code = code_dict.get('value')
         if code:
 # 2. validate code
-            has_error = validate_code_name_identifier('shift', 'code', code, parent, update_dict, request)
+            has_error = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, request)
             if not has_error:
 # 4. create and save shift
                 try:
@@ -3996,6 +3997,7 @@ def update_shift_instance(instance, parent, upload_dict, update_dict, user_lang,
                                 table='shift',
                                 field=field,
                                 new_value=new_value,
+                                is_absence=False,
                                 parent=parent,
                                 update_dict=update_dict,
                                 request=request,
@@ -4134,7 +4136,7 @@ def create_teXXXam(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
     # c. validate code
-                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
+                has_error = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
                 if not has_error:
 # 4. create and save team
                     team = m.Team(scheme=parent, code=code)
@@ -4172,7 +4174,7 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-        has_error = validate_code_name_identifier('scheme', 'code', code,  parent, update_dict, request)
+        has_error = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, request)
 
         if not has_error:
             instance = m.Scheme(order=parent, code=code)

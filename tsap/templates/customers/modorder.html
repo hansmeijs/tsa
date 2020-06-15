@@ -1,0 +1,104 @@
+ {% load i18n %}
+{% load static %}
+
+ <!-- =================== MODAL FORM ORDER  =================== -->'
+    <div class="modal" id="id_mod_form_order" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MFO_header" class="modal-title mx-2" ></h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="modal_container">
+                        <div class="modal_body_left">
+                            <div class="mx-2 my-1">
+                                <h6 id="id_MFO_select_header" class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
+                            </div>
+                            <div class="mx-2 my-1">
+                                 <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
+                                <div style="overflow-x:hidden;overflow-y:auto;height:390px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table tsa_tbl mx-1 my-1">
+                                        <tbody id="id_MFO_tblbody_select" data-table="customer">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal_body_right mx-2 my-0">
+                            <div class="mx-2 my-1">
+                                <label class="mx-2 my-0">{% trans 'Customer' %}:</label>
+                                <input id="id_MFO_input_customer" type="text" data-field= "customer"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select a customer in the list' %}...">
+                                <div class="content_subheader_leftXX mx-2">
+                                    <small id="id_MFO_err_customer"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                </div>
+                            </div>
+                            <div class="mx-2 my-1">
+                                <label for="id_MFO_code" class="mx-2 my-0">{% trans 'Short name' %}:</label>
+                                <input id="id_MFO_code" type="text" data-field= "code"
+                                       autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                       class="tsa_input_text form-control">
+                                <div class="content_subheader_leftXX mx-2">
+                                    <small id="id_MFO_err_code"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                </div>
+                            </div>
+                            <div class="mx-2 my-1">
+                                <label for="id_MFO_name" class="mx-2 my-0">{% trans 'Name' %}:</label>
+                                <input id="id_MFO_name" type="text" data-field= "name"
+                                       autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                       class="tsa_input_text form-control">
+                                <div class="content_subheader_left mx-2 ">
+                                    <small id="id_MFO_err_name"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                </div>
+                            </div>
+                            <div class="mx-2 my-1">
+                                <label for="id_MFO_identifier" class="mx-2 my-0">{% trans 'Identifier' %}:</label>
+                                <input id="id_MFO_identifier" type="text" data-field= "identifier"
+                                       autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                       class="tsa_input_text form-control">
+                                <div class="content_subheader_left mx-2 ">
+                                    <small id="id_MFO_err_identifier"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                </div>
+                            </div>
+
+                            <div id="id_modrosterorder_timefields" class="content_header mb-2">
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MFO_datefirst" class="mx-2 my-1">{% trans 'First date' %}:</label>
+                                    <input id="id_MFO_datefirst" type="date" data-field= "datefirst"
+                                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                            class="tsa_input_date form-control">
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MFO_datelast" class="mx-2 my-1">{% trans 'Last date' %}:</label>
+                                    <input id="id_MFO_datelast" type="date" data-field= "datelast"
+                                           autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                           class="tsa_input_date form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1">
+                        <button id="id_MFO_btn_delete" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete order' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MFO_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL ORDER  =================== -->
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

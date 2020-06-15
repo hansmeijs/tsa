@@ -2109,7 +2109,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
             AND (o.datelast >= %(rd)s OR o.datelast IS NULL)
             AND (s.inactive = false) AND (o.inactive = false)  
         ) AS sq  
-        ORDER BY sq.c_code ASC, sq.o_code ASC, rosterdate ASC, osdif ASC
+        ORDER BY LOWER(sq.c_code), LOWER(sq.o_code), rosterdate ASC, osdif ASC
             """, {
         'cid': company_id,
         'abs_cat_lt': c.SHIFT_CAT_0512_ABSENCE,

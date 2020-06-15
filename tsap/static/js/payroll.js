@@ -90,11 +90,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const field_settings = {
             abscat: { tbl_col_count: 9,
                         //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
-                        field_caption: ["Absence_category", "Identifier", "Payment", "Saturday_hours", "Sunday_hours", "Public_holiday_hours",  "Priority"],
-                        field_names: ["code", "identifier", "nopay", "nohoursonsaturday", "nohoursonsunday", "nohoursonpublicholiday", "sequence", "inactive", "delete"],
+                        field_caption: ["Absence_category", "Payment", "Saturday_hours", "Sunday_hours", "Public_holiday_hours",  "Identifier", "Priority"],
+                        field_names: ["code", "nopay", "nohoursonsaturday", "nohoursonsunday", "nohoursonpublicholiday", "identifier", "sequence", "inactive", "delete"],
                         field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div"],
                         field_width:  ["180", "120", "120", "120", "120", "120", "120", "032", "032"],
-                        field_align: ["left", "left","center",  "center", "center", "center", "center", "center", "center"]},
+                        field_align: ["left", "center",  "center", "center", "center", "left", "center", "center", "center"]},
             absence: { tbl_col_count: 6,
                         field_caption: ["Employee", "Absence_category", "First_date", "Last_date", "Hours_per_day"],
                         field_names: ["employee", "order", "datefirst", "datelast", "timeduration", "delete"],
@@ -646,11 +646,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         CreateBtnDeleteInactive("inactive", sel_btn, el_div);
                     } else {
 // --- add blank image to check boxes
-                        if([2, 3 , 4, 5].indexOf(j) > -1){
+                        if([1, 2, 3 , 4].indexOf(j) > -1){
                             AppendChildIcon(el_div, imgsrc_stat00)
                         }
 // --- add EventListener pointer, hover
-                        if ([0, 1, 6].indexOf(j) > -1){
+                        if ([0, 5, 6].indexOf(j) > -1){
                             el_div.addEventListener("click", function() {MAC_Open(j, el_div)}, false)
                         } else {
                             el_div.addEventListener("click", function() {UploadToggle(el_div)}, false)
@@ -1134,10 +1134,13 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "tblRow", tblRow);
 // --- add hours to payroll_totalrow, only when show_row
             const detail_row = get_dict_value(payroll_detail_rows, [tblRow.id])
-            if (show_row) { add_to_payroll_totalrow(detail_row)};
-//--- put show/hide in extra column of detail_row // show / hide remembers filter, used in Export_to_Excel
-            const index_showhide_column = detail_row.length -1;
-            detail_row[index_showhide_column] = (show_row) ? "show" : "hide";
+            //PR2020-06-14 debug: no detail_row when sel_btn = abscat
+            if(detail_row){
+                if (show_row) { add_to_payroll_totalrow(detail_row)};
+    //--- put show/hide in extra column of detail_row // show / hide remembers filter, used in Export_to_Excel
+                const index_showhide_column = detail_row.length -1;
+                detail_row[index_showhide_column] = (show_row) ? "show" : "hide";
+            } ;
 // ---  show / hide row
             add_or_remove_class(tblRow, cls_hide, !show_row)
         }
@@ -1239,8 +1242,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const array =  ["code", "identifier", "sequence", "nopay", "nohoursonsaturday","nohoursonsunday", "nohoursonpublicholiday"];
         array.forEach(function (key) {mod_dict[key] = get_dict_value(abscat_dict, [key, "value"])});
-
         console.log("mod_dict ", mod_dict);
+
 // ---  put abscat_code in header
         const header_text = (mod_dict.code) ? loc.Absence_category + ": " + mod_dict.code : loc.Absence_category;
         document.getElementById("id_MAC_hdr_abscat").innerText = header_text;

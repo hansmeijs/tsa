@@ -177,8 +177,7 @@ def create_customer_dict(customer, item_dict):
 def create_order_list(company, user_lang, is_absence=None, is_template=None, is_inactive=None):
     logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
-    # TODO: make it possible to rename them as company setting
-    logger.debug('>>>>>>>>>>  is_absence ' + str(is_absence))
+    # absence orders are loaded in create_abscat_list
 
     # date filter not in use (yet)
     datefirst_iso, datelast_iso = None, None
@@ -188,12 +187,9 @@ def create_order_list(company, user_lang, is_absence=None, is_template=None, is_
         COALESCE(c.code, '') AS c_code,
         CONCAT(c.code, ' - ', o.code) AS c_o_code,
 
-        COALESCE(o.contactname, '') AS contactname,
-        COALESCE(o.address, '') AS address,
-        COALESCE(o.zipcode, '') AS zipcode,
-        COALESCE(o.city, '') AS city,
-        COALESCE(o.country, '') AS country,
-        COALESCE(o.identifier, '') AS identifier,
+        o.name,
+        o.contactname,  o.address, o.zipcode,  o.city,  o.country, 
+        o.identifier, 
 
         o.billable AS o_billable,
         o.sequence AS o_sequence,
@@ -217,7 +213,7 @@ def create_order_list(company, user_lang, is_absence=None, is_template=None, is_
         AND ( o.isabsence = CAST(%(isabsence)s AS BOOLEAN) OR %(isabsence)s IS NULL )
         AND ( o.istemplate = CAST(%(istemplate)s AS BOOLEAN) OR %(istemplate)s IS NULL )
         AND ( c.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
-        ORDER BY c.code, o.code
+        ORDER BY LOWER(c.code), LOWER(o.code)
         """
     newcursor = connection.cursor()
     newcursor.execute(sql_order, {
@@ -274,9 +270,12 @@ def create_order_dict_from_sql(instance, item_dict):
 
             elif field == 'code':
                 field_dict['value'] = instance.get('o_code')
-                field_dict['code'] = instance.get('c_code')
                 field_dict['cust_ordr_code'] = instance.get('c_o_code')
 
+            elif field in ('name', 'identifier','contactname', 'address', 'zipcode',  'city',  'country'):
+                value = instance.get(field)
+                if value:
+                    field_dict['value'] = value
 
             elif field in ['datefirst', 'datelast']:
                 # also add date when empty, to add min max date

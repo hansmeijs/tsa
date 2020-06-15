@@ -578,7 +578,6 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
 
     scheme_list = []
     for scheme in schemes:
-        logger.debug('scheme: ' + str(scheme))
         item_dict = {}
         create_scheme_dict_from_sql(scheme, item_dict, user_lang)
 
@@ -1439,7 +1438,7 @@ def create_team_dict(team, item_dict):
 
 # =========  get_teamcode_abbrev  === PR2020-03-15 PR2020-05-23
 def get_teamcode_abbrev(team_code):
-    logger.debug('get_teamcode_abbrev: ' + str(team_code))
+    #logger.debug('get_teamcode_abbrev: ' + str(team_code))
 #  ---  if team_code exists: get first 3 characters from last word as abbrev
     abbrev = ''
     if team_code:
@@ -1453,9 +1452,9 @@ def get_teamcode_abbrev(team_code):
 
 
 def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
-    logger.debug(' key: ' + str(key))
-    logger.debug(' period_dict: ' + str(period_dict))
+    #logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' key: ' + str(key))
+    #logger.debug(' period_dict: ' + str(period_dict))
 
     # create_employee_planning / create_customer_planning / review_list use  rosterdatefirst / rosterdatelasst in filter
     # emplhour_list uses  periodstart (= periodstart_local_withtimezone) /  'periodend'
