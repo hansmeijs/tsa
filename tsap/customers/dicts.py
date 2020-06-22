@@ -314,15 +314,9 @@ def create_order_dict_from_sql(instance, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-#?????????????????
-
 def create_order_dict(order, item_dict):
     # --- create dict of this order PR2019-09-28
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-
-    # FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
-    #                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
-    #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
 
     if order:
 # ---  get min max date
@@ -410,6 +404,7 @@ def create_order_dict(order, item_dict):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
+# end of create_order_dict
 
 
 def create_absencecategory_list(request):
@@ -422,7 +417,7 @@ def create_absencecategory_list(request):
     get_or_create_absence_customer(request)
     #logger.debug(" --- get_or_create_absence_customer ---")
     # order by priority: which is sequence desc
-    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True).order_by('-sequence')
+    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True)
 
     for order in orders:
         #logger.debug(" --- for order in orders ---")

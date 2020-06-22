@@ -76,7 +76,7 @@
                     el_a.setAttribute("data-value", addall_to_list_txt);
                     td.appendChild(el_a);
                 td.classList.add("px-2")
-                td.classList.add("td_width_200")
+                td.classList.add("tw_200")
                 td.classList.add("tsa_bc_transparent")
 //--------- add addEventListener
 
@@ -115,7 +115,7 @@
                     el_input.setAttribute("autocomplete", "off")
                     el_input.setAttribute("placeholder", "filter ...")
                 }
-                const td_width = (has_header_btn) ? "td_width_150" : "td_width_200";
+                const td_width = (has_header_btn) ? "tw_150" : "tw_200";
                 el_input.classList.add(td_width)
                 el_input.classList.add("tsa_bc_transparent", "border_none", "px-2", "tsa_color_placeholder_white" )
 
@@ -221,7 +221,7 @@
                 td.classList.add("px-2")
 
                 const has_row_button = (!!HandleSelectRowButton);
-                const td_width = (has_row_button) ? "td_width_150" : "td_width_200";
+                const td_width = (has_row_button) ? "tw_150" : "tw_200";
                 td.classList.add(td_width)
                 td.classList.add("tsa_bc_transparent")
 
@@ -278,7 +278,7 @@
                             });
                         }
                 td.appendChild(el_a);
-                td.classList.add("td_width_032");
+                td.classList.add("tw_032");
             }
         }
     }  // t_CreateSelectButton
@@ -529,6 +529,59 @@
             }
         }  // for (let i = 0,
     }
+
+
+
+//========= get_rowindex_by_code_datefirst  ================= PR2020-05-18
+    function get_rowindex_by_code_datefirst(tblBody, tblName, data_map, search_code, search_datefirst) {
+        console.log(" ===== get_rowindex_by_code_datefirst =====", tblName);
+        let search_rowindex = -1;
+// --- loop through rows of tblBody
+        if(search_code){
+            const search_code_lc = search_code.toLowerCase()
+            for (let i = 0, tblRow; i < tblBody.rows.length; i++) {
+                tblRow = tblBody.rows[i];
+                const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id)
+                if(tblName === "paydatecode"){
+                    const code = get_dict_value(map_dict, ["code", "value"])
+                    if(code) {
+                        const code_lc = code.toLowerCase()
+                    console.log("code_lc  ", code_lc, "code  ", search_code_lc);
+                        if( code_lc > search_code_lc) {
+                            search_rowindex = tblRow.rowIndex - 1;
+                            break;
+                        }
+                    }
+
+                } else if(tblName === "teammember"){
+        //console.log("tblRow.id", tblRow.id);
+                    const employee_code = get_dict_value(map_dict, ["employee", "code"])
+                    const datefirst = get_dict_value(map_dict, ["employee", "datefirst"])
+        //console.log("employee_code", employee_code);
+        //console.log("datefirst", datefirst);
+                    if(employee_code) {
+                        const employee_code_lc = employee_code.toLowerCase()
+                        if(employee_code_lc < search_code_lc) {
+                            // goto next row
+                         } else if(employee_code_lc === search_code_lc) {
+        // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
+                            // TODO search on datfirst
+                        } else  if( employee_code_lc > search_code_lc) {
+        // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
+                            search_rowindex = tblRow.rowIndex - 1;
+        //console.log("search_rowindex FOUND ", search_rowindex);
+                            break;
+                        }
+                    }
+                }
+        }}
+        //console.log("search_rowindex", search_rowindex);
+        return search_rowindex
+    }  // get_rowindex_by_code_datefirst
+
+
+
+
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
@@ -1576,6 +1629,24 @@
         el_select.disabled = (!row_count)
     }  //function t_FillSelectOption2020
 
+//========= t_FillOptionsWeekdays  =============== PR2020-06-20
+    function t_FillOptionsWeekdays(el_select, loc, curOption, show_blank) {
+        //console.log( "=== t_FillOptionsWeekdays  ");
+
+// ---  fill weekdays in select box
+        let option_text = null;
+        const option_list = [loc.Monday]
+        el_select.innerText = null
+        const start_at = (!show_blank) ? 1 : 0;
+        for (let i = start_at; i < 8; i++) {
+            const weekday_str = loc.weekdays_long[i];
+            option_text += "<option value=\"" + i +  "\"";
+            if (curOption != null && i === curOption) {option_text += " selected=true" };
+            option_text +=  ">" + weekday_str + "</option>";
+        }
+        el_select.innerHTML = option_text;
+    }  // t_FillOptionsWeekdays
+
 //========= FillOptionsPeriodExtension  ====================================
     function FillOptionsPeriodExtension(el_select, option_list) {
         //console.log( "=== FillOptionsPeriodExtension  ");
@@ -2082,6 +2153,39 @@
         return default_code + " " + String.fromCharCode(new_index);
     } ; // get_teamcode_with_sequence
 
+//=========  get_paydatecode_with_sequence  ================ PR2020-06-21
+    function get_paydatecode_with_sequence(paydatecode_map, default_code){
+        "use strict";
+        //console.log(' --- get_paydatecode_with_sequence --- ')
+        // create new code with sequence 1 higher than existing code PR2020-06-21
+
+        const default_code_len = default_code.length;
+        let new_code = default_code;
+
+        let count = 0, max_index = 0;
+// --- loop through paydatecode_map
+        for (const [map_id, item_dict] of paydatecode_map.entries()) {
+            count += 1;
+            const code_value = get_dict_value(item_dict, ["code", "value"], "")
+// ----  get index of item (Payrollcode 2 has index 2)
+            const index_str = code_value.slice(default_code_len).trim();
+            if(!!index_str && !!Number(index_str)){
+                const index = Number(index_str);
+// ----  get highest index
+                if (!!index && index > max_index) { max_index = index }
+        }};
+// ---  get highest of count and max_index
+        if (count > max_index) { max_index = count }
+// ---  when 4 schemes exists, new scheme must have name 'Scheme 5'
+        let new_index = max_index + 1
+        new_code = default_code + " " + new_index.toString();
+        return new_code;
+    } ; // get_paydatecode_with_sequence
+
+
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
     function Calendar_BtnWeekdaySetClass(btn, data_value) {
         // functiuon stores data_value in btn and sets backgroundcolor

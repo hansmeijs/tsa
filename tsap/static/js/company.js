@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 fldName: ["datepayment", "note", "entries", "used", "balance", "dateexpired"],
                                 tag: ["div", "div", "div", "div", "div", "div"],
                                 width: ["120", "300", "120", "120", "120", "120"],
-                                align: ["left", "left", "right", "right", "right", "left"]}
+                                align: ["l", "l", "r", "r", "r", "l"]}
 
         let selected_btn = "company";
 
@@ -131,8 +131,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add margin to column dateexpired
                 if (j === 5 ) { el_div.classList.add("ml-4") }
 // --- add width adn text_align to el
-                el_div.classList.add("td_width_" + CIV_fieldsettings.width[j])
-                el_div.classList.add("text_align_" + CIV_fieldsettings.align[j])
+                el_div.classList.add("tw_" + CIV_fieldsettings.width[j])
+                el_div.classList.add("ta_" + CIV_fieldsettings.align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
     };  //CIV_CreateTblHeader
@@ -197,8 +197,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add margin to column dateexpired
                 if (j === 5 ) { el_div.classList.add("ml-4") }
 // --- add width adn text_align to el
-                el_div.classList.add("td_width_" + CIV_fieldsettings.width[j])
-                el_div.classList.add("text_align_" + CIV_fieldsettings.align[j])
+                el_div.classList.add("tw_" + CIV_fieldsettings.width[j])
+                el_div.classList.add("ta_" + CIV_fieldsettings.align[j])
 
                 const fldName = CIV_fieldsettings.fldName[j];
                 const field_value = get_dict_value(item_dict, [fldName, "value"]);
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
     // ---  show / hide elements of selected button
-            show_hide_selected_btn_elements("tab_show", "tab_" + selected_btn)
+            show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
             //let list = document.getElementsByClassName("tab_show");
             //for (let i=0, len = list.length; i<len; i++) {
             //    let el = list[i];

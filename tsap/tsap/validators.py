@@ -209,8 +209,10 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
     if not parent:
         msg_err = _("No parent record.")
     else:
-        max_len = c.NAME_MAX_LENGTH if field == 'name' else c.CODE_MAX_LENGTH
-
+        if table == 'paydatecode':
+            max_len = c.USERNAME_MAX_LENGTH if field == 'code' else c.CODE_MAX_LENGTH
+        else:
+            max_len = c.NAME_MAX_LENGTH if field == 'name' else c.CODE_MAX_LENGTH
         length = 0
         if new_value:
             length = len(new_value)
@@ -235,7 +237,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             # msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         if not msg_err:
             crit = None
-            if table == 'employee' or table == 'customer':
+            if table in ('employee', 'customer', 'paydatecode'):
                 crit = Q(company=request.user.company)
             elif table == 'order':
                 crit = Q(customer__company=request.user.company)
@@ -281,6 +283,8 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 instance = m.Shift.objects.filter(crit).first()
             elif table == 'team':
                 instance = m.Team.objects.filter(crit).first()
+            elif table == 'paydatecode':
+                instance = m.Paydatecode.objects.filter(crit).first()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
             # TODO msg not working yet

@@ -22,15 +22,14 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
     sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
         e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
-        e.identifier, e.payrollcode, e.workhours, e.workdays, e.leavedays, 
-        CASE WHEN e.workhours = 0 OR e.workdays = 0 THEN 0 ELSE 1440 * e.workhours / e.workdays END AS e_workhoursperday,
-        fc.code AS functioncode, wc.code AS wagecode, pc.code AS paydatecode, 
+        e.identifier, e.payrollcode, e.workhours, e.workdays, e.leavedays, e.workminutesperday,
+        fc.id AS fc_id, fc.code AS fn_code, wc.id AS wc_id, wc.code AS wc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
         e.locked, e.inactive
     
         FROM companies_employee AS e 
         LEFT JOIN companies_wagecode AS wc ON (wc.id = e.wagecode_id) 
         LEFT JOIN companies_wagecode AS fc ON (fc.id = e.functioncode_id) 
-        LEFT JOIN companies_wagecode AS pc ON (pc.id = e.paydatecode_id) 
+        LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
  
         WHERE e.company_id = %(compid)s
         AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
@@ -59,17 +58,16 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
 
 def create_employee_dict_from_sql(instance,  item_dict, user_lang):
-    # --- create dict of this employee from dictfetchall PR2020-05-11
+    # --- create dict of this employee from dictfetchall PR2020-06-18
 
     if instance:
-
 # ---  get min max date
         datefirst = instance.get('datefirst')
         datelast = instance.get('datelast')
 
         workhours = instance.get('workhours', 0)  # workhours per week * 60, unit is minute
         workdays = instance.get('workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
-        workhoursperday = instance.get('e_workhoursperday', 0)
+        workminutesperday = instance.get('workminutesperday', 0)
 
         for field in c.FIELDS_EMPLOYEE:
 # --- get field_dict from  item_dict if it exists
@@ -79,7 +77,6 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
                 field_dict['pk'] = instance.get('id')
                 field_dict['ppk'] = instance.get('company_id')
                 field_dict['table'] = 'employee'
-                item_dict['pk'] = instance.get('id')
 
             elif field == 'company':
                 pass
@@ -104,6 +101,20 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
             elif field == 'workdays':
                 if workdays:
                     field_dict['value'] = workdays
+
+            elif field in ['functioncode', 'wagecode', 'paydatecode']:
+                prefix = ''
+                if field == 'functioncode':
+                    prefix = 'fc'
+                elif field == 'wagecode':
+                    prefix = 'wc'
+                elif field == 'paydatecode':
+                    prefix = 'pdc'
+                pk = instance.get(prefix + '_id')
+                code = instance.get(prefix + '_code')
+                if pk:
+                    field_dict['pk'] = pk
+                    field_dict['value'] = code
 
             elif field in ['priceratejson']:
                 pricerate = instance.get(field)
@@ -119,10 +130,10 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
             item_dict[field] = field_dict
 
         if workhours and workdays:
-            fld = 'workhoursperday'
+            fld = 'workminutesperday'
             if fld not in item_dict:
                 item_dict[fld] = {}
-            item_dict[fld]['value'] = workhoursperday
+            item_dict[fld]['value'] = workminutesperday
 
 # 7. remove empty attributes from item_update
     f.remove_empty_attr_from_dict(item_dict)
@@ -131,15 +142,8 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
 
 
 
-
 def create_employee_dict(instance, item_dict, user_lang):
-    # --- create dict of this employee PR2019-07-26
-
-    # FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
-    #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
-    #                    'address', 'zipcode', 'city', 'country',
-    #                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
-    #                    'priceratejson', 'additionjson', 'inactive', 'locked')
+    # --- create dict of this employee PR2019-07-26 PR2020-06-18
 
     if instance:
 
@@ -149,9 +153,7 @@ def create_employee_dict(instance, item_dict, user_lang):
 
         workhours = getattr(instance, 'workhours', 0)  # workhours per week * 60, unit is minute
         workdays = getattr(instance, 'workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
-        workhoursperday = 0
-        if workhours and workdays:
-            workhoursperday = round(workhours / workdays * 1440)  # round to whole minutes
+        workminutesperday = getattr(instance, 'workminutesperday', 0)  # workhours per week * 60, unit is minute
 
         for field in c.FIELDS_EMPLOYEE:
 # --- get field_dict from  item_dict if it exists
@@ -161,7 +163,6 @@ def create_employee_dict(instance, item_dict, user_lang):
                 field_dict['pk'] = instance.pk
                 field_dict['ppk'] = instance.company.pk
                 field_dict['table'] = 'employee'
-                item_dict['pk'] = instance.pk
 
             elif field == 'company':
                 pass
@@ -187,6 +188,21 @@ def create_employee_dict(instance, item_dict, user_lang):
                 if workdays:
                     field_dict['value'] = workdays
 
+            elif field in ['functioncode', 'wagecode', 'paydatecode']:
+                pk = getattr(instance, field)
+                if field == 'functioncode':
+                    if instance.functioncode:
+                        field_dict['pk'] = instance.functioncode.pk
+                        field_dict['value'] = instance.functioncode.code
+                elif field == 'wagecode':
+                    if instance.wagecode:
+                        field_dict['pk'] = instance.wagecode.pk
+                        field_dict['value'] = instance.wagecode.code
+                elif field == 'paydatecode':
+                    if instance.paydatecode:
+                        field_dict['pk'] = instance.paydatecode.pk
+                        field_dict['value'] = instance.paydatecode.code
+
             elif field in ['priceratejson']:
                 pricerate = getattr(instance, field)
                 if pricerate is not None:
@@ -201,10 +217,10 @@ def create_employee_dict(instance, item_dict, user_lang):
             item_dict[field] = field_dict
 
         if workhours and workdays:
-            fld = 'workhoursperday'
+            fld = 'workminutesperday'
             if fld not in item_dict:
                 item_dict[fld] = {}
-            item_dict[fld]['value'] = workhoursperday
+            item_dict[fld]['value'] = workminutesperday
 
 # 7. remove empty attributes from item_update
     f.remove_empty_attr_from_dict(item_dict)
@@ -258,13 +274,13 @@ def create_teammember_list(filter_dict, company, user_lang):
         COALESCE(c.code, '') AS c_code,
         COALESCE(e.code, '') AS e_code,
         COALESCE(r.code, '') AS r_code,
-        
+
         s.nohoursonsaturday AS s_nosat,
-        s.nohoursonsunday AS e_nosun,
-        s.nohoursonpublicholiday AS e_noph,
+        s.nohoursonsunday AS s_nosun,
+        s.nohoursonpublicholiday AS s_noph,
         
         e.inactive AS e_inactive,
-        CASE WHEN e.workhours = 0 OR e.workdays = 0 THEN 0 ELSE 1440 * e.workhours / e.workdays END AS e_workhoursperday,
+        e.workminutesperday AS e_workminutesperday,
         r.inactive AS r_inactive,
         r.workhours AS r_workhours,
 
@@ -319,7 +335,6 @@ def create_teammember_list(filter_dict, company, user_lang):
     for teammember in teammembers:
         item_dict = {}
         create_teammember_dict_from_sql(teammember, item_dict, user_lang)
-
         if item_dict:
             teammember_list.append(item_dict)
 
@@ -411,7 +426,7 @@ def create_teammember_dict_from_sql(tm, item_dict, user_lang):
                     field_dict['inactive'] = tm.get('e_inactive', False)
                     field_dict['datefirst'] = tm.get('e_df')
                     field_dict['datelast'] = tm.get('e_dl')
-                    field_dict['workhoursperday'] = tm.get('e_workhoursperday')
+                    field_dict['workminutesperday'] = tm.get('e_workminutesperday')
 
             elif field == 'replacement':
                 #logger.debug('>>>>>>>>>>>>>>>>>>>> field: ' + str(field))
@@ -715,8 +730,8 @@ def validate_employee_exists_in_teammembers(employee, team, this_pk):  # PR2019-
 
 #         AND ( o.code = CAST(%(c1)s AS TEXT) OR o.code = %(c2)s OR o.code = %(c3)s )
 def create_payroll_list(period_dict, request):
-    logger.debug(' ============= create_payroll_list ============= ')
-    logger.debug('period_dict:  ' + str(period_dict))
+    #logger.debug(' ============= create_payroll_list ============= ')
+    #logger.debug('period_dict:  ' + str(period_dict))
     # create crosstab list of employees with absence hours PR2020-06-12
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
@@ -733,14 +748,39 @@ def create_payroll_list(period_dict, request):
             period_datefirst = '1900-01-01'
         if period_datelast is None:
             period_datelast = '2500-01-01'
-
-        #TODO remove dates, for testing only
-        period_datefirst = '2020-05-01'
-        period_datelast = '2020-05-31'
+        # TODO for testing only
+        period_datefirst = '1900-01-01'
+        period_datelast = '2500-01-01'
         employee_pk = period_dict.get('employee_pk')
         # change employee_pk = 0 to None, otherwise no records will be retrieved
         employee_pk = employee_pk if employee_pk else None
 
+# - fill paydatecode_list, it contains list of all paydatecodes en paydates in this selection
+        sql_paydatecodes = """
+                    SELECT DISTINCT pdc.id AS pdc_id, pdc.code AS pdc_code, eh.paydate
+                    FROM companies_emplhour AS eh
+                    INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+                    INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+                    INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+                    LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id)
+                     
+                    WHERE c.company_id = %(compid)s 
+
+                    ORDER BY pdc.code ASC
+                    """
+        #                     AND o.isabsence AND NOT oh.isrestshift
+        #                     AND NOT eh.timeduration = 0
+        #                     AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql_paydatecodes, {
+            'compid': company_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
+        })
+        paydatecode_list = newcursor.fetchall()
+
+        # - fill payroll_abscat_list, it contains list of all absence orders of payroll selection
         sql_orders = """
             SELECT DISTINCT o.id AS o_id, o.code AS o_code, o.sequence AS o_seq
             FROM companies_emplhour AS eh
@@ -749,10 +789,11 @@ def create_payroll_list(period_dict, request):
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
             WHERE c.company_id = %(compid)s 
             AND o.isabsence AND NOT oh.isrestshift
-            AND NOT eh.timeduration = 0
             AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
             ORDER BY o.sequence DESC
             """
+        #  AND NOT eh.timeduration = 0
+
         newcursor = connection.cursor()
         newcursor.execute(sql_orders, {
             'compid': company_pk,
@@ -761,40 +802,63 @@ def create_payroll_list(period_dict, request):
         })
         payroll_abscat_list = newcursor.fetchall()
 
+        #logger.debug('payroll_abscat_list:  ' + str(payroll_abscat_list))
         sql_absence = """
-            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, SUM(eh.timeduration) AS eh_td, 0 AS eh_pd
+            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, 
+            SUM(eh.timeduration) AS eh_td, 
+            0 AS eh_pd,
+            eh.paydatecode_id AS eh_pdcid,
+            eh.paydate AS eh_pdte,
+            pdc.code AS pdc_code
+            
+            
             FROM companies_emplhour AS eh
             INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id) 
+            
             WHERE c.company_id = %(compid)s   
             AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
             AND (eh.employee_id = %(emplid)s OR %(emplid)s IS NULL)
             AND o.isabsence AND NOT oh.isrestshift
             AND NOT eh.timeduration = 0
-            GROUP BY eh.rosterdate, eh.employee_id, e.code, o.id
+            
+            GROUP BY eh.rosterdate, eh.employee_id, e.code, o.id, eh.paydatecode_id, eh.paydate, pdc.code
             """
 
         sql_noabsence = """
-            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, SUM(eh.timeduration) AS eh_td, SUM(eh.plannedduration) AS eh_pd
+            SELECT eh.rosterdate AS eh_rd, eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, 
+            SUM(eh.timeduration) AS eh_td, 
+            SUM(eh.plannedduration) AS eh_pd,
+            eh.paydatecode_id AS eh_pdcid,
+            eh.paydate AS eh_pdte,
+            pdc.code AS pdc_code
+            
             FROM companies_emplhour AS eh
             INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id) 
+            
             WHERE c.company_id = %(compid)s 
             AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
             AND (eh.employee_id = %(emplid)s OR %(emplid)s IS NULL)
             AND NOT o.isabsence AND NOT oh.isrestshift
             AND NOT eh.timeduration = 0
-            GROUP BY eh.rosterdate, eh.employee_id, e.code
+            GROUP BY eh.rosterdate, eh.employee_id, e.code, eh.paydatecode_id, eh.paydate, pdc.code
             """
         sql_union = sql_absence + ' UNION ' + sql_noabsence + ' ORDER BY 2'
         # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
-        sql_json = """ SELECT sub.e_id, sub.e_code, sub.eh_rd, json_object_agg(sub.o_id, sub.eh_td), CAST(SUM(sub.eh_pd) AS INT)
+        # payroll_list = [ 0: employee_pk, 1: employee_code, 2: rosterdate_iso, 3: planned_duration, 4: dict { order_id: timeduration, ...}
+        sql_json = """ SELECT sub.e_id, sub.e_code, sub.eh_rd, CAST(SUM(sub.eh_pd) AS INT), 
+                        json_object_agg(sub.o_id, sub.eh_td), 
+                        sub.eh_pdcid, sub.eh_pdte, sub.pdc_code
+
                     FROM (""" + sql_union + """) AS sub 
-                    GROUP BY eh_rd, sub.e_id, sub.e_code
+                    GROUP BY eh_rd, sub.e_id, sub.e_code, sub.eh_pdcid, sub.eh_pdte, sub.pdc_code
                     ORDER BY 2,3 """
         newcursor.execute(sql_json, {
             'compid': company_pk,
@@ -804,7 +868,156 @@ def create_payroll_list(period_dict, request):
         })
 
         payroll_list = newcursor.fetchall()
-    return payroll_list,  payroll_abscat_list
+
+    return payroll_list, payroll_abscat_list, paydatecode_list
 
 
+def create_paydatecode_dictNIU(instance, item_dict):
+    # --- create dict of this paydatecode PR2020-06-17
+    logger.debug(' --- create_paydatecode_dict ---   ')
+    # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence', 'weekday', 'date', 'paydate', 'isdefault', 'inactive')
+    if instance:
+        for field in c.FIELDS_PAYDATECODE:
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+            if field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'paydatecode'
+                item_dict['pk'] = instance.pk
+            elif field == 'company':
+                pass
+            elif field in ('code', 'recurrence', 'weekday', 'date', 'paydate', 'isdefault', 'inactive'):
+                value = getattr(instance, field)
+                if value is not None:
+                    field_dict['value'] = value
+            item_dict[field] = field_dict
+# 7. remove empty attributes from item_update
+    f.remove_empty_attr_from_dict(item_dict)
+# --- end create_paydatecode_dict
+
+
+def create_paydatecode_list(period_dict, datalists, request):
+    logger.debug(' --- create_paydatecode_list --- ')
+    #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
+
+# --- create list of payrollperiods of this company PR2029-06-17
+    paydate_list = []
+    paydateitem_list = []
+    if request.user.company:
+        company_pk = request.user.company_id
+
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
+        if period_datefirst is None:
+            period_datefirst = '1900-01-01'
+        if period_datelast is None:
+            period_datelast = '2500-01-01'
+
+        sql_paydatecode = """
+            SELECT pdc.id, pdc.company_id AS comp_id, pdc.code, pdc.recurrence, pdc.dayofmonth, pdc.paydate, pdc.isdefault, pdc.inactive 
+            FROM companies_paydatecode AS pdc
+            WHERE pdc.company_id = %(compid)s 
+            ORDER BY LOWER(pdc.code) ASC
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_paydatecode, {
+            'compid': company_pk
+        })
+        paydatecodes = f.dictfetchall(newcursor)
+
+        paydatecode_list = []
+        for paydatecode in paydatecodes:
+            logger.debug('paydatecode: ' + str(paydatecode))
+            item_dict = create_paydatecode_dict_sql(paydatecode)
+            if item_dict:
+                paydatecode_list.append(item_dict)
+        if paydatecode_list:
+            datalists['paydatecode_list'] = paydatecode_list
+
+        sql_paydateitem = """
+            SELECT pdi.id AS pdi_id, pdc.id AS pdc_id, pdi.paydate 
+            FROM companies_paydateitem AS pdi
+            INNER JOIN companies_paydatecode AS pdc ON (pdc.id = pdi.paydatecode_id)
+            WHERE  ( (pdc.company_id = %(compid)s) AND (pdi.paydate >= CAST(%(df)s AS date)) AND (pdi.paydate <= CAST(%(dl)s AS date)) )
+            OR ( (pdc.company_id = %(compid)s) AND (pdi.paydate IS NULL) )
+            ORDER BY pdi.paydate
+            """
+        newcursor.execute(sql_paydateitem, {
+            'compid': company_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
+        })
+        paydateitems = f.dictfetchall(newcursor)
+        paydateitem_list = []
+        for paydateitem in paydateitems:
+            logger.debug('paydateitem: ' + str(paydateitem))
+            item_dict = create_paydateitem_dict_sql(paydateitem)
+            if item_dict:
+                paydateitem_list.append(item_dict)
+        if paydateitem_list:
+            datalists['paydateitem_list'] = paydateitem_list
+# --- end of create_paydatecode_list
+
+def create_paydatecode_dict_sql(paydate):
+    # --- create dict of this paydate PR2020-06-17
+    item_dict = {}
+    if paydate:
+        # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence', 'weekday', 'date', 'paydate', 'isdefault', 'inactive')
+        for field in c.FIELDS_PAYDATECODE:
+            field_dict = {}
+            if field == 'id':
+                field_dict['pk'] = paydate.get('id')
+                field_dict['ppk'] = paydate.get('comp_id')
+                field_dict['table'] = 'paydatecode'
+
+            elif field in ('code', 'recurrence', 'dayofmonth', 'paydate',
+                            'isdefault', 'inactive'):
+                value = paydate.get(field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+    return item_dict
+
+
+def create_paydatecode_dict(instance, item_dict):
+    # --- create dict of this paydate PR2020-06-17
+    if instance:
+        for field in c.FIELDS_PAYDATECODE:
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+            if field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'paydatecode'
+
+            elif field in ('code', 'recurrence', 'dayofmonth', 'paydate', 'isdefault', 'inactive'):
+                value = getattr(instance, field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+    f.remove_empty_attr_from_dict(item_dict)
+# end of create_paydatecode_dict
+
+def create_paydateitem_dict_sql(paydateitem):
+    logger.debug(' --- create_paydateitem_dict_sql --- ')
+    # --- create dict of this paydate PR2020-06-17
+    item_dict = {}
+    if paydateitem:
+        for field in ('id', 'paydate'):
+            field_dict = {}
+            if field == 'id':
+                field_dict['pk'] = paydateitem.get('pdi_id')
+                field_dict['ppk'] = paydateitem.get('pdc_id')
+                field_dict['table'] = 'paydateitem'
+            elif field == 'paydate':
+                value = paydateitem.get(field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+    logger.debug('item_dict: ' + str(item_dict))
+    return item_dict
 

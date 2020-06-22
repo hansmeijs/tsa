@@ -177,6 +177,7 @@ class Pricecode(TsaBaseModel):
     def __str__(self):
         return self.code
 
+
 class Pricecodeitem(TsaBaseModel):
     objects = TsaManager()
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=CASCADE)
@@ -335,6 +336,42 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
     locked = None
     inactive = None
 
+class Paydatecode(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+
+    code = CharField(db_index=True, max_length=c.USERNAME_MAX_LENGTH)
+    recurrence = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    dayofmonth = SmallIntegerField(null=True)
+    paydate = DateField(null=True)
+    isdefault = BooleanField(default=False)
+
+    class Meta:
+        ordering = ['code']
+
+
+class Paydateitem(TsaBaseModel):
+    objects = TsaManager()
+    paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=CASCADE)
+
+    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+
+    paydate = DateField(db_index=True)
+
+    class Meta:
+        ordering = ['paydate']
+
 
 class Wagecode(TsaBaseModel):
     objects = TsaManager()
@@ -352,7 +389,6 @@ class Wagecode(TsaBaseModel):
     iswage = BooleanField(default=False)
     iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     isfunctioncode = BooleanField(default=False)
-    ispaydate = BooleanField(default=False)
     isdefault = BooleanField(default=False)
 
     class Meta:
@@ -456,6 +492,7 @@ class Scheme(TsaBaseModel):
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
+    nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
     nohoursonsunday = BooleanField(default=False)
     nohoursonweekend = BooleanField(default=False)  # TODO To be deprecated
@@ -547,13 +584,14 @@ class Employee(TsaBaseModel):
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
-    workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute. 40 hours = 2400 workhours
-    workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute. 5 days = 7200 workdays
+    workhours = IntegerField(default=0)  # TODO rename working hours per week * 60, unit is minute. 40 hours = 2400 workhours
+    workminutesperday = IntegerField(default=0)  # working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
+    workdays = IntegerField(default=0)  # TODO deprecate workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True, blank=True)
-    paydatecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -566,6 +604,7 @@ class Employee(TsaBaseModel):
 
     def __str__(self):
         return self.code
+
 
 class Employeelog(TsaBaseModel):
     objects = TsaManager()
@@ -774,6 +813,7 @@ class Emplhour(TsaBaseModel):
     datepart = PositiveSmallIntegerField(default=0) # 1=night, 2 = morning, 3 = afternoon, 4 = evening, 0 = undefined
 
     paydate = DateField(db_index=True, null=True)
+    paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
     lockedpaydate = BooleanField(default=False)
     nopay = BooleanField(default=False)    # nopay: wage will be zero
 
@@ -1139,6 +1179,7 @@ def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-0
                 spare_row.balance = saved_balance - subtotal
                 spare_row.save(request=request)
                 #logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+
 
 def entry_refund_to_spare(duration_hours_rounded, request, comp_timezone):  # PR2020-04-25
     # - it is a refund. Entries will be added to ENTRY_CAT_01_SPARE

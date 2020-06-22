@@ -791,9 +791,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (j === 0 ){el.classList.add("ml-2")}
 
 // --- add width to el
-            el.classList.add("td_width_" + field_width[j])
+            el.classList.add("tw_" + field_width[j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[j])
+            el.classList.add("ta_" + field_align[j])
 
             th.appendChild(el)
 
@@ -833,8 +833,8 @@ document.addEventListener('DOMContentLoaded', function() {
             td.appendChild(el);
 
 // --- add width and text_align
-            td.classList.add("td_width_" + field_width[j]);
-            td.classList.add("text_align_" + field_align[j]);
+            td.classList.add("tw_" + field_width[j]);
+            td.classList.add("ta_" + field_align[j]);
 
 // --- add margin to first column
             if ( j === 0) {

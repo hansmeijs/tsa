@@ -503,17 +503,11 @@ def create_order(parent, upload_dict, update_dict, request):
 def update_order(instance, parent, upload_dict, update_dict, user_lang, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug(' --- update_order --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- update_order --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     if instance:
-        # FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
-        #                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
-        #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode',
-        #                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
-        #                 'inactive', 'locked')
-
         table = 'order'
         save_changes = False
         for field in c.FIELDS_ORDER:
@@ -522,12 +516,9 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
             if field_dict:
                 if 'update' in field_dict:
                     is_updated = False
-# a. get new_value
+# - get new_value
                     new_value = field_dict.get('value')
-                    logger.debug('field: ' + str(field))
-                    logger.debug('new_value: ' + str(new_value))
-
-# 2. save changes in field 'code', 'name'
+# - save changes in field 'code', 'name', 'identifier'
                     if field in ['code', 'name', 'identifier']:
         # a. get old value
                         saved_value = getattr(instance, field)
@@ -536,20 +527,19 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
         # b. validate code or name
                             has_error = v.validate_code_name_identifier(table, field,
                                                                         new_value, False, parent, update_dict, request, instance.pk)
-                            logger.debug('has_error: ' + str(has_error))
                             if not has_error:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
 
-# 3. save changes in field 'sequence'
+# - save changes in field 'sequence'
                     elif field == 'sequence':
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
 
-        # 3. save changes in field 'billable'
+# - save changes in field 'billable'
                     elif field in ['billable']:
                         is_override = field_dict.get('override', False)
                         is_billable = field_dict.get('billable', False)
@@ -566,7 +556,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                             setattr(instance, field, new_value)
                             is_updated = True
 
-# 3. save changes in date fields
+# - save changes in date fields
                     elif field in ['datefirst', 'datelast']:
         # a. get new_date
                         new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
@@ -636,11 +626,11 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                             setattr(instance, field, new_value)
                             is_updated = True
 
-    # 5. add 'updated' to field_dict'
+# - add 'updated' to field_dict'
                     if is_updated:
                         update_dict[field]['updated'] = True
                         save_changes = True
-                        #logger.debug('update_dict[field]: ' + str(update_dict[field]))
+# --- end of for loop ---
 
 # 5. save changes
         if save_changes:

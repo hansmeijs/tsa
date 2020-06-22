@@ -118,23 +118,23 @@ let planning_list = [] // for export and printing - can replace map?
             order: ["180", "180", "180", "120", "120", "120", "032", "032"],
             planning: ["120", "120", "180", "120", "120", "120", "090"]}
         const field_align = {
-            customer: ["left", "left", "left", "right"],
-            order: ["left", "left","left", "left", "left", "left", "right", "right"],
-            planning: ["left", "left", "left", "left", "left", "left", "right"]}
+            customer: ["l", "l", "l", "r"],
+            order: ["l", "l","l", "l", "l", "l", "r", "r"],
+            planning: ["l", "l", "l", "l", "l", "l", "r"]}
 
         const fieldsettings_teammember = {tblName: "teammember", colcount: 5,
                                 caption: ["Employee", "Start_date", "End_date", "Replacement_employee"],
                                 name: ["employee", "datefirst", "datelast", "replacement", "delete"],
                                 tag: ["div", "input", "input", "div", "a"],
                                 width: ["150", "150", "150", "150", "032"],
-                                align: ["left", "left", "left", "left", "right"]}
+                                align: ["l", "l", "l", "l", "r"]}
         const fieldsettings_MAC_order = {tblName: "order", colcount: 3,
                                 caption: ["Order_code", "Order_name"],
                                 name: ["code", "name", "delete"],
 
                                 tag:  ["input", "input", "a"],
                                 width: ["180", "180", "032"],
-                                align: ["left", "left", "right"]};
+                                align: ["l", "l", "r"]};
 // get elements
 
         let tBody_customer = document.getElementById("id_tbody_customer");
@@ -638,7 +638,7 @@ let planning_list = [] // for export and printing - can replace map?
             }
 
     // ---  show / hide elements of selected button
-            show_hide_selected_btn_elements("tab_show", "tab_" + selected_btn)
+            show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
             //let list = document.getElementsByClassName("tab_show");
             //for (let i=0, len = list.length; i<len; i++) {
             //    let el = list[i];
@@ -1032,7 +1032,8 @@ let planning_list = [] // for export and printing - can replace map?
                             (selected_btn === "order") ? selected_order_pk : 0;
 
         if (form_mode){
-            UpdateForm()
+            // TODO error UpdateForm is not defined
+            // UpdateForm()
         } else {
             if(!!data_map){
 // --- loop through data_map
@@ -1101,9 +1102,9 @@ let planning_list = [] // for export and printing - can replace map?
     // --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
     // --- add width to el
-                el_div.classList.add("td_width_" + field_width[mode][j])
+                el_div.classList.add("tw_" + field_width[mode][j])
     // --- add text_align
-                el_div.classList.add("text_align_" + field_align[mode][j])
+                el_div.classList.add("ta_" + field_align[mode][j])
             }  // for (let j = 0; j < column_count; j++)
             CreateTblFilter(tblHead, mode)
         });  //  mode_list.forEach
@@ -1184,8 +1185,8 @@ let planning_list = [] // for export and printing - can replace map?
                 el.readOnly = (j !== 1)
 
                 if (j === 0 ){el.classList.add("ml-2")}
-                el.classList.add("td_width_" + field_width[tblName][j])
-                el.classList.add("text_align_" + field_align[tblName][j])
+                el.classList.add("tw_" + field_width[tblName][j])
+                el.classList.add("ta_" + field_align[tblName][j])
                 el.classList.add("border_none");
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
@@ -1286,9 +1287,9 @@ let planning_list = [] // for export and printing - can replace map?
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 // --- add width to el
-            el.classList.add("td_width_" + field_width[tblName][j])
+            el.classList.add("tw_" + field_width[tblName][j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[tblName][j])
+            el.classList.add("ta_" + field_align[tblName][j])
 
             td.appendChild(el);
 
@@ -1369,9 +1370,9 @@ let planning_list = [] // for export and printing - can replace map?
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 // --- add width to el
-            el.classList.add("td_width_" + field_width[tblName][j])
+            el.classList.add("tw_" + field_width[tblName][j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[tblName][j])
+            el.classList.add("ta_" + field_align[tblName][j])
 
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
@@ -2312,8 +2313,8 @@ let planning_list = [] // for export and printing - can replace map?
 // --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
 // --- add width adn text_align to el
-                el_div.classList.add("td_width_" + fieldsettings_MAC_order.width[j])
-                el_div.classList.add("text_align_" + fieldsettings_MAC_order.align[j])
+                el_div.classList.add("tw_" + fieldsettings_MAC_order.width[j])
+                el_div.classList.add("ta_" + fieldsettings_MAC_order.align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
     };  //MAC_CreateTblOrderHeader
@@ -2374,7 +2375,7 @@ let planning_list = [] // for export and printing - can replace map?
             }
 // --- add width to el - not necessary, tblhead has width
 // --- add text_align
-            el.classList.add("text_align_" + fieldsettings_teammember.align[j])
+            el.classList.add("ta_" + fieldsettings_teammember.align[j])
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
 // --- add other attributes to td
@@ -3303,7 +3304,7 @@ let planning_list = [] // for export and printing - can replace map?
         MSO_Grid_HighlightTblShifts()
 
 // ---  show only the elements that are used in this mod
-        show_hide_selected_btn_elements("mod_show", selected_btn)
+        show_hide_selected_elements_byClass("mod_show", selected_btn)
 
     }; // function MSO_BtnSelectClicked
 
@@ -3617,9 +3618,9 @@ let planning_list = [] // for export and printing - can replace map?
     // --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
     // --- add width to el
-                el_div.classList.add("td_width_" + fieldsettings_teammember.width[j])
+                el_div.classList.add("tw_" + fieldsettings_teammember.width[j])
     // --- add text_align
-                el_div.classList.add("text_align_" + fieldsettings_teammember.align[j])
+                el_div.classList.add("ta_" + fieldsettings_teammember.align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
     };  //MSO_CreateTblTeammemberHeader
@@ -3706,9 +3707,9 @@ let planning_list = [] // for export and printing - can replace map?
                 if (j === 0 ){el.classList.add("ml-2")}
             }
 // --- add width to el
-            el.classList.add("td_width_" + fieldsettings_teammember.width[j])
+            el.classList.add("tw_" + fieldsettings_teammember.width[j])
 // --- add text_align
-            el.classList.add("text_align_" + fieldsettings_teammember.align[j])
+            el.classList.add("ta_" + fieldsettings_teammember.align[j])
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
 // --- add other attributes to td
@@ -4154,7 +4155,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const cell_id = "shift_" + pk_new;
                     th_footer.setAttribute("id", cell_id);
                     th_footer.classList.add("tsa_color_mediumgrey");
-                    th_footer.classList.add("text_align_center");
+                    th_footer.classList.add("ta_c");
                     th_footer.addEventListener("click", function() {MSO_Grid_SchemitemClicked(th_footer, true)}, false )  // is_shift_cell = true
     // ---  add hover to cells
                     th_footer.addEventListener("mouseenter", function() {th_footer.classList.add(cls_hover)});

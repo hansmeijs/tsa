@@ -40,14 +40,14 @@
 <div class="container">
     {% if user.is_authenticated %}
         {% if user.has_permission %}
-            <div class="text_align_left tsa_margin_top_48">
+            <div class="ta_l tsa_margin_top_48">
                 <div id="id_header_container" class="mx-4 mt-4">
                     <h4 data-btn="btn_step1">{% trans 'Step' %} 1: {% trans 'Select file' %}</h4>
                     <h4 data-btn="btn_step2" class="display_hide">{% trans 'Step' %} 2: {% trans 'Link colums' %}</h4>
                     <h4 data-btn="btn_step3" class="display_hide">{% trans 'Step' %} 3: {% trans 'Upload data' %}</h4>
                 </div>
 
-                <div class="text_align_left m-4 btn_show btn_step1">
+                <div class="ta_l m-4 btn_show btn_step1">
                     <label class="m-2">{% trans 'Select an Excel file with customers and orders' %}:</label>
                     <div class="content_subheader_left mx-1">
                         <input id="id_filedialog" type="file"  name="file" class="mb-0" accept=".xlsx, .xls, csv">
@@ -73,7 +73,7 @@
                     <label class="mx-2 mt-4 mb-2">{% trans 'Select if the worksheet has a header row:' %}</label>
                     <div class="content_subheader_left mx-1">
                         <span>
-                            <input id="checkBoxID" type="checkbox" value="true" class="td_width_032 mx-2">
+                            <input id="checkBoxID" type="checkbox" value="true" class="tw_032 mx-2">
                             <label for="checkBoxID" class="mx-2 my-1">{% trans 'Worksheet has a header row' %}</label>
                         </span>
                      </div>
@@ -90,7 +90,7 @@
                                 <div class="content_subheader_left ea_flex">
                                     <table class="tsa_tbl_unlinked" width="100%">
                                         <thead class="tsa_tbl_hdr_unlinked">
-                                            <tr><th class="text_align_center">{% trans 'TSA columns' %}</th></tr>
+                                            <tr><th class="ta_c">{% trans 'TSA columns' %}</th></tr>
                                         </thead>
                                         <tbody id="id_tbody_tsa" data-tbody="tsa">
                                             <tr><td class="px-2">{% trans 'TSA columns' %}</td></tr>
@@ -100,7 +100,7 @@
                                 <div class="content_subheader_left excel-columns ">
                                     <table class="tsa_tbl_unlinked" width="100%">
                                         <thead class="tsa_tbl_hdr_unlinked">
-                                            <tr><th class="text_align_center">{% trans 'Excel columns' %}</th></tr>
+                                            <tr><th class="ta_c">{% trans 'Excel columns' %}</th></tr>
                                         </thead>
                                         <tbody id="id_tbody_exc" data-tbody="exc">
                                             <tr><td class="px-2">{% trans 'Excel columns' %}</td></tr>
@@ -112,7 +112,7 @@
                                 <div class="content_subheader_left linked-columns">
                                      <table class="tsa_tbl_linked" width="100%">
                                         <thead class="tsa_tbl_hdr_linked">
-                                            <tr><th class="text_align_center" colspan="2">{% trans 'Linked columns' %}</th></tr>
+                                            <tr><th class="ta_c" colspan="2">{% trans 'Linked columns' %}</th></tr>
                                         </thead>
                                         <tbody id="id_tbody_lnk" data-tbody="lnk">
                                             <tr>
@@ -130,8 +130,8 @@
                     </div>
                 </div>
 
-                <div class="text_align_left m-4 btn_show btn_step3 display_hide">
-                    <h6 class="text_align_left mx-2 mt-4 mb-2">{% trans 'Upload customers and orders' %}</h6>
+                <div class="ta_l m-4 btn_show btn_step3 display_hide">
+                    <h6 class="ta_l mx-2 mt-4 mb-2">{% trans 'Upload customers and orders' %}</h6>
                     <div class="content_subheader_left mx-2 my-2">
                         <button id="btn_upload" type="button" class="btn btn-secondary">{% trans 'Upload' %}</button>
                         <span>

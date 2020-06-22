@@ -13,7 +13,7 @@
 
         const column_count = 8;
         const field_width = ["90", "120", "120", "120", "120", "120", "120", "120"]
-        const field_align = ["center", "center","center", "center", "center", "center", "center", "center"]
+        const field_align = ["c", "c","c", "c", "c", "c", "c", "c"]
 //................................................
 //   Create Header row
         let tblHead = document.getElementById("id_thead_calendar");
@@ -31,9 +31,9 @@
 // --- add left margin to first column
             if (col_index === 0 ){el_div.classList.add("ml-2")};
 // --- add width to el
-            el_div.classList.add("td_width_" + field_width[col_index])
+            el_div.classList.add("tw_" + field_width[col_index])
 // --- add text_align
-            el_div.classList.add("text_align_" + field_align[col_index])
+            el_div.classList.add("ta_" + field_align[col_index])
             th.appendChild(el_div)
             tblRow.appendChild(th);
         }  // for (let col_index = 0; col_index < column_count; col_index++)
@@ -53,9 +53,9 @@
 // --- add left margin to first column
             if (col_index === 0 ){el.classList.add("ml-2")};
 // --- add width to el
-            el.classList.add("td_width_" + field_width[col_index])
+            el.classList.add("tw_" + field_width[col_index])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[col_index])
+            el.classList.add("ta_" + field_align[col_index])
             td.appendChild(el);
         }  // for (let col_index = 0; col_index < 8; col_index++)
 
@@ -86,9 +86,9 @@
     // --- add left margin and right margin to first column
             if (col_index === 0 ){el.classList.add("mx-2") }
     // --- add width to el
-                el.classList.add("td_width_" + field_width[col_index])
+                el.classList.add("tw_" + field_width[col_index])
     // --- add text_align
-                el.classList.add("text_align_" + field_align[col_index])
+                el.classList.add("ta_" + field_align[col_index])
     // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");

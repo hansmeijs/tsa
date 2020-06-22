@@ -135,6 +135,17 @@
     return true;
 }
 
+//========= EmptyFilterRow  ============= PR2020-06-20
+    function EmptyFilterRow(tblHead) {
+        let filterRow = tblHead.rows[1];
+        if(!!filterRow){
+            for (let j = 0, el, len = filterRow.cells.length ; j < len; j++) {
+                if(filterRow.cells[j]){
+                    el = filterRow.cells[j].children[0];
+                    if(!!el){el.value = null}
+        }}};
+    }
+
 //========= dict_length  ============= PR2020-02-03
     //PR2020-02-03 https://stackoverflow.com/questions/5223/length-of-a-javascript-object
     function dict_length(obj) {
@@ -265,13 +276,15 @@
 //console.log(" --- end of add_or_remove_class_with_qsAll --- ")
     }
 
-//========= function add_or_remove_class  ====================================
-    function add_or_remove_class (el, classname, is_add) {
+//========= function add_or_remove_class  ========================  PR2020-06-20
+    function add_or_remove_class (el, classname, is_add, default_class) {
         if(el && classname){
             if (is_add){
+                if (default_class){el.classList.remove(default_class)};
                 el.classList.add(classname);
             } else {
                 el.classList.remove(classname);
+                if (default_class){el.classList.add(default_class)};
             }
         }
     }
@@ -465,7 +478,7 @@
 
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
-        //console.log(" --- update_map_item ---")
+        console.log(" --- update_map_item ---")
         const id_dict = get_dict_value(update_dict, ["id"]);
         if(!!data_map && !isEmpty(id_dict)){
             const tblName = get_dict_value(id_dict, ["table"]);
@@ -487,7 +500,7 @@
                 data_map.set(map_id, update_dict)
             }
         }  // if(!isEmpty(id_dict))
-        //console.log(data_map) // PR2019-11-26
+        console.log(data_map) // PR2019-11-26
     }  // update_map_item
 
 //========= insertAtIndex  ================== PR2020-01-20
@@ -751,6 +764,16 @@
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
+    function get_dateISO_from_dateJS_NEW (dateJS) {
+      // PR2020-06-19 from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString
+      const year = dateJS.getFullYear(), month = 1 + dateJS.getMonth(), day = dateJS.getDate();
+      return year.toString() + "-" + pad(month) + "-" + pad(day);
+    };
+    function pad(number) {
+        return (number < 10) ? "0" + number : number.toString();
+    }
+
+//========= get_dateJS_from_dateISO  ======== PR2019-10-28
     function get_dateJS_from_dateISO (date_iso) {
         //console.log( "===== get_dateJS_from_dateISO  ========= ");
         //console.log( "date_iso: ", date_iso);
@@ -967,7 +990,7 @@
         return [firstday_iso, lastday_iso];
     }  // get_thisweek_monday_sunday_iso
 
-//========= get_nextmonth_first_last_iso  ========== PR2020-001-10
+//========= get_nextmonth_first_last_iso  ========== PR2020-01-10
     function get_nextmonth_first_last_iso() {
         const today_JS = new Date(), y = today_JS.getFullYear(), m = today_JS.getMonth();
         const nextmonth_firstday_JS = new Date(y, m + 1, 1);
@@ -978,6 +1001,14 @@
         const nextmonth_lastday_iso = get_yyyymmdd_from_ISOstring(nextmonth_lastday_JS.toISOString())
         return [nextmonth_firstday_iso, nextmonth_lastday_iso];
     }  // get_nextweek_monday_sunday_iso
+
+//========= get_nextmonth_lastJS_from_dateJS  ========== PR2020-06-19
+    function get_nextmonth_lastJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const nextmonth_lastday_JS = new Date(y, m + 2, 0);
+        return nextmonth_lastday_JS;
+    }  // get_nextmonth_lastJS_from_dateJS
+
 
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {
@@ -1226,11 +1257,20 @@
                 // Caution! Excel dates after 28th February 1900 are actually one day out.
                 //          Excel behaves as though the date 29th February 1900 existed, which it didn't.
                 // Therefore 'zero' date = 31-12-1899, minus 1 day correction
+
+                // PR2020-06-21 debug. value of  diff_in_ms = 43970.97736111111
+                // therefore Math.floor gives 43970, must be 43971. Use Math.round instead, since tehre are no hours or seconds
                 const excel_zero_date_naive = get_dateJS_from_dateISO_vanilla('1899-12-30');
                 const diff_in_ms = datetime_JS.getTime() - excel_zero_date_naive.getTime();
-
+                console.log ("excel_zero_date_naive",  excel_zero_date_naive )
+                console.log ("datetime_JS",  datetime_JS )
+                console.log ("diff",  diff_in_ms / (1000 * 3600 * 24) )
 // To calculate the no. of days between two dates
-                excel_date = Math.floor(diff_in_ms / (1000 * 3600 * 24));
+
+                // PR2020-06-21 DEBUG. value of diff_in_ms = 43970.97736111111 instead of 43971
+                // therefore Math.floor gives 43970, must be 43971. Use Math.round instead, since tehre are no hours or seconds
+                // was: excel_date = Math.floor(diff_in_ms / (1000 * 3600 * 24));
+                excel_date = Math.round(diff_in_ms / (1000 * 3600 * 24));
             }
         }
         return excel_date
@@ -1443,20 +1483,20 @@
         }
     }
 
-//========= show_hide_selected_btn_elements  ====  PR2020-02-19
-    function show_hide_selected_btn_elements(container_classname, contains_classname) {
+//========= show_hide_selected_elements_byClass  ====  PR2020-02-19  PR2020-06-20
+    function show_hide_selected_elements_byClass(container_classname, contains_classname, container_element) {
         // ---  show / hide elements on page, bases on classnames:
-        // <div class="mod_show mod_shift mod_team display_hide">
-        // where 'mod_show' de class of the container. All elements with this class will be checked
-        // and 'mod_shift' and 'mod_team' are classes of the select button
-        // class 'display_hide' in html is necessary to prevent showing all tables when page opens
-        let list = document.getElementsByClassName(container_classname);
-        for (let i=0, len = list.length; i<len; i++) {
-            let el = list[i];
+        // <div class="tab_show tab_shift tab_team display_hide">
+        // where 'tab_show' is the class of the container. All elements with this class will be checked
+        // and 'tab_shift' and 'tab_team' are classes of the select buttons
+        // class 'display_hide' in html is necessary to prevent showing all elements when page opens
+        if(!container_element){ container_element = document };
+        let list = container_element.getElementsByClassName(container_classname);
+        for (let i=0, el; el = list[i]; i++) {
             const is_show = el.classList.contains(contains_classname)
             show_hide_element(el, is_show)
         }
-    }  // show_hide_selected_btn_elements
+    }  // show_hide_selected_elements_byClass
 
 //========= function show_hide_element_by_id  ====  PR2019-12-13
     function show_hide_element_by_id(el_id, is_show) {

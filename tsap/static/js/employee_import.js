@@ -673,7 +673,7 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 
                 const is_row_linked = (!j && !!row.excKey)
                 const row_cls = (is_row_linked) ? cls_tbl_td_linked : cls_tbl_td_unlinked;
-                const cls_width = (is_row_linked) ? "tsa_td_width_50" : "tsa_td_width_100";
+                const cls_width = (is_row_linked) ? "tsa_tw_50perc" : "tsa_tw_100perc";
                 const row_tsaKey = get_dict_value(row, ["tsaKey"])
                 // dont add row when excel_row is linked (has tsaKey)
                 const skip_linked_exc_row = (!!j && !!row_tsaKey);

@@ -49,6 +49,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['Date'] = TXT_Date
     dict['Start_date'] = TXT_Start_date
     dict['End_date'] = TXT_End_date
+
     dict['Start_time'] = TXT_Start_time
     dict['End_time'] = TXT_End_time
     dict['Start_Endtime'] = TXT_Start_Endtime
@@ -230,8 +231,38 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['Payment'] = TXT_Payment
 
+        dict['Function'] = TXT_Function
+
+        dict['Payroll_period'] = TXT_Payroll_period
         dict['Payroll_periods'] = TXT_Payroll_periods
-        dict['Overviews'] = TXT_Overviews
+        dict['This_payrollperiod'] = TXT_This_payrollperiod
+        dict['Add_payrollperiod'] = TXT_Add_payrollperiod
+        dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
+        dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
+
+        dict['date_suffix_st'] = TXT_date_suffix_st
+        dict['date_suffix_nd'] = TXT_date_suffix_nd
+        dict['date_suffix_rd'] = TXT_date_suffix_rd
+        dict['date_suffix_th'] = TXT_date_suffix_th
+        dict['date_prefix_on_the'] = TXT_date_prefix_on_the
+        dict['date_prefix_on'] = TXT_date_prefix_on
+        dict['date_prefix_thru_the'] = TXT_date_prefix_thru_the
+        dict['date_prefix_thru'] = TXT_date_prefix_thru
+
+        dict['Closing_date'] = TXT_Closing_date
+        dict['Add_closingdate'] = TXT_Add_closingdate
+        dict['Enter_closing_date'] = TXT_Enter_closing_date
+        dict['Enter_year'] = TXT_Enter_year
+
+        dict['You_can_leave_description_blank'] = TXT_You_can_leave_description_blank
+        dict['TSA_will_enter_it_automatically'] = TXT_TSA_will_enter_it_automatically
+
+        dict['Monthly'] = TXT_Monthly
+        dict['Biweekly'] = TXT_Biweekly
+        dict['Weekly'] = TXT_Weekly
+        dict['Custom'] = TXT_Custom
+
+        dict['Hours_overview'] = TXT_Hours_overview
         dict['Identifier'] = TXT_Identifier
 
         dict['Sequence'] = TXT_Sequence
@@ -410,6 +441,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Add_absence'] = TXT_Add_absence
         dict['Delete_absence'] = TXT_Delete_absence
         dict['Absence_category'] = TXT_Absence_category
+        dict['Absence_category_2lines'] = TXT_Absence_category_2lines
         dict['Absence_categories'] = TXT_Absence_categories
 
         dict['Select_template'] = _('Select template')
@@ -1015,6 +1047,7 @@ TXT_Absence = _('Absence')
 TXT_This_absence = _('This absence')
 
 TXT_Absence_category = _('Absence category')
+TXT_Absence_category_2lines= pgettext_lazy('2 lines', 'Absence category')
 TXT_The_absence_category = _('The absence category')
 TXT_This_absence_category = _('This absence category')
 TXT_Absence_categories = _('Absence categories')
@@ -1031,7 +1064,9 @@ TXT_Absence_only = _("Absence only")
 TXT_No_wage = _("No wage")
 TXT_Payment= pgettext_lazy('Wage payment = uitbetaling', 'Payment')
 TXT_Payroll_periods = _("Payroll periods")
-TXT_Overviews = _("Overviews")
+TXT_Payroll_period = _("Payroll period")
+TXT_Hours_overview = _("Hours overview")
+TXT_Function = _("Function")
 
 TXT_Saturday_hours = _("Count hours on Saturdays")
 TXT_Sunday_hours = _("Count hours on Sundays")
@@ -1052,6 +1087,11 @@ TXT_has_overlapping_shift = _("has overlapping shift")
 
 TXT_Shift_outside_display_period = _("Shift outside display period")
 
+
+TXT_This_payrollperiod = _('This payroll period')
+TXT_Add_payrollperiod = _('Add payroll period')
+TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
+TXT_Delete_payrollperiod = _('Delete payroll period')
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')
@@ -1154,6 +1194,33 @@ TXT_months_abbrev = ('', _('Jan'), _('Feb'), _('Mar'), _('Apr'), _('May'), _( 'J
                            _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec'))
 TXT_months_long = ('', _('January'), _( 'February'), _( 'March'), _('April'), _('May'), _('June'), _(
                          'July'), _('August'), _('September'), _('October'), _('November'), _('December'))
+
+TXT_date_suffix_st = pgettext_lazy('date suffix', 'st')
+TXT_date_suffix_nd = pgettext_lazy('date suffix', 'nd')
+TXT_date_suffix_rd = pgettext_lazy('date suffix', 'rd')
+TXT_date_suffix_th = pgettext_lazy('date suffix', 'th')
+TXT_Monthly = _('Monthly')
+TXT_Biweekly = _('Biweekly')
+TXT_Weekly = _('Weekly')
+TXT_Custom = _('Custom')
+
+TXT_Closing_date =_('Closing date')
+TXT_Add_closingdate = _('Add closing date')
+TXT_Enter_closing_date = _('Enter a closing date')
+TXT_Enter_year = _('Enter a year')
+
+
+TXT_Closing_date_every_month =_('The closing date will be on this day every month.')
+TXT_Closing_date_every_other_week =_('The closing date will be on this day every other week.')
+
+TXT_Last_day_of_month_if_not_exists =_('If a date does not exist, the last day of the month wil be entered.')
+TXT_You_can_leave_description_blank =_('You can leave the description blank. ')
+TXT_TSA_will_enter_it_automatically =_('TSA will enter it automatically.')
+
+TXT_date_prefix_on_the = pgettext_lazy('date prefix', ' on the ')
+TXT_date_prefix_on = pgettext_lazy('date prefix', ' on ')
+TXT_date_prefix_thru = pgettext_lazy('date prefix t/m', ' thru ')
+TXT_date_prefix_thru_the = pgettext_lazy('date prefix t/m', ' thru the ')
 
 TXT_Description = _('Description')
 TXT_Initial_balance = _('Initial balance')  # fror company invoice

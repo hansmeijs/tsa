@@ -47,9 +47,8 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
     #d = d.replace(tzinfo=utc) - d.utcoffset()
     # >>> datetime.datetime(2016, 9, 20, 23, 43, 45, tzinfo=<UTC>)
 
+
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
-
-
 def get_date_from_ISO(date_iso):  # PR2019-09-18 PR2020-03-20
     # this is the simple way, it works though
     #logger.debug('... get_date_from_ISO ...')
@@ -112,13 +111,14 @@ def get_datetime_naive_from_dateobject(date_obj):
     # https://stackoverflow.com/questions/1937622/convert-date-to-datetime-in-python/1937636#1937636
     # time.min retrieves the minimum value representable by datetime and then get its time component.
     datetime_naive = None
-    try:
-        datetime_naive = datetime.combine(date_obj, time.min)
-        #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
-        # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
-    except:
-        logger.debug('ERROR: get_datetime_naive_from_dateobject: date_ISOstring' +
-                     str(date_obj) + ' ' + str(type(date_obj)))
+    if date_obj:
+        try:
+            datetime_naive = datetime.combine(date_obj, time.min)
+            #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+            # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
+        except:
+            logger.debug('ERROR: get_datetime_naive_from_dateobject: date_ISOstring' +
+                         str(date_obj) + ' ' + str(type(date_obj)))
     return datetime_naive
 
 
@@ -164,6 +164,17 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
 
     return datetime_naive
 
+############################
+
+def get_datediff_days_from_dateOBJ(date01_dte, date02_dte):  # PR2020-06-19
+    datediff_days = 0
+    if date01_dte and date02_dte:
+        date01_naive = get_datetime_naive_from_dateobject(date01_dte)
+        date02_naive = get_datetime_naive_from_dateobject(date02_dte)
+        datediff = date02_naive - date01_naive  # datediff is class 'datetime.timedelta'
+        datediff_days = datediff.days  # <class 'int'>
+    return datediff_days
+############################
 
 def get_date_from_arr(arr_int):  # PR2019-11-17
     date_obj = None
@@ -600,6 +611,12 @@ def get_firstof_month(date_obj):
         firstof_thismonth_dte = date_obj + timedelta(days=(1 - date_obj.day))
     return firstof_thismonth_dte
 
+def get_firstof_nextmonth(date_obj):
+    firstof_nextmonth_dte = None
+    if(date_obj):
+        firstof_thismonth_dte = get_firstof_month(date_obj)
+        firstof_nextmonth_dte = add_month_to_firstof_month(firstof_thismonth_dte, 1)
+    return firstof_nextmonth_dte
 
 def get_lastof_month(date_obj):
     lastof_thismonth_dte = None
@@ -1751,7 +1768,6 @@ def create_update_dict(field_list, table, pk, ppk, temp_pk=None, row_index=None)
     for field in field_list:
         update_dict[field] = {}
         if field == 'id':
-
 #  add id_dict to update_dict
             update_dict['id']['table'] = table
             if pk:
@@ -1762,7 +1778,6 @@ def create_update_dict(field_list, table, pk, ppk, temp_pk=None, row_index=None)
                 update_dict['id']['temp_pk'] = temp_pk
             if row_index:
                 update_dict['id']['rowindex'] = row_index
-
     return update_dict
 
 
@@ -2306,7 +2321,17 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+# PR20202-06-21
+def update_workminutesperday():
+    with connection.cursor() as cursor:
+        cursor.execute("""UPDATE companies_employee AS e SET 
+                            workminutesperday = CASE WHEN e.workhours = 0 OR e.workdays = 0 
+                                                THEN 0 
+                                                ELSE 1440 * e.workhours / e.workdays 
+                                                END  
+                            """)
 
+# NOT IN USE any more
 def update_isabsence_istemplate():
     from django.db import connection
     with connection.cursor() as cursor:
@@ -2578,6 +2603,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, is_saturday, is_sunday, 
 
     starttime_local = None
     endtime_local = None
+    new_timeduration = 0
 
     # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
     if rosterdate_dte:
@@ -2607,21 +2633,21 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, is_saturday, is_sunday, 
         if starttime_local and endtime_local:
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))
-            timeduration = int(datediff_minutes - breakduration)
-            #logger.debug('new  timeduration:  ' + str(timeduration))
-            # when rest shift : timeduration = 0
-            if is_restshift:
-                timeduration = 0
-            if is_absence:
-                if nohoursonsaturday and is_saturday:
-                    timeduration = 0
-                elif nohoursonsunday and is_sunday:
-                    timeduration = 0
-                elif nohoursonpublicholiday and is_publicholiday:
-                    timeduration = 0
-            #logger.debug('is_restshift  timeduration:  ' + str(timeduration))
+            new_timeduration = int(datediff_minutes - breakduration)
+        else:
+            new_timeduration= timeduration
+# when rest shift : timeduration = 0
+        if is_restshift:
+            new_timeduration = 0
+        # was 'if is_absence:' before nohoursonsaturday etc, but maybe it can be used for normal shifts as well
+        elif nohoursonsaturday and is_saturday:
+            new_timeduration = 0
+        elif nohoursonsunday and is_sunday:
+            new_timeduration = 0
+        elif nohoursonpublicholiday and is_publicholiday:
+            new_timeduration = 0
 
-    return starttime_local, endtime_local, timeduration
+    return starttime_local, endtime_local, new_timeduration
 
 def calc_datepart(offsetstart, offsetend):  # PR2020-03-23
     # e. calculate datepart, only when start- and enddate are filled in

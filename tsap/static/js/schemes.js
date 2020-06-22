@@ -83,31 +83,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_names: ["rosterdate", "team", "shift", "isrestshift", "offsetstart", "offsetend", "inactive", "delete"],
                         field_tags: ["div", "div", "div","div", "div", "div", "div", "div"],
                         field_width: ["150", "120", "150", "090", "090", "090", "032", "032"],
-                        field_align: ["left", "left", "left", "center", "right", "left", "center", "center"]},
+                        field_align: ["l", "l", "l", "c", "r", "l", "c", "c"]},
             scheme: { tbl_col_count: 7,
                         field_caption:  ["Scheme", "Rest_shift" , "Start_time", "End_time", "Break", "Hours", ""],
                         field_names: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration", "timeduration", "delete"],
                         field_tags: ["div", "div", "div", "div", "div", "div", "div"],
                         field_width: ["180", "090", "120", "120", "120", "120", "032"],
-                        field_align: ["left", "center", "right", "left", "right", "right", "center"]},
+                        field_align: ["l", "c", "r", "l", "r", "r", "c"]},
             shift: { tbl_col_count: 7,
                         field_caption:  ["Shift", "Rest_shift" , "Start_time", "End_time", "Break", "Hours", ""],
                         field_names: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration", "timeduration", "delete"],
                         field_tags: ["div", "div", "div", "div", "div", "div", "div"],
                         field_width: ["180", "", "120", "120", "120", "120", "032"],
-                        field_align: ["left", "center", "right", "right", "right", "right", "center"]},
+                        field_align: ["l", "c", "r", "r", "r", "r", "c"]},
             teammember: { tbl_col_count: 6,
                         field_caption: ["Team", "Employee", "Start_date", "End_date", "Replacement_employee", ""],
                         field_names: ["team", "employee", "datefirst", "datelast", "replacement", "delete"],
                         field_tags:  ["div", "div", "input", "input", "div", "div"],
                         field_width: ["120", "150", "150", "150", "150", "032"],
-                        field_align: ["left", "left", "left", "left", "left", "right"]},
+                        field_align: ["l", "l", "l", "l", "l", "r"]},
             absence: { tbl_col_count: 8,
                         field_caption: ["Employee", "Absence_category", "Start_date", "End_date", "Start_time", "End_time", "Hours", ""],
                         field_names: ["employee", "order", "datefirst", "datelast", "offsetstart", "offsetend", "timeduration", "delete"],
                         field_tags:  ["div", "div", "div", "div", "div", "div", "div", "div"],
-                        field_width: ["180", "120", "090", "090", "090", "090", "090", "032"],
-                        field_align: ["left", "left", "left", "left", "left", "right", "center"]},
+                        field_width: ["2200", "180", "120", "120", "090", "090", "090", "032"],
+                        field_align: ["l", "l", "r", "r", "r", "r", "r", "center"]},
             }
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -244,10 +244,12 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MAB_breakduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_breakduration)}, false );
         let el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
             el_MAB_timeduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_timeduration)}, false );
-        let el_MAB_nowk = document.getElementById("id_MAB_nowk");
-            el_MAB_nowk.addEventListener("change", function() {MAB_nowknophChanged(el_MAB_nowk)}, false );
+        let el_MAB_nosat = document.getElementById("id_MAB_nosat");
+            el_MAB_nosat.addEventListener("change", function() {MAB_nosatsunphChanged(el_MAB_nosat)}, false );
+        let el_MAB_nosun = document.getElementById("id_MAB_nosun");
+            el_MAB_nosun.addEventListener("change", function() {MAB_nosatsunphChanged(el_MAB_nosun)}, false );
         let el_MAB_noph = document.getElementById("id_MAB_noph");
-            el_MAB_noph.addEventListener("change", function() {MAB_nowknophChanged(el_MAB_noph)}, false );
+            el_MAB_noph.addEventListener("change", function() {MAB_nosatsunphChanged(el_MAB_noph)}, false );
         let el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
             el_MAB_btn_save.addEventListener("click", function() {MAB_Save("save")}, false );
         let el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
@@ -349,8 +351,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- Datalist Download
         // TODO set show_absence = false
         // show_absence = null is for testing, show_absence must be false in production
-        //const show_absence_FOR_TESTING_ONLY = null;
-        const show_absence_FOR_TESTING_ONLY = false;
+        const show_absence_FOR_TESTING_ONLY = null;
+        //const show_absence_FOR_TESTING_ONLY = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -571,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "btn_mode: ", btn_mode );
         //console.log( "skip_update: ", skip_update );
 
-// ---  toggle is_absence_mode
+// ---  set is_absence_mode
         is_absence_mode = (selected_btn === "btn_absence");
         if (is_absence_mode){is_template_mode = false};
         //console.log( "is_absence_mode: ", is_absence_mode ,"is_template_mode: ", is_template_mode );
@@ -621,15 +623,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }  // if (is_absence_mode){
 
-
 // ---  highlight row in datatable
         //FilterTableRows(tblBody_datatable)
 
 // --- update header text
-        // not necessary, text stays the same on all buttons. Was: UpdateHeaderText("HandleBtnSelect");
-         //if (selected_btn === "btn_absence"){
-         //   "open modal absence"
-         //   }
+        UpdateHeaderText("HandleBtnSelect");
+
     }  // HandleBtnSelect
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
@@ -1266,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             td.appendChild(el_a);
-            td.classList.add("td_width_032");
+            td.classList.add("tw_032");
         }  //  if (!isEmpty(item_dict))
         return tblRow;
     } // CreateSelectRow
@@ -1583,7 +1582,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                     let el_a = document.createElement("a");
                     CreateBtnDeleteInactive("inactive", false, tHeadRow, el_a, false);
                 td.appendChild(el_a);
-                td.classList.add("td_width_032")
+                td.classList.add("tw_032")
             }
         }
     }  // CreateSelectHeaderRows
@@ -1680,8 +1679,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                     AppendChildIcon(el_div, imgsrc_inactive_black);
                 };
 // --- add width, text_align
-                el_div.classList.add("td_width_" + field_settings[tblName].field_width[j],
-                                     "text_align_" + field_settings[tblName].field_align[j]);
+                el_div.classList.add("tw_" + field_settings[tblName].field_width[j],
+                                     "ta_" + field_settings[tblName].field_align[j]);
 
 
                 th.appendChild(el_div);
@@ -1755,7 +1754,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                // if (tblName !== "planning") {el.classList.add("tsa_color_darkgrey")}
                 el.classList.add("tsa_color_darkgrey")
                 el.classList.add("tsa_transparent")
-                //el.classList.add("td_width_090")
+                //el.classList.add("tw_090")
 // --- add other attributes to td
                // el.setAttribute("autocomplete", "off");
                 //el.setAttribute("ondragstart", "return false;");
@@ -1766,8 +1765,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             td.appendChild(el);
 
 // --- add width and textalign to el
-            el.classList.add("td_width_" + field_settings[tblName].field_width[j]);
-            el.classList.add("text_align_" + field_settings[tblName].field_align[j]);
+            el.classList.add("tw_" + field_settings[tblName].field_width[j]);
+            el.classList.add("ta_" + field_settings[tblName].field_align[j]);
 
 // --- add element to td
              td.appendChild(el);
@@ -1893,8 +1892,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             const fldName = field_settings[settings_tblName].field_names[j];
             el.setAttribute("data-field", fldName);
 // --- add field_width and text_align
-            el.classList.add("td_width_" + field_settings[settings_tblName].field_width[j],
-                             "text_align_" + field_settings[settings_tblName].field_align[j]);
+            el.classList.add("tw_" + field_settings[settings_tblName].field_width[j],
+                             "ta_" + field_settings[settings_tblName].field_align[j]);
 // --- add left margin to first column
             if (j === 0 ){
                 el.classList.add("ml-2");
@@ -2924,6 +2923,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             update_map_item_local(tblName, map_id, update_dict, is_created, is_deleted);
 
        }  //  for (let i = 0, len = update_list.length; i < len; i++)
+
     };  // UpdateFromResponse_datatable_shift
 
 //=========  UpdateFromResponse  ================ PR2019-10-14
@@ -3172,9 +3172,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, update_dict, called_by){
-        console.log ("--- UpdateTableRow  ------- ", called_by);
-        console.log("update_dict", update_dict);
-        console.log("tblRow", tblRow);
+        //console.log ("--- UpdateTableRow  ------- ", called_by);
+        //console.log("update_dict", update_dict);
+        //console.log("tblRow", tblRow);
 
         if (!isEmpty(update_dict) && !!tblRow) {
 //--- get info from update_dict.id
@@ -4078,9 +4078,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
     // --- add margin to first column
                 if (j === 1 ){el_div.classList.add("ml-2")}
     // --- add width to el
-                el_div.classList.add("td_width_" + field_settings.teammember.field_width[j])
+                el_div.classList.add("tw_" + field_settings.teammember.field_width[j])
     // --- add text_align
-                el_div.classList.add("text_align_" + field_settings.teammember.field_align[j])
+                el_div.classList.add("ta_" + field_settings.teammember.field_align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
     };  // MGT_CreateTblTeammemberHeader
@@ -4188,9 +4188,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                 if (j === 1 ){el.classList.add("ml-2")}
             }
 // --- add width to el - not necessary, tblhead has width
-           // el.classList.add("td_width_" + field_settings.teammember.field_width[j])
+           // el.classList.add("tw_" + field_settings.teammember.field_width[j])
 // --- add text_align
-            el.classList.add("text_align_" + field_settings.teammember.field_align[j])
+            el.classList.add("ta_" + field_settings.teammember.field_align[j])
 // --- add other classes to td
             el.classList.add("border_none");
             //el.setAttribute("autocomplete", "off");
@@ -4739,7 +4739,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
             let el = document.createElement("div");
                 el.innerText = code_value;
-                el.classList.add("mx-1", "td_width_180")
+                el.classList.add("mx-1", "tw_180")
             td.appendChild(el);
         } // if (add_to_list)
         return add_to_list;
@@ -5159,7 +5159,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 //=========  MOD SCHEME  ================ PR2020-04-19
     function MSCH_Open(el_clicked) {
         console.log("=========  MSCH_Open ========= ");
-        console.log("selected.scheme_pk:", selected.scheme_pk);
+        //console.log("selected.scheme_pk:", selected.scheme_pk);
         const is_addnew = (!el_clicked)
 
         mod_MSCH_dict = {};
@@ -5429,9 +5429,10 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         el_MSCH_btn_save.disabled = (has_error);
     }  // MSCH_validate_and_disable
 
-//VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // +++++++++++++++++ MODAL ABSENCE +++++++++++++++++++++++++++++++++++++++++++
+
 //=========  ModAbsence_Open  ================  PR2020-05-14
     function MAB_Open(is_addnew, el_input) {
         console.log(" =====  MAB_Open =====")
@@ -5463,14 +5464,14 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                                 rowindex: tblRow_rowIndex};
         if(is_addnew) { mod_dict.teammember.create = true} ;
         mod_dict.employee = deepcopy_dict(absence_dict.employee);
-        mod_dict.employee = deepcopy_dict(absence_dict.employee);
         mod_dict.scheme = deepcopy_dict(absence_dict.scheme);
         mod_dict.order = deepcopy_dict(absence_dict.order);
         mod_dict.shift = deepcopy_dict(absence_dict.shift);
         mod_dict.team = deepcopy_dict(absence_dict.team);
+        mod_dict.absence_dict = (absence_dict) ? absence_dict : {};
 // ---  update selected.teammember_pk
         selected.teammember_pk = (mod_dict.employee.pk) ? mod_dict.employee.pk : null;
-        console.log("selected.teammember_pk", selected.teammember_pk)
+        //console.log("selected.teammember_pk", selected.teammember_pk)
         console.log("mod_dict", mod_dict)
 // --- when no employee selected: fill select table employee
         // MAB_FillSelectTable("employee") is called in MAB_GotFocus
@@ -5486,10 +5487,10 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         el_MAB_input_abscat.value = (mod_dict.order.code) ? mod_dict.order.code : null;
 // --- make input_abscat readOnly
         el_MAB_input_abscat.readOnly = (!selected.teammember_pk);
-        // when is_addnew: get nowk and nowk from employee, otherwise: get from scheme
-        // TODO nohoursonsaturday / nohoursonsunday
-        el_MAB_nowk.checked = (is_addnew) ? mod_dict.employee.nohoursonweekend : mod_dict.scheme.nohoursonweekend;
-        el_MAB_noph.checked = (is_addnew) ? mod_dict.employee.nohoursonpublicholiday : mod_dict.scheme.nohoursonpublicholiday;
+
+        el_MAB_nosat.checked = (mod_dict.scheme.nohoursonsaturday) ? mod_dict.scheme.nohoursonsaturday : false;
+        el_MAB_nosun.checked = (mod_dict.scheme.nohoursonsunday) ? mod_dict.scheme.nohoursonsunday : false;
+        el_MAB_noph.checked = (mod_dict.scheme.nohoursonpublicholiday) ? mod_dict.scheme.nohoursonpublicholiday : false;
 
         MAB_UpdateDatefirstlastInputboxes();
         MOD_UpdateOffsetInputboxes();
@@ -5526,16 +5527,42 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             //upload_dict.id.temp_pk = mod_dict.teammember.temp_pk;
             upload_dict.id.create = true;
         }
-        upload_dict.order = {pk: mod_dict.order.pk, ppk: mod_dict.order.ppk, code: mod_dict.order.code, update: true};
-        if(mod_dict.scheme.datefirst) { upload_dict.datefirst = {value: mod_dict.scheme.datefirst, update: true} };
-        if(mod_dict.scheme.datelast) { upload_dict.datelast = {value: mod_dict.scheme.datelast, update: true} };
-        if(mod_dict.shift.offsetstart) { upload_dict.offsetstart = {value: mod_dict.shift.offsetstart, update: true} };
-        if(mod_dict.shift.offsetend) { upload_dict.offsetend = {value: mod_dict.shift.offsetend, update: true} };
-        if(mod_dict.shift.breakduration) { upload_dict.breakduration = {value: mod_dict.shift.breakduration, update: true} };
-        if(mod_dict.shift.timeduration) { upload_dict.timeduration = {value: mod_dict.shift.timeduration, update: true} };
 
+        const old_order_pk = get_dict_value(mod_dict, ["absence_dict", "order", "pk"], 0);
+        const old_order_ppk = get_dict_value(mod_dict, ["absence_dict", "order", "ppk"], 0);
+        const new_order_pk = get_dict_value(mod_dict, ["order", "pk"], 0);
+        const new_order_ppk = get_dict_value(mod_dict, ["order", "ppk"], 0);
+        const new_order_code = get_dict_value(mod_dict, ["order", "code"]); // just for testing, is not used for update
+        if (new_order_pk !== old_order_pk) {upload_dict.order = {pk: new_order_pk, ppk: new_order_ppk, code: mod_dict.order.code, update: true}}
+
+        const old_datefirst = get_dict_value(mod_dict, ["absence_dict", "scheme", "datefirst"]);
+        const new_datefirst = get_dict_value(mod_dict, ["scheme", "datefirst"]);
+        if (new_datefirst !== old_datefirst) {upload_dict.datefirst = {value: new_datefirst, update: true}}
+
+        const old_datelast = get_dict_value(mod_dict, ["absence_dict", "scheme", "datelast"]);
+        const new_datelast = get_dict_value(mod_dict, ["scheme", "datelast"]);
+        if (new_datelast !== old_datelast) {upload_dict.datelast = {value: new_datelast, update: true}}
+
+        const old_offsetstart = get_dict_value(mod_dict, ["absence_dict", "shift", "offsetstart"]);
+        const new_offsetstart = get_dict_value(mod_dict, ["shift", "offsetstart"]);
+        if (new_offsetstart !== old_offsetstart) {upload_dict.offsetstart = {value: new_offsetstart, update: true}}
+
+        const old_offsetend = get_dict_value(mod_dict, ["absence_dict", "shift", "offsetend"]);
+        const new_offsetend = get_dict_value(mod_dict, ["shift", "offsetend"]);
+        if (new_offsetend !== old_offsetend) {upload_dict.offsetend = {value: new_offsetend, update: true}}
+
+        const old_breakduration = get_dict_value(mod_dict, ["absence_dict", "shift", "breakduration"], 0);
+        const new_breakduration = get_dict_value(mod_dict, ["shift", "breakduration"], 0);
+        if (new_breakduration !== old_breakduration) {upload_dict.breakduration = {value: new_breakduration, update: true}}
+
+        const old_timeduration = get_dict_value(mod_dict, ["absence_dict", "shift", "timeduration"], 0);
+        const new_timeduration = get_dict_value(mod_dict, ["shift", "timeduration"], 0);
+        if (new_timeduration !== old_timeduration) {upload_dict.timeduration = {value: new_timeduration, update: true}}
+
+        const old_shift_code = get_dict_value(mod_dict, ["absence_dict", "shift", "code"]);
         const new_shift_code = create_shift_code(loc, mod_dict.shift.offsetstart, mod_dict.shift.offsetend, mod_dict.shift.timeduration);
-        if(new_shift_code) { upload_dict.shift_code = new_shift_code }
+        if(new_shift_code !== old_shift_code) {upload_dict.shiftcode = {value: new_shift_code, update: true}}
+
         if(mod_dict.employee.pk) {
             upload_dict.employee = {pk: mod_dict.employee.pk, ppk: mod_dict.employee.ppk, code: mod_dict.employee.code, update: true};
         }
@@ -5612,14 +5639,14 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         if (!!new_filter && !!len){
 // ---  filter select rows
             const filter_dict = t_Filter_SelectRows(tblBody_select, new_filter);
-        console.log( "filter_dict", filter_dict)
+            //console.log( "filter_dict", filter_dict)
 // ---  get pk of selected item (when there is only one row in selection)
             const only_one_selected_pk = get_dict_value(filter_dict, ["selected_pk"])
             if (only_one_selected_pk) {
                 let selected_order_pk = null;
                 // dont skip skip_focus_event when tblName = employee, because abscat selecttable must be filled
                 if(tblName !== "employee") {mod_dict.skip_focus_event = true};
-                console.log("only_one_selected_pk:", only_one_selected_pk)
+                //console.log("only_one_selected_pk:", only_one_selected_pk)
 // ---  highlight clicked row
                 t_HighlightSelectedTblRowByPk(tblBody_select, only_one_selected_pk)
 // ---  put value in input box, put employee_pk in mod_dict, set focus to select_abscatselect_abscat
@@ -5628,15 +5655,16 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                     selected.teammember_pk = ModDict_SetEmployeeDict(only_one_selected_pk);
     // ---  put code_value in el_input_employee
                     el_MAB_input_employee.value = mod_dict.employee.code;
-
+    // ---  update date input elements
+                    MAB_UpdateDatefirstlastInputboxes();
     // ---  put hours in mod_dict.shift.timeduration and el_MAB_timeduration
-                if (mod_dict.employee.workhoursperday){
-                    mod_dict.shift.timeduration = mod_dict.employee.workhoursperday;
-    console.log( "mod_dict.employee.workhoursperday: ", mod_dict.employee.workhoursperday);
+                if (mod_dict.employee.workminutesperday){
+                    mod_dict.shift.timeduration = mod_dict.employee.workminutesperday;
+    //console.log( "mod_dict.employee.workminutesperday: ", mod_dict.employee.workminutesperday);
                     const display_text = display_duration (mod_dict.shift.timeduration, loc.user_lang);
-    console.log( "display_text: ", display_text);
+    //console.log( "display_text: ", display_text);
                     el_MAB_timeduration.innerText = display_duration (mod_dict.shift.timeduration, loc.user_lang);
-    console.log( "el_MAB_timeduration: ", el_MAB_timeduration);
+    //console.log( "el_MAB_timeduration: ", el_MAB_timeduration);
                 }
 
     // ---  put employee_code in header
@@ -5684,9 +5712,9 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                 el_MAB_input_employee.value = mod_dict.employee.code
 
     // ---  put hours in mod_dict.shift.timeduration and el_MAB_timeduration
-                if (mod_dict.employee.workhoursperday){
-                    mod_dict.shift.timeduration = mod_dict.employee.workhoursperday;
-    console.log( "mod_dict.employee.workhoursperday: ", mod_dict.employee.workhoursperday);
+                if (mod_dict.employee.workminutesperday){
+                    mod_dict.shift.timeduration = mod_dict.employee.workminutesperday;
+    console.log( "mod_dict.employee.workhoursperday: ", mod_dict.employee.workminutesperday);
                     const display_text = display_duration (mod_dict.shift.timeduration, loc.user_lang);
     console.log( "display_text: ", display_text);
                     el_MAB_timeduration.innerText = display_duration (mod_dict.shift.timeduration, loc.user_lang);
@@ -5756,7 +5784,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             code: get_dict_value(employee_dict, ["code", "value"]),
             datefirst: get_dict_value(employee_dict, ["datefirst", "value"]),
             datelast: get_dict_value(employee_dict, ["datelast", "value"]),
-            workhoursperday: get_dict_value(employee_dict, ["workhoursperday", "value"])
+            workminutesperday: get_dict_value(employee_dict, ["workminutesperday", "value"])
         }
         return employee_pk
     }  // ModDict_SetEmployeeDict
@@ -5808,11 +5836,13 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //=========  MAB_UpdateDatefirstlastInputboxes  ================ PR2020-05-17
     function MAB_UpdateDatefirstlastInputboxes(){
-        //console.log( " --- MAB_UpdateDatefirstlastInputboxes --- ");
+        console.log( " --- MAB_UpdateDatefirstlastInputboxes --- ");
         // absence datefirst / datelast are stored in scheme.datefirst / datelast
         const employee_datefirst = get_dict_value(mod_dict, ["employee", "datefirst"]);
         const employee_datelast = get_dict_value(mod_dict, ["employee", "datelast"]);
 
+        console.log( "employee_datefirst", employee_datefirst);
+        console.log( "employee_datelast", employee_datelast);
         el_MAB_datefirst.value = mod_dict.scheme.datefirst;
         el_MAB_datelast.value = mod_dict.scheme.datelast;
         const oneday_only = false;
@@ -5960,24 +5990,12 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
     } // MAB_TimepickerResponse
 
 
-//========= MAB_nowknophChanged  ============= PR2020-06-01
-    function MAB_nowknophChanged(el_input){
-        console.log( "=== MAB_nowknophChanged ===");
-
+//========= MAB_nosatsunphChanged  ============= PR2020-06-01
+    function MAB_nosatsunphChanged(el_input){
+        //console.log( "=== MAB_nosatsunphChanged ===");
         const fldName = get_attr_from_el(el_input, "data-field")
-        const other_fldName = (fldName === "nohoursonweekend") ? "nohoursonpublicholiday" : "nohoursonweekend";
-        const other_el = (fldName === "nohoursonweekend") ? el_MAB_nopk :el_MAB_nowk;
-        const checked_value = el_input.checked
-        console.log( "fldName ", fldName);
-        console.log( "el_input ", el_input);
-        // also make other field true when checked is ste true
-        if(checked_value) {
-            other_el.checked = true
-        }
         mod_dict.scheme[fldName] = el_input.checked
-        mod_dict.scheme[other_fldName] = other_el.checked
-
-    }  // MAB_nowknophChanged
+    }  // MAB_nosatsunphChanged
 
 
 //=========  MAB_BtnSaveEnable  ================ PR2020-05-15
@@ -7012,10 +7030,13 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         } else  if (["Tab", "ArrowLeft", "ArrowRight"].indexOf(event_key) > -1) {
 
         } else  if (event_key === "Enter") {
+            const skip_while_modal = (mod_dict.page === "modabsence")
+            if(!skip_while_modal){
             const tblRow = document.getElementById(selected.tblRow_id)
-            if(tblRow){
-                const is_addnew = get_attr_from_el(tblRow, "data-is_addnew");
-                MAB_Open(is_addnew, tblRow);
+                if(tblRow){
+                    const is_addnew = get_attr_from_el(tblRow, "data-is_addnew");
+                    MAB_Open(is_addnew, tblRow);
+                }
             }
         }
 
@@ -7065,6 +7086,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         let select_order_header_text = loc.Select_customer_and_order + "...";
         if(is_template_mode){
             header_text = loc.Template + ":  "
+        } else if(selected_btn === "btn_absence"){
+            header_text = loc.Absence
         } else {
             let pk_int = null;
             if(!!selected.order_pk){

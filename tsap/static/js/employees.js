@@ -96,26 +96,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_names: ["code", "identifier",  "payrollcode", "datefirst", "datelast", "workhours", "workdays", "leavedays",  "delete"],
                         field_tags: ["input", "input", "input", "input", "input", "input", "input", "input", "a"],
                         field_width:  ["180", "120", "120","090", "090",  "090","090", "090", "032"],
-                        field_align: ["left", "left", "left","right", "right",  "right", "right", "right", "center"]},
+                        field_align: ["l", "l", "l","r", "r",  "r", "r", "r", "c"]},
             absence: { tbl_col_count: 6,
                         field_caption: ["Employee", "Absence_category", "First_date", "Last_date", "Hours_per_day"],
                         field_names: ["employee", "order", "datefirst", "datelast", "timeduration", "delete"],
                         field_tags:  ["p", "p", "p", "p",  "p", "p"],
                         field_width:  ["180", "220", "120", "120","120", "032"],
-                        field_align: ["left", "left", "right", "right", "right", "left"]},
+                        field_align: ["l", "l", "r", "r", "r", "l"]},
             shifts: { tbl_col_count: 7,
                         field_caption: ["Employee", "Order", "Team", "First_date", "Last_date", "Replacement_employee"],
                         field_names: ["employee", "order", "team", "datefirst", "datelast", "replacement", "delete"],
                         field_tags: ["div", "div", "div", "div", "div", "div", "a"],
                         field_width: ["180", "220", "120", "120", "120", "180", "032"],
-                        field_align: ["left", "left", "left", "left", "left", "left", "left"]},
+                        field_align: ["l", "l", "l", "l", "l", "l", "l"]},
             //calendar: { tbl_col_count: 7}, don't use calendar in field_settings, gives error in CreateTblHeader
             planning: { tbl_col_count: 7,
                         field_caption: ["Employee", "Customer", "Order", "Date", "Shift", "Start_Endtime", "Working_hours"],
                         field_names:  ["employee", "customer", "order", "rosterdate", "shift", "offsetstart", "timeduration"],
                         field_tags: ["input", "input", "input", "input", "input", "input", "input"],
                         field_width: ["150", "150", "150", "120", "120", "150", "090"],
-                        field_align: ["left", "left", "left", "left", "left", "right", "right"]}
+                        field_align: ["l", "l", "l", "l", "l", "r", "r"]}
             }
 
         const tblHead_datatable = document.getElementById("id_tblHead_datatable");
@@ -943,8 +943,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add left margin to first column
                     if (j === 0 ){el_div.classList.add("ml-2")};
         // --- add width, text_align
-                    el_div.classList.add("td_width_" + field_settings[tblName].field_width[j],
-                                         "text_align_" + field_settings[tblName].field_align[j]);
+                    el_div.classList.add("tw_" + field_settings[tblName].field_width[j],
+                                         "ta_" + field_settings[tblName].field_align[j]);
                     th.appendChild(el_div)
                     tblRow.appendChild(th);
                 }  // for (let j = 0; j < column_count; j++)
@@ -988,8 +988,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add left margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")};
 // --- add field_width and text_align
-                el_div.classList.add("td_width_" + field_settings[mode].field_width[j],
-                                     "text_align_" + field_settings[mode].field_align[j])
+                el_div.classList.add("tw_" + field_settings[mode].field_width[j],
+                                     "ta_" + field_settings[mode].field_align[j])
                 th.appendChild(el_div)
                 tblRow.appendChild(th);
             }  // for (let j = 0; j < column_count; j++)
@@ -1040,8 +1040,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add left margin to first column
             if (j === 0 ){el.classList.add("ml-2")};
 // --- add field_width and text_align
-            el.classList.add("td_width_" + field_settings[tblName].field_width[j],
-                             "text_align_" + field_settings[tblName].field_align[j]);
+            el.classList.add("tw_" + field_settings[tblName].field_width[j],
+                             "ta_" + field_settings[tblName].field_align[j]);
             td.appendChild(el);
         }  // for (let j = 0; j < 8; j++)
         return tblRow
@@ -1139,8 +1139,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (j === 0 ){el.classList.add("ml-2");}
 
     // --- add field_width and text_align
-                el.classList.add("td_width_" + field_settings[sel_btn].field_width[j],
-                                 "text_align_" + field_settings[sel_btn].field_align[j]);
+                el.classList.add("tw_" + field_settings[sel_btn].field_width[j],
+                                 "ta_" + field_settings[sel_btn].field_align[j]);
 
     // --- add placeholder, only when is_new_row.
                 if ( is_new_row && j === 0 ){
@@ -1216,8 +1216,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add left margin to first column,
                 if (j === 0 ){el_div.classList.add("ml-2");}
     // --- add field_width and text_align
-                //el_div.classList.add("td_width_" + field_settings[sel_btn].field_width[j],
-                //                 "text_align_" + field_settings[sel_btn].field_align[j]);
+                //el_div.classList.add("tw_" + field_settings[sel_btn].field_width[j],
+                //                 "ta_" + field_settings[sel_btn].field_align[j]);
 
     // --- add placeholder
                 if (j === 0 || (j === 1 && sel_btn === "absence") ){
@@ -1427,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("search_datefirst", search_datefirst);
         //console.log("inactive_changed", inactive_changed);
         if(is_created){
-            const row_index = get_rowindex_by_code_datefirst(tblName, search_code, search_datefirst)
+            const row_index = get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
         console.log("search_ row_index", row_index);
             let tblRow = CreateTblRow(tblBody_datatable, selected_btn, pk_int, ppk_int, selected_employee_pk, row_index, "UpdateTeammemberFromResponse")
             UpdateTblRow(tblRow, update_dict)
@@ -1536,7 +1536,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // move the new row in alfabetic order
                 let row_index = -1
                 if(tblName === "teammember") {
-                    //row_index = get_rowindex_by_code_datefirst(tblName, search_code, search_datefirst)
+                    //row_index = get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
                 } else {
                     row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, user_lang);
                     tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
@@ -1656,7 +1656,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // 'offsetstart' not in itemdict, therefore put code above at 'if (!(fldName in item_dict))'
                     // 'timeduration' not in itemdict, therefore put code above at 'if (!(fldName in item_dict))'
                 } else if (tblName === "teammember"){
-                    //  absence: ["employee", "order", "datefirst", "datelast", "workhoursperday", "delete"],
+                    //  absence: ["employee", "order", "datefirst", "datelast", "workminutesperday", "delete"],
                     if (["employee", "order"].indexOf( fldName ) > -1){
 
                         //el_input.innerText = get_dict_value(field_dict, ["code"])
@@ -1789,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Note: the parent of 'teammember' is 'team', not 'employee'!!
             let teammember_ppk = 0
             let dict = {}
-            //dict["workhoursperday"] = {value: workhoursperday}
+            //dict["workminutesperday"] = {value: workminutesperday}
             // NOT TRUE: in  "teammember" and "absence" selected_employee_pk has always value
             //console.log("selected_employee_pk", selected_employee_pk)
 
@@ -1966,7 +1966,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (!isEmpty(employee_dict)){
                     const employee_code = get_dict_value(employee_dict, ["code", "value"])
-                    const workhoursperday = get_dict_value(employee_dict, ["workhoursperday", "value"])
+                    const workminutesperday = get_dict_value(employee_dict, ["workminutesperday", "value"])
                 }
 
     // ---  get fieldname from 'el_input.data-field'
@@ -2012,12 +2012,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         if(fieldname === "team" && is_create){
                             // convert to hours, because input is in hours
                             // TODO add popup hours window
-                            const hours = workhoursperday / 60
-                            upload_dict["workhoursperday"] = {"value": hours, "update": true }
+                            const hours = workminutesperday / 60
+                            upload_dict["workminutesperday"] = {"value": hours, "update": true }
                         }
                     } else {
                         let new_value = el_input.value;
-                        if (["workhoursperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
+                        if (["workminutesperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
                             if(!value){value = 0}
                         }
                         field_dict["value"] = new_value;
@@ -3578,7 +3578,7 @@ if(pgeName === "absence"){
             datefirst: get_dict_value(employee_dict, ["datefirst", "value"]),
             datelast: get_dict_value(employee_dict, ["datelast", "value"]),
 
-            workhoursperday:  get_dict_value(employee_dict, ["workhoursperday", "value"]),
+            workminutesperday:  get_dict_value(employee_dict, ["workminutesperday", "value"]),
             workhours: get_dict_value(employee_dict, ["workhours", "value"]),
             workdays: get_dict_value(employee_dict, ["workdays", "value"]),
             leavedays: get_dict_value(employee_dict, ["leavedays", "value"]),
@@ -4825,13 +4825,13 @@ console.log( "reset mod_dict: ");
 
 //=========  MSE_BtnSaveDeleteEnable  ================ PR2019-11-23
     function MSE_BtnSaveDeleteEnable(){
-        //console.log( " --- MSE_BtnSaveDeleteEnable --- ");
-        //console.log( "mod_dict", mod_dict);
+        console.log( " --- MSE_BtnSaveDeleteEnable --- ");
+        console.log( "mod_dict", mod_dict);
 
 // --- enable save button
         const teammember_pk = get_dict_value(mod_dict, ["teammember", "pk"]);
         const team_pk = el_modshift_absence.value;
-        const employee_pk = get_dict_value(mod_dict, ["employee", "pk"]);
+        const employee_pk = get_dict_value(mod_dict, ["employee", "id", "pk"]);
         const is_absence = (mod_dict.shiftoption  === "isabsence");
 
         let order_pk;
@@ -4842,6 +4842,10 @@ console.log( "reset mod_dict: ");
         }
         const btn_save_enabled = (!!employee_pk && !!order_pk)
         const btn_delete_visible = (is_absence && btn_save_enabled)
+
+        console.log( "employee_pk", employee_pk);
+        console.log( "order_pk", order_pk);
+
         if(btn_delete_visible) {
             el_modshift_btn_delete.classList.remove(cls_hide);
         } else {
@@ -5068,6 +5072,7 @@ console.log( "reset mod_dict: ");
 
         // reset icon of filter select table
         // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
+        // TODO gives error: Cannot read property 'children' of null
         let el_sel_inactive = document.getElementById("id_filter_select_btn")
         let el_sel_inactive_cell = el_sel_inactive.children[0];
         if(!!el_sel_inactive_cell){
@@ -5252,43 +5257,6 @@ console.log( "reset mod_dict: ");
         }  // if (!!tblRow)
         return !hide_row
     }; // function ShowTableRow_dict
-
-
-//========= get_rowindex_by_code_datefirst  ================= PR2020-05-18
-    function get_rowindex_by_code_datefirst(tblName, search_code, search_datefirst) {
-        console.log(" ===== get_rowindex_by_code_datefirst =====", tblName);
-        let search_rowindex = -1;
-// --- loop through rows of tblBody_datatable
-        if(search_code){
-            const search_code_lc = search_code.toLowerCase()
-            for (let i = 0, tblRow; i < tblBody_datatable.rows.length; i++) {
-                tblRow = tblBody_datatable.rows[i];
-                if(tblName === "teammember"){
-        //console.log("tblRow.id", tblRow.id);
-                    const tm_dict = get_mapdict_from_datamap_by_id(teammember_map, tblRow.id)
-                    const employee_code = get_dict_value(tm_dict, ["employee", "code"])
-                    const datefirst = get_dict_value(tm_dict, ["employee", "datefirst"])
-        //console.log("employee_code", employee_code);
-        //console.log("datefirst", datefirst);
-                    if(employee_code) {
-                        const employee_code_lc = employee_code.toLowerCase()
-                        if(employee_code_lc < search_code_lc) {
-                            // goto next row
-                         } else if(employee_code_lc === search_code_lc) {
-        // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
-                            // TODO search on datfirst
-                        } else  if( employee_code_lc > search_code_lc) {
-        // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
-                            search_rowindex = tblRow.rowIndex - 1;
-        //console.log("search_rowindex FOUND ", search_rowindex);
-                            break;
-                        }
-                    }
-                }
-        }}
-        //console.log("search_rowindex", search_rowindex);
-        return search_rowindex
-    }  // get_rowindex_by_code_datefirst
 
 //##################################################################################
 // +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -529,8 +529,8 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
-    logger.debug(' ------------- create_scheme_list ------------- ')
-    logger.debug('filter_dict: ' + str(filter_dict))
+    #logger.debug(' ------------- create_scheme_list ------------- ')
+    #logger.debug('filter_dict: ' + str(filter_dict))
 
     order_pk = None
     customer_pk = filter_dict.get('customer_pk')
@@ -763,15 +763,15 @@ def create_scheme_dict(scheme, item_dict, user_lang):
 
 def create_schemeitem_list(filter_dict, company):
     # ---  create list of all schemeitems of this order PR2019-08-29 PR2020-05-23
-    logger.debug(' ----- create_schemeitem_list  -----  ')
-    logger.debug('filter_dict' + str(filter_dict) )
+    #logger.debug(' ----- create_schemeitem_list  -----  ')
+    #logger.debug('filter_dict' + str(filter_dict) )
 
     customer_pk = None
     order_pk = filter_dict.get('order_pk')
     if order_pk is None:
         customer_pk = filter_dict.get('customer_pk')
-    logger.debug('customer_pk: ' + str(customer_pk))
-    logger.debug('order_pk: ' + str(order_pk))
+    #logger.debug('customer_pk: ' + str(customer_pk))
+    #logger.debug('order_pk: ' + str(order_pk))
 
     sql_schemeitem = """SELECT 
         si.id AS si_id, 
@@ -1018,14 +1018,14 @@ def create_schemeitem_dict(schemeitem, item_dict):
 
 def create_shift_list(filter_dict, company, user_lang):
     # ---  create list of all shifts of this order  PR2019-08-08 PR2020-05-23
-    logger.debug(' --- create_shift_list --- ')
-    logger.debug('filter_dict' + str(filter_dict))
+    #logger.debug(' --- create_shift_list --- ')
+    #logger.debug('filter_dict' + str(filter_dict))
 
     order_pk = None
     customer_pk = filter_dict.get('customer_pk')
     if customer_pk is None:
         order_pk = filter_dict.get('order_pk')
-    logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
+    #logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
 
     sql_shift = """SELECT 
         sh.id AS sh_id, 
@@ -1165,7 +1165,7 @@ def create_shift_dict_from_sql(shift, update_dict, user_lang):  # PR2020-05-23
 
 
 def create_shift_dict(shift, update_dict, user_lang):
-    logger.debug(' ----- create_shift_dict ----- ')
+    #logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
@@ -1825,6 +1825,11 @@ def create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, r
             header_dict['ispublicholiday'] = row.ispublicholiday
         if row.iscompanyholiday:
             header_dict['iscompanyholiday'] = row.iscompanyholiday
+        if row.rosterdate.isoweekday() == 6:
+            header_dict['issaturday'] = True
+        if row.rosterdate.isoweekday() == 7:
+            header_dict['issunday'] = True
+
         if row.ispublicholiday and row.code:
             display_txt = _(row.code)
         else:
@@ -2138,7 +2143,7 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
     #                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
-    #                    'paydate', 'lockedpaydate',
+    #                    'paydatecode', 'lockedpaydate',
     #                    'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
     #                    'plannedduration', 'billingduration',
     #                    'wagerate', 'wagefactor', 'wage',
@@ -3420,7 +3425,7 @@ def get_team_code(team):
 
 def create_order_schemes_list(filter_dict, datalists, company, comp_timezone, user_lang):
     # PR2020-05-23 used in scheme page, to retrieve schemes, etc from selected order
-    logger.debug(' ================ create_order_schemes_list ================ ')
+    #logger.debug(' ================ create_order_schemes_list ================ ')
     #logger.debug('filter_dict: ' + str(filter_dict))
     # customer_pk is only used when is_absence
     checked_customer_pk = None

@@ -464,10 +464,10 @@ a:hover{
      -webkit-transition: all 150ms ease;
      -o-transition: all 150ms ease;
 }
-.tsa_td_width_100 {
+.tsa_tw_100perc {
         width: 100%;
 }
-.tsa_td_width_50 {
+.tsa_tw_50perc {
         width: 50%;
 }
 .tsa_td_unlinked_selected {

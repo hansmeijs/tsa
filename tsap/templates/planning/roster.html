@@ -18,48 +18,48 @@
         <div class="sidebar_header">
             <h3>{% trans 'Roster' %}</h3>
         </div>
-        <div class="td_width_200 mx-2 mt-2 mb-4">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
             <input id="id_sidebar_select_period"
                 type="text"
-                class="td_width_200 border_none pointer_show px-2"
+                class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
 
-        <div class="td_width_200 mx-2 mt-2 mb-4">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
             <input id="id_sidebar_select_order"
                 type="text"
-                class="td_width_200 border_none pointer_show px-2"
+                class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
 
-        <div class="td_width_200 mx-2 mt-2 mb-4">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
             <input id="id_sidebar_select_employee"
                 type="text"
-                class="td_width_200 border_none pointer_show px-2"
+                class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
 
-        <div class="td_width_200 mx-2 mt-2 mb-4">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
            <select id="id_sidebar_select_absence"
                 type="text"
-                class="td_width_200 border_none px-2"
+                class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
         </div>
-        <div class="td_width_200 mx-2 mt-2 mb-4">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Rest shifts' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Rest shifts' %}:</h6>
            <select id="id_sidebar_select_restshift"
                 type="text"
-                class="td_width_200 border_none px-2"
+                class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
         </div>
-        <div class="td_width_200 m-2">
-            <h6 id="id_sidebar_select_showall" class="td_width_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
+        <div class="tw_200 m-2">
+            <h6 id="id_sidebar_select_showall" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
         </div>
     </nav>
 {% endblock %}
@@ -198,10 +198,10 @@
 
                         <thead id="id_thead_roster" class="thead-inversXXXe">
                             <tr>
-                                <th class="text_align_left">{% trans 'Date' %}</th>
-                                <th class="text_align_left">{% trans 'Order' %}</th>
-                                <th class="text_align_left">{% trans 'Shift' %}</th>
-                                <th class="text_align_left">{% trans 'Employee' %}</th>
+                                <th class="ta_l">{% trans 'Date' %}</th>
+                                <th class="ta_l">{% trans 'Order' %}</th>
+                                <th class="ta_l">{% trans 'Shift' %}</th>
+                                <th class="ta_l">{% trans 'Employee' %}</th>
                                 <th >{% trans 'Start' %}</th>
                                 <th>
                                     <a id="id_filter_check" href="#" data-value="false">
@@ -215,8 +215,8 @@
                                     </a>
                                 </th>
 
-                                <th class="text_align_right">{% trans 'Break' %}</th>
-                                <th class="text_align_right">{% trans 'Hours' %}</th>
+                                <th class="ta_r">{% trans 'Break' %}</th>
+                                <th class="ta_r">{% trans 'Hours' %}</th>
                                 <th>
                                     <a id="id_filter_status" href="#" data-value="false">
                                         <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">

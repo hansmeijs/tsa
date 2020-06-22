@@ -643,18 +643,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.classList.add("tsa_transparent")
 // --- add width
                 if (j === 1){
-                    el.classList.add("td_width_180")
+                    el.classList.add("tw_180")
                 } else if (j === 3){
-                    el.classList.add("td_width_180");
+                    el.classList.add("tw_180");
                 } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("td_width_060");
+                    el.classList.add("tw_060");
                 } else {
-                    el.classList.add("td_width_090")};
+                    el.classList.add("tw_090")};
 // --- add text_align
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_left")
+                    el.classList.add("ta_l")
                 } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_right");
+                    el.classList.add("ta_r");
                 }
 // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     td.appendChild(el);
 
-                    td.classList.add("td_width_032")
+                    td.classList.add("tw_032")
                     td.classList.add("pt-0")
                 }
             } else {
@@ -785,21 +785,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add width
                 if (j === 1){
-                    el.classList.add("td_width_180")
+                    el.classList.add("tw_180")
                 } else if (j === 2){
-                    el.classList.add("td_width_120");
+                    el.classList.add("tw_120");
                 } else if (j === 3){
-                    el.classList.add("td_width_150");
+                    el.classList.add("tw_150");
                 } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("td_width_060");
+                    el.classList.add("tw_060");
                 } else {
-                    el.classList.add("td_width_090")};
+                    el.classList.add("tw_090")};
 
 // --- add text_align
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_left")
+                    el.classList.add("ta_l")
                 } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_right");
+                    el.classList.add("ta_r");
                 }
 
 // --- add other classes to td
@@ -4134,7 +4134,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
             let el = document.createElement("div");
                 el.innerText = code_value;
-                el.classList.add("mx-1", "td_width_180")
+                el.classList.add("mx-1", "tw_180")
             td.appendChild(el);
         } //  if (pk_int !== selected_customer_pk)
         return [add_to_list, is_selected_pk];
@@ -4711,7 +4711,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MRE_btn_delete.innerText = (mod_upload_dict.isabsence) ? loc.Delete_absence : loc.Remove_employee;
 
     // ---  show only the elements that are used in this selected_btn
-            show_hide_selected_btn_elements("mod_show", selected_btn)
+            show_hide_selected_elements_byClass("mod_show", selected_btn)
 
     // ---  hide 'select employee' and 'input employee' only when isabsence (restshift can't open this modal form)
             show_hide_element_by_id("id_MRE_div_input_employee", !mod_upload_dict.isabsence);

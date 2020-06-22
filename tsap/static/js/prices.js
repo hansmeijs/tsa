@@ -542,8 +542,8 @@ selected_btn = "customer"
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 // --- add width and text_align
-            el.classList.add("td_width_" + field_width[rptName][j])
-            el.classList.add("text_align_" + field_align[rptName][j])
+            el.classList.add("tw_" + field_width[rptName][j])
+            el.classList.add("ta_" + field_align[rptName][j])
 // --- add element to th
             th.appendChild(el)
         };
@@ -574,8 +574,8 @@ selected_btn = "customer"
             td.setAttribute("data-field", fldName )
 
 // --- add width and text_align
-            td.classList.add("td_width_" + field_width[rptName][j])
-            td.classList.add("text_align_" + field_align[rptName][j])
+            td.classList.add("tw_" + field_width[rptName][j])
+            td.classList.add("ta_" + field_align[rptName][j])
 
 // --- add margin to first column
             if ( j === 0) {
@@ -680,7 +680,7 @@ selected_btn = "customer"
                         if (i === 0) {
                             el.innerText = display_list[i]
                             el.classList.add("tsa_ellipsis");
-                            //el.classList.add("td_width_090");
+                            //el.classList.add("tw_090");
                         } else if (i === 5) {
                             if (display_list[i]){
                                 IconChange(el, imgsrc_warning)
@@ -1880,7 +1880,7 @@ selected_btn = "customer"
                 td.classList.add("px-2")
                 td.classList.add("pt-1")
                 td.classList.add("tsa_bc_transparent")
-                td.classList.add("text_align_left")
+                td.classList.add("ta_l")
                 // --- add img to first  td
 
                     el = document.createElement("div");
@@ -1898,7 +1898,7 @@ selected_btn = "customer"
                     const txt = (idx === 0) ? loc.info_billable  : (idx === 1) ? loc.info_not_billable : loc.info_remove_billable;
                     el.innerText = txt
                 }
-                const cls_width = (j === 0) ? "td_width_060" : (j === 1) ? "td_width_150" : "td_width_240"
+                const cls_width = (j === 0) ? "tw_060" : (j === 1) ? "tw_150" : "tw_240"
                 //td.classList.add(cls_width)
                 td.appendChild(el);
             }
@@ -2174,9 +2174,9 @@ selected_btn = "customer"
                     for (let i = 0, td, el; i < 2; i++) {
                         td = tblRow.insertCell(-1);
                         td.classList.add("px-2")
-                        td.classList.add("td_width_090")
+                        td.classList.add("tw_090")
                         td.classList.add("tsa_bc_transparent")
-                        td.classList.add((i === 0) ? "text_align_right" : "text_align_left")
+                        td.classList.add((i === 0) ? "ta_r" : "ta_l")
 
                         el = document.createElement("div");
                         el.innerText = (i === 0) ? pricerate_display : dict.pc_note;

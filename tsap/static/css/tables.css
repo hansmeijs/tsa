@@ -134,6 +134,14 @@
     word-break: break-word;
     display: block;
     overflow: auto;
+    /* PR2020-06-17 see https://stackoverflow.com/questions/41421512/why-does-flex-box-work-with-a-div-but-not-a-table */
+    /* TEST
+    position: absolute;
+    height: 100%;
+    left: 0;
+    top: 0;
+    border-collapse: collapse;
+    */
 }
 
 .tsa_tbl th  {
@@ -166,14 +174,14 @@
     border-top: 1px solid #dee2e6; /* from bootstrap table td */
 }
 
-.text_align_left {
+.ta_l {
     text-align: left;
 }
 
-.text_align_center {
+.ta_c {
     text-align: center;
 }
-.text_align_right {
+.ta_r {
     text-align: right;
 }
 .line_height_normal {
@@ -184,63 +192,67 @@
   display: flex;
   justify-content: center;
 }
-
-.td_height_240 {
+.th_340 {
+    height: 340px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.th_240 {
     height: 240px;
     overflow-x: hidden;
     overflow-y: auto;
 }
 
-.td_width_360 {
+.tw_360 {
     width: 360px;
 }
-.td_width_300 {
+.tw_300 {
     width: 300px;
 }
-.td_width_270 {
+.tw_270 {
     width: 270px;
 }
-.td_width_240 {
+.tw_240 {
     width: 240px;
 }
-.td_width_220 {
+.tw_220 {
     width: 220px;
 }
-.td_width_200 {
+.tw_200 {
     width: 200px;
 }
-.td_width_180 {
+.tw_180 {
     width: 180px;
 }
-.td_width_150 {
+.tw_150 {
     width: 150px;
 }
-.td_width_120 {
+.tw_120 {
     width: 120px;
 }
-.td_width_110 {
+.tw_110 {
     width: 110px;
 }
-.td_width_100 {
+.tw_100 {
     width: 100px;
 }
-.td_width_090 {
+.tw_090 {
     width: 90px;
 }
-.td_width_hours {
+.tw_hours {
     padding: 2px;
     width: 60px;
     }
-.td_width_070 {
-    width: 70px;
+.tw_075 {
+    width: 75px;
 }
-.td_width_060 {
+.tw_060 {
     width: 60px;
 }
-.td_width_032 {
+.tw_032 {
     width: 32px;
 }
-.td_width_016 {
+.tw_016 {
     width: 16px;
 }
 .tbl_border {
@@ -383,7 +395,6 @@
 .tsa_carousel_item {
    height: calc(100vh - 32px);
 }
-
 
 .tsa_flex_1 {
     flex: 1;
