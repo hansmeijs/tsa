@@ -173,7 +173,16 @@
     vertical-align: top;/* from bootstrap table td */
     border-top: 1px solid #dee2e6; /* from bootstrap table td */
 }
-
+.tbl_h_360 {
+    height: 360px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.tbl_h_240 {
+    height: 240px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
 .ta_l {
     text-align: left;
 }
@@ -192,16 +201,7 @@
   display: flex;
   justify-content: center;
 }
-.th_340 {
-    height: 340px;
-    overflow-x: hidden;
-    overflow-y: auto;
-}
-.th_240 {
-    height: 240px;
-    overflow-x: hidden;
-    overflow-y: auto;
-}
+
 
 .tw_360 {
     width: 360px;

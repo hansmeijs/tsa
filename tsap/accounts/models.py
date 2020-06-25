@@ -386,19 +386,13 @@ class Usersetting(Model):
     def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
         # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
         if user and key_str:
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                row.jsonsetting = setting_dict
-            else:
-                if setting_dict:
-                    row = cls(
-                        user=user,
-                        key=key_str,
-                        jsonsetting=setting_dict
-                    )
+            row = cls.objects.get_or_none(user=user, key=key_str)
+            if row is None:
+                row = cls(  user=user,  key=key_str )
+            row.jsonsetting = setting_dict
             row.save()
 
-
+    # TODO get rid of set_selected_pk
     @classmethod
     def set_selected_pk(cls, new_setting, user):  # PR2020-05-24
         # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)

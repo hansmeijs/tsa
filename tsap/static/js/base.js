@@ -452,7 +452,7 @@
     }
 
 //========= get_datamap  ================== PR2019-10-03
-    function get_datamap(data_list, data_map, tblName, is_calc_duration_sum) {
+    function get_datamap(data_list, data_map, tblName) {
         data_map.clear();
         let duration_sum = 0
         if (data_list && data_list.length) {
@@ -461,16 +461,8 @@
                 const pk_str = get_dict_value(item_dict, ["id", "pk"]);
                 // tblName ovverrules table in id, necessary for absence_map
                 const table = (tblName) ? tblName : get_dict_value(item_dict, ["id", "table"]);
-                const map_id = get_map_id(table, pk_str);
+                let map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
-                if (is_calc_duration_sum){
-                    const duration = get_dict_value(item_dict, ["timeduration"]);
-                    const teammember_count = get_dict_value(item_dict, ["tm_count"]);
-                    if(!!duration && !!teammember_count){
-                        const total_duration = duration * teammember_count;
-                        duration_sum += duration * teammember_count;
-                    };
-                }
             }
         }
         return duration_sum
@@ -776,10 +768,12 @@
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
     function get_dateJS_from_dateISO (date_iso) {
         //console.log( "===== get_dateJS_from_dateISO  ========= ");
-        //console.log( "date_iso: ", date_iso);
+        //console.log( "date_iso: ", date_iso, typeof date_iso);
         let date_JS = null;
-        if (!!date_iso){
-            let arr = date_iso.split("-");
+        if (date_iso){
+            // PR2020-06-22 debug: got error because date_iso was Number
+            const date_iso_str = date_iso.toString()
+            const arr = date_iso_str.split("-");
             if (arr.length > 2) {
                 // Month 4 april has index 3
                 date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
@@ -1262,9 +1256,6 @@
                 // therefore Math.floor gives 43970, must be 43971. Use Math.round instead, since tehre are no hours or seconds
                 const excel_zero_date_naive = get_dateJS_from_dateISO_vanilla('1899-12-30');
                 const diff_in_ms = datetime_JS.getTime() - excel_zero_date_naive.getTime();
-                console.log ("excel_zero_date_naive",  excel_zero_date_naive )
-                console.log ("datetime_JS",  datetime_JS )
-                console.log ("diff",  diff_in_ms / (1000 * 3600 * 24) )
 // To calculate the no. of days between two dates
 
                 // PR2020-06-21 DEBUG. value of diff_in_ms = 43970.97736111111 instead of 43971

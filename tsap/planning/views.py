@@ -63,7 +63,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
-
 # ----- get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
@@ -71,36 +70,51 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     interval = 15
                     if request.user.company.interval:
                         interval = request.user.company.interval
-# ----- get datalist_dict
-                    datalist_dict = json.loads(request.POST['download'])
-                    #logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
+# ----- get datalist_request
+                    datalist_request = json.loads(request.POST['download'])
+                    logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
 # ----- get settings -- first get settings, these are used in other downloads
-                    setting_dict = datalist_dict.get('setting')
-                    new_setting_dict, selected_customer_pk, selected_order_pk, selected_scheme_pk,\
-                    selected_employee_pk, selected_page,\
-                    selected_btn = download_setting(setting_dict, user_lang, comp_timezone, timeformat, interval, request)
+                    # download_setting will update usersetting with items in request_item, and retrieve saved settings
+                    request_item = datalist_request.get('setting')
+                    new_setting_dict=  download_setting(request_item, user_lang, comp_timezone, timeformat, interval, request)
+# new_setting_dict: {'user_lang': 'nl', 'comp_timezone': 'Europe/Amsterdam',
+                    # 'timeformat': '24h', 'interval': 5, 'selected_pk': {'sel_customer_pk': 748, 'sel_order_pk': 1520, 'sel_scheme_pk': 2111,
+                    # 'sel_paydatecode_pk': 0,
+                    # 'sel_paydate_iso': '2020-05-31'}, 'sel_page': 'page_payroll', 'sel_btn': 'payroll'}
+                    logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                    saved_page = new_setting_dict.get('sel_page')
+                    saved_btn = new_setting_dict.get('sel_btn')
+                    saved_customer_pk = new_setting_dict.get('sel_customer_pk')
+                    saved_order_pk = new_setting_dict.get('sel_order_pk')
+                    saved_scheme_pk = new_setting_dict.get('sel_scheme_pk')
+                    saved_employee_pk = new_setting_dict.get('sel_employee_pk')
+                    sel_paydatecode_pk = new_setting_dict.get('sel_paydatecode_pk')
+                    sel_paydate_iso = new_setting_dict.get('sel_paydate_iso')
+                    logger.debug('sel_paydatecode_pk: ' + str(sel_paydatecode_pk))
+                    logger.debug('sel_paydate_iso: ' + str(sel_paydate_iso))
+                    logger.debug('sel_btn: ' + str(saved_btn))
+
                     if new_setting_dict:
                         datalists['setting_dict'] = new_setting_dict
-                        # page_customer: {btn: "planning"}
 # ----- company setting
-                    table_dict = datalist_dict.get('companysetting')
-                    if table_dict:
-                        companysetting_dict = cd.get_companysetting(table_dict, user_lang, request)
+                    request_item = datalist_request.get('companysetting')
+                    if request_item:
+                        companysetting_dict = cd.get_companysetting(request_item, user_lang, request)
                         datalists['companysetting_dict'] = companysetting_dict
 # ----- locale
-                    table_dict = datalist_dict.get('locale')
-                    if table_dict:
-                        # table_dict: {page: "employee"}
-                        datalists['locale_dict'] = loc.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval)
+                    request_item = datalist_request.get('locale')
+                    if request_item:
+                        # request_item: {page: "employee"}
+                        datalists['locale_dict'] = loc.get_locale_dict(request_item, user_lang, comp_timezone, timeformat, interval)
 # ----- quicksave
-                    table_dict = datalist_dict.get('quicksave')
-                    if table_dict:
+                    request_item = datalist_request.get('quicksave')
+                    if request_item:
                         # get quicksave from Usersetting
                         quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
                         datalists['quicksave'] = quicksave_dict
 # ----- submenu
-                    table_dict = datalist_dict.get('submenu')
-                    if table_dict:
+                    request_item = datalist_request.get('submenu')
+                    if request_item:
                         submenu_dict = {}
                         if request.user.is_role_system_and_perm_admin:
                             submenu_dict['user_is_role_system_and_perm_admin'] = True
@@ -109,134 +123,129 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if submenu_dict:
                             datalists['submenu_dict'] = submenu_dict
 # ----- company
-                    table_dict = datalist_dict.get('company')
-                    if table_dict:
+                    request_item = datalist_request.get('company')
+                    if request_item:
                         company_dict = cust_dicts.create_company_list(company=request.user.company)
                         if company_dict:
                             datalists['company_dict'] = company_dict
 # ----- companyinvoice
-                    table_dict = datalist_dict.get('companyinvoice')
-                    if table_dict:
+                    request_item = datalist_request.get('companyinvoice')
+                    if request_item:
                         companyinvoice_list= cust_dicts.create_companyinvoice_list(company=request.user.company)
                         if companyinvoice_list:
                             datalists['companyinvoice_list'] = companyinvoice_list
 # ----- abscat
-                    table_dict = datalist_dict.get('abscat')
-                    if table_dict:
+                    request_item = datalist_request.get('abscat')
+                    if request_item:
                         dict_list = cust_dicts.create_absencecategory_list(request)
                         if dict_list:
                             datalists['abscat_list'] = dict_list
 # ----- employee
-                    table_dict = datalist_dict.get('employee_list')
-                    if table_dict:
+                    request_item = datalist_request.get('employee_list')
+                    if request_item:
                         dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
                         datalists['employee_list'] = dict_list
 # ----- customer
-                    table_dict = datalist_dict.get('customer_list')
-                    if table_dict:
+                    request_item = datalist_request.get('customer_list')
+                    if request_item:
                         dict_list = cust_dicts.create_customer_list(
                             company=request.user.company,
-                            is_absence=table_dict.get('isabsence'),
-                            is_template=table_dict.get('istemplate'),
-                            inactive=table_dict.get('inactive'))
+                            is_absence=request_item.get('isabsence'),
+                            is_template=request_item.get('istemplate'),
+                            inactive=request_item.get('inactive'))
                         datalists['customer_list'] = dict_list
 # ----- order
-                    table_dict = datalist_dict.get('order_list')
-                    if table_dict:
+                    request_item = datalist_request.get('order_list')
+                    if request_item:
                         dict_list = cust_dicts.create_order_list(
                             company=request.user.company,
                             user_lang=user_lang,
-                            is_absence=table_dict.get('isabsence'),
-                            is_template=table_dict.get('istemplate'),
-                            is_inactive=table_dict.get('inactive'))
+                            is_absence=request_item.get('isabsence'),
+                            is_template=request_item.get('istemplate'),
+                            is_inactive=request_item.get('inactive'))
                         datalists['order_list'] = dict_list
 
 # ----- order_schemes_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
-                    table_dict = datalist_dict.get('order_schemes_list')
-                    if table_dict:
-                        download_order_schemes_list(table_dict, datalists, selected_order_pk, selected_scheme_pk,
-                                                    selected_btn, user_lang, comp_timezone, request)
+                    request_item = datalist_request.get('order_schemes_list')
+                    if request_item:
+                        download_order_schemes_list(request_item, datalists, saved_order_pk, saved_scheme_pk,
+                                                    saved_btn, user_lang, comp_timezone, request)
 
 # ----- schemes_dict - dict with all schemes with shifts, teams, schemeitems and teammembers
-                    table_dict = datalist_dict.get('schemes_dict')
-                    if table_dict:
+                    request_item = datalist_request.get('schemes_dict')
+                    if request_item:
                         # get all schemes, because of validation schemenames
                         dict_list = d.create_schemes_extended_dict(
-                            filter_dict=table_dict,
+                            filter_dict=request_item,
                             company=request.user.company,
                             comp_timezone=comp_timezone,
                             user_lang=user_lang)
                         datalists['schemes_dict'] = dict_list
 # ----- scheme
-                    table_dict = datalist_dict.get('scheme')
-                    if table_dict:
+                    request_item = datalist_request.get('scheme')
+                    if request_item:
                         # get all schemes, because of validation schemenames
                         dict_list = d.create_scheme_list(
-                            filter_dict=table_dict,
+                            filter_dict=request_item,
                             company=request.user.company,
                             comp_timezone=comp_timezone,
                             user_lang=user_lang)
                         datalists['scheme_list'] = dict_list
 # ----- shift
-                    table_dict = datalist_dict.get('shift')
-                    if table_dict:
+                    request_item = datalist_request.get('shift')
+                    if request_item:
                         dict_list = d.create_shift_list(
-                            filter_dict=table_dict,
+                            filter_dict=request_item,
                             company=request.user.company,
                             user_lang=user_lang)
                         datalists['shift_list'] = dict_list
 # ----- team
-                    table_dict = datalist_dict.get('team')
-                    if table_dict:
+                    request_item = datalist_request.get('team')
+                    if request_item:
                         dict_list = d.create_team_list(
-                            filter_dict=table_dict,
+                            filter_dict=request_item,
                             company=request.user.company)
                         datalists['team_list'] = dict_list
 # ----- teammember
-                    table_dict = datalist_dict.get('teammember_list')
-                    if table_dict:
+                    request_item = datalist_request.get('teammember_list')
+                    if request_item:
                         dict_list = ed.create_teammember_list(
-                            filter_dict=table_dict,
+                            filter_dict=request_item,
                             company=request.user.company,
                             user_lang=user_lang)
-                        # is_absence = f.get_dict_value(table_dict, ('is_absence',), False)
+                        # is_absence = f.get_dict_value(request_item, ('is_absence',), False)
                         #key_str = 'absence_list' if is_absence else 'teammember_list'
                         datalists['teammember_list'] = dict_list
-
 # ----- schemeitem
-                    table_dict = datalist_dict.get('schemeitem')
-                    if table_dict:
-                        dict_list = d.create_schemeitem_list(filter_dict=table_dict, company=request.user.company)
+                    request_item = datalist_request.get('schemeitem')
+                    if request_item:
+                        dict_list = d.create_schemeitem_list(filter_dict=request_item, company=request.user.company)
                         datalists['schemeitem_list'] = dict_list
-
 # ----- price -- used in page price
-                    table_dict = datalist_dict.get('price')
-                    if table_dict:
-                        datalists['price_list'] = p.create_price_list( filter_dict=table_dict, request=request)
-
+                    request_item = datalist_request.get('price')
+                    if request_item:
+                        datalists['price_list'] = p.create_price_list( filter_dict=request_item, request=request)
 # ----- pricecode
-                    table_dict = datalist_dict.get('pricecode')
-                    if table_dict:
-                        rosterdate = f.get_dict_value(table_dict, 'rosterdate')
+                    request_item = datalist_request.get('pricecode')
+                    if request_item:
+                        rosterdate = f.get_dict_value(request_item, 'rosterdate')
                         datalists['pricecode_list'] = p.create_pricecode_list(rosterdate, request=request)
-
 # ----- 'planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'
                     for key in ('planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'):
-                        table_dict = datalist_dict.get(key)
+                        request_item = datalist_request.get(key)
                         # also get planning_period_dict at startup of page  when btn = 'planning'
                         # also get calendar_period_dict at startup of page when btn = 'calendar'
-                        if (table_dict is not None) or \
-                                (key == 'planning_period' and selected_btn == 'planning') or \
-                                (key == 'payroll_period' and selected_btn == 'overview') or \
-                                (key == 'calendar_period' and selected_btn == 'calendar'):
+                        if (request_item is not None) or \
+                                (key == 'planning_period' and saved_btn == 'planning') or \
+                                (key == 'payroll_period' and saved_btn == 'payrollperiod') or \
+                                (key == 'calendar_period' and saved_btn == 'calendar'):
                             # save new period and retrieve saved period
-                            datalists[key] = d.period_get_and_save(key, table_dict,
+                            datalists[key] = d.period_get_and_save(key, request_item,
                                                                          comp_timezone, timeformat, user_lang, request)
-
 # ----- emplhour (roster page)
-                    table_dict = datalist_dict.get('emplhour')
+                    request_item = datalist_request.get('emplhour')
                     roster_period_dict = datalists.get('roster_period')
-                    if table_dict and roster_period_dict:
+                    if request_item and roster_period_dict:
                         # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
                         # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
                         # roster_period_dict is already retrieved
@@ -249,19 +258,18 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         datalists['emplhour_list'] = emplhour_list
 # ----- overlap
-                    table_dict = datalist_dict.get('overlap')
-                    if table_dict:
+                    request_item = datalist_request.get('overlap')
+                    if request_item:
                         datefirst_iso = f.get_dict_value( datalists, ('roster_period', 'period_datefirst'))
                         datelast_iso = f.get_dict_value( datalists, ('roster_period', 'period_datelast'))
-                        employee_pk = table_dict.get('employee_pk')
+                        employee_pk = request_item.get('employee_pk')
                         overlap_dict = f.check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request)
                         if overlap_dict:
-                            logger.debug('overlap_dict: ' + str(overlap_dict))
                             datalists['overlap_dict'] = overlap_dict
 # ----- review
-                    table_dict = datalist_dict.get('review')
+                    request_item = datalist_request.get('review')
                     review_period_dict = datalists.get('review_period')
-                    if table_dict and review_period_dict:
+                    if request_item and review_period_dict:
                         # btn 'employee' / 'customer' is stored in  review_period_dict
                         btn_select = review_period_dict.get('btn')
                         # review_period_dict is already retrieved
@@ -275,68 +283,78 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 period_dict=review_period_dict,
                                 comp_timezone=comp_timezone,
                                 request=request)
+# ----- payroll_list
+                    request_item = datalist_request.get('payroll_list')
+                    if request_item:
+                        datalists['payroll_abscat_list'] = \
+                            ed.create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request)
 
-# ----- payroll
-                    table_dict = datalist_dict.get('payroll_list')
-                    payroll_period_dict = datalists.get('payroll_period')
-                    if table_dict and payroll_period_dict:
-                        datalists['payroll_list'], datalists['payroll_abscat_list'], datalists['paydatecodes_inuse_list'] = ed.create_payroll_list(
-                            period_dict=payroll_period_dict, request=request)
+                        datalists['payroll_period_agg_list'] = \
+                            ed.create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
+
+                        datalists['payroll_period_detail_list'] = \
+                            ed.create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, request)
+
+                        datalists['paydatecodes_inuse_list'] = \
+                            ed.create_paydatecodes_inuse_list(period_dict=request_item, request=request)
+
+                        datalists['paydates_inuse_list'] = \
+                            ed.create_paydates_inuse_list(period_dict=request_item, request=request)
 
 # - paydatecode_list
-                    table_dict = datalist_dict.get('paydatecode_list')
-                    if table_dict:
-                        ed.create_paydatecode_list(table_dict, datalists, request)
+                    request_item = datalist_request.get('paydatecode_list')
+                    if request_item:
+                        ed.create_paydatecode_list(request_item, datalists, request)
 
 # ----- employee_calendar
-                    table_dict = datalist_dict.get('employee_calendar')
+                    request_item = datalist_request.get('employee_calendar')
                     calendar_period_dict = datalists.get('calendar_period')
                     # TODO 'employee_calendar' and 'employee_planning' use same function create_employee_planning
                     # calendar is for one employee / one week, planningcan be for multiple
                     # TODO merge both
                     # also get employee_calendar at startup of page
                     # empty dict (dict = {} ) is also Falsey
-                    if (table_dict is not None and calendar_period_dict) or \
-                            (selected_page == 'page_employee' and selected_btn == 'calendar' and calendar_period_dict):
+                    if (request_item is not None and calendar_period_dict) or \
+                            (saved_page == 'page_employee' and saved_btn == 'calendar' and calendar_period_dict):
 
-                        download_employee_calendar(table_dict, calendar_period_dict, datalists, selected_customer_pk,
-                                                   selected_order_pk, user_lang, comp_timezone, timeformat, request)
+                        download_employee_calendar(request_item, calendar_period_dict, datalists, saved_customer_pk,
+                                                   saved_order_pk, user_lang, comp_timezone, timeformat, request)
 
 # ----- customer_calendar
-                    table_dict = datalist_dict.get('customer_calendar')
+                    request_item = datalist_request.get('customer_calendar')
                     # also get customer_planning at startup of page
-                    if (table_dict is not None and calendar_period_dict) or \
-                            (selected_page == 'page_customer' and selected_btn == 'calendar' and calendar_period_dict):
+                    if (request_item is not None and calendar_period_dict) or \
+                            (saved_page == 'page_customer' and saved_btn == 'calendar' and calendar_period_dict):
 
-                        download_customer_calendar(table_dict, calendar_period_dict, datalists, selected_order_pk,
+                        download_customer_calendar(request_item, calendar_period_dict, datalists, saved_order_pk,
                                                    user_lang, comp_timezone, timeformat, request)
 
 
 # ----- employee_planning
-                    table_dict = datalist_dict.get('employee_planning')
+                    request_item = datalist_request.get('employee_planning')
                     planning_period_dict = datalists.get('planning_period')
                     # also get employee_planning at startup of page
                     # employee_planning is also called by page_customer
-                    if (table_dict is not None and planning_period_dict) or \
-                            (selected_btn == 'planning' and planning_period_dict):
-                        download_employee_planning(table_dict, planning_period_dict, datalists, selected_customer_pk,
-                                                   selected_order_pk, selected_employee_pk, selected_page,
+                    if (request_item is not None and planning_period_dict) or \
+                            (saved_btn == 'planning' and planning_period_dict):
+                        download_employee_planning(request_item, planning_period_dict, datalists, saved_customer_pk,
+                                                   saved_order_pk, saved_employee_pk, saved_page,
                                                    user_lang, comp_timezone, timeformat, request)
 
 # ----- customer_planning
-                    table_dict = datalist_dict.get('customer_planning')
+                    request_item = datalist_request.get('customer_planning')
                     # also get customer_planning at startup of page
-                    if (table_dict is not None and planning_period_dict) or \
-                            (selected_page == 'page_customer' and selected_btn == 'planning' and planning_period_dict):
-                        download_customer_planning(table_dict, planning_period_dict, datalists, selected_customer_pk,
-                                                   selected_order_pk, user_lang, comp_timezone, timeformat, request)
+                    if (request_item is not None and planning_period_dict) or \
+                            (saved_page == 'page_customer' and saved_btn == 'planning' and planning_period_dict):
+                        download_customer_planning(request_item, planning_period_dict, datalists, saved_customer_pk,
+                                                   saved_order_pk, user_lang, comp_timezone, timeformat, request)
 
 # ----- rosterdate_check
-                    table_dict = datalist_dict.get('rosterdate_check')
-                    if table_dict:
+                    request_item = datalist_request.get('rosterdate_check')
+                    if request_item:
                         # rosterdate_check: {rosterdate: "2019-11-14"}
                         # rosterdate_check: {mode: "delete"}
-                        datalists['rosterdate_check'] = d.get_rosterdate_check(table_dict, request)
+                        datalists['rosterdate_check'] = d.get_rosterdate_check(request_item, request)
 
 # 9. return datalists
         # PR2020-05-23 debug: datalists = {} gives parse error.
@@ -349,44 +367,71 @@ class DatalistDownloadView(View):  # PR2019-05-23
         return HttpResponse(datalists_json)
 
 
-def download_setting(setting_dict, user_lang, comp_timezone, timeformat, interval, request):
-    # setting: {page_customer: {mode: "get"},
-    #          selected_pk: {mode: "get"}}
-
-    selected_customer_pk, selected_order_pk, selected_scheme_pk = None, None, None
-    selected_employee_pk, selected_page, selected_btn = None, None, None
+def download_setting(request_item, user_lang, comp_timezone, timeformat, interval, request):
+    #logger.debug(' --- download_setting --- ' )
+    #logger.debug('request_item: ' + str(request_item) )
 
     new_setting_dict = {'user_lang': user_lang,
                         'comp_timezone': comp_timezone,
                         'timeformat': timeformat,
                         'interval': interval}
-    if setting_dict:
-        for key in setting_dict:
-            saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
-            if saved_setting_dict:
-                new_setting_dict[key] = saved_setting_dict
-                if key == 'selected_pk':
-                    selected_customer_pk = saved_setting_dict.get('sel_customer_pk')
-                    selected_order_pk = saved_setting_dict.get('sel_order_pk')
-                    selected_scheme_pk = saved_setting_dict.get('sel_scheme_pk')
-                    selected_employee_pk = saved_setting_dict.get('sel_employee_pk')
-                elif key[:4] == 'page':
-                    # if 'page_' in request: and selected_btn == 'planning': also retrieve period
-                    selected_page = key
+
+    # request_item: {'selected_pk': {'sel_paydatecode_pk': 23, 'sel_paydate_iso': '2020-05-22'}}
+    if request_item:
+
+# - always get selected pks from key 'selected_pk'
+        key = 'selected_pk'
+        has_changed = False
+        sel_keys = ('sel_customer_pk', 'sel_order_pk', 'sel_scheme_pk',
+                    'sel_employee_pk', 'sel_paydatecode_pk', 'sel_paydate_iso')
+
+        saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+        logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
+
+        request_dict = {}
+        new_selected_pk_dict = {}
+        if request_item:
+            request_dict = request_item.get(key)
+        for sel_key in sel_keys:
+            saved_value = saved_setting_dict.get(sel_key)
+            new_value = saved_value
+            if request_dict and sel_key in request_dict:
+                request_value = request_dict.get(sel_key)
+                if request_value is None:
+                    if saved_value is not None:
+                        has_changed = True
+                elif request_value != saved_value:
+                    new_value = request_value
+                    has_changed = True
+            if new_value is not None:
+                new_selected_pk_dict[sel_key] = new_value
+                new_setting_dict[sel_key] = new_value
+        if has_changed:
+            Usersetting.set_jsonsetting(key, new_selected_pk_dict, request.user)
+
+# - get rest of keys
+        for key in request_item:
+            if key != 'selected_pk':
+                saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+                if key[:4] == 'page':
+                    # if 'page_' in request: and saved_btn == 'planning': also retrieve period
+                    new_setting_dict['sel_page'] = key
                     btn = saved_setting_dict.get('btn')
                     if btn:
-                        selected_btn = btn
-    return new_setting_dict, selected_customer_pk, selected_order_pk, selected_scheme_pk, selected_employee_pk, selected_page, selected_btn
+                        new_setting_dict['sel_btn'] = btn
+                else:
+                    new_setting_dict[key] = saved_setting_dict.get(key)
+    return new_setting_dict
 
 
-def download_order_schemes_list(table_dict, datalists, selected_order_pk, selected_scheme_pk,selected_btn, user_lang, comp_timezone, request):
+def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_scheme_pk,saved_btn, user_lang, comp_timezone, request):
 
-    new_order_pk = table_dict.get('order_pk')
-    is_template = table_dict.get('istemplate', False)
-    if 'isabsence' in table_dict:
-        is_absence = table_dict.get('isabsence', False)
+    new_order_pk = request_item.get('order_pk')
+    is_template = request_item.get('istemplate', False)
+    if 'isabsence' in request_item:
+        is_absence = request_item.get('isabsence', False)
     else:
-        is_absence = (selected_btn == 'btn_absence')
+        is_absence = (saved_btn == 'btn_absence')
     logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
     absence_customer_pk = None
     if is_template:
@@ -407,7 +452,7 @@ def download_order_schemes_list(table_dict, datalists, selected_order_pk, select
     elif new_order_pk is None:
         # get saved order if no new_order given (happens at opening of page),
         # not when is_template or is_absence
-        new_order_pk = selected_order_pk
+        new_order_pk = saved_order_pk
 
     filter_dict = {'customer_pk': absence_customer_pk, 'order_pk': new_order_pk, 'isabsence': is_absence}
     # PR2020-05-23 get all all schemes, shifts, teams, schemeitems and teammembers of selected order
@@ -424,16 +469,17 @@ def download_order_schemes_list(table_dict, datalists, selected_order_pk, select
         # in template mode or absence mode: don't save setting
         selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
                             'sel_order_pk': checked_order_pk}
-    elif checked_order_pk == selected_order_pk:
+    elif checked_order_pk == saved_order_pk:
         # on opening page: order_pk has not changed: don't reset scheme_pk, dont update settings
         selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
                             'sel_order_pk': checked_order_pk,
-                            'sel_scheme_pk': selected_scheme_pk}
+                            'sel_scheme_pk': saved_scheme_pk}
     else:
         # when order has changed: update settings, reset scheme_pk in settings
         new_setting = {'sel_customer_pk': checked_customer_pk,
                        'sel_order_pk': checked_order_pk,
                        'sel_scheme_pk': 0}
+        # TODO get rid of set_selected_pk
         selected_pk_dict = Usersetting.set_selected_pk(new_setting, request.user)
 
     logger.debug('selected_pk_dict' + str(selected_pk_dict))
@@ -451,7 +497,7 @@ def download_order_schemes_list(table_dict, datalists, selected_order_pk, select
             datalists['setting_dict']['selected_pk'] = datalists_selected_pk_dict
 
 
-def download_employee_calendar(table_dict, calendar_period_dict, datalists, selected_customer_pk, selected_order_pk,
+def download_employee_calendar(table_dict, calendar_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
     logger.debug('table_dict: ' + str(table_dict))
 
@@ -465,9 +511,9 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, sele
         if order_pk is None:
             customer_pk = table_dict.get('customer_pk')
     else:
-        order_pk = selected_order_pk
+        order_pk = saved_order_pk
         if order_pk is None:
-            customer_pk = selected_customer_pk
+            customer_pk = saved_customer_pk
 
     # logger.debug('employee_pk: ' + str(employee_pk))
     # logger.debug('customer_pk: ' + str(customer_pk))
@@ -501,11 +547,11 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, sele
         datalists['logfile'] = logfile
 
 
-def download_customer_calendar(table_dict, calendar_period_dict, datalists, selected_order_pk,
+def download_customer_calendar(table_dict, calendar_period_dict, datalists, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
     logger.debug('table_dict: ' + str(table_dict))
     # selected order is retrieved table_dict 'customer_calendar'.
-    # iF not provided: use selected_order_pk
+    # iF not provided: use saved_order_pk
     # order_pk cannot be blank
     # logger.debug('table_dict: customer_calendar' + str(table_dict))
 
@@ -513,7 +559,7 @@ def download_customer_calendar(table_dict, calendar_period_dict, datalists, sele
     if table_dict:
         order_pk = table_dict.get('order_pk')
     if order_pk is None:
-        order_pk = selected_order_pk
+        order_pk = saved_order_pk
 
     datefirst_iso = calendar_period_dict.get('period_datefirst')
     datelast_iso = calendar_period_dict.get('period_datelast')
@@ -530,8 +576,8 @@ def download_customer_calendar(table_dict, calendar_period_dict, datalists, sele
     datalists['customer_calendar_list'] = dict_list
 
 
-def download_employee_planning(table_dict, planning_period_dict, datalists, selected_customer_pk, selected_order_pk,
-                                  selected_employee_pk, selected_page, user_lang, comp_timezone, timeformat, request):
+def download_employee_planning(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
+                                  saved_employee_pk, saved_page, user_lang, comp_timezone, timeformat, request):
 
     customer_pk = None
     skip_restshifts = False
@@ -548,12 +594,12 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, sele
         skip_restshifts = table_dict.get('skip_restshifts', False)
         orderby_rosterdate_customer = table_dict.get('orderby_rosterdate_customer', False)
     else:
-        employee_pk = selected_employee_pk
-        order_pk = selected_order_pk
+        employee_pk = saved_employee_pk
+        order_pk = saved_order_pk
         if order_pk is None:
-            customer_pk = selected_customer_pk
+            customer_pk = saved_customer_pk
 
-        add_empty_shifts = True if selected_page == 'page_customer' else False
+        add_empty_shifts = True if saved_page == 'page_customer' else False
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
@@ -575,7 +621,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, sele
     datalists['logfile'] = logfile
 
 
-def download_customer_planning(table_dict, planning_period_dict, datalists, selected_customer_pk, selected_order_pk,
+def download_customer_planning(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
     customer_pk = None
     # logger.debug('table_dict: customer_planning' + str(table_dict))
@@ -585,9 +631,9 @@ def download_customer_planning(table_dict, planning_period_dict, datalists, sele
         if order_pk is None:
             customer_pk = table_dict.get('customer_pk')
     else:
-        order_pk = selected_order_pk
+        order_pk = saved_order_pk
         if order_pk is None:
-            customer_pk = selected_customer_pk
+            customer_pk = saved_customer_pk
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
@@ -2589,12 +2635,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                 eplh_update_list = []
                 check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
                 clear_overlap_list = [] # clear_overlap_list contains emplhour_pk's that must be cleared:
-# delete emplhour record:
-    # upload_dict: {'id': {'pk': 6437, 'ppk': 5968, 'table': 'emplhour', 'isabsence': True, 'mode': 'mod_absence', 'rowindex': 13, 'delete': True},
-                # 'employee': {'field': 'employee', 'update': True},
-                # 'abscat': {'table': 'order', 'isabsence': True, 'pk': 1426, 'ppk': 696, 'code': 'Vakantie'}}
-# remove employee from
-    # upload_dict: {'id': {'pk': 6449, 'ppk': 5980, 'table': 'emplhour', 'isabsence': True, 'mode': 'mod_absence', 'rowindex': 14, 'delete': True}}
 
 # 6. get iddict variables
                 id_dict = upload_dict.get('id')
@@ -2909,7 +2949,7 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
             # set absence to zero on public holidays and weekends
             rosterdate_dte = parent_orderhour.rosterdate
             is_weekend = (rosterdate_dte.isoweekday() > 5) # saturday = 6, sunday = 7
-            is_publicholiday, is_companyholiday = d.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
+            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = d.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
             if not is_weekend and not is_publicholiday:
                 #logger.debug('absent_employee: ' + str(absent_employee))
                 #logger.debug('absent_employee.workhours: ' + str(absent_employee.workhours))
@@ -4359,44 +4399,49 @@ def update_paydates_in_paydatecode(rosterdate_dte, request):  # PR2020-06-19
 
     paydatecodes = m.Paydatecode.objects.filter(company=request.user.company)
     for paydatecode in paydatecodes:
+        recalculate_and_save_paydatecode(rosterdate_dte, paydatecode)
+
+
+def recalculate_and_save_paydatecode(rosterdate_dte, paydatecode, skip_save=False):  # PR2020-06-22
+    # update the paydates of all paydatecodes to the nearest date from rosterdate_dte
+    logger.debug('  ')
+    logger.debug(' --- recalculate_and_save_paydatecode --- ')
+    logger.debug('new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))
+    new_paydate_dte = None
+    startdate_of_period = None
+    if rosterdate_dte and paydatecode:
         recurrence = paydatecode.recurrence
         paydate_dte = paydatecode.paydate
-
-        #logger.debug('paydatecode.code: ' + str(paydatecode.code))
-        #logger.debug('recurrence: ' + str(paydatecode.recurrence))
-        #logger.debug('paydate_dte: ' + str(paydate_dte) + ' ' + str(type(paydate_dte)))
+        logger.debug('paydatecode.recurrence: ' + str(paydatecode.recurrence) )
 
         new_paydate_dte = None
         if recurrence in ('weekly', 'biweekly'):
+
+            logger.debug('paydate_dte: ' + str(paydate_dte) + ' ' + f.format_WDMY_from_dte(paydate_dte, 'nl'))
             # floor_division_part = days_diff // quotient  # // floor division returns the integral part of the quotient.
             # The % (modulo) operator yields the remainder from the division of the first argument by the second.
             #  16 // 14 =  1     16 % 14 =  2
             # -16 // 14 = -2    -16 % 14 = 12
             days_diff = f.get_datediff_days_from_dateOBJ(rosterdate_dte, paydate_dte)
-            quotient = 7  if recurrence == 'weekly' else 14
+            quotient = 7 if recurrence == 'weekly' else 14
             remainder = days_diff % quotient  # % modulus returns the decimal part (remainder) of the quotient
             new_paydate_dte = f.add_days_to_date(rosterdate_dte, remainder)
-
-            #logger.debug('days_diff: ' + str(days_diff))
-            #logger.debug('quotient: ' + str(quotient))
-            #logger.debug('remainder: ' + str(remainder))
+            startdate_of_period = f.add_days_to_date(new_paydate_dte, 1 - quotient)
 
         elif recurrence == "monthly":
 # - check if rosterday_dayofmonth is greater than paydate_dayofmonth. If so: paydete is in next month
             paydate_dayofmonth = paydatecode.dayofmonth
+            logger.debug('paydate_dayofmonth: ' + str(paydate_dayofmonth))
             rosterday_dayofmonth = rosterdate_dte.day
+            logger.debug('rosterday_dayofmonth: ' + str(rosterday_dayofmonth))
             add_one_month = (rosterday_dayofmonth > paydate_dayofmonth)
+            logger.debug('add_one_month: ' + str(add_one_month))
 
-            #logger.debug('paydate_dayofmonth: ' + str(paydate_dayofmonth) + ' ' + str(type(paydate_dayofmonth)))
-            #logger.debug('rosterday_dayofmonth: ' + str(rosterday_dayofmonth) + ' ' + str(type(rosterday_dayofmonth)))
-            #logger.debug('add_one_month: ' + str(add_one_month) + ' ' + str(type(add_one_month)))
-
-# - get the first day of the month in which the hext closing day occurs
+# - get the first day of the month in which the next closing day occurs
             if add_one_month:
                 closingday_firstofmonth_dte = f.get_firstof_nextmonth(rosterdate_dte)
             else:
                 closingday_firstofmonth_dte = f.get_firstof_month(rosterdate_dte)
-                #logger.debug('closingday_firstofmonth_dte: ' + str(closingday_firstofmonth_dte) + ' ' + str(type(closingday_firstofmonth_dte)))
 
 # - get the new closing day, get last day of the month if new closing day does not exist (Feb 30)
             if closingday_firstofmonth_dte:
@@ -4404,29 +4449,53 @@ def update_paydates_in_paydatecode(rosterdate_dte, request):  # PR2020-06-19
                     closingday_month = closingday_firstofmonth_dte.month
                     closingday_year = closingday_firstofmonth_dte.year
                     new_paydate_dte = date(closingday_year, closingday_month, paydate_dayofmonth)
-                    #logger.debug('closingday_month: ' + str(closingday_month) + ' ' + str(type(closingday_month)))
-                    #logger.debug('closingday_year: ' + str(closingday_year) + ' ' + str(type(closingday_year)))
-                    #logger.debug('new_paydate_dte: ' + str(new_paydate_dte) + ' ' + str(type(new_paydate_dte)))
                 except:
                     new_paydate_dte = f.get_lastof_month(closingday_firstofmonth_dte)
-                    #logger.debug('except new_paydate_dte: ' + str(new_paydate_dte) + ' ' + str(type(new_paydate_dte)))
+
+# get startdate of period when monthly recurrence
+            # startdate_of_period is 1 day after paydate_dayofmonth
+            startdate_dayofmonth = 1 + rosterday_dayofmonth
+            if add_one_month:
+                # startdate_of_period is in this month
+                try:
+                    startdate_of_period = date(rosterdate_dte.year, rosterdate_dte.month, startdate_dayofmonth)
+                except:
+                    # if date does not exist: get first of next month instead
+                    startdate_of_period = f.get_firstof_nextmonth(rosterdate_dte)
+            else:
+        # startdate_of_period is in previous month,  1 day after  paydate_dayofmonth
+                try:
+                    firstof_previousmonth_dte = f.add_month_to_firstof_month(closingday_firstofmonth_dte, -1)
+                    startdate_of_period = date(firstof_previousmonth_dte.year, firstof_previousmonth_dte.month, startdate_dayofmonth)
+                except:
+                    # if date does not exist: get first of this month instead
+                    startdate_of_period = f.get_firstof_month(rosterdate_dte)
+                    closingday_firstofmonth_dte = f.get_firstof_month(rosterdate_dte)
 
         elif recurrence == 'irregular':
 # - get the first closing day that is greater than the rosterdate from the table 'Paydateitems'
-            # TODO logger.debug for testing only
-            #paydateitems = m.Paydateitem.objects.filter( paydatecode=paydatecode ).order_by('paydate')
-            #for paydateitem in paydateitems:
-                #logger.debug('paydateitem.paydate: ' + str(paydateitem.paydate) + ' ' + str(type(paydateitem.paydate)))
-
+            # TODO or equal?? test it
             paydateitem = m.Paydateitem.objects.filter(
                 paydatecode=paydatecode,
                 paydate__gt=rosterdate_dte
             ).order_by('paydate').first()
             if paydateitem:
                 new_paydate_dte = paydateitem.paydate
+                logger.debug('paydateitem.paydate: ' + str(paydateitem.paydate) + ' ' + f.format_WDMY_from_dte(paydateitem.paydate, 'nl'))
 
-        #logger.debug('new_paydate_dte: ' + str(new_paydate_dte) + ' ' + str(type(new_paydate_dte)))
-        paydatecode.paydate = new_paydate_dte
-        # save without (request=request) keeps modifiedby and modifieddate
-        paydatecode.save()
-        #logger.debug('paydatecode.paydate: ' + str(paydatecode.paydate) + ' ' + str(type(paydatecode.paydate)))
+# - get the first closing day before new_paydate_dte
+                first_paydateitem = m.Paydateitem.objects.filter(
+                    paydatecode=paydatecode,
+                    paydate__lt=new_paydate_dte
+                ).order_by('-paydate').first()
+                if first_paydateitem:
+                    startdate_of_period = first_paydateitem.paydate
+
+        if not skip_save:
+            paydatecode.paydate = new_paydate_dte
+            # save without (request=request) keeps modifiedby and modifieddate
+            paydatecode.save()
+
+    logger.debug('new_paydate_dte: ' + str(new_paydate_dte) + ' ' + f.format_WDMY_from_dte(new_paydate_dte, 'nl'))
+    logger.debug('startdate_of_period: ' + str(startdate_of_period) + ' ' + f.format_WDMY_from_dte(startdate_of_period, 'nl'))
+    return new_paydate_dte, startdate_of_period

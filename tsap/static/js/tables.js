@@ -1069,7 +1069,6 @@
                         //console.log("----------------------------pk_int === selected_pk")
                         if(!!cls_background){tblRow.classList.remove(cls_background)};
                         tblRow.classList.add(cls_selected)
-                        tblRow.classList.add("TESTING")
                         //console.log("----------------------------TESTING")
                     } else if(tblRow.classList.contains(cls_selected)) {
                         //console.log("pk_int !== selected_pk")
@@ -1230,7 +1229,7 @@
 
         const filter_text_lower = (filter_text) ? filter_text.toLowerCase() : "";
         let has_selection = false, has_multiple = false;
-        let sel_value = null, sel_pk = null, sel_ppk = null, sel_display = null;
+        let sel_value = null, sel_pk = null, sel_ppk = null, sel_display = null, sel_rowid = null;
         let row_count = 0;
         for (let i = 0, tblRow; tblRow = tblBody_select.rows[i]; i++) {
             if (!!tblRow){
@@ -1273,6 +1272,7 @@
                         sel_ppk = get_attr_from_el(tblRow, "data-ppk");
                         sel_value = get_attr_from_el(tblRow, "data-value");
                         sel_display = get_attr_from_el(tblRow, "data-display");
+                        sel_rowid = get_attr_from_el(tblRow, "id");
                     } else {
                         has_multiple = true;
                     }
@@ -1284,9 +1284,10 @@
             sel_ppk = null;
             sel_value = null,
             sel_display = null;
+            sel_rowid = null;
         }
         return {row_count: row_count, selected_pk: sel_pk, selected_ppk: sel_ppk,
-                selected_value: sel_value, selected_display: sel_display};
+                selected_value: sel_value, selected_display: sel_display, selected_rowid: sel_rowid};
     }; // t_Filter_SelectRows
 
 

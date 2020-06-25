@@ -49,9 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  id of selected employee
         const id_sel_prefix = "sel_"
-        let selected_employee_pk = 0;
-        let selected_paydatecode_pk = 0;
-
+        let selected_employee_pk = null;
+        let selected_employee_code = null;
+        let selected_paydatecode_pk = null
+        let selected_paydatecode_caption = null
+        let selected_paydateitem_iso = null
+        let selected_paydateitem_caption = null
         let selected_btn = "";
 
         let company_dict = {};
@@ -62,15 +65,22 @@ document.addEventListener('DOMContentLoaded', function() {
         let paydatecode_map = new Map();
         let paydateitem_map = new Map();
 
-        let payroll_list = [];
         let payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
         let payroll_mapped_columns = {};  // dict of mapped pk > col_index of absence categories in crosstab 'payroll_map'
+        let paydatecodes_inuse_list = [];
+        let paydateitems_inuse_list = [];
+
+        let payroll_period_detail_list = [];
+        let payroll_period_agg_list = [];
+
+        let payroll_period_detail_rows = [];  // put all values in payroll_period_detail_rows, so it can be exported or sent to pdf
+        let payroll_period_agg_rows = [];
         let payroll_header_row = []
-        let payroll_detail_rows = [];  // put all values in payroll_detail_rows, so it can be exported or sent to pdf
         let payroll_total_row = [];
+        let payroll_is_detail_mode = false;
 
 // const for report
-        let planning_display_duration_total = ""; // stores total hours, calculated when creating payroll_map
+        //let planning_display_duration_total = ""; // stores total hours, calculated when creating payroll_map
         let label_list = [], pos_x_list = [], colhdr_list = [];
 
 // locale_dict with translated text
@@ -98,12 +108,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div"],
                         field_width:  ["180", "120", "120", "120", "120", "120", "120", "032", "032"],
                         field_align: ["l", "c",  "c", "c", "c", "l", "r", "c", "c"]},
-            payroll: { tbl_col_count: 4,
-                        field_caption: ["Employee", "Planned_hours", "Worked_hours", "Absence_hours"],
-                        field_names:  ["employee", "planned", "worked", "absence"],
+            payroll_agg: { tbl_col_count: 3,
+                        field_caption: ["Employee", "Planned_hours", "Worked_hours"],
+                        field_names: ["employee", "plannedduration", "timeduration"],
+                        field_tags: ["div", "div", "div"],
+                        field_width: ["150", "100", "100"],
+                        field_align: ["l", "r", "r"]},
+            payroll_detail: { tbl_col_count: 4,
+                        field_caption: ["Date", "Order", "Planned_hours", "Worked_hours"],
+                        field_names:  ["rosterdate", "order", "plannedduration", "timeduration"],
                         field_tags: ["div", "div", "div", "div"],
-                        field_width: ["150", "120", "120", "120"],
-                        field_align: ["l", "r", "r", "r"]},
+                        field_width: ["090",  "180", "100", "100"],
+                        field_align: ["l", "l","r", "r"]},
             employee: { tbl_col_count: 4,
                         field_caption: ["", "Employee", "Function", "Payroll_period"],
                         field_names: ["select", "code", "functioncode", "paydatecode"],
@@ -142,6 +158,28 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener("keydown", function (event) {
              if (event.key === "Escape") { ResetFilterRows()}
         });
+
+// ---  MOD SELECT PAYROLL PERIOD ------------------------------
+        let el_sbr_select_payrollperiod = document.getElementById("id_sbr_select_payrollperiod");
+            el_sbr_select_payrollperiod.addEventListener("click", function() {MSP_Open()}, false );
+            add_hover(el_sbr_select_payrollperiod)
+        let el_sbr_select_paydate = document.getElementById("id_sbr_select_paydate");
+            el_sbr_select_paydate.addEventListener("click", function() {MSP_Open()}, false );
+            add_hover(el_sbr_select_paydate)
+        let el_sbr_select_showall = document.getElementById("id_sbr_select_showll");
+            el_sbr_select_showall.addEventListener("click", function() {ResetFilterRows()}, false );
+            add_hover(el_sbr_select_showall)
+        let el_MSP_tblbody = document.getElementById("id_MSP_tblbody");
+        let el_MSP_input_payrollperiod = document.getElementById("id_MSP_input_payrollperiod")
+            el_MSP_input_payrollperiod.addEventListener("focus", function() {MSP_InputOnfocus("payrollperiod")}, false )
+            el_MSP_input_payrollperiod.addEventListener("keyup", function(event){
+                setTimeout(function() {MSP_InputElementKeyup("payrollperiod", el_MSP_input_payrollperiod)}, 50)});
+        let el_MSP_input_paydate = document.getElementById("id_MSP_input_paydate")
+            el_MSP_input_paydate.addEventListener("focus", function() {MSP_InputOnfocus("paydate")}, false )
+            el_MSP_input_paydate.addEventListener("keyup", function(event){
+                setTimeout(function() {MSP_InputElementKeyup("paydate", el_MSP_input_paydate)}, 50)});
+        let el_MSP_btn_save = document.getElementById("id_MSP_btn_save")
+            el_MSP_btn_save.addEventListener("click", function() {MSP_Save()}, false )
 // --- buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
         for (let i = 0, btn; btn = btns[i]; i++) {
@@ -196,12 +234,17 @@ document.addEventListener('DOMContentLoaded', function() {
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
-    // remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
-            if(!tr_selected) {
-                DeselectHighlightedRows(tr_selected)};
-            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
-                DeselectHighlightedRows(tr_selected);
+            if(selected_btn === "payrollperiod" && payroll_is_detail_mode) {
+               if(!tr_selected) { ResetFilterRows()};
+            } else {
+        // remove highlighted row when clicked outside tabelrows
+                if(!tr_selected) {
+                    DeselectHighlightedRows(tr_selected)
+                };
+                if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
+                    DeselectHighlightedRows(tr_selected);
+                }
             }
         }, false);  // document.addEventListener('click',
 
@@ -241,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_loader.classList.remove(cls_visible_hide)
         }
 
-        let param = {"download": JSON.stringify (datalist_request)};
+        let param = {download: JSON.stringify (datalist_request)};
         console.log("datalist_request: ", datalist_request)
         let response = "";
         $.ajax({
@@ -299,53 +342,62 @@ document.addEventListener('DOMContentLoaded', function() {
             get_datamap(response["abscat_list"], abscat_map);
             fill_datatable = true;
         }
-        //if ("order_list" in response) {
-        //    get_datamap(response["order_list"], order_map)
-        //}
 
         if ("paydatecode_list" in response) {
             get_datamap(response["paydatecode_list"], paydatecode_map)
         }
         if ("paydateitem_list" in response) {
-            console.log("response[paydateitem_list]", response["paydateitem_list"])
             get_datamap(response["paydateitem_list"], paydateitem_map, "paydateitem") // tblName not in paydateitem_list
         }
+        if ("payroll_abscat_list" in response){
+            payroll_abscat_list = response["payroll_abscat_list"] };
+            CreatePayrollMappedColumns();
 
-        if ("payroll_list" in response) {
-            payroll_list = response["payroll_list"]
-            payroll_abscat_list = []
-            if ("payroll_abscat_list" in response){ payroll_abscat_list = response["payroll_abscat_list"] };
+//---------------------
 
+
+        if("paydatecodes_inuse_list" in response){
+            paydatecodes_inuse_list = response["paydatecodes_inuse_list"] };
+        if("paydates_inuse_list" in response){
+            paydateitems_inuse_list = response["paydates_inuse_list"] };
+
+//----------------------------
+        if ("payroll_period_detail_list" in response) {
+            payroll_period_detail_list = response["payroll_period_detail_list"]};
+
+        if ("payroll_period_agg_list" in response){
+            payroll_period_agg_list = response["payroll_period_agg_list"]
     // --- reset table
             tblHead_datatable.innerText = null
             tblBody_datatable.innerText = null
             tblFoot_datatable.innerText = null
-
     // --- fill payroll_mapped_columns and create tblHead with filter ansd total row
-            const col_count = CreatePayrollHeader(payroll_abscat_list);
-
+            CreatePayrollHeader();
     // ---  CreatePayrollHtmlList, goes after CreatePayrollHeader because payroll_mapped_columns is created there
-            CreatePayrollHtmlList(payroll_abscat_list, col_count, payroll_list);
-
+            payroll_period_agg_rows = CreateHTML_period_agg_list();
+            payroll_period_detail_rows = CreateHTML_period_detail_list();
             fill_datatable = true;
+
+            console.log("payroll_period_detail_rows")
+            console.log(payroll_period_detail_rows)
         }
         if(fill_datatable) {
             HandleBtnSelect(selected_btn);
         }
     }  // refresh_maps
 
+
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 
 //=========  HandleBtnSelect  ================ PR2019-05-25 PR2020-06-12
     function HandleBtnSelect(data_btn) {
-        console.log( "===== HandleBtnSelect ========= ");
+       // console.log( "===== HandleBtnSelect ========= ");
         selected_btn = data_btn
-        if(!selected_btn){selected_btn = "payroll"}
-        console.log( "selected_btn", selected_btn);
+        if(!selected_btn){selected_btn = "payrollperiod"}
 
 // ---  upload new selected_btn
-        const upload_dict = {"page_payroll": {"btn": selected_btn}};
+        const upload_dict = {page_payroll: {btn: selected_btn}};
         UploadSettings (upload_dict, url_settings_upload);
 
 // ---  highlight selected button
@@ -373,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  fill datatable
-        if(selected_btn === "payroll"){
+        if(selected_btn === "payrollperiod"){
             FillPayrollRows();
         } else if(selected_btn === "paydatecode"){
             FillPaydatecodeRows();
@@ -383,7 +435,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- update header text
         UpdateHeaderText();
-
     }  // HandleBtnSelect
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
@@ -402,13 +453,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const employee_pk_str = get_attr_from_el_str(tr_clicked, data_key);
         if(!!employee_pk_str){
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk_str)
-            selected_employee_pk = Number(get_dict_value (map_dict, ["id", "pk"], 0))
-            //console.log( "selected_employee_pk: ", selected_employee_pk, typeof selected_employee_pk);
+            selected_employee_pk = Number(get_dict_value (map_dict, ["id", "pk"], 0));
+            selected_employee_code = get_dict_value (map_dict, ["code", "value"], "");
 // ---  update header text
             UpdateHeaderText();
-
         }  // if(tblName === "employee"){
     }  // HandleTableRowClicked
+
+//=========  HandleAggRowClicked  ================ PR2019-06-24
+    function HandleAggRowClicked(tr_clicked) {
+        console.log("=== HandleAggRowClicked");
+        if(payroll_is_detail_mode){
+            // open modal of shift
+            console.log( "open modal of shift selected_employee_pk: ", selected_employee_pk);
+        } else {
+            const employee_pk = (Number(tr_clicked.id)) ? Number(tr_clicked.id) : null;
+            console.log( "employee_pk: ", employee_pk, typeof employee_pk);
+            if(employee_pk){
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
+                selected_employee_pk = Number(get_dict_value (map_dict, ["id", "pk"], 0));
+                selected_employee_code = get_dict_value (map_dict, ["code", "value"]);
+                payroll_is_detail_mode = true;
+                UpdateHeaderText();
+        // --- fill payroll_mapped_columns and create tblHead with filter ansd total row
+               CreatePayrollHeader();
+               FillPayrollRows();
+        // --- show sbr button 'back to payroll overview'
+               el_sbr_select_showall.classList.remove(cls_hide)
+            }
+        }
+    }  // HandleAggRowClicked
 
 //###########################################################################
 
@@ -457,37 +531,40 @@ document.addEventListener('DOMContentLoaded', function() {
         // called by HandleBtnSelect and HandlePayrollFilter
         console.log( "====== FillPayrollRows  === ");
 
-// ---  Get today's date and time - for elapsed time
-        //let startime = new Date().getTime();
-
 // --- reset table, except for header
         tblBody_datatable.innerText = null
         tblFoot_datatable.innerText = null
 
         ResetPayrollTotalrow();
 
-// --- loop through payroll_detail_rows
-        //  payroll_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-
-        if (payroll_detail_rows) {
-            for (let i = 0, item, tblRow, row_data, filter_row, show_row ; item = payroll_detail_rows[i]; i++) {
-                filter_row = item[2];
-                row_data = item[3];
-                const col_count = filter_row.length;
-                show_row = ShowPayrollRow(filter_row, filter_dict, col_count);
+// --- loop through payroll_period_detail_rows / payroll_period_agg_rows
+        //  payroll_period_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+        const detail_rows = (payroll_is_detail_mode) ? payroll_period_detail_rows : payroll_period_agg_rows;
+        console.log( "detail_rows ", detail_rows);
+        if (detail_rows) {
+            for (let i = 0, item, tblRow, row_data, filter_row, show_row; item = detail_rows[i]; i++) {
+                // filter selected employee when payroll_is_detail_mode
+                show_row =(!payroll_is_detail_mode || item[1] === selected_employee_pk)
+                if(show_row){
+                    filter_row = item[2];
+                    row_data = item[3];
+                    const col_count = filter_row.length;
+                    show_row = ShowPayrollRow(filter_row, filter_dict, col_count);
+                }
                 item[0] = show_row;
                 if (show_row){
                     tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         // --- add id to tblRow
                     if(item[1]){tblRow.id = item[1] };
         // --- add EventListener to tblRow.
-                    tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
+                    tblRow.addEventListener("click", function() {HandleAggRowClicked(tblRow)}, false);
+                    add_hover(tblRow)
                     tblRow.innerHTML += item[4];
         // --- add duration to total_row.
                     AddToPayrollTotalrow(row_data);
                 }
-// --- highlight selected row
-                //if (pk_int === selected_employee_pk) { tblRow.classList.add(cls_selected) }
+        // --- hide sbr button 'back to payroll overview'
+               el_sbr_select_showall.classList.add(cls_hide)
             }
         }
         UpdatePayrollTotalrow()
@@ -497,12 +574,13 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= AddToPayrollTotalrow  ================= PR2020-06-16
     function AddToPayrollTotalrow(row_data) {
         //console.log( "===== AddToPayrollTotalrow  === ");
-        //console.log("row_data",  row_data);
+       // console.log("row_data",  row_data);
         /// row_data = ["Bakhuis RDJ", "2020-05-12", 0, 540, 0, 0, 0, 0, 540]
         if(row_data && row_data.length > 1){
-            for (let i = 2, len = row_data.length; i < len; i++) {
-                const value = row_data[i];
-                if (row_data[i]) {
+            for (let i = 1, len = row_data.length; i < len; i++) {
+                if (payroll_is_detail_mode && i === 1){
+                    if(!payroll_total_row[i]){payroll_total_row[i] = selected_employee_code};
+                } else if (row_data[i]) {
                     const value_number = Number(row_data[i])
                     if(!!value_number){
                         if(!payroll_total_row[i]){
@@ -510,107 +588,184 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             payroll_total_row[i] += value_number;
         }}}}};
+        //console.log("payroll_total_row",  payroll_total_row);
     }  // AddToPayrollTotalrow
 
 //========= ResetPayrollTotalrow  ================= PR2020-06-16
     function ResetPayrollTotalrow() {
-        console.log("======= ResetPayrollTotalrow  ========= ");
+        //console.log("======= ResetPayrollTotalrow  ========= ");
         // copy number of columns from header row
         payroll_total_row = []
         if(payroll_header_row && payroll_header_row.length > 1){
             payroll_total_row[0] = loc.Total_hours;
-            for (let i = 2, len = payroll_total_row.length; i < len; i++) {
+            for (let i = 1, len = payroll_total_row.length; i < len; i++) {
                 payroll_total_row[i] = 0;
         }}
     }  // ResetPayrollTotalrow
 
 //========= UpdatePayrollTotalrow  ================= PR2020-06-16
     function UpdatePayrollTotalrow() {
-        console.log("======== UpdatePayrollTotalrow  ========= ");
+        //console.log("======== UpdatePayrollTotalrow  ========= ");
         /// row_data = ["Bakhuis RDJ", "2020-05-12", 0, 540, 0, 0, 0, 0, 540]
         const tblRow = document.getElementById("id_payroll_totalrow");
         if (tblRow){
 // --- loop through cells of tablerow, skip first two columns "Total hours", blank (rosterdate)
-            for (let i = 2, cell; cell=tblRow.cells[i]; i++) {
+            for (let i = 1, cell; cell=tblRow.cells[i]; i++) {
                 // el_input is first child of td, td is cell of tblRow
                 let el_input = cell.children[0];
                 if(!!el_input){
-                    el_input.innerText = format_total_duration(payroll_total_row[i]);
+                    const display = (payroll_is_detail_mode && i === 1) ? payroll_total_row[i] :
+                                                    format_total_duration(payroll_total_row[i]);
+                    el_input.innerText = display;
                 };
             }
         }
     }  // UpdatePayrollTotalrow
 
-//========= CreatePayrollHtmlList  ==================================== PR2020-06-15
-    function CreatePayrollHtmlList(payroll_abscat_list, col_count, payroll_list) {
-        console.log("==== CreatePayrollHtmlList  ========= ");
+//========= CreateHTML_period_agg_list  ==================================== PR2020-06-24
+    function CreateHTML_period_agg_list() {
+        console.log("==== CreateHTML_period_agg_list  ========= ");
 
-        // ---  Get today's date and time - for elapsed time
-        //let startime = new Date().getTime();
-        // payroll_list = [ 0: employee_pk, 1: employee_code, 2: rosterdate_iso, 3: planned_duration, 4: dict { order_id: timeduration, ...}
-        const worked_col_index = 3;
+        // payroll_period_agg_list = [ 0:paydatecode_id, 1:paydate 2:employee_id, 3:employee_code,
+        //                             4:SUM(planned_duration), 5:json_agg(order_id: timeduration)
+        // table columns: 0: employee_code, 1: worked_hours 2 etc: Absence hours last column: total hours
+        //  detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
 
-        //  payroll_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-        // item 5 = paydate_id_arr, item 6 = payroll period, item 7 = closing date
-        payroll_detail_rows = [];
-        for (let i = 0, item; item = payroll_list[i]; i++) {
+        const workedhours_col_index = 2;
+        const col_count =  2 + workedhours_col_index + payroll_abscat_list.length;
+        console.log("col_count", col_count);
+        console.log("payroll_abscat_list", payroll_abscat_list);
+        console.log("payroll_mapped_columns", payroll_mapped_columns);
+        let detail_rows = [];
+        for (let i = 0, item; item = payroll_period_agg_list[i]; i++) {
             let td_html = [];
-            const row_id = item[0].toString() + "_" + item[2] ;
-            let col_values = [item[1], item[2], item[3] ]
+            const employee_pk = item[2];
+            const employee_code = item[3];
+            const planned_duration = item[4];
 
-// put values of agg_dict in proper column
-            let row_data = [ item[1], item[2], item[3] ];  // employee_code, rosterdate_iso, planned duration
-
-            td_html[0] =  "<td><div class=\"ml-2\">" + item[1] + "</div></td>"
-            const date_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[2]),
-                                    loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false);
-            td_html[1] = "<td><div class=\"ta_r\">" + date_formatted + "</div></td>"
-            let duration_formatted = format_total_duration (item[3], loc.user_lang);
-            td_html[2] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-
+// --- put values of agg_dict in proper column
+            let row_data = [ employee_code, planned_duration];  // employee_code, planned duration
+            // add employee_code in first column
+            td_html[0] =  "<td><div class=\"ml-2\">" + employee_code + "</div></td>"
+// --- add planned duration in second column
+            let duration_formatted = format_total_duration (planned_duration, loc.user_lang);
+            td_html[1] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
+// --- add filter_data
             let filter_data = [];
-            filter_data[0] = (item[1]) ? item[1].toLowerCase() : null
-            filter_data[1] = (date_formatted) ? date_formatted : null
-            filter_data[2] = (item[3]) ? item[3] : null
-
-            const agg_dict = item[4];  // agg_dict = {0: 375, 1452: 360}
+            filter_data[0] = (employee_code) ? employee_code.toLowerCase() : null
+            filter_data[1] = (planned_duration) ? planned_duration : null
+// --- add agg_dict
+            const agg_dict = item[5];  // agg_dict = {0: 375, 1452: 360}
+        console.log("agg_dict", agg_dict);
             let row_sum = 0;
             for (let key in agg_dict) {
                 if (agg_dict.hasOwnProperty(key)) {
                     if(key){
+                        const key_int = (Number(key)) ? Number(key) : null;
                         const duration = (agg_dict[key]) ? agg_dict[key] : 0;
+        console.log("key_int", key_int);
                         row_sum += duration
                         // lookup index in payroll_mapped_columns, use index 3 'Worked' if not found or 0
                         //  payroll_mapped_columns = {1447: 5, 1448: 7, 1450: 4, 1452: 6}
-                        const col_index = (key in payroll_mapped_columns) ? payroll_mapped_columns[key] : worked_col_index;
-                        // add time_dur in abscat column
+                        let col_index = workedhours_col_index;
+        console.log("row_sum", row_sum);
+        console.log("workedhours_col_index", workedhours_col_index);
+        console.log("payroll_mapped_columns[" + key + "]", payroll_mapped_columns[key]);
+                        // if key = "0" it is worked hours. In that case put hours in workedhours_col_index
+                        if (Number(key) && key in payroll_mapped_columns ) {
+                            col_index += payroll_mapped_columns[key]
+                        };
+        console.log("col_index", col_index);
+// add time_dur in abscat column
                         row_data[col_index] = duration;
                         duration_formatted = format_total_duration (duration, loc.user_lang);
                         td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
                         filter_data[col_index] = (duration) ? duration : null
-                    }
-                }
-            }
-//--- put total in SECOND last column of this row  (Payroll period and closingdate coe after total
-            let col_index = col_count -2;
+        console.log(" row_data[" + col_index + "] ",  row_data[col_index] );
+        console.log(" td_html[" + col_index + "] ",  td_html[col_index] );
+        console.log(" filter_data[" + col_index + "] ",  filter_data[col_index] );
+            }}};
+
+//--- put total in last column of this row
+            let col_index = col_count -1;
             row_data[col_index] = row_sum;
             duration_formatted = format_total_duration (row_sum, loc.user_lang);
             td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
             filter_data[col_index] = (row_sum) ? row_sum : null
 
-//--- put Closing date in LAST column of this row
-            col_index = col_count -1;
-            row_data[col_index] = item[6];
-            duration_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[6]) , loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
-            td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-            filter_data[col_index] = (duration_formatted) ? duration_formatted : null
+//--- add empty td's
+            for (let j = 0; j < col_count; j++) {
+                if(!td_html[j] ){ td_html[j] = "<td><div></div></td>" }
+            }
 
-//--- put Payroll period in LAST last column of this row
-            //col_index = col_count -1;
-            //row_data[col_index] = item[7];
-            //duration_formatted = item[7].join(", ")
-            //td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-            //filter_data[col_index] = (duration_formatted) ? duration_formatted : null
+//--- put td's together
+            let row_html = "";
+            for (let j = 0, item; item = td_html[j]; j++) {
+                if(item){row_html += item};
+            }
+            //  detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+            const row = [true, employee_pk, filter_data, row_data, row_html];
+            detail_rows.push(row);
+        }  //  for (let i = 0, item; item = payroll_period_detail_list[i]; i++) {
+        //console.log("elapsed time:", (new Date().getTime() - startime) / 1000 )
+        console.log("period_agg_list", detail_rows);
+        return detail_rows;
+    }  // CreateHTML_period_agg_list
+
+//========= CreateHTML_period_detail_list  ==================================== PR2020-06-15
+    function CreateHTML_period_detail_list() {
+        //console.log("==== CreateHTML_period_detail_list  ========= ");
+
+        // payroll_period_detail_list = [ 0: emplhour_id, 1:rosterdate, 2:employee_id, 3:employee_code, 4:order_id,
+        //                                5:custorder_code, 6:plannedduration, 7:timeduration
+
+        //  table columns are: 0:rosterdate, 1:Order, 2:Shift, 3:Planned_hours, 4:Worked_hours 5 etc abscat last: total
+        const workedhours_col_index = 3;
+        const col_count =  2 + workedhours_col_index + payroll_abscat_list.length;
+
+        let detail_rows = [];
+        for (let i = 0, item; item = payroll_period_detail_list[i]; i++) {
+            const rosterdate_iso = item[1];
+            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
+                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const order_id = item[4];
+            const plannedduration = item[6];
+            const plannedduration_formatted = format_total_duration (plannedduration, loc.user_lang);
+            const timeduration = item[7];
+            const timeduration_formatted = format_total_duration (timeduration, loc.user_lang);
+
+            let row_data = []
+            let filter_data = [];
+            let td_html = [];
+// ---  add rosterdate in first column
+            row_data[0] = rosterdate_iso;
+            filter_data[0] = (rosterdate_formatted) ? rosterdate_formatted : null
+            td_html[0] = "<td><div class=\"mx-2 ta_l\">" + rosterdate_formatted + "</div></td>";
+// ---  add customer and order
+            row_data[1] = item[5];
+            filter_data[1] = (item[5]) ? item[5].toLowerCase() : null
+            td_html[1] = "<td><div class=\"ta_l\">" + item[5] + "</div></td>"
+// ---  add planned hours
+            row_data[2] = plannedduration;
+            filter_data[2] = (plannedduration_formatted) ? plannedduration_formatted.toLowerCase() : null
+            td_html[2] = "<td><div class=\"ta_r\">" + plannedduration_formatted + "</div></td>"
+
+// put values of detail_dict in proper column
+            let col_index = workedhours_col_index;
+            if (order_id in payroll_mapped_columns ) {
+                col_index += payroll_mapped_columns[order_id]
+            };
+
+// add time_dur in abscat column or workerhours col
+            row_data[col_index] = timeduration;
+            filter_data[col_index] = (timeduration) ? timeduration : null
+            td_html[col_index] = "<td><div class=\"ta_r\">" + timeduration_formatted + "</div></td>"
+
+//--- put total in last column of this row - in detail row totssl and timeduration are the same
+            col_index = col_count -1;
+            row_data[col_index] = timeduration;
+            filter_data[col_index] = (timeduration) ? timeduration : null
+            td_html[col_index] = "<td><div class=\"ta_r\">" + timeduration_formatted + "</div></td>"
 
 //--- add empty td's
             for (let j = 0; j < col_count; j++) {
@@ -621,57 +776,67 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let j = 0, item; item = td_html[j]; j++) {
                 if(item){row_html += item};
             }
-            //  payroll_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-            const row = [true, row_id, filter_data, row_data, row_html];
-            payroll_detail_rows.push(row);
-        }  //  for (let i = 0, item; item = payroll_list[i]; i++) {
+            //  detail_row = [ 0: show, 1: employee_id, 2: filter_data, 3: row_data, 4: row_html 5: emplhour_id]
+            const row = [true, item[2], filter_data, row_data, row_html, item[0]];
+            detail_rows.push(row);
+        }  //  for (let i = 0, item; item = payroll_period_detail_list[i]; i++) {
 
-        //console.log("payroll_detail_rows", payroll_detail_rows)
         //console.log("elapsed time:", (new Date().getTime() - startime) / 1000 )
+        return detail_rows;
     }  // CreatePayrollHtmlList
 
-//=========  CreatePayrollHeader  === PR2020-05-14
-    function CreatePayrollHeader(payroll_abscat_list) {
-        console.log("===  CreatePayrollHeader ==");
 
-        tblHead_datatable.innerText = null
+//=========  CreatePayrollHeader  === PR2020-06-25
+    function CreatePayrollMappedColumns() {
+        //console.log("===  CreatePayrollMappedColumns ==");
+        // payroll_abscat_list has item for each abscat that is in use in current selection.
+        // format: [order_pk, order_code, order_sequence]   [ [1450, "Vakantie", 322], [1447, "Onbekend", 7] ]
 
-// +++  fill payroll_mapped_columns ++++++++++++++++++++++++++++++++
-// ---  create payroll_header_row, put caption in first 3 columns
-        payroll_header_row = [loc.Employee, loc.Date, loc.Planned_hours, loc.Worked_hours]
-// --- create dict  payroll_mapped_columns
         // payroll_mapped_columns has key/value for each column. Key = order_pk, Value = col_index
-        // payroll_mapped_columns = { 1450: 4, 1452: 6, ...}
-        payroll_mapped_columns = {};
-// --- loop through payroll_abscat_list
-        const worked_col_index = 3;
-        let col_index = worked_col_index;
+        // payroll_mapped_columns =  { 1448: 3, 1449: 0, 1450: 2, 1539: 1 }
+// +++  create dict  payroll_mapped_columns
+        // order_pk = 0 is worked hours
+        payroll_mapped_columns = {0: 0};
         if (payroll_abscat_list) {
-            // payroll_abscat_list has item for each abscat that is in use in current selection. [order_pk, order_code, order_sequence]
-            // payroll_abscat_list = [ [1450, "Vakantie", 322], [1447, "Onbekend", 7] ]
+            let mapped_index = 0;
             for (let i = 0, item; item=payroll_abscat_list[i]; i++) {
-                col_index +=1
-// --- add caption to payroll_header_row
-                payroll_header_row[col_index] = item[1];
+                mapped_index += 1;
 // --- add mapped column to payroll_mapped_columns
-                payroll_mapped_columns[item[0]] = col_index;
+                payroll_mapped_columns[item[0]] = mapped_index;
+            }
+        };
+        //console.log("payroll_mapped_columns", payroll_mapped_columns);
+    }  // CreatePayrollMappedColumns
+
+//=========  CreatePayrollHeader  === PR2020-05-24
+    function CreatePayrollHeader() {
+        //console.log("===  CreatePayrollHeader ==");
+
+        const tblName = (payroll_is_detail_mode) ? "payroll_detail" : "payroll_agg";
+        tblHead_datatable.innerText = null
+        payroll_header_row = [];
+        let col_index = -1;
+// ---  create payroll_header_row, put caption in static columns
+        for (let i = 0, key; key = field_settings[tblName].field_caption[i]; i++) {
+            col_index +=1
+            payroll_header_row.push(loc[key])
+        }
+        const last_static_col_index = col_index;
+
+// +++  add caption to payroll_header_row
+        if (payroll_abscat_list) {
+            // payroll_abscat_list has item for each abscat that is in use in current selection.
+            // format: [order_pk, order_code, order_sequence]   [ [1450, "Vakantie", 322], [1447, "Onbekend", 7] ]
+            for (let i = 0, item; item=payroll_abscat_list[i]; i++) {
+                col_index += 1;
+                payroll_header_row[col_index] = item[1];
             }
         };
 // +++  add column 'Total hours' and add caption to payroll_header_row
         col_index +=1
         payroll_header_row[col_index] = loc.Total_hours;
-
-// +++  add column 'Closingdate' and add caption to payroll_header_row
-        col_index +=1
-        payroll_header_row[col_index] = loc.Closing_date;
-
-// +++  add column 'Payroll period' and add caption to payroll_header_row
-        //col_index +=1
-        //payroll_header_row[col_index] = loc.Payroll_period;
-
 //  --- calc col_count
         const col_count = col_index +=1 ;
-
 
 // +++  insert header row ++++++++++++++++++++++++++++++++
         let tblRow = tblHead_datatable.insertRow (-1);
@@ -683,9 +848,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const el_div = document.createElement("div");
 // --- add innerText to el_div
             if(payroll_header_row[j]) {el_div.innerText = payroll_header_row[j]};
-// --- add class
-            if (j === 0 ){ el_div.classList.add("ml-2", "tw_150", "ta_l")
-            } else { el_div.classList.add("tw_110", "ta_r")};
+// --- add width, text_align and left margin to first column
+            if (j === 0 ){ el_div.classList.add("ml-2")};
+            const class_width = (j < last_static_col_index) ?
+                                "tw_" + field_settings[tblName].field_width[j] :
+                                "tw_" + field_settings[tblName].field_width[last_static_col_index]
+            const class_align = (j < last_static_col_index) ?
+                                "ta_" + field_settings[tblName].field_align[j] :
+                                "ta_" + field_settings[tblName].field_align[last_static_col_index]
+            el_div.classList.add(class_width, class_align);
+
+// --- add width, text_align and left margin to first column
             th.appendChild(el_div);
             tblRow.appendChild(th);
         };
@@ -703,10 +876,15 @@ document.addEventListener('DOMContentLoaded', function() {
             el_input.setAttribute("autocomplete", "off");
             el_input.setAttribute("ondragstart", "return false;");
             el_input.setAttribute("ondrop", "return false;");
-// --- add class
-            if (j === 0 ){ el_input.classList.add("ml-2", "tw_150", "ta_l")
-            } else { el_input.classList.add("tw_110", "ta_r")};
-            el_input.classList.add("tsa_color_darkgrey", "tsa_transparent")
+// --- add width, text_align and left margin to first column
+            if (j === 0 ){ el_input.classList.add("ml-2")};
+            const class_width = (j < last_static_col_index) ?
+                                "tw_" + field_settings[tblName].field_width[j] :
+                                "tw_" + field_settings[tblName].field_width[last_static_col_index]
+            const class_align = (j < last_static_col_index) ?
+                                "ta_" + field_settings[tblName].field_align[j] :
+                                "ta_" + field_settings[tblName].field_align[last_static_col_index]
+            el_input.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
 // --- append th
             th.appendChild(el_input);
             tblRow.appendChild(th);
@@ -724,14 +902,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add innerText to el_div
             if (j === 0) {
                 el_div.innerText = loc.Total_hours;
-                el_div.classList.add("ml-2");
-            } else {
-                el_div.classList.add("ta_r");
+            } else if (j === 1 && payroll_is_detail_mode && selected_employee_pk) {
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee",selected_employee_pk )
+                el_div.innerText = get_dict_value(map_dict, ["code", "value"])
             }
+// --- add width, text_align and left margin to first column
+            if (j === 0 ){ el_div.classList.add("ml-2")};
+            const class_width = (j < last_static_col_index) ?
+                                "tw_" + field_settings[tblName].field_width[j] :
+                                "tw_" + field_settings[tblName].field_width[last_static_col_index]
+            const class_align = (j < last_static_col_index) ?
+                                "ta_" + field_settings[tblName].field_align[j] :
+                                "ta_" + field_settings[tblName].field_align[last_static_col_index]
+            el_div.classList.add(class_width, class_align);
+
             th.appendChild(el_div)
             tblRow.appendChild(th);
         };
-        return col_count
     };  //  CreatePayrollHeader
 
 //###########################################################################
@@ -761,7 +948,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillAbscatTableRows  ====================================
     function FillAbscatTableRows(called_by) {
         // called by HandleBtnSelect
-        console.log( "===== FillAbscatTableRows  === ", called_by);
+        //console.log( "===== FillAbscatTableRows  === ", called_by);
 
 // ---  Get today's date and time - for elapsed time
         //let startime = new Date().getTime();
@@ -790,7 +977,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblHeader  === PR2019-10-25 PR2020-06-18
     function CreateTblHeader(tblName) {
-        console.log("===  CreateTblHeader == tblName: ", tblName);
+        //console.log("===  CreateTblHeader == tblName: ", tblName);
         const tblHead = (tblName === "employee") ? tblHead_employee :
                         (tblName === "paydatecode") ? tblHead_paydatecode : tblHead_datatable;
 
@@ -800,7 +987,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if(column_count){
 //--- insert tblRow
                 let tblRow = tblHead.insertRow (-1);
-        console.log("tblRow", tblRow);
 //--- insert th's to tblHead
                 for (let j = 0; j < column_count; j++) {
 // --- add th to tblRow.
@@ -892,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblRow  ================ PR20120-06-09
     function CreateTblRow(tblBody, tblName, pk_str, ppk_str, employee_pk, row_index, called_by) {
-        console.log("=========  CreateTblRow =========", tblName);
+        //console.log("=========  CreateTblRow =========", tblName);
 
         let tblRow = null;
         if(field_settings[tblName]){
@@ -987,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblFoot  ================ PR2020-06-18
     function CreateTblFoot(tblName) {
-        console.log("========= CreateTblFoot  ========= ");
+        //console.log("========= CreateTblFoot  ========= ");
         // only used in table paydat
 // --- function adds row 'add new' in tablefoot
         if (field_settings[tblName]){
@@ -1189,35 +1375,56 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log(" --- UpdateSettings ---")
         //console.log("setting_dict", setting_dict)
 
-        const page_dict = get_dict_value(setting_dict, ["page_payroll"])
-        if (!isEmpty(page_dict)){
-            const saved_btn = get_dict_value(page_dict, ["btn"])
-            selected_btn = (!!saved_btn) ? saved_btn : "payroll";
-        }
+        const saved_btn = get_dict_value(setting_dict, ["sel_btn"])
+        selected_btn = (saved_btn) ? saved_btn : "payrollperiod";
+
         let key = "payroll_period";
         if (key in setting_dict){
             selected_payroll_period = setting_dict[key];
             const header_period = UpdateHeaderPeriod();
             // >>> ??? document.getElementById("id_calendar_hdr_text").innerText = header_period;
         }
+        selected_paydatecode_pk = get_dict_value(setting_dict, ["sel_paydatecode_pk"])
+        selected_paydateitem_iso = get_dict_value(setting_dict, ["sel_paydate_iso"])
     }  // UpdateSettings
 
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
         //console.log( "===== UpdateHeaderText  ========= ");
-        //console.log( "selected_btn", selected_btn);
-        //console.log( "selected_employee_pk", selected_employee_pk);
+        selected_paydatecode_caption = null;
+        for (let i = 0, item; item=paydatecodes_inuse_list[i]; i++) {
+            // el_input is first child of td, td is cell of tblRow
+            if(!!item && item[0] === selected_paydatecode_pk){
+                selected_paydatecode_caption = item[1];
+                break;
+            }
+        }  //  for (let j = 0; j < 8; j++)
 
+        selected_paydateitem_caption =
+                        format_date_vanillaJS (get_dateJS_from_dateISO(selected_paydateitem_iso),
+                        loc.months_long, loc.weekdays_long, loc.user_lang, false, false);
         let header_text = null;
         if (selected_btn === "order") {
             header_text = loc.Absence_categories;
         } else if (selected_btn === "paydatecode") {
             header_text = loc.Payroll_periods;
-         } else if (selected_btn === "payroll") {
-            header_text = loc.Hours_overview;
+        } else if (selected_btn === "payrollperiod") {
+            header_text = (payroll_is_detail_mode) ? selected_employee_code :
+                          (selected_paydatecode_caption) ? selected_paydatecode_caption : loc.Payroll_period_overview;
+            if(selected_paydatecode_caption && selected_paydateitem_caption) {header_text += " - " + selected_paydateitem_caption}
         }
+        el_sbr_select_payrollperiod.value = (selected_paydatecode_caption) ? selected_paydatecode_caption : loc.Choose_payroll_period + "...";
+        el_sbr_select_paydate.value = selected_paydateitem_caption
+        el_sbr_select_paydate.value = (selected_paydateitem_caption) ? selected_paydateitem_caption : loc.Choose_closingdate + "...";
+
+        add_or_remove_class(el_sbr_select_payrollperiod, "tsa_color_darkgrey", (!selected_paydatecode_caption) )
+        add_or_remove_class(el_sbr_select_paydate, "tsa_color_darkgrey", (!selected_paydateitem_caption) )
+
         //console.log( "header_text", header_text);
         document.getElementById("id_hdr_text").innerText = header_text
+
+        document.getElementById("id_SBR_hdr_text").innerText = loc.Payroll_2lines
+
     }  // UpdateHeaderText
 
 //###########################################################################
@@ -1340,9 +1547,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("tblRow", tblRow);
 // ++++ deleted ++++
         if(is_deleted){
-    //--- TODO reset selected_employee when deleted
-            //selected_employee_pk = 0;
-            //selected_paydatecode_pk = 0;
+            selected_paydatecode_pk = null;
+            selected_paydatecode_caption = null;
+            selected_paydateitem_iso = null;
+            selected_paydateitem_caption = null;
     //--- remove deleted tblRow
             if (!!tblRow){tblRow.parentNode.removeChild(tblRow)};
         } else {
@@ -1601,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //console.log( "show_row", show_row);
             //console.log( "tblRow", tblRow);
 // --- add hours to payroll_totalrow, only when show_row
-            //const detail_row = get_dict_value(payroll_detail_rows, [tblRow.id])
+            //const detail_row = get_dict_value(payroll_period_detail_rows, [tblRow.id])
             //console.log( "detail_row", detail_row);
             //PR2020-06-14 debug: no detail_row when sel_btn = abscat
             //if(detail_row){
@@ -1682,15 +1890,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26 PR2020-06-20
-        //console.log( "===== ResetFilterRows  ========= ");
+        console.log( "===== ResetFilterRows  ========= ");
 
         filter_select = "";
         filter_mod_employee = "";
         filter_show_inactive = false;
         filter_dict = {};
-
-        selected_employee_pk = 0;
-        selected_paydatecode_pk = 0;
 
         if (selected_btn === "paydatecode"){
             EmptyFilterRow(tblHead_employee);
@@ -1699,7 +1904,19 @@ document.addEventListener('DOMContentLoaded', function() {
             Filter_TableRows(tblBody_paydatecode);
         } else {
             EmptyFilterRow(tblHead_datatable)
-            Filter_TableRows(tblBody_datatable);
+            Filter_TableRows(tblBody_datatable)
+        }
+        if (selected_btn === "payrollperiod"){
+            selected_employee_pk = null;
+            selected_employee_code = null;
+            if (payroll_is_detail_mode){
+                payroll_is_detail_mode = false;
+            }
+        // --- hide sbr button 'back to payroll overview'
+               el_sbr_select_showall.classList.add(cls_hide)
+            CreatePayrollHeader();
+            FillPayrollRows();
+            UpdateHeaderText();
         }
     }  // function ResetFilterRows
 
@@ -1779,11 +1996,280 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
+// +++++++++++++++++ MODAL SIDEBAR SELECT PAYROLL PERIOD +++++++++++++++++++++++++++++++++++
+
+//=========  MSP_Open  ================ PR2020-06-22
+    function MSP_Open(col_index, el_clicked) {
+        console.log("========= MSP_Open ========= ");
+        console.log("selected_paydatecode_pk", selected_paydatecode_pk)
+        console.log("selected_paydateitem_iso", selected_paydateitem_iso)
+
+        mod_dict = {paydatecode_pk: selected_paydatecode_pk,  // value '0' is used for blank payrollperiods
+                    paydatecode_caption: selected_paydatecode_caption,
+                    paydate_iso: selected_paydateitem_iso,
+                    paydate_caption: selected_paydateitem_caption};
+
+        console.log("mod_dict", deepcopy_dict(mod_dict))
+// ---  fill select table payrollperiod
+        // table will also be filled when input_payrollperiod got focus, but let this one stay
+        // otherwise table stays blank until after input_payrollperiod got focus
+        MSP_FillSelectTable("payrollperiod");
+        MSP_headertext();
+        MSP_DisableBtnSave();
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){ el_MSP_input_payrollperiod.focus() }, 500);
+// ---  show modal
+        $("#id_mod_select_paydate").modal({backdrop: true});
+    }  // MSP_Open
+
+//=========  MSP_Save  ================ PR2020-06-23
+    function MSP_Save() {
+        console.log("========= MSP_Save ========= ");
+        console.log("mod_dict", mod_dict);
+
+        const datalist_request = {
+            setting: {selected_pk: {sel_paydatecode_pk: mod_dict.paydatecode_pk, sel_paydate_iso: mod_dict.paydate_iso}},
+            payroll_list: {get: true}
+            };
+        DatalistDownload(datalist_request);
+
+        selected_paydatecode_pk = null;
+        selected_paydatecode_caption = null;
+        selected_paydateitem_iso = null;
+        selected_paydateitem_caption = null;
+
+        payroll_period_detail_list = [];
+        payroll_period_agg_list = [];
+        payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
+        payroll_mapped_columns = {};  // dict of mapped pk > col_index of absence categories in crosstab 'payroll_map'
+        //paydatecodes_inuse_list = [];
+        //paydateitems_inuse_list = [];
+
+        payroll_header_row = []
+        payroll_total_row = [];
+        payroll_period_agg_rows = [];
+        payroll_period_detail_rows = [];
+
+        payroll_is_detail_mode = false;
+
+        UpdateHeaderText();
+        FillPayrollRows()
+
+// ---  hide modal
+        $("#id_mod_select_paydate").modal("hide");
+
+    }  // MSP_Save
+
+//=========  MSP_FillSelectTable  ================ PR2020-06-22
+    function MSP_FillSelectTable(tblName) {
+        console.log( "===== MSP_FillSelectTable ========= ", tblName);
+        const tblBody_select = el_MSP_tblbody;
+        tblBody_select.innerText = null;
+        if (tblName === "payrollperiod") {
+           // mod_dict.paydatecode_pk = null
+            //mod_dict.paydatecode_caption = null;
+            el_MSP_input_payrollperiod.value = null
+        }
+        //mod_dict.paydate_iso = null;
+        //mod_dict.paydate_caption = null;
+        el_MSP_input_paydate.value = null;
+
+        const data_list = (tblName === "payrollperiod") ? paydatecodes_inuse_list : paydateitems_inuse_list;
+        console.log( "paydateitems_inuse_list", paydateitems_inuse_list);
+        console.log( "paydatecodes_inuse_list", paydatecodes_inuse_list);
+        if(data_list){
+// --- loop through data_map ,only table paydate is filtered by paydatecode_pk
+            data_list.forEach(function (item) {
+                const paydatecode_pk = item[0];
+                const show_row = (tblName !== "paydate" || paydatecode_pk === mod_dict.paydatecode_pk) ;
+                if(show_row){
+                    const pk_int = (tblName === "payrollperiod") ? item[0] : item[1];
+                    const ppk_int = (tblName === "paydate") ? item[0] : null;
+                    const caption = (tblName === "payrollperiod") ? item[1] :
+                                    format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
+                                    loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, false);
+                    const row_id = get_map_id(tblName, pk_int)
+// --- insert tblBody_select row
+                    const tblRow = tblBody_select.insertRow(-1);
+                    tblRow.id = row_id;
+                    const data_pk = (tblName === "payrollperiod") ? paydatecode_pk : item[1] ;
+                    tblRow.setAttribute("data-pk", pk_int);
+                    if(tblName === "paydate"){tblRow.setAttribute("data-ppk", ppk_int)};
+                    tblRow.setAttribute("data-value", caption);  // used in t_Filter_SelectRows
+                    add_hover(tblRow);
+// --- add first td to tblRow.
+                    let td = tblRow.insertCell(-1);
+                    let el_div = document.createElement("div");
+                    el_div.innerText = caption;
+                    td.appendChild(el_div);
+                    td.classList.add("mx-2", "tw_200", "tsa_bc_transparent")
+// --- add addEventListener
+                    tblRow.addEventListener("click", function() {MSP_SelecttableClicked(tblName, tblRow)}, false);
+// --- highlight selected row
+                    const selected_pk = (tblName === "payrollperiod") ? selected_paydatecode_pk : selected_paydateitem_iso ;
+                    if(data_pk === selected_pk ) { tblRow.classList.add(cls_selected)}
+                    console.log("data_pk", data_pk, typeof data_pk)
+                    console.log("selected_pk", selected_pk, typeof selected_pk)
+
+        }})};
+        const row_count = tblBody_select.rows.length;
+        if(row_count === 0){
+// --- add first td to tblRow.
+            const tblRow = tblBody_select.insertRow(-1);
+            const td = tblRow.insertCell(-1);
+            const el_div = document.createElement("div");
+            el_div.innerText = loc.No_payroll_periods;
+            td.appendChild(el_div);
+            td.classList.add("mx-2", "tw_200", "tsa_bc_transparent")
+        } else if(row_count === 1){
+// --- select first row if table contains only one row td from selectRow.
+            const first_row = selectRow.cells[0].children[0]
+            first_row.classList.add(cls_selected)
+            MSP_SelectItem(tblName, first_row);
+            MSP_headertext();
+            MSP_DisableBtnSave();
+        }
+    }  // MSP_FillSelectTable
+
+//=========  MSP_DisableBtnSave  ================ PR2020-06-23
+    function MSP_DisableBtnSave() {
+        //console.log( "===== MSP_DisableBtnSave ========= ");
+        el_MSP_btn_save.disabled = (mod_dict.paydatecode_pk == null || mod_dict.paydate_iso == null);
+        el_MSP_input_paydate.readOnly = (mod_dict.paydatecode_pk == null);
+    }  // MSP_DisableBtnSave
+
+//=========  MSP_InputOnfocus  ================ PR2020-06-23
+    function MSP_InputOnfocus(tblName) {
+        //console.log( "MSP_InputOnfocus", tblName);
+        MSP_FillSelectTable(tblName)
+        MSP_headertext();
+        MSP_DisableBtnSave();
+    }  // MSP_InputOnfocus
+
+//=========  MSP_InputElementKeyup  ================ PR2020-06-22
+    function MSP_InputElementKeyup(tblName, el_input) {
+        //console.log( "===== MSP_InputElementKeyup ========= ");
+        let new_filter = el_input.value;
+// ---  deselect all highlighted rows
+        DeselectHighlightedTblbody(el_MSP_tblbody, cls_selected)
+// ---  reset selected paydatecode_pk, paydate_iso
+        if (tblName === "payrollperiod") {
+            mod_dict.paydatecode_pk = null;
+            mod_dict.paydatecode_caption = null;
+            el_MSP_input_paydate.value = null;
+        }
+        mod_dict.paydate_iso = null;
+        mod_dict.paydate_caption = null;
+// ---  filter payrollperiod rows
+        if (el_MSP_tblbody.rows.length){
+            const filter_dict = t_Filter_SelectRows(el_MSP_tblbody, new_filter);
+// +++  if filter results have only one payrollperiod: select this payrollperiod
+            const selected_rowid = get_dict_value(filter_dict, ["selected_rowid"])
+            if (selected_rowid) {
+                const tblRow = document.getElementById(selected_rowid);
+                // ---  highlight clicked row
+                tblRow.classList.add(cls_selected)
+
+                MSP_SelectItem(tblName, tblRow);
+                MSP_headertext();
+                MSP_DisableBtnSave();
+            }
+        };
+        //MSO_headertext();
+    }; // MSP_InputElementKeyup
+
+//=========  MSP_SelecttableClicked  ================ PR2020-06-23
+    function MSP_SelecttableClicked(tblName, tblRow) {
+        //console.log( "===== MSP_SelecttableClicked ========= ");
+        if(tblRow) {
+// ---  deselect all highlighted rows
+            DeselectHighlightedRows(tblRow, cls_selected)
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+// ---  select item
+            MSP_SelectItem(tblName, tblRow);
+            MSP_headertext();
+            MSP_DisableBtnSave();
+            if (tblName === "paydate") {
+                MSP_Save();
+
+            }
+        }
+    }  // MSP_SelecttableClicked
+
+//=========  MSP_SelectItem  ================ PR2020-06-23
+    function MSP_SelectItem(tblName, tblRow ) {
+        console.log( "===== MSP_SelectItem ========= ");
+        let selected_pk = null, selected_ppk = null, selected_caption = null;
+        if(tblRow){
+            selected_pk = get_attr_from_el(tblRow, "data-pk");
+            selected_ppk = get_attr_from_el(tblRow, "data-ppk");
+            selected_caption = get_attr_from_el(tblRow, "data-value");
+        }
+
+        console.log( "??filter_dict", filter_dict);
+        console.log( "??selected_pk", selected_pk, typeof selected_pk);
+        console.log( "selected_ppk", selected_ppk, typeof selected_ppk);
+        console.log( "selected_caption", selected_caption);
+
+        if (tblName === "payrollperiod") {
+            mod_dict.paydate_iso = null;
+            mod_dict.paydate_caption = null;
+            if (selected_pk == null) {
+                mod_dict.paydatecode_pk = null;
+                mod_dict.paydatecode_caption = null;
+            } else {
+                const selected_pk_int = Number(selected_pk)
+    // ---  put pk of selected payrollperiod in mod_dict
+                mod_dict.paydatecode_pk = selected_pk_int;
+                mod_dict.paydatecode_caption = selected_caption;
+// ---  set focus on input_paydate
+                set_focus_on_el_with_timeout(el_MSP_input_paydate, 150);
+            }
+        } else {
+            mod_dict.paydate_iso = null;
+            mod_dict.paydatecode_pk = null;
+            if (selected_pk) {
+                const selected_ppk_int = Number(selected_ppk)
+                mod_dict.paydate_iso = selected_pk;
+                mod_dict.paydatecode_pk = selected_ppk_int;
+                mod_dict.paydate_caption = selected_caption;
+// ---  set focus on save btn
+                set_focus_on_el_with_timeout(el_MSP_btn_save, 150);
+            }
+        }
+        el_MSP_input_payrollperiod.value = mod_dict.paydatecode_caption;
+        el_MSP_input_paydate.value = mod_dict.paydate_caption;
+// ---  set header text, enable save button
+        MSP_headertext();
+        MSP_DisableBtnSave()
+
+// ---  fill table paydate when payrollperiod
+        if (tblName === "payrollperiod") { MSP_FillSelectTable("paydate")};
+    }  // MSP_SelectItem
+
+
+ //=========  MSP_headertext  ================ PR2020-06-23
+    function MSP_headertext() {
+        console.log( "=== MSP_headertext  ");
+        console.log(mod_dict);
+        let header_text = null;
+        if(mod_dict.paydatecode_pk != null){
+            header_text = mod_dict.paydatecode_caption;
+            if(mod_dict.paydate_iso != null){header_text += " - " + mod_dict.paydate_caption}
+        } else {
+            header_text = loc.Payroll_period
+        }
+        document.getElementById("id_MSP_header").innerText = header_text
+    }  // MSO_headertext
+
+
+
 // +++++++++++++++++ MODAL PAYROLL PERIOD ++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MPP_Open  ================ PR2020-06-09
     function MPP_Open(el_clicked) {
         //console.log("========= MPP_Open  ========= ");
-
 // ---  reset input boxes, checkboxes and table 'closingdate'
         const input_container = document.getElementById("id_MPP_input_container");
         let form_elements = input_container.querySelectorAll(".tsa_input_text");
@@ -1870,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MPP_Save  ================ PR2020-06-10
     function MPP_Save(crud_mode) {
-        console.log("========= MPP_Save  ========= ");
+        //console.log("========= MPP_Save  ========= ");
 
         const is_delete = (crud_mode === "delete")
         let upload_dict = {id: {table: "paydatecode"} }
@@ -1885,7 +2371,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(is_delete) {upload_dict.id.delete = true}
         };
 
-        console.log("mod_dict", mod_dict);
+        //console.log("mod_dict", mod_dict);
         if(is_delete) {
 // ---  make row red when delete, before uploading
             const tblRow = document.getElementById(mod_dict.rowid)
@@ -1898,7 +2384,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // TODO compare with paydate_dict to check if value has changed
             let recurrence = mod_dict.recurrence;
             upload_dict["recurrence"] = {value: recurrence, update: true}
-            console.log("recurrence", recurrence);
+            //console.log("recurrence", recurrence);
 
     // ---  get code
             const code = mod_dict.code;
@@ -1912,7 +2398,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let paydate_iso = mod_dict.referencedate;
             let weekday_index = null, date = null;
 
-            console.log("recurrence", recurrence);
+            //console.log("recurrence", recurrence);
             if(recurrence === "monthly"){
                 upload_dict["dayofmonth"] = {value: mod_dict.dayofmonth, update: true}
             } else  if(recurrence === "biweekly"){
@@ -1956,7 +2442,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
         }
-        console.log("upload_dict", upload_dict);
+        //console.log("upload_dict", upload_dict);
 // ---  UploadChanges
         if(!msg_err){
 // ---  hide modal
@@ -2470,8 +2956,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let wb = XLSX.utils.book_new()
             let ws_name = loc.Review;
-            let filename = (selected_btn === "payroll") ? loc.Overview_hours_per_abscat : loc.Overview_customer_hours;
-            filename += " " + today_str +  ".xlsx";
+            let filename = (selected_btn === "payrollperiod") ? loc.Overview_hours_per_abscat : loc.Overview_customer_hours;
+            if (payroll_is_detail_mode) { filename += " " + selected_employee_code }
+            filename += " " + selected_paydateitem_iso +  ".xlsx";
 
             let ws = FillExcelRows(selected_btn);
             /* Add worksheet to workbook */
@@ -2484,11 +2971,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
         console.log("=== FillExcelRows  =====")
-        console.log("payroll_detail_rows", payroll_detail_rows)
-
+        console.log("payroll_period_detail_rows", payroll_period_detail_rows)
+        const detail_rows = (payroll_is_detail_mode) ? payroll_period_detail_rows : payroll_period_agg_rows
         let ws = {};
 // title row
-        let title =  (selected_btn === "payroll") ? loc.Overview_hours_per_abscat : null;
+        let title =  loc.Overview_hours_per_abscat;
         ws["A1"] = {v: title, t: "s"};
 // company row
         const company = get_dict_value(company_dict, ["name", "value"], "")
@@ -2499,13 +2986,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const today_JS = new Date();
         const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
         ws["A3"] = {v: today_str, t: "s"};
-// header row
-        const header_rowindex = 6
-        let headerrow = [];
-        if (selected_btn === "payroll") {
-            headerrow = payroll_header_row
+
+
+        ws["A5"] = {v: selected_paydatecode_caption, t: "s"};
+        ws["A6"] = {v: selected_paydateitem_caption , t: "s"};
+
+// employee row
+        if (payroll_is_detail_mode){
+            ws["A5"] = {v: loc.Employee + ":", t: "s"};
+            ws["B5"] = {v: selected_employee_code , t: "s"};
+            ws["A6"] = {v: loc.Closing_date + ":", t: "s"};
+            ws["B6"] = {v: selected_paydateitem_caption, t: "s"};
         } else {
+            ws["A5"] = {v: selected_paydatecode_caption, t: "s"};
+            ws["A6"] = {v: loc.date_prefix_thru + selected_paydateitem_caption , t: "s"};
         }
+
+// header row
+        const header_rowindex =  8
+        let headerrow = payroll_header_row
         const col_count =  headerrow.length;
         for (let i = 0; i < col_count; i++) {
             const cell_value = headerrow[i];
@@ -2513,56 +3012,68 @@ document.addEventListener('DOMContentLoaded', function() {
             ws[cell_index] = {v: cell_value, t: "s"};
         }
         let row_index = header_rowindex + 1
-// --- loop through payroll_detail_rows
-        //  payroll_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-        if(!!payroll_detail_rows){
-            for (let j = 0, payroll_detail_row;  payroll_detail_row = payroll_detail_rows[j]; j++) {
-                if(payroll_detail_row[0]){  //  payroll_detail_row[0] = show_row
-                    const row_data = payroll_detail_row[3]
+// --- loop through detail_rows
+        //  detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+        if(!!detail_rows){
+            for (let j = 0, detail_row;  detail_row = detail_rows[j]; j++) {
+                if(detail_row[0]){  //  detail_row[0] = show_row
+                    const row_data = detail_row[3]
         console.log("row_data", row_data)
                     for (let x = 0, len = row_data.length; x < len; x++) {
                         const cell_index = get_excel_cell_index (x, row_index);
-                        const cell_type = (x===0) ? "s" : "n";
+                        let cell_type = "n";
+                        if (payroll_is_detail_mode){
+                            if (x === 1) {cell_type = "s"}
+                        } else {
+                            if (x === 0) {cell_type = "s"}
+                        }
                         ws[cell_index] = {t: cell_type}
-                        // last col is pclsoing date
-                        const cell_format = (x === 0) ? null : (x === 1 || x === col_count - 1) ? "dd mmm yyyy" : "0.00";
+                        let cell_format = null;
+                        if (payroll_is_detail_mode){
+                            if (x === 0) {cell_format = "dd mmm yyyy"} else
+                            if (x > 1) {cell_format = "0.00" } ;
+                        } else if(x > 0 ) { cell_format = "0.00"};
                         if(cell_format){ws[cell_index]["z"] = cell_format};
 
+        console.log("cell_format", cell_format)
                         let cell_value = null;
-                        if (x === 0) {
-                            cell_value = row_data[x];
-                        } else if (x === 1 || x === col_count - 1) {
-                            cell_value = get_Exceldate_from_date(row_data[x]);
+                        if (payroll_is_detail_mode){
+                            if (x === 0) { cell_value = get_Exceldate_from_date(row_data[x])} else
+                            if (x === 1) { cell_value = row_data[x]} else
+                            if (row_data[x]) {cell_value = row_data[x] / 60};
                         } else {
+                            if (x === 0) { cell_value = row_data[x]} else
                             if(row_data[x]) {cell_value = row_data[x] / 60};
-                        };
+                        }
                         if(cell_value){ws[cell_index]["v"] = cell_value};
+        console.log("cell_value", cell_value)
                     }
                     row_index += 1;
                 }
             }
 
-// add total row
+// +++  add total row
             row_index += 1;
             if (payroll_total_row) {
                 let cell_values = [];
-                for (let j = 0, len = payroll_total_row.length; j < len; j++) {
-                    const cell_index = get_excel_cell_index (j, row_index);
-                    const cell_type = (j===0) ? "s" : "n";
+                for (let x = 0, len = payroll_total_row.length; x < len; x++) {
+                    const cell_index = get_excel_cell_index (x, row_index);
+                    const cell_type = (x===0 || (x===1 && payroll_is_detail_mode) ) ? "s" : "n";
                     ws[cell_index] = {t: cell_type}
-                    const cell_format = (j === 0) ? null : (j === 1) ? "dd mmm yyyy" : "0.00";
+                    let cell_format = null;
+                    if (payroll_is_detail_mode){
+                        if (x > 1) {cell_format = "0.00" }
+                    } else if(x > 0) { cell_format = "0.00"};
                     if(cell_format){ws[cell_index]["z"] = cell_format};
+
                     let cell_value = null;
-
-        console.log("cell_value",  payroll_total_row[j])
-
-                    if (j === 0) {
-                        cell_value = payroll_total_row[j];
-                    } else if (j === 1) {
-                        cell_value = get_Exceldate_from_date(payroll_total_row[j]);
+                    if (payroll_is_detail_mode){
+                        if (x === 0) { cell_value = loc.Total_hours} else
+                        if (x > 1 && payroll_total_row[x]) { cell_value = payroll_total_row[x] / 60}
                     } else {
-                        if(payroll_total_row[j]) {cell_value = payroll_total_row[j] / 60};
-                    };
+                        if (x === 0) { cell_value = loc.Total_hours} else
+                        if(payroll_total_row[x]) {cell_value = payroll_total_row[x] / 60};
+                    }
                     if(cell_value){ws[cell_index]["v"] = cell_value};
                 }
                 row_index += 1;
@@ -2573,7 +3084,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // set column width
             let ws_cols = []
             for (let i = 0, tblRow; i < col_count; i++) {
-                const col_width = (i===0) ? 20 : 15
+                let col_width = 15;
+                if (payroll_is_detail_mode){
+                    if (i === 1) {col_width = 20}
+                } else {
+                    if (i === 0) {col_width = 20}
+                }
+
                 ws_cols.push( {wch:col_width} );
             }
             ws['!cols'] = ws_cols;

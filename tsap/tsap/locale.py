@@ -198,8 +198,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['First_date_in_service'] = TXT_First_date_in_service
         dict['Last_date_in_service'] = TXT_Last_date_in_service
 
-
-
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
         dict['an_employee'] = TXT_an_employee
@@ -217,6 +215,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
 # ====== PAGE PAYROLL =========================
     elif page == 'payroll':
+        dict['Payroll_2lines'] = TXT_Payroll_2lines
+        dict['No_payroll_periods'] = TXT_No_payroll_periods
+        dict['Choose_payroll_period'] = TXT_Choose_payroll_period
+        dict['Choose_closingdate'] = TXT_Choose_closingdate
 
         dict['Absence_category'] = TXT_Absence_category
         dict['The_absence_category'] = TXT_The_absence_category
@@ -232,6 +234,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Payment'] = TXT_Payment
 
         dict['Function'] = TXT_Function
+        dict['Order'] = TXT_Order
 
         dict['Payroll_period'] = TXT_Payroll_period
         dict['Payroll_periods'] = TXT_Payroll_periods
@@ -263,6 +266,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Custom'] = TXT_Custom
 
         dict['Hours_overview'] = TXT_Hours_overview
+        dict['Payroll_period_overview'] = TXT_Payroll_period_overview
+
         dict['Identifier'] = TXT_Identifier
 
         dict['Sequence'] = TXT_Sequence
@@ -920,6 +925,11 @@ TXT_ID_number = _('ID number')
 TXT_Payroll_code = _('Payroll code')
 
 TXT_Payroll_code_abbrev = pgettext_lazy('Code loonadm.', 'Payroll code')
+TXT_Payroll_2lines = pgettext_lazy('Loon administatie sidebar', 'Payroll')
+TXT_No_payroll_periods = _('No payroll periods found')
+TXT_Choose_payroll_period = _('Choose a payroll period')
+TXT_Choose_closingdate = _('Choose a closing date')
+
 
 TXT_New = _('New')
 TXT_Add = _('Add')
@@ -1066,6 +1076,9 @@ TXT_Payment= pgettext_lazy('Wage payment = uitbetaling', 'Payment')
 TXT_Payroll_periods = _("Payroll periods")
 TXT_Payroll_period = _("Payroll period")
 TXT_Hours_overview = _("Hours overview")
+TXT_Payroll_period_overview = _("Payroll period overview")
+
+
 TXT_Function = _("Function")
 
 TXT_Saturday_hours = _("Count hours on Saturdays")

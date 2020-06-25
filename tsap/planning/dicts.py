@@ -1847,9 +1847,16 @@ def create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, r
 def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
     #logger.debug(' --- create_calendar_header ---')
     # PR2020-01-26 function returns 'ispublicholiday', 'iscompanyholiday' from Calendar
+    # PR2020-06-22 is_saturday is_sunday added
+    is_saturday = False
+    is_sunday = False
     is_publicholiday = False
     is_companyholiday = False
+
     if rosterdate_dte:
+        is_saturday = (rosterdate_dte.isoweekday() == 6)
+        is_sunday = (rosterdate_dte.isoweekday() == 7)
+
         calendar_date = m.Calendar.objects.get_or_none(
                 company=request.user.company,
                 rosterdate=rosterdate_dte
@@ -1858,7 +1865,7 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
             is_publicholiday = calendar_date.ispublicholiday
             is_companyholiday = calendar_date.iscompanyholiday
 
-    return is_publicholiday, is_companyholiday
+    return is_saturday, is_sunday, is_publicholiday, is_companyholiday
 
 # ========================
 

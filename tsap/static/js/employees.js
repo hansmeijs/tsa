@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "selected_btn", selected_btn );
 
 // ---  upload new selected_btn
-        const upload_dict = {"page_employee": {"btn": selected_btn}};
+        const upload_dict = {page_employee: {btn: selected_btn}};
         UploadSettings (upload_dict, url_settings_upload);
 
 // ---  highlight selected button

@@ -12,9 +12,25 @@
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
         <div class="sidebar_header">
-            <h3>{% trans 'Payroll' %}</h3>
+            <h3 id="id_SBR_hdr_text"></h3>
         </div>
-
+        <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Payroll period' %}:</h6>
+            <input id="id_sbr_select_payrollperiod"
+                type="text"
+                class="tw_200 border_none pointer_show px-2"
+                readonly>
+        </div>
+        <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Closing date' %}:</h6>
+            <input id="id_sbr_select_paydate"
+                type="text"
+                class="tw_200 border_none pointer_show px-2"
+                readonly>
+        </div>
+        <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+            <h6 id="id_sbr_select_showll" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Back to payroll period overview' %}</h6>
+        </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -29,6 +45,8 @@
         {% include 'includes/modpayrollperiod.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectemployee.html' %}
+<!-- =================== MODAL SELECT PAYDATE  =================== -->
+        {% include 'includes/modselectpaydate.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
 
@@ -50,9 +68,9 @@
     <!-- end class content_header -->
     <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button data-btn="payroll" class="btn btn-secondary ">{% trans 'Hours overview' %}</button>
-                    <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
+                    <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Payroll period overview' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
+                    <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
             </div>
@@ -62,7 +80,7 @@
             <div class="content_body mx-2">
                 <div class="modal_container">
 <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payroll tab_order display_hide">
+                    <div class="tab_show tab_payrollperiod tab_order display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>

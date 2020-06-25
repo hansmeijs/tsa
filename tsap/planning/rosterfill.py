@@ -803,12 +803,12 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
 
-            # - change rosterdates in schemeitems, to most recent rosterdate (add multiple of cycle days)
+# - change rosterdates in schemeitems, to most recent rosterdate (add multiple of cycle days)
             schemeitems = m.Schemeitem.objects.filter(scheme__order__customer__company=request.user.company)
             for schemeitem in schemeitems:
                 plv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
 
-            # update the paydates of all paydatecodes to the nearest date from rosterdate_dte PR2020-06-19
+# - update the paydates of all paydatecodes to the nearest date from rosterdate_dte PR2020-06-19
             plv.update_paydates_in_paydatecode(rosterdate_dte, request)
             # - delete existing emplhour
             # TODO replace by skipping , because of keeping track of entries
@@ -844,6 +844,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             rosterdate_isoWeekDay = rosterdate_dte.isoweekday()
             is_saturday = (rosterdate_isoWeekDay == 6)
             is_sunday = (rosterdate_isoWeekDay == 7)
+            # lastof_month is entered as paydate when no paydatecode is given
+            lastof_month = f.get_lastof_month(rosterdate_dte)
             #logger.debug('publicholiday_text: ' + str(publicholiday_text) + ' ' + str(type(publicholiday_text)))
             if is_publicholiday:
                 logfile.append('--- this is a public holiday (' + str(publicholiday_text) + ')')
@@ -892,6 +894,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                         is_saturday=is_saturday,
                         is_sunday=is_sunday,
                         is_publicholiday=is_publicholiday,
+                        lastof_month=lastof_month,
                         comp_timezone=comp_timezone,
                         request=request)
 
@@ -963,7 +966,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
     return return_dict, logfile
 
 
-def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, comp_timezone, request):  # PR2020-01-5
+def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
+                           lastof_month, comp_timezone, request):  # PR2020-01-5
     logger.debug(' ============= add_orderhour_emplhour ============= ')
     logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
@@ -992,12 +996,12 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     nohoursonsunday = row[idx_o_s_nosun]
     nohoursonpublicholiday = row[idx_o_s_noph]
 
-    logger.debug('is_absence: ' + str(is_absence))
-    logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
-    logger.debug('row_timeduration: ' + str(row_timeduration))
-    logger.debug('nohoursonsaturday: ' + str(nohoursonsaturday) + ' is_saturday: ' + str(is_saturday))
-    logger.debug('nohoursonsunday: ' + str(nohoursonsunday) + ' is_sunday: ' + str(is_sunday))
-    logger.debug('nohoursonpublicholiday: ' + str(nohoursonpublicholiday) + ' is_publicholiday: ' + str(is_publicholiday))
+    #logger.debug('is_absence: ' + str(is_absence))
+    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
+    #logger.debug('row_timeduration: ' + str(row_timeduration))
+    #logger.debug('nohoursonsaturday: ' + str(nohoursonsaturday) + ' is_saturday: ' + str(is_saturday))
+    #logger.debug('nohoursonsunday: ' + str(nohoursonsunday) + ' is_sunday: ' + str(is_sunday))
+    #logger.debug('nohoursonpublicholiday: ' + str(nohoursonpublicholiday) + ' is_publicholiday: ' + str(is_publicholiday))
     timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         is_saturday=is_saturday,
@@ -1072,7 +1076,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         )
 
         # TODO get invoicedate from order settings, make it end of this month for now
-        invoice_date = f.get_lastof_month(rosterdate_dte)
+        invoice_date = lastof_month
 
         # 4. add values to new record
         orderhour.invoicedate = invoice_date
@@ -1099,6 +1103,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             offset_start=row_offsetstart,
             offset_end=row_offsetend,
             date_part=date_part,
+            lastof_month=lastof_month,
             comp_timezone=comp_timezone,
             request=request)
 
@@ -1117,7 +1122,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
                  shift_wagefactor,
                  timestart, timeend, break_duration, time_duration,
-                 offset_start, offset_end, date_part, comp_timezone, request):
+                 offset_start, offset_end, date_part, lastof_month, comp_timezone, request):
     #logger.debug(' ============= add_emplhour ============= ')
     #('row: ')
     #logger.debug(str(row))
@@ -1226,12 +1231,15 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             # add pay_date PR2020-06-18
             # note: pay_date must be updated in table Paydatecode before filling rosterdate
             # IMPORTANT: dont forget to change paydate in emplhour when changing employee
+            paydatecode_id = None
             if is_replacement:
                 paydatecode_id = row[idx_r_pdc_id]
                 pay_date = row[idx_r_pdc_dte]
             else:
                 paydatecode_id = row[idx_e_pdc_id]
                 pay_date = row[idx_e_pdc_dte]
+            if paydatecode_id is None:
+                pay_date = lastof_month
 
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
@@ -2538,7 +2546,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
             # 4. get is_publicholiday, is_companyholiday of this date from Calendar
-            is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
+            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
             # refdate not in use any more PR2020-05-05, becasue of introduction ofdivergent shift without rosterdatre
 
             # 5. create list with all teammembers of this_rosterdate
@@ -3240,7 +3248,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         while rosterdate_dte <= datelast_dte:
 
 # - get is_publicholiday, is_companyholiday of this date from Calendar
-            is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
+            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
 
 # - create list with all schemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database

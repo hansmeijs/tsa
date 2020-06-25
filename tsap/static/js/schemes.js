@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- hide fill buttons
         ShowButtonsTableSchemeitem(false);
-        
+
 //>>>>>>>>>>>>>>> MOD TIMEPICKER >>>>>>>>>>>>>>>>>>> PR2020-04-13
     let el_mtp_container = document.getElementById("id_mtp_container");
     let el_mtp_modal = document.getElementById("id_mtp_modal")
@@ -350,9 +350,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- Datalist Download
         // TODO set show_absence = false
-        // show_absence = null is for testing, show_absence must be false in production
-        const show_absence_FOR_TESTING_ONLY = null;
-        //const show_absence_FOR_TESTING_ONLY = false;
+        //show_absence = null is for testing, show_absence must be false in production
+        //const show_absence_FOR_TESTING_ONLY = null;
+        const show_absence_FOR_TESTING_ONLY = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -672,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- save selected.customer_pk in Usersettings, not in template mode
                 if(!is_template_mode){
                     settings.customer_pk = selected.customer_pk
-                    const upload_dict = {selected_pk: { sel_customer_pk: selected.customer_pk, sel_order_pk: selected.order_pk}};
+                    const upload_dict = {selected_pk: {sel_customer_pk: selected.customer_pk, sel_order_pk: selected.order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
                 }
 
@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sel_order_pk){
 // --- save selected.order_pk in Usersettings, not in template mode
             if(!is_template_mode){
-                const upload_dict = {selected_pk: {sel_customer_pk: sel_customer_pk, sel_order_pk: sel_order_pk}};
+                const upload_dict ={selected_pk: {sel_customer_pk: sel_customer_pk, sel_order_pk: sel_order_pk}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
         }
@@ -847,8 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     selected.team_pk = 0;
 // ---  save selected.scheme_pk in Usersettings, not in template mode
                     if(!is_template_mode){
-                        const upload_dict = {selected_pk: {sel_order_pk: sel_ppk_int,
-                                                           sel_scheme_pk: sel_pk_int}};
+                        const upload_dict = {selected_pk: {sel_order_pk: sel_ppk_int, sel_scheme_pk: sel_pk_int}};
                         UploadSettings (upload_dict, url_settings_upload);
                     }
 // --- Add ppk_int to addnewRow of selecttable shift and team
@@ -6042,8 +6041,11 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         console.log("===  ModCopyfromTemplateOpen  =====") ;
 
         // disable btn when templates are shown
-        if(!is_template_mode) {
-            if(!!selected.order_pk && selected.customer_pk) {
+        console.log("is_template_mode", is_template_mode) ;
+        console.log("selected.order_pk", selected.order_pk) ;
+        console.log("selected.customer_pk", selected.customer_pk) ;
+        if(is_template_mode) {
+            if(selected.order_pk) {  //&&elected.customer_pk) {
                 mod_upload_dict = {copyto_order_pk: selected.order_pk, copyto_order_ppk: selected.customer_pk};
             // reset input elements
                 //el_mod_copyfrom_template_select.value = null
@@ -6073,6 +6075,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             // cannot copy if selected.order_pk is blank
                 document.getElementById("id_mod_copyfrom_btn_save").readOnly = (!selected.order_pk)
 
+        console.log("mod_upload_dict", mod_upload_dict) ;
             // ---  show modal
                 $("#id_mod_copyfrom").modal({backdrop: true});
 
@@ -6984,8 +6987,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             //t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
 // --- save selected_customer_pk in Usersettings
-            //const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-            //UploadSettings (setting_dict, url_settings_upload)
+            //const upload_dict = {selected_pk: {sel_customer_pk: selected_customer_pk, sel_order_pk: selected_order_pk}};
+            //UploadSettings (upload_dict, url_settings_upload)
 
 //--- reset highlighted
             // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)

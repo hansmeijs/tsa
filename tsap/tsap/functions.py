@@ -77,6 +77,7 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
 
 
 def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
+    # use row.rosterdate.isoformat() instead PR2020-06-25
     date_iso = None
     if date_obj:
         try:
@@ -635,7 +636,7 @@ def add_days_to_date(date_obj, days_add_int):
 
 
 def add_month_to_firstof_month(date_obj, month_add_int):
-    # Note: this doesn't work with dates over 28 of the month, only use with first of the month PR2019-11-19
+    # NOTE: this doesn't work with dates over 28 of the month, only use with first of the month PR2019-11-19
     # also not working when month_add_int > 12
     new_date = None
     if(date_obj):

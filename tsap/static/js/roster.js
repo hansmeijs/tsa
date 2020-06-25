@@ -1580,9 +1580,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= MSO_Open ====================================  PR2019-11-16
     function MSO_Open () {
-        console.log(" ===  MSO_Open  =====") ;
-        console.log("selected_period.customer_pk:", selected_period.customer_pk) ;
-        console.log("selected_period.order_pk:", selected_period.order_pk) ;
+        //console.log(" ===  MSO_Open  =====") ;
+        //console.log("selected_period.customer_pk:", selected_period.customer_pk) ;
+        //console.log("selected_period.order_pk:", selected_period.order_pk) ;
 
         // do not update selected_period.customer_pk until MSO_Save
         mod_upload_dict = {
@@ -1592,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         el_MSO_input_customer.value = null;
-        MSO_FillSelectTableCustomer()
+        MSO_FillSelectTableCustomer();
         // MSO_SelectCustomer is called by MSO_FillSelectTableCustomer
         //MSO_FillSelectTableOrder is called by MSO_SelectCustomer
         MSO_headertext();
@@ -3933,8 +3933,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_InputOnfocus  ================ PR2020-02-29
     function MRO_InputOnfocus(tblName) {
-
-        console.log(">>>>>>>>>>> ===  MRO_InputOnfocus  =====") ;
+        //console.log("===  MRO_InputOnfocus  =====") ;
         MRO_MRE_MSS_FillSelectTable("MRO", tblName)
     }  // MRO_InputOnfocus
 

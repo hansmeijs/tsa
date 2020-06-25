@@ -547,8 +547,8 @@ let planning_list = [] // for export and printing - can replace map?
         UpdateHeaderText();
 
 // --- save selected_customer_pk in Usersettings ( UploadSettings at the end of this function)
-        const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-        UploadSettings (setting_dict, url_settings_upload);
+        const upload_dict = {selected_pk: {sel_customer_pk: selected_customer_pk, sel_order_pk: selected_order_pk}};
+        UploadSettings (upload_dict, url_settings_upload);
 
     };  // HandleTableRowClicked
 
@@ -585,7 +585,7 @@ let planning_list = [] // for export and printing - can replace map?
 
     // ---  upload new selected_btn
             if(!skip_update){
-                const upload_dict = {"page_customer": {"btn": selected_btn}};
+                const upload_dict = {page_customer: {btn: selected_btn}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
     // ---  highlight selected button
@@ -778,7 +778,7 @@ let planning_list = [] // for export and printing - can replace map?
                     UpdateHeaderText()
 
     // --- save selected_customer_pk and selected_order_pk in Usersettings
-                    const upload_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+                    const upload_dict = {selected_pk: {sel_customer_pk: selected_customer_pk, sel_order_pk: selected_order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
     // ---  filter selectrows of tbody_select_order
                     // has_rows_dict: {row_count: 2, selected_pk: null, selected_ppk: null, selected_value: null}
@@ -1496,8 +1496,8 @@ let planning_list = [] // for export and printing - can replace map?
             if(sel_cust_pk !== selected_customer_pk || sel_order_pk !== selected_order_pk){
                 selected_customer_pk = sel_cust_pk;
                 selected_order_pk = sel_order_pk;
-                const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-                UploadSettings (setting_dict, url_settings_upload);
+                const upload_dict = {selected_pk: {sel_customer_pk: selected_customer_pk, sel_order_pk: selected_order_pk}};
+                UploadSettings (upload_dict, url_settings_upload);
             }
     // reset addnew row
             if(tblName === 'order'){
@@ -5241,8 +5241,8 @@ let planning_list = [] // for export and printing - can replace map?
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
 // --- save selected_customer_pk in Usersettings
-            const setting_dict = {"selected_pk": { "sel_customer_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-            UploadSettings (setting_dict, url_settings_upload)
+            const upload_dict = {selected_pk: {sel_customer_pk: selected_customer_pk, sel_order_pk: selected_order_pk}};
+            UploadSettings (upload_dict, url_settings_upload)
 
 //--- reset highlighted
             // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)

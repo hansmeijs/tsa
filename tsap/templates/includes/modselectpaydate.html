@@ -1,0 +1,70 @@
+ {% load i18n %}
+{% load static %}
+
+ <!-- =================== MODAL SELECT PAYDATE  =================== -->'
+
+    <div class="modal" id="id_mod_select_paydate" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 class="modal-title mx-2" >{% trans 'Select a payroll period and closing date' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mx-4 my-2">
+                        <h5 id="id_MSP_header">{% trans 'Payroll period' %}</h5>
+                    </div>
+
+                    <div class="modal_container">
+<!-- modal_body_left contains customer select table -->
+                        <div class="modal_body_left">
+                            <div class="mx-2 my-1">
+                                <div class="tbl_h_360"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table tsa_tbl mx-1 my-1">
+                                        <tbody id="id_MSP_tblbody" data-table="payrollperiod">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="modal_body_right mx-2 my-0">
+                            <div class="mx-2 my-2">
+                                <label class="mx-2 my-1">{% trans 'Payroll period' %}:</label>
+                                <input id="id_MSP_input_payrollperiod"
+                                    type="text"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select a payroll period in the list' %}...">
+                            </div>
+                            <div class="mx-2 my-2">
+                                <label class="mx-2 my-1">{% trans 'Closing date' %}:</label>
+                                <input id="id_MSP_input_paydate"
+                                    type="text"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select a closing date in the list' %}...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mx-4">
+                         <small class="muted">{% trans 'Only payroll periods, that that appear in the roster, are shown.' %}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MSP_btn_save" type="button" class="btn btn-primary" >{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL ORDER  =================== -->

@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ---  upload new selected_btn
             if(!skip_update){
-                const upload_dict = {"page_customer": {"btn": selected_btn}};
+                const upload_dict = {page_customer: {btn: selected_btn}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
     // ---  highlight selected button
