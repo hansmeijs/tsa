@@ -788,7 +788,7 @@ def create_paydatecodes_inuse_list(period_dict, request):
 
 
 def create_paydates_inuse_list(period_dict, request):
-    logger.debug(' ============= create_paydates_inuse_list ============= ')
+    #logger.debug(' ============= create_paydates_inuse_list ============= ')
     # create list of paydates with paydatecode_id that are in table emplhour PR2020-06-23
 
     paydates_inuse_list = []
@@ -829,13 +829,13 @@ def create_paydates_inuse_list(period_dict, request):
             datelast_dte = row[1]
             paydates_row = [pdc_id, datelast_dte]
             paydatecode = m.Paydatecode.objects.get_or_none(id=pdc_id, company=request.user.company)
-            logger.debug('paydates_row: ' + str(paydates_row))
-            logger.debug('paydatecode: ' + str(paydatecode))
+            #logger.debug('paydates_row: ' + str(paydates_row))
+            #logger.debug('paydatecode: ' + str(paydatecode))
             if paydatecode:
-                logger.debug('datelast_dte: ' + str(datelast_dte))
-                new_paydate_dteNIU, firstdate_of_period = \
-                    plv.recalculate_and_save_paydatecode(datelast_dte, paydatecode, True)  # True = skip_save
-                logger.debug('firstdate_of_period: ' + str(firstdate_of_period))
+                #logger.debug('datelast_dte: ' + str(datelast_dte))
+                firstdate_of_period, new_paydate_dteNIU = \
+                    plv.recalc_paydate(datelast_dte, paydatecode)
+                #logger.debug('firstdate_of_period: ' + str(firstdate_of_period))
                 if firstdate_of_period:
                                 paydates_row.append(firstdate_of_period)
             paydates_inuse_list.append(paydates_row)
@@ -843,7 +843,7 @@ def create_paydates_inuse_list(period_dict, request):
 
 
 def create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request):
-    logger.debug(' ============= create_payroll_abscat_list ============= ')
+    #logger.debug(' ============= create_payroll_abscat_list ============= ')
     # sql return list of all absence orders in use in this payroll period
     paydatecode_pk = sel_paydatecode_pk
     paydate_iso = sel_paydate_iso
@@ -873,7 +873,7 @@ def create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request):
 
 
 def create_payroll_list_groupedby_rosterdate_NIU(table_dict, sel_paydatecode_pk, sel_paydate_iso, request):
-    logger.debug(' ============= create_payroll_list_groupedby_rosterdate ============= ')
+    #logger.debug(' ============= create_payroll_list_groupedby_rosterdate ============= ')
     # create crosstab list of employees with absence hours PR2020-06-12
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
@@ -963,22 +963,20 @@ def create_payroll_list_groupedby_rosterdate_NIU(table_dict, sel_paydatecode_pk,
 
 
 def create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, request):
-    logger.debug(' ============= create_payroll_period_detail_list ============= ')
+    #logger.debug(' ============= create_payroll_period_detail_list ============= ')
     # create crosstab list of employees with absence hours PR2020-06-12
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
-    payroll_list = []
-    payroll_per_period_list = []
-
+    payroll_list_detail = []
     if request.user.company:
         paydatecode_pk = sel_paydatecode_pk
         paydate_iso = sel_paydate_iso
         # paydatecode_pk = 0 is used in sql, don't change it to None
 
-        logger.debug('paydatecode_pk: ' + str(paydatecode_pk) + ' ' + str(type(paydatecode_pk)))
-        logger.debug('paydate_iso: ' + str(paydate_iso) + ' ' + str(type(paydate_iso)))
+        #logger.debug('paydatecode_pk: ' + str(paydatecode_pk) + ' ' + str(type(paydatecode_pk)))
+        #logger.debug('paydate_iso: ' + str(paydate_iso) + ' ' + str(type(paydate_iso)))
         sql_detail = """
             SELECT eh.id, eh.rosterdate, eh.employee_id, e.code, 
             CASE WHEN o.isabsence THEN o.id ELSE 0 END,
@@ -1012,20 +1010,20 @@ def create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, reque
 # - end of create_payroll_period_detail_list
 
 def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request):
-    logger.debug(' ============= create_payroll_period_agg_list ============= ')
+    #logger.debug(' ============= create_payroll_period_agg_list ============= ')
     # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-06-24
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
-    payroll_per_period_list = []
+    create_payroll_period_agg_list = []
     if request.user.company:
         paydatecode_pk = sel_paydatecode_pk
         paydate_iso = sel_paydate_iso
         # paydatecode_pk = 0 is used in sql, don't change it to None
 
-        logger.debug('paydatecode_pk:  ' + str(paydatecode_pk))
-        logger.debug('paydate_iso:  ' + str(paydate_iso))
+        #logger.debug('paydatecode_pk:  ' + str(paydatecode_pk))
+        #logger.debug('paydate_iso:  ' + str(paydate_iso))
         sql_absence = """
             SELECT eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, 
             SUM(eh.timeduration) AS eh_td, 
@@ -1095,7 +1093,7 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
 
 
 def create_paydatecode_list(period_dict, datalists, request):
-    logger.debug(' --- create_paydatecode_list --- ')
+    #logger.debug(' --- create_paydatecode_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
 # --- create list of payrollperiods of this company PR2029-06-17
@@ -1106,26 +1104,38 @@ def create_paydatecode_list(period_dict, datalists, request):
 
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
-        if period_datefirst is None:
-            period_datefirst = '1900-01-01'
-        if period_datelast is None:
-            period_datelast = '2500-01-01'
+        # Note: both datefirst_agg and datelast_agg are ordered by datelast, to keep sequece in both lists the same
+        sql_paydateitem_sub = """
+            SELECT 
+                pdi.paydatecode_id, 
+                ARRAY_AGG( TO_CHAR(pdi.datefirst, 'YYYY-MM-DD') ORDER BY pdi.datelast) AS datefirst_agg,
+                ARRAY_AGG( TO_CHAR(pdi.datelast, 'YYYY-MM-DD') ORDER BY pdi.datelast) AS datelast_agg
+            FROM companies_paydateitem AS pdi
+            WHERE ( (pdi.datelast >= CAST(%(df)s AS DATE) ) OR ( CAST(%(df)s AS DATE) IS NULL) )
+            AND ( (pdi.datelast <= CAST(%(dl)s AS DATE) ) OR ( CAST(%(dl)s AS DATE) IS NULL) )
+            GROUP BY pdi.paydatecode_id
+            """
 
         sql_paydatecode = """
-            SELECT pdc.id, pdc.company_id AS comp_id, pdc.code, pdc.recurrence, pdc.dayofmonth, pdc.paydate, pdc.isdefault, pdc.inactive 
+            SELECT pdc.id, pdc.company_id AS comp_id, pdc.code, pdc.recurrence, pdc.dayofmonth, pdc.referencedate, 
+            pdc.datefirst, pdc.datelast, pdc.isdefault, pdc.afascode, pdc.inactive,
+            pdi.datefirst_agg, pdi.datelast_agg
             FROM companies_paydatecode AS pdc
+            LEFT JOIN (""" + sql_paydateitem_sub + """) AS pdi ON (pdi.paydatecode_id = pdc.id)
             WHERE pdc.company_id = %(compid)s 
             ORDER BY LOWER(pdc.code) ASC
             """
         newcursor = connection.cursor()
         newcursor.execute(sql_paydatecode, {
-            'compid': company_pk
+            'compid': company_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
         })
         paydatecodes = f.dictfetchall(newcursor)
 
         paydatecode_list = []
         for paydatecode in paydatecodes:
-            logger.debug('paydatecode: ' + str(paydatecode))
+            #logger.debug('paydatecode: ' + str(paydatecode))
             item_dict = create_paydatecode_dict_sql(paydatecode)
             if item_dict:
                 paydatecode_list.append(item_dict)
@@ -1133,14 +1143,16 @@ def create_paydatecode_list(period_dict, datalists, request):
             datalists['paydatecode_list'] = paydatecode_list
 
         sql_paydateitem = """
-            SELECT pdi.id AS pdi_id, pdc.id AS pdc_id, pdi.paydate 
+            SELECT pdi.id AS pdi_id, pdc.id AS pdc_id, 
+            pdi.datefirst, pdi.datelast, pdi.year, pdi.period
             FROM companies_paydateitem AS pdi
             INNER JOIN companies_paydatecode AS pdc ON (pdc.id = pdi.paydatecode_id)
-            WHERE  ( (pdc.company_id = %(compid)s) AND (pdi.paydate >= CAST(%(df)s AS date)) AND (pdi.paydate <= CAST(%(dl)s AS date)) )
-            OR ( (pdc.company_id = %(compid)s) AND (pdi.paydate IS NULL) )
-            ORDER BY pdi.paydate
+            WHERE ( pdc.company_id = %(compid)s ) 
+            AND ( (pdi.datelast >= CAST(%(df)s AS DATE) ) OR ( CAST(%(df)s AS DATE) IS NULL) )
+            AND ( (pdi.datelast <= CAST(%(dl)s AS DATE) ) OR ( CAST(%(dl)s AS DATE) IS NULL) )
+            ORDER BY pdi.datelast
             """
-        newcursor.execute(sql_paydateitem, {
+        newcursor.execute(sql_paydatecode, {
             'compid': company_pk,
             'df': period_datefirst,
             'dl': period_datelast
@@ -1148,7 +1160,6 @@ def create_paydatecode_list(period_dict, datalists, request):
         paydateitems = f.dictfetchall(newcursor)
         paydateitem_list = []
         for paydateitem in paydateitems:
-            logger.debug('paydateitem: ' + str(paydateitem))
             item_dict = create_paydateitem_dict_sql(paydateitem)
             if item_dict:
                 paydateitem_list.append(item_dict)
@@ -1168,8 +1179,8 @@ def create_paydatecode_dict_sql(paydate):
                 field_dict['ppk'] = paydate.get('comp_id')
                 field_dict['table'] = 'paydatecode'
 
-            elif field in ('code', 'recurrence', 'dayofmonth', 'paydate',
-                            'isdefault', 'inactive'):
+            elif field in ('code', 'afascode', 'recurrence', 'dayofmonth', 'referencedate',
+                            'datefirst', 'datelast', 'datefirst_agg', 'datelast_agg', 'isdefault', 'inactive'):
                 value = paydate.get(field)
                 if value:
                     field_dict['value'] = value
@@ -1189,7 +1200,8 @@ def create_paydatecode_dict(instance, item_dict):
                 field_dict['ppk'] = instance.company.pk
                 field_dict['table'] = 'paydatecode'
 
-            elif field in ('code', 'recurrence', 'dayofmonth', 'paydate', 'isdefault', 'inactive'):
+            elif field in ('code', 'recurrence', 'dayofmonth', 'referencedate',
+                            'datefirst', 'datelast', 'afascode', 'isdefault', 'inactive'):
                 value = getattr(instance, field)
                 if value:
                     field_dict['value'] = value
@@ -1198,23 +1210,24 @@ def create_paydatecode_dict(instance, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 # end of create_paydatecode_dict
 
+
 def create_paydateitem_dict_sql(paydateitem):
-    logger.debug(' --- create_paydateitem_dict_sql --- ')
+    #logger.debug(' --- create_paydateitem_dict_sql --- ')
     # --- create dict of this paydate PR2020-06-17
     item_dict = {}
     if paydateitem:
-        for field in ('id', 'paydate'):
+        for field in c.FIELDS_PAYDATEITEM:
             field_dict = {}
             if field == 'id':
                 field_dict['pk'] = paydateitem.get('pdi_id')
                 field_dict['ppk'] = paydateitem.get('pdc_id')
                 field_dict['table'] = 'paydateitem'
-            elif field == 'paydate':
+
+            elif field in ('datefirst', 'datelast', 'year', 'period'):
                 value = paydateitem.get(field)
                 if value:
                     field_dict['value'] = value
             if field_dict:
                 item_dict[field] = field_dict
-    logger.debug('item_dict: ' + str(item_dict))
     return item_dict
 

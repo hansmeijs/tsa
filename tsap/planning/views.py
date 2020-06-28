@@ -60,6 +60,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # f.update_isabsence_istemplate()
                     # update_workminutesperday is one time only, to be removed after update
                     f.update_workminutesperday()
+                    # # function puts value of paydate in field datelast
+                    f.update_paydateitems()
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -72,7 +74,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         interval = request.user.company.interval
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
-                    logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
+                    #logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
                     request_item = datalist_request.get('setting')
@@ -81,7 +83,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # 'timeformat': '24h', 'interval': 5, 'selected_pk': {'sel_customer_pk': 748, 'sel_order_pk': 1520, 'sel_scheme_pk': 2111,
                     # 'sel_paydatecode_pk': 0,
                     # 'sel_paydate_iso': '2020-05-31'}, 'sel_page': 'page_payroll', 'sel_btn': 'payroll'}
-                    logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
                     saved_page = new_setting_dict.get('sel_page')
                     saved_btn = new_setting_dict.get('sel_btn')
                     saved_customer_pk = new_setting_dict.get('sel_customer_pk')
@@ -90,9 +92,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     saved_employee_pk = new_setting_dict.get('sel_employee_pk')
                     sel_paydatecode_pk = new_setting_dict.get('sel_paydatecode_pk')
                     sel_paydate_iso = new_setting_dict.get('sel_paydate_iso')
-                    logger.debug('sel_paydatecode_pk: ' + str(sel_paydatecode_pk))
-                    logger.debug('sel_paydate_iso: ' + str(sel_paydate_iso))
-                    logger.debug('sel_btn: ' + str(saved_btn))
+                    #logger.debug('sel_paydatecode_pk: ' + str(sel_paydatecode_pk))
+                    #logger.debug('sel_paydate_iso: ' + str(sel_paydate_iso))
+                    #logger.debug('sel_btn: ' + str(saved_btn))
 
                     if new_setting_dict:
                         datalists['setting_dict'] = new_setting_dict
@@ -386,7 +388,7 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                     'sel_employee_pk', 'sel_paydatecode_pk', 'sel_paydate_iso')
 
         saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
-        logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
+        #logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
 
         request_dict = {}
         new_selected_pk_dict = {}
@@ -432,7 +434,7 @@ def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_s
         is_absence = request_item.get('isabsence', False)
     else:
         is_absence = (saved_btn == 'btn_absence')
-    logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
+    #logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
     absence_customer_pk = None
     if is_template:
         # - check if template_order exists, create if not exists
@@ -463,8 +465,8 @@ def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_s
         comp_timezone=comp_timezone,
         user_lang=user_lang)
 
-    logger.debug('checked_customer_pk' + str(checked_customer_pk))
-    logger.debug('checked_order_pk' + str(checked_order_pk))
+   #logger.debug('checked_customer_pk' + str(checked_customer_pk))
+   #logger.debug('checked_order_pk' + str(checked_order_pk))
     if is_template or is_absence:
         # in template mode or absence mode: don't save setting
         selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
@@ -482,7 +484,7 @@ def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_s
         # TODO get rid of set_selected_pk
         selected_pk_dict = Usersetting.set_selected_pk(new_setting, request.user)
 
-    logger.debug('selected_pk_dict' + str(selected_pk_dict))
+   #logger.debug('selected_pk_dict' + str(selected_pk_dict))
     # don't replace setting_dict, you will lose page info. Add key 'selected_pk' instead
     datalists_setting_dict = datalists.get('setting_dict')
     if datalists_setting_dict:
@@ -499,7 +501,7 @@ def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_s
 
 def download_employee_calendar(table_dict, calendar_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
-    logger.debug('table_dict: ' + str(table_dict))
+   #logger.debug('table_dict: ' + str(table_dict))
 
     dict_list = []
     logfile = []
@@ -515,9 +517,9 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
         if order_pk is None:
             customer_pk = saved_customer_pk
 
-    # logger.debug('employee_pk: ' + str(employee_pk))
-    # logger.debug('customer_pk: ' + str(customer_pk))
-    # logger.debug('order_pk: ' + str(order_pk))
+    #logger.debug('employee_pk: ' + str(employee_pk))
+    #logger.debug('customer_pk: ' + str(customer_pk))
+    #logger.debug('order_pk: ' + str(order_pk))
     # calendar must have customer_pk, order_pk or employee_pk
     if customer_pk or order_pk or employee_pk:
         add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
@@ -526,7 +528,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
         datefirst_iso = calendar_period_dict.get('period_datefirst')
         datelast_iso = calendar_period_dict.get('period_datelast')
 
-        # logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
+        #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
         orderby_rosterdate_customer = False
         dict_list, logfile = r.create_employee_planning(
             datefirst_iso=datefirst_iso,
@@ -549,11 +551,11 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
 
 def download_customer_calendar(table_dict, calendar_period_dict, datalists, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
-    logger.debug('table_dict: ' + str(table_dict))
+   #logger.debug('table_dict: ' + str(table_dict))
     # selected order is retrieved table_dict 'customer_calendar'.
     # iF not provided: use saved_order_pk
     # order_pk cannot be blank
-    # logger.debug('table_dict: customer_calendar' + str(table_dict))
+    #logger.debug('table_dict: customer_calendar' + str(table_dict))
 
     order_pk = None
     if table_dict:
@@ -583,7 +585,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
     skip_restshifts = False
     orderby_rosterdate_customer = False
 
-    # logger.debug('table_dict: employee_planning' + str(table_dict))
+    #logger.debug('table_dict: employee_planning' + str(table_dict))
     if table_dict:
         employee_pk = table_dict.get('employee_pk')
         customer_pk = None
@@ -624,7 +626,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
 def download_customer_planning(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                user_lang, comp_timezone, timeformat, request):
     customer_pk = None
-    # logger.debug('table_dict: customer_planning' + str(table_dict))
+    #logger.debug('table_dict: customer_planning' + str(table_dict))
     if table_dict:
         customer_pk = None
         order_pk = table_dict.get('order_pk')
@@ -656,7 +658,7 @@ class PricesView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= RosterView ============= ')
+        #logger.debug(' ============= RosterView ============= ')
         if request.user.company is not None:
             # datefirst = None
             # datelast = None
@@ -743,7 +745,7 @@ class RosterView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= RosterView ============= ')
+        #logger.debug(' ============= RosterView ============= ')
         if request.user.company is not None:
             # datefirst = None
             # datelast = None
@@ -830,7 +832,7 @@ class SchemesView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= SchemesView ============= ')
+        #logger.debug(' ============= SchemesView ============= ')
         if request.user.company is not None:
 
 # --- get user_lang
@@ -873,7 +875,7 @@ class SchemesView(View):
 class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= SchemeUploadView ============= ')
+       #logger.debug(' ============= SchemeUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -955,7 +957,7 @@ class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
 @method_decorator([login_required], name='dispatch')
 class SchemeTemplateUploadView(View):  # PR2019-07-20
     def post(self, request, *args, **kwargs):
-        logger.debug(' ====== SchemeTemplateUploadView ============= ')
+       #logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -972,7 +974,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+               #logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: { Note: 'pk' is pk of scheme that will be copied to template
                 # 'copytotemplate': {'id': {'pk': 1482, 'ppk': 1270, 'istemplate': True, 'table': 'scheme', 'mode': 'copyto'},
                 # 'code': {'value': '4 daags SJABLOON', 'update': True}}}
@@ -1054,8 +1056,8 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
 
 
 def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
-    logger.debug(' ====== copy_to_template ============= ')
-    logger.debug(upload_dict)
+   #logger.debug(' ====== copy_to_template ============= ')
+   #logger.debug(upload_dict)
 
     newtemplate_customer_pk, copyfrom_scheme, newtemplate_order = None, None, None
 
@@ -1207,8 +1209,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
     return newtemplate_customer_pk
 
 def copyfrom_template(upload_dict, request):  # PR2019-07-26
-    # logger.debug(' ====== copyfrom_template ============= ')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' ====== copyfrom_template ============= ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     # copyfromtemplate: {
         # id: {pk: 1346, ppk: 1235, istemplate: true, table: "scheme", mode: "copyfrom"}
@@ -1293,7 +1295,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 new_shift.save(request=request)
                 # make dict with mapping of old and new team_id
                 shift_mapping[template_shift.pk] = new_shift.pk
-            # logger.debug('template_shifts mapping: ' + str(shift_mapping))
+            #logger.debug('template_shifts mapping: ' + str(shift_mapping))
         except:
             is_ok = False
             logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
@@ -1348,7 +1350,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                     lookup_team_pk = team_mapping[template_schemeitem.team_id]
                     new_team = m.Team.objects.get_or_none(pk=lookup_team_pk)
 
-                # logger.debug('template_schemeitem: ' + str(template_schemeitem))
+                #logger.debug('template_schemeitem: ' + str(template_schemeitem))
                 new_schemeitem = m.Schemeitem(
                     scheme=new_scheme,
                     shift=new_shift,
@@ -1371,7 +1373,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
     return new_scheme_pk
 
 def create_deafult_templates(request, user_lang):  # PR2019-08-24
-    # logger.debug(' ====== create_deafult_templates ============= ')
+    #logger.debug(' ====== create_deafult_templates ============= ')
 
  # get locale text of standard scheme
     lang = user_lang if user_lang in c.SCHEME_24H_DEFAULT else c.LANG_DEFAULT
@@ -1379,7 +1381,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 
 # - check if template_order exists, create if not exists
     template_order = cust_dicts.get_or_create_template_order(request)
-    # logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
+    #logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
 
 # - add scheme to template  (don't add datefirst, datelast)
     template_scheme = m.Scheme(
@@ -1474,7 +1476,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 
 # save template_schemeitem
         template_schemeitem.save(request=request)
-        # logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
+        #logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
 
 
 # === GridUploadView ===================================== PR2020-03-18
@@ -1482,8 +1484,8 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 class GridUploadView(UpdateView):  #PR2020-03-18
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= GridUploadView ============= ')
+       #logger.debug(' ')
+       #logger.debug(' ============= GridUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -1500,7 +1502,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+               #logger.debug('upload_dict: ' + str(upload_dict))
                 eplh_update_list = []
 
 # 3. get iddict variables
@@ -1516,7 +1518,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
 class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
+       #logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -1533,7 +1535,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+               #logger.debug('upload_dict: ' + str(upload_dict))
 
 # - save quicksave
             # quicksave is saved via UploadUserSetting
@@ -1573,8 +1575,8 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
 
 def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
-    logger.debug(' --- scheme_upload --- ')
-    logger.debug(upload_dict)
+   #logger.debug(' --- scheme_upload --- ')
+   #logger.debug(upload_dict)
 
     # FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
     #                  'code', 'datefirst', 'datelast',
@@ -1595,8 +1597,8 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
         # mode = id_dict.get('mode', '')
         # is_absence = ('isabsence' in id_dict)
         # is_template = ('istemplate' in id_dict)
-        logger.debug('is_create: ' + str(is_create))
-        logger.debug('ppk_int: ' + str(ppk_int))
+       #logger.debug('is_create: ' + str(is_create))
+       #logger.debug('ppk_int: ' + str(ppk_int))
 
 # - create empty update_dict with fields
         update_dict = f.create_update_dict(
@@ -1661,8 +1663,8 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
 
 
 def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
-    logger.debug('-------------- shift_upload-------------- ')
-    logger.debug('upload_dict' + str(upload_dict))
+   #logger.debug('-------------- shift_upload-------------- ')
+   #logger.debug('upload_dict' + str(upload_dict))
 
 # 1. get iddict variables
     #id_dict = upload_dict.get('id')
@@ -1698,7 +1700,7 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
 
 # 3. check if parent exists (customer is parent of order)
     parent = m.Scheme.objects.get_or_none( id=ppk_int, order__customer__company=request.user.company)
-    logger.debug('parent' + str(parent))
+   #logger.debug('parent' + str(parent))
     if parent:
         update_dict['id']['ppk'] = parent.pk
 # B. Delete instance
@@ -1716,14 +1718,14 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
                 instance = None
 # C. Create new shift
         elif is_create:
-            logger.debug('is_create' + str(is_create))
+           #logger.debug('is_create' + str(is_create))
             # create_shift adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
             instance = create_shift_instance(parent, upload_dict, update_dict, request)
 # D. Get existing shift
         else:
             instance = m.Shift.objects.get_or_none(id=pk_int, scheme=parent)
 # E. update shift, also when it is created
-        logger.debug('instance' + str(instance))
+       #logger.debug('instance' + str(instance))
         if instance:
             update_dict['id']['pk'] = instance.pk
             update_shift_instance(instance, parent, upload_dict, update_dict, user_lang, request)
@@ -1731,18 +1733,18 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
 # 8. put updated saved values in update_dict, skip dict when deleted_ok, dict is needed when delete fails
             d.create_shift_dict(instance, update_dict, user_lang)
 
-            logger.debug('.......update_dict' + str(update_dict))
+           #logger.debug('.......update_dict' + str(update_dict))
 # 9. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
 
-    logger.debug('------- update_dict' + str(update_dict))
+   #logger.debug('------- update_dict' + str(update_dict))
 # 10. return update_dict
     return update_dict
 
 
 def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
-    logger.debug(' --- team_upload --- ')
-    logger.debug(upload_dict)
+   #logger.debug(' --- team_upload --- ')
+   #logger.debug(upload_dict)
 
     update_wrap = {}
     deleted_or_created_ok = False
@@ -1765,7 +1767,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
         id=ppk_int,
         order__customer__company=request.user.company)
     if parent:
-        logger.debug('parent' + str(parent))
+       #logger.debug('parent' + str(parent))
 
 # 4. Delete instance
         if is_delete:
@@ -1788,7 +1790,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
              instance = m.Team.objects.get_or_none(id=pk_int, scheme=parent)
 
 # 7. update team, also when it is created
-        logger.debug('instance' + str(instance))
+       #logger.debug('instance' + str(instance))
         if instance:
             update_team(instance, parent, upload_dict, update_dict, request)
 
@@ -1797,7 +1799,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 
 # 9. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
-    # logger.debug('remove_empty_attr_from_dict update_dict: ' + str(update_dict))
+    #logger.debug('remove_empty_attr_from_dict update_dict: ' + str(update_dict))
 
 # 2. add update_dict to update_wrap
     if update_dict:
@@ -1813,15 +1815,15 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
         if teammember_list:
             update_wrap['teammember_list'] = teammember_list
 
-        # logger.debug('teammember_list: ' + str(teammember_list))
+        #logger.debug('teammember_list: ' + str(teammember_list))
 # 4 return update_wrap
-    logger.debug('update_wrap' + str(update_wrap))
+   #logger.debug('update_wrap' + str(update_wrap))
     return update_wrap
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_team(upload_dict, update_dict, user_lang, request):
-    # logger.debug(' --- create_team --- ')
+    #logger.debug(' --- create_team --- ')
     # --- create team # PR2019-10-01
     # Note: all keys in update_dict must exist by running create_update_dict first
     team = None
@@ -1843,7 +1845,7 @@ def create_team(upload_dict, update_dict, user_lang, request):
 
 # 4. create team name
             team_code = f.get_code_with_sequence('team', parent, user_lang)
-            # logger.debug('team_code: ' + str(team_code))
+            #logger.debug('team_code: ' + str(team_code))
 
     # 4. create and save team
             team = m.Team(
@@ -1851,7 +1853,7 @@ def create_team(upload_dict, update_dict, user_lang, request):
                 code=team_code)
             team.save(request=request)
             team_pk = team.pk
-            # logger.debug(' --- new  team_pk: ' + str(team_pk))
+            #logger.debug(' --- new  team_pk: ' + str(team_pk))
 
     # 6. put info in update_dict
             update_dict['id']['created'] = True
@@ -1871,8 +1873,8 @@ def update_team(instance, parent, upload_dict, update_dict, request):
     # --- update existing and new team PR2019-10-18
     #  add new values to update_dict (don't reset update_dict, it has values)
     #  also refresh timestart timeend in schemeitems
-    # logger.debug(' ----- update_team ----- ')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' ----- update_team ----- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
 #  get comp_timezone
     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
@@ -1925,7 +1927,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                     if is_updated:
                         update_dict[field]['updated'] = True
                         save_changes = True
-                        # logger.debug('update_dict: ' + str(update_dict))
+                        #logger.debug('update_dict: ' + str(update_dict))
 
  # 5. save changes
         if save_changes:
@@ -1945,8 +1947,8 @@ def update_team(instance, parent, upload_dict, update_dict, request):
 class SchemeitemDownloadView(View):  # PR2019-03-10
     # function downloads scheme, teams and schemeitems of selected scheme
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ====++++++++==== SchemeItemDownloadView ============= ')
-        # logger.debug('request.POST' + str(request.POST) )
+        #logger.debug(' ====++++++++==== SchemeItemDownloadView ============= ')
+        #logger.debug('request.POST' + str(request.POST) )
         # {'scheme_download': ['{"scheme_pk":18}']}
 
         datalists = {}
@@ -1962,7 +1964,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
 
                 if request.POST['scheme_download']:
                     scheme_download = json.loads(request.POST['scheme_download'])
-                    # logger.debug('scheme_download: ' + str(scheme_download) + str(type(scheme_download)))
+                    #logger.debug('scheme_download: ' + str(scheme_download) + str(type(scheme_download)))
                     # scheme_download: {'scheme_pk': 18}
                     scheme_pk = int(scheme_download.get('scheme_pk', '0'))
                     scheme = m.Scheme.objects.filter(order__customer__company=request.user.company,
@@ -1973,7 +1975,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                         d.create_scheme_dict(scheme, scheme_dict, user_lang)
 
                         datalists = {'scheme': scheme_dict}
-                        # logger.debug('datalists: ' + str(datalists))
+                        #logger.debug('datalists: ' + str(datalists))
 
                         # create shift_list
                         shift_list = d.create_shift_list(
@@ -2010,8 +2012,8 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                         datalists['weekdays'] = c.WEEKDAYS_ABBREV[user_lang]
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
-        # logger.debug('datalists_json:')
-        # logger.debug(str(datalists_json))
+        #logger.debug('datalists_json:')
+        #logger.debug(str(datalists_json))
 
         # {"scheme": {"pk": 18, "code": "MCB scheme", "cycle": 7, "weekend": 1, "publicholiday": 1, "inactive": false},
         #  "team_list": [{"pk": 1, "code": "Team A"}],
@@ -2025,7 +2027,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
 class SchemeitemFillView(UpdateView):  # PR2019-06-05
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= SchemeitemFillView ============= ')
+        #logger.debug(' ============= SchemeitemFillView ============= ')
 
         item_update_dict = {}
 
@@ -2046,8 +2048,8 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                 scheme_pk = upload_dict.get('scheme_pk')
                 mode = upload_dict.get('mode')
 
-                # logger.debug('scheme_pk: ' + str(scheme_pk))
-                # logger.debug('mode: ' + str(mode))
+                #logger.debug('scheme_pk: ' + str(scheme_pk))
+                #logger.debug('mode: ' + str(mode))
 
             # get scheme
                 scheme = None
@@ -2060,7 +2062,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 
                 if scheme_pk:
                     scheme = m.Scheme.objects.filter(id=scheme_pk, order__customer__company=request.user.company).first()
-                # logger.debug('scheme: ' + str(scheme))
+                #logger.debug('scheme: ' + str(scheme))
 
                 if scheme:
                 # get info from scheme
@@ -2070,7 +2072,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                     if scheme.datelast:
                         scheme_datelast = scheme.datelast
 
-                    # logger.debug('cycle_days: ' + str(cycle_days))
+                    #logger.debug('cycle_days: ' + str(cycle_days))
 # --- Autofill
                     if mode == 'autofill':
                         if cycle_days > 1:
@@ -2080,8 +2082,8 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                             #    schemeitem_dict = {}
                             #    d.create_schemeitem_dict(schemeitem, schemeitem_dict)
                             #    schemeitem_list.append(schemeitem_dict)
-                            #    logger.debug('other schemeitem: ' + str(schemeitem.pk) + ' ' + str(schemeitem.rosterdate))
-                            #    logger.debug('other id_dict: ' + str(schemeitem_dict.get('id')))
+                            #logger.debug('other schemeitem: ' + str(schemeitem.pk) + ' ' + str(schemeitem.rosterdate))
+                            #logger.debug('other id_dict: ' + str(schemeitem_dict.get('id')))
 
             # get first_rosterdate and last_rosterdate from schemeitems of this scheme
                             schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
@@ -2097,8 +2099,8 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                 schemeitem_dict = {}
                                 d.create_schemeitem_dict(schemeitem, schemeitem_dict)
                                 schemeitem_list.append(schemeitem_dict)
-                                # logger.debug('existing schemeitem: ' + str(schemeitem.pk) + ' ' + str(schemeitem.rosterdate))
-                                # logger.debug('existing id_dict: ' + str(schemeitem_dict.get('id')))
+                                #logger.debug('existing schemeitem: ' + str(schemeitem.pk) + ' ' + str(schemeitem.rosterdate))
+                                #logger.debug('existing id_dict: ' + str(schemeitem_dict.get('id')))
 
             # get number of days between first_rosterdate and last_rosterdate_plusone
                                 if first_rosterdate is None or schemeitem.rosterdate < first_rosterdate:
@@ -2107,16 +2109,16 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                     last_rosterdate = schemeitem.rosterdate
                                 date_add = f.get_date_diff_plusone(first_rosterdate, last_rosterdate)
                                 enddate_plusone = first_rosterdate + timedelta(days=cycle_days)
-                                # logger.debug('rosterdate: ' + str(schemeitem.rosterdate) + ' first: ' + str(first_rosterdate) +' last: ' + str(last_rosterdate))
-                                # logger.debug('date_add: ' + str(date_add))
+                                #logger.debug('rosterdate: ' + str(schemeitem.rosterdate) + ' first: ' + str(first_rosterdate) +' last: ' + str(last_rosterdate))
+                                #logger.debug('date_add: ' + str(date_add))
 
                             if date_add > 0:
                                 for n in range(cycle_days):  # range(6) is the values 0 to 5.
                                     for schemeitem in schemeitems:
                                         days = (date_add * (n + 1))
-                                        # logger.debug('days: ' + str(days))
+                                        #logger.debug('days: ' + str(days))
                                         new_rosterdate = schemeitem.rosterdate + timedelta(days=days)
-                                        # logger.debug('new_rosterdate: ' + str(new_rosterdate))
+                                        #logger.debug('new_rosterdate: ' + str(new_rosterdate))
 
                         # check if new_rosterdate falls within range of scheme
                                         in_range = f.date_within_range(scheme_datefirst, scheme_datelast, new_rosterdate)
@@ -2138,7 +2140,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                                 #calc_schemeitem_timeduration(new_schemeitem, {}, comp_timezone)
 
                                                 new_schemeitem.save(request=self.request)
-                                                # logger.debug('new schemeitem: ' + str(new_schemeitem.pk) + ' ' + str(new_schemeitem.rosterdate))
+                                                #logger.debug('new schemeitem: ' + str(new_schemeitem.pk) + ' ' + str(new_schemeitem.rosterdate))
                                                 has_new_schemeitem = True
 
                     # append new schemeitem to schemeitem_list, with attr 'created'
@@ -2149,7 +2151,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 # --- Dayup Daydown
                     elif mode in ['dayup', 'daydown']:
                         date_add = -1 if mode == 'dayup' else 1
-                        # logger.debug('date_add: ' + str(date_add) + ' ' + str(type(date_add)))
+                        #logger.debug('date_add: ' + str(date_add) + ' ' + str(type(date_add)))
                         schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
 
                         field_list = c.FIELDS_SCHEMEITEM
@@ -2161,7 +2163,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                 # a. change rosterdate, update
                             new_rosterdate = schemeitem.rosterdate + timedelta(days=date_add)
                             new_rosterdate_iso = new_rosterdate.isoformat()
-                            # logger.debug('new_rosterdate_iso: ' + str(new_rosterdate_iso) + ' ' + str(type(new_rosterdate_iso)))
+                            #logger.debug('new_rosterdate_iso: ' + str(new_rosterdate_iso) + ' ' + str(type(new_rosterdate_iso)))
 
                 # b. create upload_dict, is used to update fields in  update_schemeitem
                             id_dict = {'pk': schemeitem.id, 'ppk': schemeitem.scheme.id, 'table': 'schemeitem'}
@@ -2205,9 +2207,9 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 
                         ddiff_timedelta = last_rosterdate - first_rosterdate
                         ddiff_int = 1 + ddiff_timedelta.days
-                        # logger.debug('first_rosterdate: ' + str(first_rosterdate) + ' ' + str(type(first_rosterdate)))
-                        # logger.debug('last_rosterdate: ' + str(last_rosterdate) + ' ' + str(type(last_rosterdate)))
-                        # logger.debug('ddiff: ' + str(ddiff_int) + ' ' + str(type(ddiff_int)))
+                        #logger.debug('first_rosterdate: ' + str(first_rosterdate) + ' ' + str(type(first_rosterdate)))
+                        #logger.debug('last_rosterdate: ' + str(last_rosterdate) + ' ' + str(type(last_rosterdate)))
+                        #logger.debug('ddiff: ' + str(ddiff_int) + ' ' + str(type(ddiff_int)))
                         # ddiff: 0:00:00 <class 'datetime.timedelta'>
                         # first_rosterdate: 2019-12-26 <class 'datetime.date'>
 
@@ -2235,7 +2237,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 
     def post(self, request, *args, **kwargs):
-        logger.debug('============= SchemeItemUploadView ============= ')
+       #logger.debug('============= SchemeItemUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2254,7 +2256,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 
                 update_list = []
                 for upload_dict in upload_list:
-                    logger.debug('upload_dict: ' + str(upload_dict))
+                   #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. get iddict variables
                     table = f.get_dict_value(upload_dict, ('id', 'table'))
@@ -2277,7 +2279,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                         update_dict['id']['temp_pk'] = temp_pk
 # 5. check if parent exists (scheme is parent of schemeitem)
                     parent = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
-                    logger.debug('parent: ' + str(parent))
+                   #logger.debug('parent: ' + str(parent))
                     if parent:
                         update_dict['id']['ppk'] = parent.pk
 # B. Delete instance
@@ -2331,7 +2333,7 @@ class ReviewView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= ReviewView ============= ')
+        #logger.debug(' ============= ReviewView ============= ')
         if request.user.company is not None:
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2367,7 +2369,7 @@ class ReviewView(View):
                 'interval': interval,
                 'timeformat': timeformat
             })
-            # logger.debug(param)
+            #logger.debug(param)
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'review.html', param)
 
@@ -2376,8 +2378,8 @@ class ReviewView(View):
 class EmplhourDownloadDatalistView(View):  # PR2019-03-10
     # function updates employee, customer and shift list
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmplhourDownloadDatalistView ============= ')
-        # logger.debug('request.POST' + str(request.POST) )
+        #logger.debug(' ============= EmplhourDownloadDatalistView ============= ')
+        #logger.debug('request.POST' + str(request.POST) )
 
         datalists = {}
         if request.user is not None:
@@ -2429,15 +2431,15 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
 
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
-        # logger.debug('datalists_json:')
-        # logger.debug(str(datalists_json))
+        #logger.debug('datalists_json:')
+        #logger.debug(str(datalists_json))
 
         return HttpResponse(datalists_json)
 
 
 def upload_period(interval_upload, request):  # PR2019-07-10
-    # logger.debug(' ============= upload_interval ============= ')
-    # logger.debug('interval_upload: ' + str(interval_upload))
+    #logger.debug(' ============= upload_interval ============= ')
+    #logger.debug('interval_upload: ' + str(interval_upload))
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
     item_update_dict = {}
@@ -2481,7 +2483,7 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 # save updated period_dict
             if save_setting:
                 period_dict_json = json.dumps(period_dict)  # dumps takes an object and produces a string:
-                # logger.debug('period_dict_json: ' + str(period_dict_json))
+                #logger.debug('period_dict_json: ' + str(period_dict_json))
 
                 Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
 
@@ -2490,18 +2492,18 @@ def upload_period(interval_upload, request):  # PR2019-07-10
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
             today_utc = d.get_rosterdate_utc(date.today())
             today_utc = d.get_datetime_utc(datetime.utcnow())
-            # logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
+            #logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
             today_midnight_local = d.get_rosterdate_midnight_local(today_utc, comp_timezone)
-            # logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
+            #logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
             # today_midnight_local_iso = today_midnight_local.isoformat()
-            # logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
+            #logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
 
 # get now in utc
             now_dt = datetime.utcnow()
-            # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+            #logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
             # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
             now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
-            # logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+            #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
             # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
 
 # convert now to local
@@ -2509,53 +2511,53 @@ def upload_period(interval_upload, request):  # PR2019-07-10
             # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
             timezone = pytz.timezone(comp_timezone)
             now_local = now_utc.astimezone(timezone)
-            # logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+            #logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
             # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
 
 # split now_local
             year_int, month_int, date_int, hour_int, minute_int = d.split_datetime(now_local)
-            # logger.debug(
+            #logger.debug(
             #     'now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(
             #        hour_int) + ';' + str(minute_int))
             # now_local_arr: 2019;7;10;16
 
 # get index of current interval (with interval = 6 hours, interval 6-12h has index 1
             interval_index = int(hour_int / interval)
-            # logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+            #logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
 
 # get local start time of current interval
             interval_starthour = interval * interval_index
             interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
-            # logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+            #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
 
 # get local start time of current range (is interval_start_local minus overlap)
             range_start = -overlap
             range_start_local = interval_start_local + timedelta(hours=range_start)
-            # logger.debug('range_start: ' + str(range_start) + ' range_start_local: ' + str(range_start_local))
+            #logger.debug('range_start: ' + str(range_start) + ' range_start_local: ' + str(range_start_local))
 
 # get start time of current range in UTC
             utc = pytz.UTC
             range_start_utc = range_start_local.astimezone(utc)
-            # logger.debug('range_start_utc: ' + str(range_start_utc))
+            #logger.debug('range_start_utc: ' + str(range_start_utc))
 
 # get utc end time of current range ( = local start time of current range plus range
             range_end_utc = range_start_utc + timedelta(hours=range)
-            # logger.debug('range: ' + str(range) + ' utc >>>>>> range_end_utc: ' + str(range_end_utc))
+            #logger.debug('range: ' + str(range) + ' utc >>>>>> range_end_utc: ' + str(range_end_utc))
 
 # get local end time of current range ( = local start time of current range plus range
             range_end_local = range_start_local + timedelta(hours=range)
-            # logger.debug('range: ' + str(range) + ' range_end_local: ' + str(range_end_local))
+            #logger.debug('range: ' + str(range) + ' range_end_local: ' + str(range_end_local))
 
 # get end time of current range in UTC
             overlap_end_utc = range_end_local.astimezone(utc)
-            # logger.debug('overlap_end_utc: ' + str(overlap_end_utc))
+            #logger.debug('overlap_end_utc: ' + str(overlap_end_utc))
 
 @method_decorator([login_required], name='dispatch')
 class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourDownloadView ============= ')
+       #logger.debug(' ')
+       #logger.debug(' ============= EmplhourDownloadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2564,7 +2566,7 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+               #logger.debug('upload_dict: ' + str(upload_dict))
                 if 'shiftdict' in upload_dict:
                     shift_dict = upload_dict.get('shiftdict')
                     rosterdate_iso = shift_dict.get('rosterdate')
@@ -2612,8 +2614,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+       #logger.debug(' ')
+       #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2631,7 +2633,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+               #logger.debug('upload_dict: ' + str(upload_dict))
                 eplh_update_list = []
                 check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
                 clear_overlap_list = [] # clear_overlap_list contains emplhour_pk's that must be cleared:
@@ -2648,7 +2650,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     is_delete = f.get_dict_value (id_dict, ('delete',), False)
                     mode = id_dict.get('mode', '')
                     shift_option = f.get_dict_value (id_dict, ('shiftoption',), 'None')
-                    logger.debug(' shift_option: ' + str(shift_option))
+                   #logger.debug(' shift_option: ' + str(shift_option))
 
 # - add new employee to check_overlap_list
                     new_employee_pk = f.get_dict_value(upload_dict, ('employee', 'pk'))
@@ -2724,9 +2726,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             if shift_option == 'moveto_shift':
                                 # moveto_shift removes the current employee from the current emplhour record
                                 # and repleaces the employee of the selected emplhour with the current employee
-                                logger.debug('moveto_shift')
+                               #logger.debug('moveto_shift')
                                 moveto_shift_dict = moveto_shift(emplhour, upload_dict, check_overlap_list, comp_timezone, timeformat, user_lang, request)
-                                logger.debug('moveto_shift_dict: ' + ' ' + str(moveto_shift_dict))
+                               #logger.debug('moveto_shift_dict: ' + ' ' + str(moveto_shift_dict))
                                 if moveto_shift_dict:
                                     eplh_update_list.append(moveto_shift_dict)
                             elif mode == 'tab_switch':
@@ -2758,8 +2760,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     # PR2020-05-13 debug: when removing employee the emplhour overlap must be deleted
                     # - check_overlap_list contains employee_pk's that must be checked
                     # - clear_overlap_list contains emplhour_pk's that must be cleared
-                    logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
-                    logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
+                   #logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
+                   #logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
                     overlap_dict = {}
                     if check_overlap_list:
                         # only for testing
@@ -2771,12 +2773,12 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             #make list of all emplhour records of this employee, to reset rows without overlap
                             emplhour_dict = f.create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, request)
                             dict = f.check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request)
-                            logger.debug('dict' + str(dict) + ' ' + str(type(dict)))
+                           #logger.debug('dict' + str(dict) + ' ' + str(type(dict)))
                             if dict:
                                 emplhour_dict.update(dict)
                             overlap_dict.update(emplhour_dict)
-                            logger.debug('>>>>>emplhour_dict' + str(emplhour_dict) + ' ' + str(type(emplhour_dict)))
-                        logger.debug('>>>>> overlap_dict' + str(overlap_dict) + ' ' + str(type(overlap_dict)))
+                           #logger.debug('>>>>>emplhour_dict' + str(emplhour_dict) + ' ' + str(type(emplhour_dict)))
+                       #logger.debug('>>>>> overlap_dict' + str(overlap_dict) + ' ' + str(type(overlap_dict)))
                         # add emplhour_pk of removed employees - to remove overlap from these emplhours
                     if clear_overlap_list:
                         for emplhour_pk in clear_overlap_list:
@@ -2791,8 +2793,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
 
 def create_orderhour_emplhour(upload_dict, update_dict, request):
-    logger.debug(' --- create_orderhour_emplhour --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug(' --- create_orderhour_emplhour --- ')
+   #logger.debug('upload_dict: ' + str(upload_dict))
     #logger.debug('update_dict: ' + str(update_dict))
 
     id_dict = upload_dict.get('id')
@@ -2869,11 +2871,15 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 # - subtract 1 from used entries
     #  > individual entries will be calculated at the beginning of each month
 
+# - emplhour has no employee yet: set paydayecode = None and paydate = last date of month
+    paydate = f.get_lastof_month(orderhour.rosterdate)
+
 # +++ create emplhour
     if orderhour:
         emplhour = m.Emplhour(
             orderhour=orderhour,
-            rosterdate=orderhour.rosterdate
+            rosterdate=orderhour.rosterdate,
+            paydate=paydate
         )
         emplhour.save(request=request)
     if emplhour is None:
@@ -2954,8 +2960,11 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
                 #logger.debug('absent_employee: ' + str(absent_employee))
                 #logger.debug('absent_employee.workhours: ' + str(absent_employee.workhours))
                 #logger.debug('absent_employee.workdays: ' + str(absent_employee.workdays))
-                if absent_employee.workhours and absent_employee.workdays:
-                    absent_duration = absent_employee.workhours / absent_employee.workdays * 1440
+
+                # workdays is deprecated, use workminutesperday instead PR2020-06-27
+                #if absent_employee.workhours and absent_employee.workdays:
+                #    absent_duration = absent_employee.workhours / absent_employee.workdays * 1440
+                absent_duration = absent_employee.workminutesperday
                 #logger.debug('absent_duration: ' + str(absent_duration))
 
 # create new abscat_orderhour
@@ -2981,10 +2990,14 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
                 excel_start = excel_date * 1440
                 excel_end = excel_date * 1440 + 1440
 
+            # get paydate from absent_employee.paydatecode
+                firstdateNIU, paydate = recalc_paydate(parent_orderhour.rosterdate, absent_employee.paydatecode)
+
                 new_emplhour = m.Emplhour(
                     orderhour=new_orderhour,
                     employee=absent_employee,
                     rosterdate=parent_orderhour.rosterdate,
+                    paydate=paydate,
                     excelstart=excel_start,
                     excelend=excel_end,
                     # dont copy shift, is confusing. Was: shift=parent_orderhour.shift,
@@ -3006,8 +3019,8 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
 
 
 def change_absence_shift(emplhour, upload_dict, update_dict, request):  # PR2020-04-13
-    logger.debug(' --- change_absence_shift --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug(' --- change_absence_shift --- ')
+   #logger.debug('upload_dict: ' + str(upload_dict))
     # this function changes the absence order in the orderhour.
 
 #  upload_dict: {
@@ -3036,13 +3049,13 @@ def change_absence_shift(emplhour, upload_dict, update_dict, request):  # PR2020
             orderhour.save(request=request)
             cust_order_code = ' - '.join([abscat_order.customer.code, abscat_order.code])
             update_dict['order'] = {'pk': abscat_order.pk, 'code': cust_order_code, 'updated': True}
-    logger.debug('update_dict: ' + str(update_dict))
+   #logger.debug('update_dict: ' + str(update_dict))
 # --- end of change_absence_shift
 
 
 def moveto_shift(emplhour, upload_dict, check_overlap_list, comp_timezone, timeformat, user_lang, request):
-    logger.debug(' --- moveto_shift --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug(' --- moveto_shift --- ')
+   #logger.debug('upload_dict: ' + str(upload_dict))
 
     # moveto_shift removes the current employee from the current emplhour record
     # and repleaces the employee of the selected emplhour with the current employee
@@ -3067,11 +3080,18 @@ def moveto_shift(emplhour, upload_dict, check_overlap_list, comp_timezone, timef
 
 # - get employee from current emplhour
         employee = emplhour.employee
+
+# get paydate from employee.paydatecode and moveto_emplhour.rosterdate
+        firstdateNIU, paydate = recalc_paydate(moveto_emplhour.rosterdate, employee.paydatecode)
+
+        paydate = emplhour.paydate
         if employee:
             moveto_emplhour.employee = employee
+            moveto_emplhour.paydatecode = employee.paydatecode
+            moveto_emplhour.paydate = paydate
             moveto_emplhour.isreplacement = False
             moveto_emplhour.save(request=request)
-        logger.debug('moveto_emplhour: ' + str(moveto_emplhour))
+       #logger.debug('moveto_emplhour: ' + str(moveto_emplhour))
 
 # - add employee to check_overlap_list
         if employee.pk not in check_overlap_list:
@@ -3180,16 +3200,19 @@ def make_split_shift(emplhour, upload_dict, check_overlap_list, comp_timezone, t
     new_wage = 0
     new_overlap = 0
 
-
     if orderhour:
-# - create new emplhour record
 
+# get paydate from employee.paydatecode and moveto_emplhour.rosterdate
+        firstdateNIU, paydate = recalc_paydate(orderhour.rosterdate, new_employee.paydatecode)
+
+# - create new emplhour record
         new_emplhour = m.Emplhour(
             orderhour=orderhour,
-            employee=new_employee,
             rosterdate=orderhour.rosterdate,
+            employee=new_employee,
+            paydatecode=new_employee.paydatecode,
+            payate=paydate,
             isreplacement=emplhour.isreplacement,
-            paydate=emplhour.paydate,
             datepart=date_part,
             timestart=time_start,
             timeend=time_end,
@@ -3232,8 +3255,8 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
     # only called by EmplhourUploadView
     # add new values to update_dict (don't reset update_dict, it has values)
     # also update orderhour when time has changed
-    logger.debug(' --------- update_emplhour -------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug(' --------- update_emplhour -------------')
+   #logger.debug('upload_dict: ' + str(upload_dict))
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
     #                    'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'lockedpaydate',
@@ -3378,7 +3401,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
 # --- end of for loop ---
 
 # --- recalculate timeduration and amount, addition, tax, wage
-        # logger.debug('calculate working hours')
+        #logger.debug('calculate working hours')
         if recalc_duration:
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
@@ -3411,13 +3434,13 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
             emplhour.addition = addition
             emplhour.tax = tax
 
-            logger.debug(' --- recalc_duration --- ')
-            logger.debug('plannedduration: ' + str(emplhour.plannedduration))
-            logger.debug('time_duration: ' + str(emplhour.timeduration))
-            logger.debug('billing_duration: ' + str(emplhour.billingduration))
-            logger.debug('isbillable: ' + str(emplhour.orderhour.isbillable))
-            logger.debug('pricerate: ' + str(emplhour.pricerate))
-            logger.debug('amount: ' + str(amount))
+           #logger.debug(' --- recalc_duration --- ')
+           #logger.debug('plannedduration: ' + str(emplhour.plannedduration))
+           #logger.debug('time_duration: ' + str(emplhour.timeduration))
+           #logger.debug('billing_duration: ' + str(emplhour.billingduration))
+           #logger.debug('isbillable: ' + str(emplhour.orderhour.isbillable))
+           #logger.debug('pricerate: ' + str(emplhour.pricerate))
+           #logger.debug('amount: ' + str(amount))
         # also recalculate datepart when start- and endtime are given # PR2020-03-23
             date_part = 0
             if emplhour.rosterdate and emplhour.timestart and emplhour.timeend:
@@ -3453,15 +3476,15 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
             #     if old_employee_pk and old_employee_pk != employee.pk:
             #         d.update_emplhour_overlap(old_employee_pk, emplhour.rosterdate, request, eplh_update_list)
 
-        logger.debug('oooooooooooooooooooo update_dict: ' + str(update_dict))
+       #logger.debug('oooooooooooooooooooo update_dict: ' + str(update_dict))
 
     return update_dict
 # --- end of update_emplhour
 
 
 def recalc_orderhour(orderhour): # PR2019-10-11
-    # logger.debug(' --- recalc_orderhour ---')
-    # logger.debug('orderhour: ' + str(orderhour))
+    #logger.debug(' --- recalc_orderhour ---')
+    #logger.debug('orderhour: ' + str(orderhour))
 
 # is orderhou billable?
 # PR20202-02-15 NOT IN USE, but let it stay for the code (for now)
@@ -3469,7 +3492,7 @@ def recalc_orderhour(orderhour): # PR2019-10-11
     if orderhour:
         # get timeduration from emplhour is isbillable, skip when isrestshift
         # fieldname in emplhour is timeduration, fieldname in orderhour is duration,
-        # logger.debug('orderhour.isrestshift: ' + str(orderhour.isrestshift))
+        #logger.debug('orderhour.isrestshift: ' + str(orderhour.isrestshift))
 
         duration_sum = 0
         amount_sum = 0
@@ -3479,7 +3502,7 @@ def recalc_orderhour(orderhour): # PR2019-10-11
             has_employee_pricerate = False
             if emplhours:
                 for emplhour in emplhours:
-                    # logger.debug('---- emplhour: ' + str(emplhour.pk))
+                    #logger.debug('---- emplhour: ' + str(emplhour.pk))
                     this_timeduration = 0
                     this_pricerate = 0
                     this_amount = 0
@@ -3499,26 +3522,26 @@ def recalc_orderhour(orderhour): # PR2019-10-11
                         this_amount = (this_timeduration / 60) * (this_pricerate)
                         amount_sum += this_amount
 
-                    # logger.debug('this_timeduration: ' + str(this_timeduration))
-                    # logger.debug('this_pricerate: ' + str(this_pricerate))
-                    # logger.debug('this_amount: ' + str(this_amount))
-            # logger.debug('duration_sum: ' + str(duration_sum))
-            # logger.debug('amount_sum: ' + str(amount_sum))
-            # logger.debug('has_employee_pricerate: ' + str(has_employee_pricerate))
-            # logger.debug('orderhour.isbillable: ' + str(orderhour.isbillable))
+                    #logger.debug('this_timeduration: ' + str(this_timeduration))
+                    #logger.debug('this_pricerate: ' + str(this_pricerate))
+                    #logger.debug('this_amount: ' + str(this_amount))
+            #logger.debug('duration_sum: ' + str(duration_sum))
+            #logger.debug('amount_sum: ' + str(amount_sum))
+            #logger.debug('has_employee_pricerate: ' + str(has_employee_pricerate))
+            #logger.debug('orderhour.isbillable: ' + str(orderhour.isbillable))
 
             if orderhour.isbillable:
                 # use emplhour timeduration when isbillable
-                # logger.debug('orderhour.isbillable: ' + str(orderhour.isbillable))
+                #logger.debug('orderhour.isbillable: ' + str(orderhour.isbillable))
                 orderhour.duration = duration_sum
                 # use emplhour pricerate, except when none of the emplhour records has emplhour.pricerate
                 if has_employee_pricerate:
                     orderhour.amount = amount_sum
                 else:
                     orderhour.amount = (duration_sum / 60) * (orderhour.pricerate)
-                # logger.debug('isbillable duration_sum: ' + str(duration_sum))
-                # logger.debug('isbillable orderhour.duration: ' + str(orderhour.duration))
-                # logger.debug('isbillable orderhour.amount: ' + str(orderhour.amount))
+                #logger.debug('isbillable duration_sum: ' + str(duration_sum))
+                #logger.debug('isbillable orderhour.duration: ' + str(orderhour.duration))
+                #logger.debug('isbillable orderhour.amount: ' + str(orderhour.amount))
             else:
                 # if not billable calculate average price and multiply with orderhour.duration
                 if has_employee_pricerate:
@@ -3526,23 +3549,23 @@ def recalc_orderhour(orderhour): # PR2019-10-11
                     if duration_sum:
                         amount = (orderhour.duration) * (amount_sum / duration_sum)
                     orderhour.amount = amount
-                # logger.debug('else orderhour.amount: ' + str(orderhour.amount))
+                #logger.debug('else orderhour.amount: ' + str(orderhour.amount))
 
 # get pricerate from emplhour if it has value
         orderhour.tax = orderhour.amount * orderhour.taxrate / 10000  # taxrate 600 = 6%
 
-        # logger.debug('orderhour.tax: ' + str(orderhour.tax))
+        #logger.debug('orderhour.tax: ' + str(orderhour.tax))
         orderhour.save()
-        # logger.debug('>>>>>>>>>> orderhour.duration: ' + str(orderhour.duration))
+        #logger.debug('>>>>>>>>>> orderhour.duration: ' + str(orderhour.duration))
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def update_scheme(instance, upload_dict, update_dict, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug('   ')
-    logger.debug(' ============= update_scheme')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug('   ')
+   #logger.debug(' ============= update_scheme')
+   #logger.debug('upload_dict: ' + str(upload_dict))
     # FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
     #                  'code', 'datefirst', 'datelast',
     #                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
@@ -3582,14 +3605,14 @@ def update_scheme(instance, upload_dict, update_dict, request):
                     elif field in ['billable']:
                         is_override = field_dict.get('override', False)
                         is_billable = field_dict.get('billable', False)
-                        logger.debug('is_override: ' + str(is_override))
-                        logger.debug('is_billable: ' + str(is_billable))
+                       #logger.debug('is_override: ' + str(is_override))
+                       #logger.debug('is_billable: ' + str(is_billable))
                         new_value = 0
                         if is_override:
                             new_value = 2 if is_billable else 1
-                        logger.debug('new_value: ' + str(new_value))
+                       #logger.debug('new_value: ' + str(new_value))
                         saved_value = getattr(instance, field, 0)
-                        logger.debug('saved_value: ' + str(saved_value))
+                       #logger.debug('saved_value: ' + str(saved_value))
 
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
@@ -3597,7 +3620,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
 
 # 4. save changes in fields 'priceratejson'
                     elif field in ['priceratejson']:
-                        logger.debug('>>>>>>>>>>>>>>>>> field: ' + str(field))
+                       #logger.debug('>>>>>>>>>>>>>>>>> field: ' + str(field))
                         # TODO save pricerate with date and wagefactor
                         rosterdate = None
                         wagefactor = None
@@ -3665,7 +3688,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
             if instance and save_changes and delete_onph_rows:
                 m.Schemeitem.objects.filter(scheme=instance, onpublicholiday=True).delete()
 
-    logger.debug('scheme changes have been saved: ' + str(save_changes))
+   #logger.debug('scheme changes have been saved: ' + str(save_changes))
 
     return save_changes
 
@@ -3674,8 +3697,8 @@ def update_scheme(instance, upload_dict, update_dict, request):
 def update_schemeitem_instance(instance, upload_dict, update_dict, request):
     # --- update field with 'update' in it + calcutated fields in existing and new instance PR2019-07-22
     # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug(' ---------- update_schemeitem_instance ---------- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+   #logger.debug(' ---------- update_schemeitem_instance ---------- ')
+   #logger.debug('upload_dict: ' + str(upload_dict))
 
     # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
     #                      'cat', 'onpublicholiday', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
@@ -3692,9 +3715,9 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                     is_updated = False
 # 1. get new_value
                     new_value = field_dict.get('value')
-                    logger.debug('............field: ' + str(field))
-                    logger.debug('............field_dict: ' + str(field_dict))
-                    logger.debug('new_value: ' + str(new_value))
+                   #logger.debug('............field: ' + str(field))
+                   #logger.debug('............field_dict: ' + str(field_dict))
+                   #logger.debug('new_value: ' + str(new_value))
 
 # 2. skip changes in field 'rosterdate'
                     if field == 'rosterdate':
@@ -3727,22 +3750,22 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                         # in scheme page, grid shift_pk is stored in id pk PR2020-05-03
                         if not new_shift_pk:
                             new_shift_pk = f.get_dict_value(field_dict, ('id', 'pk'), 0)
-                        logger.debug('new_shift_pk: ' + str(new_shift_pk))
+                       #logger.debug('new_shift_pk: ' + str(new_shift_pk))
 
     # b. remove shift from schemeitem when new_shift_pk is None
                         if not new_shift_pk:
                             msg_err = _('Shift cannot be blank.')
                             update_dict[field]['error'] = msg_err
-                            logger.debug('msg_err: ' + str(msg_err))
+                           #logger.debug('msg_err: ' + str(msg_err))
 
                         else:
     # c. check if shift exists
                             new_shift = m.Shift.objects.get_or_none(pk=new_shift_pk, scheme=instance.scheme)
-                            logger.debug('new_shift: ' + str(new_shift))
+                           #logger.debug('new_shift: ' + str(new_shift))
                             if new_shift is None:
                                 msg_err = _('Shift cannot be blank.')
                                 update_dict['id']['error'] = msg_err
-                                logger.debug('msg_err: ' + str(msg_err))
+                               #logger.debug('msg_err: ' + str(msg_err))
                             else:
                                 saved_shift = instance.shift
                                 if new_shift != saved_shift:
@@ -3758,7 +3781,7 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                         # in scheme page, grid shift_pk is stored in id pk PR2020-05-03
                         if not new_team_pk:
                             new_team_pk = f.get_dict_value(field_dict, ('id', 'pk'), 0)
-                        logger.debug('new_team_pk: ' + str(new_team_pk))
+                       #logger.debug('new_team_pk: ' + str(new_team_pk))
     # b. remove team from schemeitem when pk is None
                         if not new_team_pk:
                             setattr(instance, field, None)
@@ -3766,7 +3789,7 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                         else:
     # c. check if team exists
                             team = m.Team.objects.get_or_none( id=new_team_pk, scheme=instance.scheme)
-                            logger.debug('team: ' + str(team))
+                           #logger.debug('team: ' + str(team))
     # d. upate team in schemeitem
                             if team is None:
                                 msg_err = _('This field could not be updated.')
@@ -3791,7 +3814,7 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                         update_dict[field]['updated'] = True
                         save_changes = True
 
-        logger.debug('................update_dict: ' + str(update_dict))
+       #logger.debug('................update_dict: ' + str(update_dict))
 # 8. save changes
         if save_changes:
             try:
@@ -3799,7 +3822,7 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
 # 9. add 'updated' to id_dict, only if no create or delete exist'
                 if 'created' not in update_dict['id'] and 'deleted' not in update_dict['id']:
                     update_dict['id']['updated'] = True
-                logger.debug('---------- update_dict: ' + str(update_dict))
+               #logger.debug('---------- update_dict: ' + str(update_dict))
             except:
                 msg_err = _('This item could not be updated.')
                 if 'id' not in update_dict:
@@ -3824,16 +3847,16 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
 # get today_midnight_local_iso
         today_utc = d.get_datetime_utc(datetime.utcnow())
         today_midnight_local = d.get_rosterdate_midnight_local(today_utc, comp_timezone)
-        # logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
+        #logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
         # today_midnight_local_iso = today_midnight_local.isoformat()
-        # logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
+        #logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
 
 # get now in utc
         now_dt = datetime.utcnow()
-        # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+        #logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
         # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
         now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
-        # logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+        #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
         # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
 
 # convert now to local
@@ -3841,44 +3864,44 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
         # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
         timezone = pytz.timezone(comp_timezone)
         now_local = now_utc.astimezone(timezone)
-        # logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+        #logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
         # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
 
 # split now_local
         year_int, month_int, date_int, hour_int, minute_int = d.split_datetime(now_local)
-        # logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
+        #logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
         # now_local_arr: 2019;7;10;16
 
 # get interval
         interval = int(period_dict['interval'])
         interval_index = int(hour_int / interval)
-        # logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+        #logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
 
 # get local start time of current interval
         interval_starthour = interval * interval_index
-        # logger.debug('interval_starthour: ' + str(interval_starthour))
+        #logger.debug('interval_starthour: ' + str(interval_starthour))
         interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
-        # logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+        #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
 
         interval_end_local = interval_start_local + timedelta(hours=interval)
-        # logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
+        #logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
 
 # get local start time of current interval with overlap
         overlap = int(period_dict['overlap'])
         overlap_start = -overlap
         overlap_start_local = interval_start_local + timedelta(hours=overlap_start)
-        # logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
+        #logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
 
         utc = pytz.UTC
         overlap_start_utc = overlap_start_local.astimezone(utc)
-        # logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
+        #logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
 
         # get local end time of current interval with overlap
         overlap_end_local = interval_end_local + timedelta(hours=overlap)
-        # logger.debug(  'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
+        #logger.debug(  'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
 
         overlap_end_utc = overlap_end_local.astimezone(utc)
-        # logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
+        #logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
 
 # get starthour of current interval
         # from https://riptutorial.com/python/example/4540/constructing-timezone-aware-datetimes
@@ -3886,14 +3909,14 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
         # get local end time of current interval with
         # range = period_dict['range']
         # year_add, month_add, date_add, hour_add = d.get_range(range)
-        # logger.debug('range: ' + str(range))
-        # logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
+        #logger.debug('range: ' + str(range))
+        #logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
 
 # convert now to local
         # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
         # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
         timezone = pytz.timezone(comp_timezone)
-        # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
+        #logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
 
         # convert starthour to utc
         # get endhour of current interval with offset
@@ -3905,14 +3928,14 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
 
         # rangemin: 2019-07-09T00:00:00+02:00 type: <class 'str'>
         # rangemin: 2019-07-09 00:00:00+00:00 type: <class 'datetime.datetime'>
-        # logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
+        #logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
 
         rangemin_arr = f.get_datetimearray_from_ISOstring(period_dict['datetimestart'])
         year_int = int(rangemin_arr[0])
         month_int = int(rangemin_arr[1])
         date_int = int(rangemin_arr[2])
         hour_int = int(rangemin_arr[3])
-        # logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
+        #logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
 
         arr = period_dict['range'].split(';')
         year_add = int(arr[0])
@@ -3928,17 +3951,17 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
         if hour_add:
             hour_int = hour_int + hour_add
         rangemax = datetime(year_int, month_int, date_int, hour_int)
-        # logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
+        #logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
         # rangemax: 2019-07-16 00:00:00 type: <class 'datetime.datetime'>
         # rangemax_utc = rangemax.astimezone(pytz.UTC)
-        #  logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
+        # logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
         # rangemax_utc: 2019-07-16 04:00:00+00:00 type: <class 'datetime.datetime'>
     return rangemin, rangemax, period_dict
 
 
 # <<<<<<<<<< recalculate timeduration >>>>>>>>>>>>>>>>>>>
 def calc_schemeitem_timedurationXXX(schemeitem, update_dict, comp_timezone):
-    # logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
+    #logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
     # called by SchemeitemFillView, update_schemeitem_instance and update_shift_instance > recalc_schemeitems
     offsetstart = 0
     offsetend = 0
@@ -3960,7 +3983,7 @@ def calc_schemeitem_timedurationXXX(schemeitem, update_dict, comp_timezone):
 # e. get is_restshift of this shift
         is_restshift = getattr(shift, 'isrestshift', False)
 
-    # logger.debug('offsetstart :' + str(offsetstart) + ' offsetend :' + str(offsetend))
+    #logger.debug('offsetstart :' + str(offsetstart) + ' offsetend :' + str(offsetend))
 
 # f. if error: set 'timestart', 'timeend' to None, 'timeduration' to 0
     if msg_err:
@@ -4393,109 +4416,102 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
 
 
 def update_paydates_in_paydatecode(rosterdate_dte, request):  # PR2020-06-19
-    # update the paydates of all paydatecodes to the nearest date from rosterdate_dte
+    # update the paydates of all paydatecodes to the nearest date from this rosterdate_dte
+    # only called by FillRosterdate
     #logger.debug(' --- update_paydatecode new_rosterdate_dte --- ')
     #logger.debug('new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))
 
     paydatecodes = m.Paydatecode.objects.filter(company=request.user.company)
     for paydatecode in paydatecodes:
-        recalculate_and_save_paydatecode(rosterdate_dte, paydatecode)
+        firstdate_of_period_dte, new_paydate_dte = recalc_paydate(rosterdate_dte, paydatecode)
+        paydatecode.datelast = new_paydate_dte
+        paydatecode.datefirst = firstdate_of_period_dte
+        # save without (request=request) keeps modifiedby and modifieddate
+        paydatecode.save()
 
 
-def recalculate_and_save_paydatecode(rosterdate_dte, paydatecode, skip_save=False):  # PR2020-06-22
-    # update the paydates of all paydatecodes to the nearest date from rosterdate_dte
-    logger.debug('  ')
-    logger.debug(' --- recalculate_and_save_paydatecode --- ')
-    logger.debug('new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))
+def recalc_paydate(rosterdate_dte, paydatecode):  # PR2020-06-22
+    # function update the paydates of all paydatecodes to the nearest date from rosterdate_dte
+    # called by update_paydates_in_paydatecode, create_paydates_inuse_list, recalc_paydate_in_emplhours
+    #logger.debug(' ------ recalculate_paydate --- ')
+    #logger.debug('............ paydatecode: ' + str(paydatecode))
+    #logger.debug('............ new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))
     new_paydate_dte = None
-    startdate_of_period = None
-    if rosterdate_dte and paydatecode:
+    firstdate_of_period = None
+
+    if paydatecode:
         recurrence = paydatecode.recurrence
-        paydate_dte = paydatecode.paydate
-        logger.debug('paydatecode.recurrence: ' + str(paydatecode.recurrence) )
+        referencedate_dte = paydatecode.referencedate
+        paydate_dayofmonth = paydatecode.dayofmonth
+    else:
+        # if paydatecode = None: use montly, 31 as paydate
+        recurrence = "monthly"
+        referencedate_dte = None
+        paydate_dayofmonth = 31
 
+    if rosterdate_dte:
         new_paydate_dte = None
-        if recurrence in ('weekly', 'biweekly'):
 
-            logger.debug('paydate_dte: ' + str(paydate_dte) + ' ' + f.format_WDMY_from_dte(paydate_dte, 'nl'))
+        if recurrence in ('weekly', 'biweekly'):
             # floor_division_part = days_diff // quotient  # // floor division returns the integral part of the quotient.
             # The % (modulo) operator yields the remainder from the division of the first argument by the second.
             #  16 // 14 =  1     16 % 14 =  2
             # -16 // 14 = -2    -16 % 14 = 12
-            days_diff = f.get_datediff_days_from_dateOBJ(rosterdate_dte, paydate_dte)
+            days_diff = f.get_datediff_days_from_dateOBJ(rosterdate_dte, referencedate_dte)
             quotient = 7 if recurrence == 'weekly' else 14
             remainder = days_diff % quotient  # % modulus returns the decimal part (remainder) of the quotient
             new_paydate_dte = f.add_days_to_date(rosterdate_dte, remainder)
-            startdate_of_period = f.add_days_to_date(new_paydate_dte, 1 - quotient)
+            firstdate_of_period = f.add_days_to_date(new_paydate_dte, 1 - quotient)
 
         elif recurrence == "monthly":
 # - check if rosterday_dayofmonth is greater than paydate_dayofmonth. If so: paydete is in next month
-            paydate_dayofmonth = paydatecode.dayofmonth
-            logger.debug('paydate_dayofmonth: ' + str(paydate_dayofmonth))
             rosterday_dayofmonth = rosterdate_dte.day
-            logger.debug('rosterday_dayofmonth: ' + str(rosterday_dayofmonth))
-            add_one_month = (rosterday_dayofmonth > paydate_dayofmonth)
-            logger.debug('add_one_month: ' + str(add_one_month))
+            firstof_thismonth_dte = f.get_firstof_thismonth(rosterdate_dte)
 
-# - get the first day of the month in which the next closing day occurs
-            if add_one_month:
-                closingday_firstofmonth_dte = f.get_firstof_nextmonth(rosterdate_dte)
+# new paydate is in same month as rosterdate
+            if rosterday_dayofmonth <= paydate_dayofmonth:
+        # if paydate_dayofmonth is in same month as rosterdate: new_paydate is last of month
+                firstof_previousmonth = f.get_firstof_previousmonth(rosterdate_dte)
+                try:
+                    new_paydate_dte = date(firstof_thismonth_dte.year, firstof_thismonth_dte.month, paydate_dayofmonth)
+                except:
+                    # get last tof moth when date does not eists (i.e. Feb 30)
+                    new_paydate_dte = f.get_lastof_month(firstof_thismonth_dte)
+                try:
+                    firstdate_of_period = date(firstof_previousmonth.year, firstof_previousmonth.month, 1 + paydate_dayofmonth)
+                except:
+                    firstdate_of_period = firstof_thismonth_dte
             else:
-                closingday_firstofmonth_dte = f.get_firstof_month(rosterdate_dte)
-
-# - get the new closing day, get last day of the month if new closing day does not exist (Feb 30)
-            if closingday_firstofmonth_dte:
+        # if paydate_dayofmonth is in next month from rosterdate: new_paydate is last of month
+                firstof_nextmonth_dte = f.get_firstof_nextmonth(rosterdate_dte)
                 try:
-                    closingday_month = closingday_firstofmonth_dte.month
-                    closingday_year = closingday_firstofmonth_dte.year
-                    new_paydate_dte = date(closingday_year, closingday_month, paydate_dayofmonth)
+                    new_paydate_dte = date(firstof_nextmonth_dte.year, firstof_nextmonth_dte.month, paydate_dayofmonth)
                 except:
-                    new_paydate_dte = f.get_lastof_month(closingday_firstofmonth_dte)
-
-# get startdate of period when monthly recurrence
-            # startdate_of_period is 1 day after paydate_dayofmonth
-            startdate_dayofmonth = 1 + rosterday_dayofmonth
-            if add_one_month:
-                # startdate_of_period is in this month
+                    new_paydate_dte = f.get_lastof_month(firstof_nextmonth_dte)
                 try:
-                    startdate_of_period = date(rosterdate_dte.year, rosterdate_dte.month, startdate_dayofmonth)
+                    firstdate_of_period = date(firstof_thismonth_dte.year, firstof_thismonth_dte.month, 1 + paydate_dayofmonth)
                 except:
-                    # if date does not exist: get first of next month instead
-                    startdate_of_period = f.get_firstof_nextmonth(rosterdate_dte)
-            else:
-        # startdate_of_period is in previous month,  1 day after  paydate_dayofmonth
-                try:
-                    firstof_previousmonth_dte = f.add_month_to_firstof_month(closingday_firstofmonth_dte, -1)
-                    startdate_of_period = date(firstof_previousmonth_dte.year, firstof_previousmonth_dte.month, startdate_dayofmonth)
-                except:
-                    # if date does not exist: get first of this month instead
-                    startdate_of_period = f.get_firstof_month(rosterdate_dte)
-                    closingday_firstofmonth_dte = f.get_firstof_month(rosterdate_dte)
+                    firstdate_of_period = firstof_nextmonth_dte
 
         elif recurrence == 'irregular':
-# - get the first closing day that is greater than the rosterdate from the table 'Paydateitems'
-            # TODO or equal?? test it
-            paydateitem = m.Paydateitem.objects.filter(
-                paydatecode=paydatecode,
-                paydate__gt=rosterdate_dte
-            ).order_by('paydate').first()
-            if paydateitem:
-                new_paydate_dte = paydateitem.paydate
-                logger.debug('paydateitem.paydate: ' + str(paydateitem.paydate) + ' ' + f.format_WDMY_from_dte(paydateitem.paydate, 'nl'))
+# - get the first closing day that is greater than or equal to this rosterdate
+            paydateitems = m.Paydateitem.objects.filter(paydatecode=paydatecode) \
+                .order_by('datelast')
+            for itm in paydateitems:
+                logger.debug('---- : ' + str(itm.datelast) + ' ' + f.format_WDMY_from_dte(itm.datelast, 'nl'))
 
+            paydateitem = m.Paydateitem.objects.filter(paydatecode=paydatecode, datelast__gte=rosterdate_dte)\
+                .order_by('datelast').first()
+
+            if paydateitem and paydateitem.datelast:
+                new_paydate_dte = paydateitem.datelast
 # - get the first closing day before new_paydate_dte
-                first_paydateitem = m.Paydateitem.objects.filter(
-                    paydatecode=paydatecode,
-                    paydate__lt=new_paydate_dte
-                ).order_by('-paydate').first()
-                if first_paydateitem:
-                    startdate_of_period = first_paydateitem.paydate
+                first_paydateitem = m.Paydateitem.objects.filter(paydatecode=paydatecode, datelast__lt=new_paydate_dte)\
+                    .order_by('-datelast').first()
+                if first_paydateitem and first_paydateitem.datelast:
+                    # first date of period is one day after last day of previous periode
+                    firstdate_of_period = f.add_days_to_date(first_paydateitem.datelast, 1)
 
-        if not skip_save:
-            paydatecode.paydate = new_paydate_dte
-            # save without (request=request) keeps modifiedby and modifieddate
-            paydatecode.save()
-
-    logger.debug('new_paydate_dte: ' + str(new_paydate_dte) + ' ' + f.format_WDMY_from_dte(new_paydate_dte, 'nl'))
-    logger.debug('startdate_of_period: ' + str(startdate_of_period) + ' ' + f.format_WDMY_from_dte(startdate_of_period, 'nl'))
-    return new_paydate_dte, startdate_of_period
+    #logger.debug('............ new_paydate_dte: ' + str(new_paydate_dte) + ' ' + f.format_WDMY_from_dte(new_paydate_dte, 'nl'))
+    #logger.debug('............ firstdate_of_period: ' + str(firstdate_of_period) + ' ' + f.format_WDMY_from_dte(firstdate_of_period, 'nl'))
+    return firstdate_of_period, new_paydate_dte

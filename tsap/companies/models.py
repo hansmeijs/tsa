@@ -342,19 +342,25 @@ class Paydatecode(TsaBaseModel):
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
-    datefirst = None
-    datelast = None
     locked = None
 
     code = CharField(db_index=True, max_length=c.USERNAME_MAX_LENGTH)
     recurrence = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     dayofmonth = SmallIntegerField(null=True)
-    paydate = DateField(null=True)
+    referencedate = DateField(null=True) # this field contains the closingdate for weekly and biweekly periods
     isdefault = BooleanField(default=False)
+
+    afascode = PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = ['code']
 
+    def has_lockedpaydate_emplhours(self):  # PR2020-06-26
+        # function checks if this paydatcode has emplhours with lockedpaydate=True
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(paydatecode_id=self.pk, lockedpaydate=True).exists()
+        return has_locked_emplhours
 
 class Paydateitem(TsaBaseModel):
     objects = TsaManager()
@@ -363,14 +369,14 @@ class Paydateitem(TsaBaseModel):
     # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
     code = None
     name = None
-    datefirst = None
-    datelast = None
     inactive = None
-
-    paydate = DateField(db_index=True)
+    # TODO also remove field 'locked when removing field paydate
+    paydate = DateField(db_index=True)  # TODO deprecate, use datefirst datelast. this field contains the closingdate that is used on a given rosterdate
+    year = PositiveSmallIntegerField(default=0)
+    period = PositiveSmallIntegerField(default=0)
 
     class Meta:
-        ordering = ['paydate']
+        ordering = ['datelast']
 
 
 class Wagecode(TsaBaseModel):
@@ -586,7 +592,7 @@ class Employee(TsaBaseModel):
 
     workhours = IntegerField(default=0)  # TODO rename working hours per week * 60, unit is minute. 40 hours = 2400 workhours
     workminutesperday = IntegerField(default=0)  # working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
-    workdays = IntegerField(default=0)  # TODO deprecate workdays per week * 1440, unit is minute. 5 days = 7200 workdays
+    workdays = IntegerField(default=0)  # TODO deprecated: remove workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -974,10 +980,10 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def get_jsonsetting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of jsonsetting row that match the filter
-        logger.debug(' ')
-        logger.debug('---  get jsonsetting  ------- ')
-        logger.debug('company: ' + company.code)
-        logger.debug('key_str: ' + key_str)
+        #logger.debug(' ')
+        #logger.debug('---  get jsonsetting  ------- ')
+        #logger.debug('company: ' + company.code)
+        #logger.debug('key_str: ' + key_str)
         setting = None
         if company and key_str:
             row = cls.objects.get_or_none(company=company, key=key_str)
@@ -987,13 +993,13 @@ class Companysetting(Model):  # PR2019-03-09
         if setting is None:
             if default_setting:
                 setting = default_setting
-        logger.debug('setting: ' + str(setting))
+        #logger.debug('setting: ' + str(setting))
         return setting
 
     @classmethod
     def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
-        logger.debug('---  set_jsonsettingg  ------- ')
-        logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+        #logger.debug('---  set_jsonsettingg  ------- ')
+        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
 
         if company and key_str:
             # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
@@ -1007,7 +1013,7 @@ class Companysetting(Model):  # PR2019-03-09
             # test
             row = None
             saved_row = cls.objects.filter(company=company, key=key_str).first()
-            logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
+            #logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
 
     @classmethod
     def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17

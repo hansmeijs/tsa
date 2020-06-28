@@ -163,6 +163,7 @@ urlpatterns = [
 
         path('payroll', employee_views.PayrollView.as_view(), name='payroll_url'),
         path('payroll_upload', employee_views.PayrollUploadView.as_view(), name='payroll_upload_url'),
+        path('import_pdc', employee_views.PayrollImportView.as_view(), name='paydatecode_import_url'),
     ])),
 
     path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),

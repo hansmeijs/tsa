@@ -1666,16 +1666,16 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             period_datefirst_dte = f.get_firstof_week(today_dte, 1)
             period_datelast_dte = f.get_lastof_week(today_dte, 1)
         elif period_tag == 'tmonth':  # 9: 'This month'
-            period_datefirst_dte = f.get_firstof_month(today_dte)
+            period_datefirst_dte = f.get_firstof_thismonth(today_dte)
             period_datelast_dte = f.get_lastof_month(today_dte)
         elif period_tag == 'lmonth':  # 9: 'This month'
-            firstof_thismonth_dte = f.get_firstof_month(today_dte)
+            firstof_thismonth_dte = f.get_firstof_thismonth(today_dte)
             firstof_lastmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, -1)
             lastof_lastmonth_dte = f.get_lastof_month(firstof_lastmonth_dte)
             period_datefirst_dte = firstof_lastmonth_dte
             period_datelast_dte = lastof_lastmonth_dte
         elif period_tag == 'nmonth':  # 9: 'Next month'
-            firstof_thismonth_dte = f.get_firstof_month(today_dte)
+            firstof_thismonth_dte = f.get_firstof_thismonth(today_dte)
             firstof_nextmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, 1)
             lastof_nextmonth_dte = f.get_lastof_month(firstof_nextmonth_dte)
             period_datefirst_dte = firstof_nextmonth_dte

@@ -606,23 +606,34 @@ def get_lastof_week(date_obj, week_add_int):
     return new_date
 
 
-def get_firstof_month(date_obj):
+def get_firstof_thismonth(date_obj):
     firstof_thismonth_dte = None
     if(date_obj):
         firstof_thismonth_dte = date_obj + timedelta(days=(1 - date_obj.day))
     return firstof_thismonth_dte
 
+
 def get_firstof_nextmonth(date_obj):
     firstof_nextmonth_dte = None
     if(date_obj):
-        firstof_thismonth_dte = get_firstof_month(date_obj)
+        firstof_thismonth_dte = get_firstof_thismonth(date_obj)
         firstof_nextmonth_dte = add_month_to_firstof_month(firstof_thismonth_dte, 1)
     return firstof_nextmonth_dte
 
+
+def get_firstof_previousmonth(date_obj):
+    firstof_previousmonth_dte = None
+    if(date_obj):
+        firstof_thismonth_dte = get_firstof_thismonth(date_obj)
+        firstof_previousmonth_dte = add_month_to_firstof_month(firstof_thismonth_dte, -1)
+    return firstof_previousmonth_dte
+
+
 def get_lastof_month(date_obj):
+    # 2020-06-27 debug: goes wrong with
     lastof_thismonth_dte = None
     if(date_obj):
-        firstof_thismonth_dte = get_firstof_month(date_obj)
+        firstof_thismonth_dte = get_firstof_thismonth(date_obj)
         firstof_nextmonth_dte = add_month_to_firstof_month(firstof_thismonth_dte, 1)
         lastof_thismonth_dte = firstof_nextmonth_dte - timedelta(days=1)
     return lastof_thismonth_dte
@@ -1111,13 +1122,13 @@ def format_WDMY_from_dte(dte, user_lang):
     if dte:
         try:
             date_DMY = format_DMY_from_dte(dte, user_lang)
-
             # get weekdays translated
             if not user_lang in c.WEEKDAYS_ABBREV:
                 user_lang = c.LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
+            if not weekday_int:
+                weekday_int = 7
             weekday_str = c.WEEKDAYS_ABBREV[user_lang][weekday_int]
-
             date_WDMY = ' '.join([weekday_str, date_DMY])
         except:
             pass
@@ -2333,7 +2344,7 @@ def update_workminutesperday():
                             """)
 
 # NOT IN USE any more
-def update_isabsence_istemplate():
+def update_isabsence_istemplateXX():
     from django.db import connection
     with connection.cursor() as cursor:
         cursor.execute('UPDATE companies_customer SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
@@ -2351,6 +2362,13 @@ def update_isabsence_istemplate():
         cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
 
+# PR20202-06-26
+def update_paydateitems():
+    # function puts value of paydate in field datelast
+    with connection.cursor() as cursor:
+        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
+                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL) 
+                            """)
 
 ###############################################################
 # FORMAT ELEMENTS

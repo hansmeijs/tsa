@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, CreateView
 
 from datetime import date, time, datetime, timedelta
-
+import pytz
 import json
 from django.utils.functional import Promise
 from django.utils.encoding import force_text
@@ -23,6 +23,7 @@ from tsap.settings import TIME_ZONE
 from tsap import constants as c
 from tsap import functions as f
 from tsap import validators as v
+from tsap import settings as s
 
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_namelast_namefirst, validate_code_name_identifier, validate_employee_has_emplhours
@@ -1963,7 +1964,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, no_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
         #logger.debug(' ============= EmployeeImportUploadSetting ============= ')
-        #.debug('request.POST' + str(request.POST) )
+        #logger.debug('request.POST' + str(request.POST) )
         companysetting_dict = {}
         if request.user is not None :
             if request.user.company is not None:
@@ -1972,15 +1973,23 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     # new_setting is in json format, no need for json.loads and json.dumps
                     #logger.debug('new_setting_json' + str(new_setting_json))
 
+                    new_setting_dict = json.loads(request.POST['upload'])
+                    #logger.debug('new_setting_dict' + str(new_setting_dict))
+
+                    importtable = new_setting_dict.get('importtable')
+                    #logger.debug('importtable' + str(importtable))
+
+                    settings_key = c.KEY_PAYDATECODE_COLDEFS if importtable == 'paydatecode' else c.KEY_EMPLOYEE_COLDEFS
+                    #logger.debug('settings_key' + str(settings_key))
+
                     new_worksheetname = ''
                     new_has_header = True
                     new_code_calc = ''
                     new_coldefs = {}
-                    settings_key = c.KEY_EMPLOYEE_COLDEFS
                     stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
                     if stored_json:
                         stored_setting = json.loads(stored_json)
-                        #logger.debug('stored_setting: ' + str(stored_setting))
+                        logger.debug('stored_setting: ' + str(stored_setting))
                         if stored_setting:
                             new_has_header = stored_setting.get('has_header', True)
                             new_worksheetname = stored_setting.get('worksheetname', '')
@@ -1989,7 +1998,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
 
                     if new_setting_json:
                         new_setting = json.loads(new_setting_json)
-                        #logger.debug('new_setting' + str(new_setting))
+                        logger.debug('new_setting' + str(new_setting))
                         if new_setting:
                             if 'worksheetname' in new_setting:
                                 new_worksheetname = new_setting.get('worksheetname', '')
@@ -2009,18 +2018,18 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     #logger.debug('---  set_jsonsettingg  ------- ')
                     #logger.debug('new_setting_json' + str(new_setting_json))
                     #logger.debug(new_setting_json)
-                    m.Companysetting.set_jsonsetting(c.KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
+                    m.Companysetting.set_jsonsetting(settings_key, new_setting_json, request.user.company)
 
         # only for testing
                     # ----- get user_lang
-                    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-                    tblName = 'employee'
-                    coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
-                    if coldefs_dict:
-                        companysetting_dict['coldefs'] = coldefs_dict
+                    #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                    #tblName = 'employee'
+                    #coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
+                    #if coldefs_dict:
+                    #    companysetting_dict['coldefs'] = coldefs_dict
                     #logger.debug('new_setting from saved ' + str(coldefs_dict))
 
-                    #m.Companysetting.set_setting(c.KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
+                    #m.Companysetting.set_setting(c.settings_key, new_setting_json, request.user.company)
 
         return HttpResponse(json.dumps(companysetting_dict, cls=LazyEncoder))
 
@@ -2037,84 +2046,358 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05 PR2020-06-04
                 if upload_json:
                     upload_dict = json.loads(upload_json)
                     if upload_dict:
-# - Reset language
-                        # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-                        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-                        activate(user_lang)
-# - get is_test, codecalc, dateformat, tsaKey_list
-                        is_test = upload_dict.get('test', False)
-                        codecalc = upload_dict.get('codecalc', 'linked')
-                        dateformat = upload_dict.get('dateformat', '')
-                        tsaKey_list = upload_dict.get('tsaKey_list')
+                        importtable = upload_dict.get('importtable')
+                        if importtable == 'employee':
+                            params = import_employees(upload_dict, request)
+                        elif importtable == 'paydatecode':
+                            params = import_paydatecodes(upload_dict, request)
+        return HttpResponse(json.dumps(params, cls=LazyEncoder))
 
-                        logger.debug('tsaKey_list: ' + str(tsaKey_list))
-                        if tsaKey_list:
+
+def import_employees(upload_dict, request):
+# - Reset language
+    # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+    activate(user_lang)
+# - get is_test, codecalc, dateformat, tsaKey_list
+    is_test = upload_dict.get('test', False)
+    codecalc = upload_dict.get('codecalc', 'linked')
+    dateformat = upload_dict.get('dateformat', '')
+    tsaKey_list = upload_dict.get('tsaKey_list')
+
+    logger.debug('tsaKey_list: ' + str(tsaKey_list))
+
+    params = {}
+    if tsaKey_list:
 # - get lookup_field
-                            # lookup_field is field that determines if employee alreay exist.
-                            # check if one of the fields 'payrollcode', 'identifier' or 'code' exists
-                            # first in the list is lookup_field
-                            lookup_field = None
-                            if 'payrollcode' in tsaKey_list:
-                                lookup_field = 'payrollcode'
-                            elif 'identifier' in tsaKey_list:
-                                lookup_field = 'identifier'
+        # lookup_field is field that determines if employee alreay exist.
+        # check if one of the fields 'payrollcode', 'identifier' or 'code' exists
+        # first in the list is lookup_field
+        lookup_field = None
+        if 'payrollcode' in tsaKey_list:
+            lookup_field = 'payrollcode'
+        elif 'identifier' in tsaKey_list:
+            lookup_field = 'identifier'
 
 # - get upload_dict from request.POST
-                            employee_list = upload_dict.get('employees')
-                            if employee_list:
-                                today_dte = f.get_today_dateobj()
-                                today_formatted = f.format_WDMY_from_dte(today_dte, user_lang)
-                                double_line_str = '=' * 80
-                                indent_str = ' ' * 5
-                                space_str = ' ' * 25
-                                logfile = []
-                                logfile.append(double_line_str)
-                                logfile.append( '  ' + str(request.user.company.code) + '  -  ' +
-                                                str(_('Import employees')) + ' ' + str(_('date')) + ': ' + str(today_formatted))
-                                logfile.append(double_line_str)
+        employee_list = upload_dict.get('employees')
+        if employee_list:
+            today_dte = f.get_today_dateobj()
+            today_formatted = f.format_WDMY_from_dte(today_dte, user_lang)
+            double_line_str = '=' * 80
+            indent_str = ' ' * 5
+            space_str = ' ' * 25
+            logfile = []
+            logfile.append(double_line_str)
+            logfile.append( '  ' + str(request.user.company.code) + '  -  ' +
+                            str(_('Import employees')) + ' ' + str(_('date')) + ': ' + str(today_formatted))
+            logfile.append(double_line_str)
 
-                                if lookup_field is None:
-                                    info_txt = str(_('There is no field given to lookup employees. Employees cannot be imported.'))
-                                    logfile.append(indent_str + info_txt)
-                                else:
-                                    if is_test:
-                                        info_txt = str(_("This is a test. Employee data are not saved."))
-                                    else:
-                                        info_txt = str(_("Employee data are saved."))
-                                    logfile.append(indent_str + info_txt)
-                                    lookup_caption = str(get_field_caption('employee', lookup_field))
-                                    info_txt = str(_("Employees are looked up by the field: '%(fld)s'.") % {'fld': lookup_caption})
-                                    logfile.append(indent_str + info_txt)
-                                    if dateformat:
-                                        info_txt = str(_("The date format is: '%(fld)s'.") % {'fld': dateformat})
-                                        logfile.append(indent_str + info_txt)
-                                    update_list = []
-                                    for empl_dict in employee_list:
-                                        # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
-                                        # for key, val in student.items():
-                                        # logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
-                                        # check if value of lookup_field occurs mutiple times
-                                        lookup_value = empl_dict.get(lookup_field)
-                                        lookup_count = 0
-                                        if lookup_value:
-                                            count = 0
-                                            for dict in employee_list:
-                                                value = dict.get(lookup_field)
-                                                if value and value == lookup_value:
-                                                    lookup_count += 1
-                                        update_dict = upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test, codecalc, dateformat, indent_str, space_str, logfile, request)
-                                        # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
-                                        if update_dict:  # 'Any' returns True if any element of the iterable is true.
-                                            update_list.append(update_dict)
+            if lookup_field is None:
+                info_txt = str(_('There is no field given to lookup employees. Employees cannot be imported.'))
+                logfile.append(indent_str + info_txt)
+            else:
+                if is_test:
+                    info_txt = str(_("This is a test. Employee data are not saved."))
+                else:
+                    info_txt = str(_("Employee data are saved."))
+                logfile.append(indent_str + info_txt)
+                lookup_caption = str(get_field_caption('employee', lookup_field))
+                info_txt = str(_("Employees are looked up by the field: '%(fld)s'.") % {'fld': lookup_caption})
+                logfile.append(indent_str + info_txt)
+                if dateformat:
+                    info_txt = str(_("The date format is: '%(fld)s'.") % {'fld': dateformat})
+                    logfile.append(indent_str + info_txt)
+                update_list = []
+                for empl_dict in employee_list:
+                    # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
+                    # for key, val in student.items():
+                    # logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
+                    # check if value of lookup_field occurs mutiple times
+                    lookup_value = empl_dict.get(lookup_field)
+                    lookup_count = 0
+                    if lookup_value:
+                        count = 0
+                        for dict in employee_list:
+                            value = dict.get(lookup_field)
+                            if value and value == lookup_value:
+                                lookup_count += 1
+                    update_dict = upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test, codecalc, dateformat, indent_str, space_str, logfile, request)
+                    # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
+                    if update_dict:  # 'Any' returns True if any element of the iterable is true.
+                        update_list.append(update_dict)
 
-                                    if update_list:  # 'Any' returns True if any element of the iterable is true.
-                                        params['employee_list'] = update_list
-                                if logfile:  # 'Any' returns True if any element of the iterable is true.
-                                    params['logfile'] = logfile
-                                            # params.append(new_employee)
+                if update_list:  # 'Any' returns True if any element of the iterable is true.
+                    params['employee_list'] = update_list
+            if logfile:  # 'Any' returns True if any element of the iterable is true.
+                params['logfile'] = logfile
+                        # params.append(new_employee)
+    return params
 
-         # return HttpResponse(json.dumps(params))
-        return HttpResponse(json.dumps(params, cls=LazyEncoder))
+def import_paydatecodes(upload_dict, request):
+    logger.debug(' --- import_paydatecodes --- ')
+
+    # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+    activate(user_lang)
+
+
+    # 'paydatecodes': [{'rowindex': 0, 'afascode': '3', 'code': 'HRM / Payroll (Maand vast )',
+    # 'year': '2020', 'period': '1', 'datefirst': '01/01/2020', 'paydate': '31/01/2020'}
+    # - get is_test, codecalc, dateformat, tsaKey_list
+    is_test = upload_dict.get('test', False)
+
+    dateformat = upload_dict.get('dateformat', '')
+    tsaKey_list = upload_dict.get('tsaKey_list')
+
+    logger.debug('dateformat: ' + str(dateformat))
+    logger.debug('tsaKey_list: ' + str(tsaKey_list))
+    params = {}
+    if tsaKey_list:
+        # - get lookup_field
+        # lookup_field is field that determines if paydatecode alreay exist.
+        # check if one of the fields 'payrollcode', 'identifier' or 'code' exists
+        # first in the list is lookup_field
+        lookup_field = None
+        if 'afascode' in tsaKey_list:
+            lookup_field = 'afascode'
+        logger.debug('lookup_field: ' + str(lookup_field))
+
+        paydateitem_list = upload_dict.get('paydatecodes')
+        if paydateitem_list:
+            today_dte = f.get_today_dateobj()
+            today_formatted = f.format_WDMY_from_dte(today_dte, user_lang)
+            double_line_str = '=' * 80
+            indent_str = ' ' * 5
+            space_str = ' ' * 25
+            logfile = []
+            logfile.append(double_line_str)
+            logfile.append('  ' + str(request.user.company.code) + '  -  ' +
+                           str(_('Upload payroll periods')) + ' ' + str(_('date')) + ': ' + str(today_formatted))
+            logfile.append(double_line_str)
+
+            logger.debug('lookup_field: ' + str(lookup_field))
+            if lookup_field is None:
+                info_txt = str(_('There is no field given to lookup payroll periods. Payroll periods cannot be uploaded.'))
+                logfile.append(indent_str + info_txt)
+            else:
+                if is_test:
+                    info_txt = str(_("This is a test. The payroll periods are not saved."))
+                else:
+                    info_txt = str(_("The payroll periods are saved."))
+                logfile.append(indent_str + info_txt)
+                lookup_caption = str(get_field_caption('paydatecode', lookup_field))
+                info_txt = str(_("Payroll periods are looked up by the field: '%(fld)s'.") % {'fld': lookup_caption})
+                logfile.append(indent_str + info_txt)
+                if dateformat:
+                    info_txt = str(_("The date format is: '%(fld)s'.") % {'fld': dateformat})
+                    logfile.append(indent_str + info_txt)
+
+                logger.debug('info_txt: ' + str(info_txt))
+                update_list = []
+                has_error, paydatecodes_dict = create_paydatecodes_dict(paydateitem_list, tsaKey_list, logfile, indent_str, space_str, request)
+                if paydatecodes_dict:
+                    for afascode, pdc_dict in paydatecodes_dict.items():
+                        pdc_pk = pdc_dict.get('pk')
+                        pdc_code = pdc_dict.get('code')
+                        paydatecode = None
+                        if pdc_pk:
+# - get existing paydatecode
+                            paydatecode = m.Paydatecode.objects.get_or_none(pk=pdc_pk, company=request.user.company)
+                            # TODO check value / update paydatecode
+                        elif pdc_code:
+# - create paydatecode
+                            paydatecode = m.Paydatecode(
+                                company=request.user.company,
+                                code=pdc_code,
+                                recurrence='irregular',
+                                afascode=afascode,
+                                isdefault=False)
+                            paydatecode.save(request=request)
+                        if paydatecode:
+                            logger.debug('paydatecode: ' + str(paydatecode.code))
+                            for key, pdi_dict in pdc_dict.items():
+                                if key not in ('code', 'pk'):
+                                    year_period = key
+                                    logger.debug('year_period: ' + str(year_period))
+                                    logger.debug('pdi_dict: ' + str(pdi_dict))
+
+                                    pdi_pk = pdi_dict.get('pk')
+                                    pdi_year = pdi_dict.get('year')
+                                    pdi_period = pdi_dict.get('period')
+                                    pdi_datefirst = pdi_dict.get('datefirst')
+                                    pdi_paydate = pdi_dict.get('paydate')
+
+                                    # - validate new value
+                                    msg_err = None
+                                    pdi_datefirst_dte = None
+                                    pdi_paydate_dte = None
+                                    if pdi_datefirst and dateformat:
+                                        pdi_datefirst_iso = f.get_dateISO_from_string(pdi_datefirst, dateformat)
+                                        pdi_datefirst_dte = f.get_date_from_ISO(
+                                            pdi_datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+                                        if pdi_datefirst_dte is None:
+                                            msg_err = str(_("'%(val)s' is not a valid date.") % {'val': pdi_datefirst})
+                                    if pdi_paydate and dateformat:
+                                        pdi_paydate_iso = f.get_dateISO_from_string(pdi_paydate, dateformat)
+                                        pdi_paydate_dte = f.get_date_from_ISO(
+                                            pdi_paydate_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+                                        if pdi_paydate_dte is None:
+                                            msg_err = str(_("'%(val)s' is not a valid date.") % {'val': pdi_paydate})
+
+                                    logger.debug('pdi_pk: ' + str(pdi_pk))
+                                    logger.debug('paydatecode: ' + str(paydatecode) + ' ' + str(type(paydatecode)))
+                                    logger.debug('pdi_year: ' + str(pdi_year) + ' ' + str(type(pdi_year)))
+                                    logger.debug('pdi_period: ' + str(pdi_datefirst_dte) + ' ' + str(type(pdi_datefirst_dte)))
+                                    logger.debug('pdi_paydate_dte: ' + str(pdi_paydate_dte) + ' ' + str(type(pdi_paydate_dte)))
+                                    if pdi_pk:
+                                        # - get existing paydateitem
+                                        paydateitem = m.Paydateitem.objects.get_or_none(pk=pdi_pk, paydatecode=paydatecode)
+                                        # TODO check / update paydateitem
+                                    elif pdi_year and pdi_paydate:
+                                        # - create paydateitem
+                                        paydateitem = m.Paydateitem(
+                                            paydatecode=paydatecode,
+                                            year=pdi_year,
+                                            period=pdi_period,
+                                            datefirst=pdi_datefirst_dte,
+                                            paydate=pdi_paydate_dte
+                                        )
+                                        paydateitem.save(request=request)
+
+                                    logger.debug('paydateitem: ' + str(paydateitem))
+
+                if update_list:  # 'Any' returns True if any element of the iterable is true.
+                    params['paydateitem_list'] = update_list
+            if logfile:  # 'Any' returns True if any element of the iterable is true.
+                params['logfile'] = logfile
+                # params.append(new_employee)
+    return params
+
+
+def create_paydatecodes_dict(paydateitem_list, tsaKey_list, logfile, indent_str, space_str, request):  # PR2020-06-25
+    #logger.debug('--------- create_paydatecodes_dict ------------')
+    update_list = []
+    mapped_customers_identifier = {}
+    mapped_customers_code = {}
+    has_error = False
+    paydatecodes_dict = {}
+    # sorted_dict: {
+    # '3': {'code': 'HRM / Payroll (Maand vast )'},
+    # '7': {'code': 'HRM / Payroll (Quincena 1)'},
+    # '14': {'code': 'HRM/Payroll (Maand Variabel)'},
+    # '16': {'code': 'HRM / Payroll BIRGEN'},
+    # '17': {'code': 'HRM / Payroll (Quicena Bouw)'}}
+    for paydateitem_dict in paydateitem_list:
+        afascode = paydateitem_dict.get('afascode')
+        afascode_int = None
+        try:
+            afascode_int = int(afascode)
+        except:
+            has_error = True
+        if not afascode_int:
+            has_error = True
+        code = paydateitem_dict.get('code')
+        if not code:
+            has_error = True
+
+        # TODO test max length   paydateitem_dict.get('code', '')[0:c.USERNAME_MAX_LENGTH]
+        pdc_dict = {}
+        if not has_error:
+# - add item if afascode not in pdc_dict
+            if afascode_int not in paydatecodes_dict:
+                pdc_dict['code'] = code
+# check if item already exists in database, lookup pk
+                has_multiple, paydatecode_pk = paydatecode_exists(afascode_int, request)
+                if has_multiple:
+                    has_error = True
+                elif paydatecode_pk:
+                    pdc_dict['pk'] = paydatecode_pk
+                paydatecodes_dict[afascode_int] = pdc_dict
+            else:
+                pdc_dict = paydatecodes_dict[afascode_int]
+                s_code = pdc_dict.get('code')
+            # check if code same as code in dict. If not, error
+                if code != s_code:
+                    has_error = True
+# - add paydate item to pdc_dict
+        year_int, period_int, year_period = None, None, None
+        if not has_error and pdc_dict:
+            year = paydateitem_dict.get('year')
+            period = paydateitem_dict.get('period')
+            year_int, period_int = None, None
+            try:
+                year_int = int(year)
+                period_int = int(period)
+            except:
+                has_error = True
+            if not year_int or not period_int:
+                has_error = True
+            if not has_error:
+                year_period = str(year_int) + '_' + str(period_int)
+
+        if not has_error:
+            pdi_dict = {}
+            # - add item if afascode not in dict
+            if year_period in pdc_dict:
+                # double entry
+                has_error = True
+            else:
+                datefirst = paydateitem_dict.get('datefirst')
+                paydate = paydateitem_dict.get('paydate')
+                rowindex = paydateitem_dict.get('rowindex')
+                if not datefirst or not paydate:
+                    has_error = True
+                else:
+                    pdi_dict = {'year': year_int, 'period': period_int,
+                                'datefirst': datefirst, 'paydate': paydate, 'rowindex': rowindex}
+# check if item already exists in database, lookup pk
+                    has_multiple, paydateitem_pk = paydateitem_exists(afascode, year_int, period_int, request)
+                    if has_multiple:
+                        has_error = True
+                    elif paydateitem_pk:
+                        pdi_dict['pk'] = paydateitem_pk
+            if not has_error and pdi_dict:
+                pdc_dict[year_period] = pdi_dict
+    if has_error:
+        paydatecodes_dict = {}
+    return has_error, paydatecodes_dict
+# --- end of create_paydatecodes_dict
+
+def paydateitem_exists(afascode, year_int, period_int, request):
+    paydateitem_pk = None
+    has_multiple = False
+    if afascode and year_int and period_int:
+        items = m.Paydateitem.objects.filter(
+            paydatecode__afascode=afascode,
+            year=year_int,
+            period=period_int,
+            paydatecode__company=request.user.company)
+        item_count = 0
+        for item in items:
+            paydateitem_pk = item.pk
+            item_count += 1
+        if item_count > 1:
+            paydateitem_pk = None
+            has_multiple = True
+    return has_multiple, paydateitem_pk
+
+def paydatecode_exists(afascode, request):
+    paydatecode_pk = None
+    has_multiple = False
+    if afascode:
+        items = m.Paydatecode.objects.filter(
+            afascode=afascode,
+            company=request.user.company)
+        item_count = 0
+        for item in items:
+            paydatecode_pk = item.pk
+            item_count += 1
+        if item_count > 1:
+            paydatecode_pk = None
+            has_multiple = True
+    return has_multiple, paydatecode_pk
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test, codecalc, format_str, indent_str, space_str, logfile, request):  # PR2019-12-17 PR2020-06-03
@@ -2221,8 +2504,6 @@ def upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test,
                 code=new_code,
                 namelast=new_namelast
             )
-
-
             if employee:
                 save_instance = True
                 update_dict['id']['created'] = True
@@ -2421,43 +2702,58 @@ def upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test,
                     logfile.append(" ".join((code_text, error_str)))
                     update_dict['row_error'] = error_str
     return update_dict
-# --- end for employee in employees
+# --- end of upload_employee
 
 def get_field_caption(table, field):
     caption = ''
     if table == 'employee':
         if field == 'code':
             caption = _('Short name')
-        if field == 'namelast':
+        elif field == 'namelast':
             caption = _('Last name')
-        if field == 'namefirst':
+        elif field == 'namefirst':
             caption = _('First name')
-        if field == 'email':
+        elif field == 'email':
             caption = _('Email address')
-        if field == 'telephone':
+        elif field == 'telephone':
             caption = _('Telephone')
-        if field == 'identifier':
+        elif field == 'identifier':
             caption = _('ID-number')
-        if field == 'payrollcode':
+        elif field == 'payrollcode':
             caption = _('Payroll code')
-        if field == 'address':
+        elif field == 'address':
             caption = _('Address')
-        if field == 'zipcode':
+        elif field == 'zipcode':
             caption = _('Zip code')
-        if field == 'city':
+        elif field == 'city':
             caption = _('City')
-        if field == 'country':
+        elif field == 'country':
             caption = _('Country')
-        if field == 'datefirst':
+        elif field == 'datefirst':
             caption = _('First date in service')
-        if field == 'datelast':
+        elif field == 'datelast':
             caption = _('Last date in service')
-        if field == 'workhours':
+        elif field == 'workhours':
             caption = _('Workhours per week')
-        if field == 'workdays':
+        elif field == 'workdays':
             caption = _('Workdays per week')
-        if field == 'leavedays':
+        elif field == 'leavedays':
             caption = _('Leave days per year')
+
+    elif table == 'paydatecode':
+        if field == 'afascode':
+            caption = _('Code period table')
+        elif field == 'code':
+            caption = _('Name period table')
+        elif field == 'year':
+            caption = _('Bookyear')
+        elif field == 'period':
+            caption = _('Period index')
+        elif field == 'datefirst':
+            caption = _('Startdate')
+        elif field == 'paydate':
+            caption = _('Enddate')
+
     return caption
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2726,33 +3022,75 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
         logger.debug(' ============= PayrollUploadView ============= ')
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-# 1. Reset language
+# ----- Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
-# 2. get upload_dict from request.POST
+# ----- get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict' + str(upload_dict))
                 table = f.get_dict_value(upload_dict, ('id', 'table'))
-# --- ABSENCE CATEGORIES (table = 'order')
+# +++++ ABSENCE CATEGORIES (table = 'order')
                 if table == 'order':
                     update_list = upload_abscat_order(upload_dict, user_lang, request)
-        # - add update_list to update_wrap
                     update_wrap['update_list'] = update_list
-# --- PAYROLL PERIODS
+# +++++ PAYDATECODE PERIODS
                 elif table == 'paydatecode':
                     update_list = upload_paydatecode(upload_dict, user_lang, request)
-                    # - add update_list to update_wrap
                     update_wrap['update_list'] = update_list
-# --- SET EMPLOYEE PAYDATE, FUNCTION
+# +++++ SET EMPLOYEE PAYDATE, FUNCTION
                 elif table == 'employee':
-                    update_list =  upload_employee_paydate_function(upload_dict, user_lang, request)
-                    # - add update_list to update_wrap
+                    update_list = upload_employee_paydate_function(upload_dict, user_lang, request)
                     update_wrap['update_list'] = update_list
 # - return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+
+
+
+# === PayrollImportViewImportView ===================================== PR2020-06-25
+@method_decorator([login_required], name='dispatch')
+class PayrollImportView(View):
+
+    def get(self, request):
+        param = {}
+        if request.user.company is not None:
+            coldef_list = c.COLDEF_PAYDATECODE
+            captions_dict = c.CAPTION_IMPORT
+
+            stored_setting = {}
+            settings_json = m.Companysetting.get_setting(c.KEY_PAYDATECODE_COLDEFS, request.user.company)
+
+            if settings_json:
+                stored_setting = json.loads(m.Companysetting.get_setting(c.KEY_PAYDATECODE_COLDEFS, request.user.company))
+            self.has_header = True
+            self.worksheetname = ''
+            self.codecalc = 'linked'
+            if 'has_header' in stored_setting:
+                self.has_header = False if Lower(stored_setting['has_header']) == 'false' else True
+            if 'worksheetname' in stored_setting:
+                self.worksheetname = stored_setting['worksheetname']
+            if 'coldefs' in stored_setting:
+                stored_coldefs = stored_setting['coldefs']
+                # skip if stored_coldefs does not exist
+                if stored_coldefs:
+                    # loop through coldef_list
+                    for coldef in coldef_list:
+                        fieldname = coldef.get('tsaKey')
+                        if fieldname:
+                            if fieldname in stored_coldefs:
+                                coldef['excKey'] = stored_coldefs[fieldname]
+
+            coldefs_dict = {
+                'worksheetname': self.worksheetname,
+                'has_header': self.has_header,
+                'coldefs': coldef_list
+            }
+            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
+
+            captions = json.dumps(captions_dict, cls=LazyEncoder)
+            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
+        return render(request, 'payroll_import.html', param)
 
 
 # === upload_abscat_order ===================================== PR2020-06-17
@@ -2841,11 +3179,8 @@ def upload_paydatecode(upload_dict, user_lang, request):
     logger.debug('is_create: ' + str(is_create))
 # - check if parent with ppk_int exists and is same as request.user.company
     parent = m.Company.objects.get_or_none(id=ppk_int)
-    logger.debug('parent:' + str(parent))
     if parent and ppk_int == request.user.company_id:
-        logger.debug('pk_int: ' + str(pk_int))
-        logger.debug('ppk_int: ' + str(ppk_int))
-# - create new update_dict with all fields and id_dict. Unused ones will be removed at the end
+# ----- create new update_dict with all fields and id_dict. Unused ones will be removed at the end
         update_dict = f.create_update_dict(
             c.FIELDS_PAYDATECODE,
             table=table,
@@ -2853,50 +3188,51 @@ def upload_paydatecode(upload_dict, user_lang, request):
             ppk=parent.pk,
             temp_pk=temp_pk_str,
             row_index=row_index)
-
-# - Delete Paydate
+# +++++ Delete Paydatecode
         if is_delete:
             instance = m.Paydatecode.objects.get_or_none(id=pk_int, company=parent)
             if instance:
                 this_text = _("Payroll period '%(tbl)s'") % {'tbl': instance.code}
-                # delete_instance adds 'deleted' or 'error' to id_dict
-                # paydateitems are also deleted because of cascade delete
-                deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
-                if deleted_ok:
-                    instance = None
+    # - check if this paydatecode has emplhours with lockedpaydate=True
+                if instance.has_lockedpaydate_emplhours():
+                    msg_err = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
+                    update_dict['id']['error'] = msg_err
+                else:
+    # - delete_instance, it adds 'deleted' or 'error' to id_dict
+                    # paydateitems are also deleted because of cascade delete
+                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    if deleted_ok:
+                        instance = None
         else:
-# D. Create new paydatecode
+# +++++ Create new paydatecode
             if is_create:
                 instance = create_new_paydatecode(parent, upload_dict, update_dict, request)
-# E. Get existing paydatecode
+    # - get existing paydatecode
             else:
                 instance = m.Paydatecode.objects.get_or_none(id=pk_int, company=parent)
-# F. Update paydatecode, also when it is created
-            logger.debug('instance: ' + str(instance))
+# +++++ Update paydatecode, also when it is created
             if instance:
                 update_paydatecode(instance, parent, upload_dict, update_dict, request)
-# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+    # - put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
         if instance:
             d.create_paydatecode_dict(instance, update_dict)
-# - remove empty attributes from update_dict
+    # - remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
-# - add update_dict to update_wrap
+    # - add update_dict to update_wrap
         if update_dict:
             update_list.append(update_dict)
     return update_list
 
 
 def create_new_paydatecode(parent, upload_dict, update_dict, request):
-    # --- create customer or order # PR20120-06-17
+    # --- create new paydatecode # PR20120-06-17
     # Note: all keys in update_dict must exist by running create_update_dict first
-    #logger.debug(' --- create_new_paydatecode ---')
 
     instance = None
 # - get iddict variables
     # id_dict is added in create_update_dict
     id_dict = upload_dict.get('id')
     if id_dict:
-        table = 'paydatecode'
 # - get parent instance
         if parent:
 # - get value of 'code'
@@ -2939,7 +3275,8 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
     if instance:
         table = 'paydatecode'
         save_changes = False
-        # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence', 'dayofmonth', 'paydate', 'isdefault', 'inactive')
+        recalc_emplhour_paydates = False
+        # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence',  'referencedate', 'dayofmonth', 'paydate', 'isdefault', 'inactive')
         recurrence = f.get_dict_value(upload_dict, ('recurrence', 'value'))
 
         for field in c.FIELDS_PAYDATECODE:
@@ -2963,22 +3300,20 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
-
 # - save changes in text field, date field and number fields
-                    elif field in ['recurrence', 'dayofmonth', 'paydate', 'isdefault', 'inactive']:
+                    elif field in ('recurrence', 'dayofmonth', 'referencedate', 'datefirst', 'datelast', 'afascode'):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
-
-# - save changes in field 'isdefault', 'inactive'
+                            recalc_emplhour_paydates = True
+# - save changes in boolean fields
                     elif field in ['isdefault', 'inactive']:
                         new_value = field_dict.get('value', False)
                         saved_value = getattr(instance, field, False)
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
-
 # - add 'updated' to field_dict'
                     if is_updated:
                         update_dict[field]['updated'] = True
@@ -2995,6 +3330,10 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
                 update_dict['id']['error'] = msg_err
 
         if not has_error:
+            if recalc_emplhour_paydates:
+                # update paydatecode in all emplhour records that are not locked
+                # and recalculate paydate in these emplhour records
+                recalc_paydate_in_emplhours(instance.pk, [], True, request)
             if recurrence == 'irregular':
                 update_paydatecodeitem(instance, upload_dict, update_dict, request)
             else:
@@ -3050,16 +3389,17 @@ def update_paydatecodeitem(instance, upload_dict, update_dict, request):
 # === upload_employee_paydate_function ===================================== PR2020-06-18
 def upload_employee_paydate_function(upload_dict, user_lang, request):
     logger.debug(' ===== upload_employee_paydate_function =====')
-    logger.debug('upload_dict' + str(upload_dict))
+    #logger.debug('upload_dict' + str(upload_dict))
 
     update_list = []
     employee_list = f.get_dict_value(upload_dict, ('employee_list',))
     if employee_list:
+        employee_pk_list = upload_dict.get ('employee_pk_list')
+        paydatecode_pk = upload_dict.get ('paydatecode_pk')
         for dict in employee_list:
             table = f.get_dict_value(dict, ('id', 'table'))
             pk_int = f.get_dict_value(dict, ('id', 'pk'))
             ppk_int = f.get_dict_value(dict, ('id', 'ppk'))
-
 # A. check if parent with ppk_int exists and is same as request.user.company
             parent = m.Company.objects.get_or_none(id=ppk_int)
             logger.debug('parent:', parent)
@@ -3076,9 +3416,9 @@ def upload_employee_paydate_function(upload_dict, user_lang, request):
 
                 instance = m.Employee.objects.get_or_none(id=pk_int, company=parent)
                 logger.debug('instance:', instance)
-        # F. Update customer, also when it is created
+        # F. Update employee, also when it is created
                 if instance:
-                    update_employee_paydate_function(instance, parent, dict, update_dict, request)
+                    update_employee_paydate_function(instance, dict, update_dict, request)
 
                     d.create_employee_dict(instance, update_dict, user_lang)
             # - remove empty attributes from update_dict
@@ -3086,17 +3426,21 @@ def upload_employee_paydate_function(upload_dict, user_lang, request):
             # - add update_dict to update_wrap
                     if update_dict:
                         update_list.append(update_dict)
-    logger.debug('update_list: ' + str(update_list))
+
+        if employee_pk_list:
+            recalc_paydate_in_emplhours(paydatecode_pk, employee_pk_list, False, request)
+
     return update_list
 
 
-def update_employee_paydate_function(instance, parent, upload_dict, update_dict, request):
+def update_employee_paydate_function(instance, upload_dict, update_dict, request):
     # --- update paydaye or function existing employee PR2020-06-18
     logger.debug(' --- update_employee_paydate_function --- ')
     logger.debug('upload_dict: ' + str(upload_dict))
     logger.debug('instance: ' + str(instance))
 
     has_error = False
+    paydatecode_has_changed = False
     if instance:
         save_changes = False
         for field in ('paydatecode', 'functioncode', 'wagecode'):
@@ -3107,7 +3451,7 @@ def update_employee_paydate_function(instance, parent, upload_dict, update_dict,
                 # field_dict: {'pk': 3, 'code': 'Maandelijks op de 24e', 'update': True}
                 if 'update' in field_dict:
                     is_updated = False
-# a. get instance of paydatecode, functioncode, wagecode
+# ---   get instance of paydatecode, functioncode, wagecode
                     pk = f.get_dict_value(field_dict, ('pk',))
                     code = f.get_dict_value(field_dict, ('code',))
                     related_instance = None
@@ -3118,22 +3462,23 @@ def update_employee_paydate_function(instance, parent, upload_dict, update_dict,
                             related_instance = m.Wagecode.objects.get_or_none( id=pk, isfunctioncode=True, company=request.user.company)
                         elif field == 'wagecode':
                             related_instance = m.Wagecode.objects.get_or_none( id=pk, iswage=True, company=request.user.company)
- # a. get old value
+# ---   get old value
                     saved_value = getattr(instance, field)
                     # also update when instance = None: instance will be removed
                     if related_instance != saved_value:
                         setattr(instance, field, related_instance)
                         is_updated = True
+                        paydatecode_has_changed = True
                         logger.debug('related_instance: ' + str(related_instance))
 
-                    # 5. add 'updated' to field_dict'
+# ---   add 'updated' to field_dict'
                     if is_updated:
                         update_dict[field]['updated'] = True
                         save_changes = True
                         # logger.debug('update_dict[field]: ' + str(update_dict[field]))
 # --- end of for loop ---
 
-# 5. save changes
+# ---   save changes
         if save_changes:
             try:
                 instance.save(request=request)
@@ -3142,7 +3487,130 @@ def update_employee_paydate_function(instance, parent, upload_dict, update_dict,
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': 'employee'}
                 update_dict['id']['error'] = msg_err
 
+                logger.debug('msg_err: ' + str(msg_err))
+
+        logger.debug('paydatecode_has_changed: ' + str(paydatecode_has_changed))
+        if paydatecode_has_changed:
+            paydatecode_pk = instance.paydatecode_id
+            employee_pk_list = [instance.pk]
+            recalc_paydate_in_emplhours(paydatecode_pk, employee_pk_list, False, request)
     return has_error
+
+
+# === recalc_paydate_in_emplhours ===================================== PR2020-06-27
+def recalc_paydate_in_emplhours(paydatecode_pk, employee_pk_list, all_employees, request):
+    logger.debug(' --- recalc_paydate_in_emplhours --- ')
+    # function updates paydatecode in all emplhour records that are not lcked
+    # and recalculates paydate in these emplhour records
+    # if all_employees=True it will update all employee records
+
+    # TODO at this time paydatecode is linked to employee, therefore filter by
+
+    # Note: in use yet, to be used to filter out old year
+    period_datefirst = None
+    period_datelast = None
+
+    paydatecode = m.Paydatecode.objects.get_or_none(id=paydatecode_pk, company=request.user.company)
+    logger.debug('.......... employee_pk_list: ' + str(employee_pk_list))
+    logger.debug('.......... paydatecode: ' + str(paydatecode))
+
+    if employee_pk_list:
+        all_employees = False
+# - get now with timezone utc
+    now_utc_naive = datetime.utcnow()
+    now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+
+# ---   update paydatecode in all emplhour records that are not lockedpaydate
+    sql_update_paydatecode = """
+        UPDATE companies_emplhour SET 
+            paydatecode_id = %(pdcid)s,
+            modifiedby_id = %(uid)s,
+            modifiedat = %(now)s 
+        WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
+        AND (NOT lockedpaydate) 
+        RETURNING id, employee_id, paydatecode_id, paydate;
+    """
+    # was for testing: RETURNING id, employee_id, paydatecode_id, paydate;
+    with connection.cursor() as cursor:
+        cursor.execute(sql_update_paydatecode, {
+            'pdcid': paydatecode_pk,
+            'eid_arr': employee_pk_list,
+            'all_employees': all_employees,
+            'uid': request.user.pk,
+            'now': now_utc,
+        })
+    logger.debug('.......... paydatecode: ' + str(paydatecode))
+
+# ---   get first and last rosterdate of not locked emplhour records
+    sql_get_first_last_rosterdate = """
+        SELECT MIN(rosterdate), MAX(rosterdate)
+        FROM companies_emplhour
+        WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
+        AND (NOT lockedpaydate) 
+        AND ( ( paydatecode_id = %(pdcid)s ) OR (paydatecode_id IS NULL AND %(pdcid)s IS NULL) )
+    """
+    # This one doesnt work: AND ( paydatecode_id = %(pdcid)s )
+    min_rosterdate_dte = None
+    max_rosterdate_dte = None
+    with connection.cursor() as cursor:
+        cursor.execute(sql_get_first_last_rosterdate, {
+            'pdcid': paydatecode_pk,
+            'eid_arr': employee_pk_list,
+            'all_employees': all_employees
+        })
+        min_max_arr = cursor.fetchone()
+        if min_max_arr:
+            min_rosterdate_dte = min_max_arr[0]
+            max_rosterdate_dte = min_max_arr[1]
+
+    logger.debug('.......... min_rosterdate_dte: ' + str(min_rosterdate_dte))
+    logger.debug('.......... max_rosterdate_dte: ' + str(max_rosterdate_dte))
+
+    if min_rosterdate_dte:
+        rosterdate_dte = min_rosterdate_dte
+        if rosterdate_dte:
+
+# iterate till last rosterdate:
+            while rosterdate_dte <= max_rosterdate_dte:
+# ---  from first rosterdate : get closingdate
+                firstdate_of_period_dte, new_paydate_dte = plv.recalc_paydate(rosterdate_dte, paydatecode)
+                logger.debug('.......... rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                logger.debug('.......... firstdate_of_period_dte: ' + str(firstdate_of_period_dte))
+                logger.debug('.......... new_paydate_dte: ' + str(new_paydate_dte))
+# ---  update paydate in all emplhours from first rostrdate thru closingdate that are not lockedpaydate
+                sql_update_paydatecode = """
+                    UPDATE companies_emplhour SET 
+                        paydate = CAST(%(paydte)s AS DATE),
+                        modifiedby_id = %(uid)s,
+                        modifiedat = %(now)s 
+                    WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
+                    AND (NOT lockedpaydate) 
+                    AND ( ( paydatecode_id = %(pdcid)s ) OR (paydatecode_id IS NULL AND %(pdcid)s IS NULL) )
+                    AND ( rosterdate >= CAST(%(df)s AS DATE) )
+                    AND ( rosterdate <= CAST(%(dl)s AS DATE) )
+                    RETURNING id, employee_id, paydatecode_id, paydate;
+                """
+#                   RETURNING id, employee_id, paydatecode_id, paydate;
+                with connection.cursor() as cursor:
+                    cursor.execute(sql_update_paydatecode, {
+                        'pdcid': paydatecode_pk,
+                        'eid_arr': employee_pk_list,
+                        'all_employees': all_employees,
+                        'paydte': new_paydate_dte,
+                        'uid': request.user.pk,
+                        'now': now_utc,
+                        'df': firstdate_of_period_dte,
+                        'dl': new_paydate_dte
+                    })
+                    paydateitems = f.dictfetchall(cursor)
+                    for paydateitem in paydateitems:
+                        logger.debug('.. updated paydateitem: ' + str(paydateitem))
+
+
+
+# make rosterdate 1 day later than new_paydate_dte
+                rosterdate_dte = f.add_days_to_date(new_paydate_dte, 1)
+# end of while loop
 
 
 def get_lastname_initials(namelast, namefirst, with_space):  # PR2019-08-05

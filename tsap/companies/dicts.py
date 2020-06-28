@@ -36,7 +36,14 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
     worksheetname = ''
     code_calc = ''
     stored_coldefs = {}
-    settings_key = c.KEY_ORDER_COLDEFS if(tblName == 'order') else c.KEY_EMPLOYEE_COLDEFS
+    settings_key =None
+    if (tblName == 'employee'):
+        settings_key = c.KEY_EMPLOYEE_COLDEFS
+    elif (tblName == 'order'):
+        settings_key = c.KEY_ORDER_COLDEFS
+    elif (tblName == 'paydatecode'):
+        settings_key = c.KEY_PAYDATECODE_COLDEFS
+
     stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
     if stored_json:
         stored_setting = json.loads(stored_json)
@@ -50,7 +57,16 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
                 #logger.debug('stored_coldefs: ' + str(stored_coldefs))
 
     coldef_list = []
-    default_coldef_list = c.COLDEF_ORDER if (tblName == 'order') else c.COLDEF_EMPLOYEE
+
+    default_coldef_list = None
+    if (tblName == 'employee'):
+        default_coldef_list = c.COLDEF_EMPLOYEE
+    elif (tblName == 'order'):
+        default_coldef_list = c.COLDEF_ORDER
+    elif (tblName == 'paydatecode'):
+        default_coldef_list = c.COLDEF_PAYDATECODE
+
+
     for default_coldef_dict in default_coldef_list:
         # default_coldef_dict = {'tsaKey': 'custcode', 'caption': _('Customer - Short name')
         #logger.debug('default_coldef_dict: ' + str(default_coldef_dict))

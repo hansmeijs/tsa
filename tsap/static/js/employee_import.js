@@ -143,8 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                //console.log("response")
-                //console.log(response);
+                console.log("response")
+                console.log(response);
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
                 }
@@ -915,7 +915,7 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
         //console.log ("==========  UploadSettingsImport");
         //console.log ("calledby: ", calledby);
 
-        let upload_dict = {};
+        let upload_dict = {importtable: "employee"};
         if (calledby === "HandleSelectCodeCalc"){
 // ---  upload code_calc
             if(el_select_code_calc.value){
@@ -1027,11 +1027,12 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 // --- show loader
                     el_loader.classList.remove(cls_visible_hide)
 
-                    const request = {tsaKey_list: tsaKey_list,
+                    const request = {importtable: "employee",
+                                     tsaKey_list: tsaKey_list,
                                      codecalc: code_calc,
                                      test: is_test_upload,
                                      dateformat: date_format,
-                                     employees: employees}
+                                     paydateitems: paydateitems}
                     const parameters = {"upload": JSON.stringify (request)};
                     console.log("request", request);
                     $.ajax({

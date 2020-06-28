@@ -496,7 +496,7 @@ sql_employee_with_aggr_sub07 = """
             e.functioncode_id AS e_fnc_id,
             e.wagecode_id AS e_wgc_id,
             e.paydatecode_id AS e_pdc_id,
-            pdc.paydate AS e_pdc_dte,
+            pdc.datelast AS e_pdc_dte,
             e.pricecode_id AS e_prc_id,
             e.additioncode_id AS e_adc_id,
 

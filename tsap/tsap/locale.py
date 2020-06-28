@@ -125,9 +125,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
             {'tsaKey': 'orderdatefirst', 'caption': _('Order - First date of order')},
             {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}]
 
-        dict['The_employee_data_will_be_saved'] = _('The employee data will be saved')
+        dict['The_employee_data_will_be_saved'] = _('The employee data will be saved.')
         dict['Upload_employees'] = _('Upload employees')
 
+        dict['The_payrollperiod_data_will_be_saved'] = _('The payroll period data will be saved.')
+        dict['Upload_payrollperiods'] = _('Upload payroll periods')
 # ====== PAGE COMPANY =========================
     elif page == 'company':
         dict['Description'] = TXT_Description
@@ -220,6 +222,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Choose_payroll_period'] = TXT_Choose_payroll_period
         dict['Choose_closingdate'] = TXT_Choose_closingdate
 
+        dict['Upload_payroll_periods'] = TXT_Upload_payroll_periods
+
+
         dict['Absence_category'] = TXT_Absence_category
         dict['The_absence_category'] = TXT_The_absence_category
         dict['This_absence_category'] = TXT_This_absence_category
@@ -242,6 +247,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Add_payrollperiod'] = TXT_Add_payrollperiod
         dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
         dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
+
+        dict['payrollperiod_is_imported'] = _('This payrollperiod is imported from AFAS and cannot be changed.')
+        dict['can_leave_description_blank'] = _('You can leave the description blank. TSA will enter it automatically.')
 
         dict['date_suffix_st'] = TXT_date_suffix_st
         dict['date_suffix_nd'] = TXT_date_suffix_nd
@@ -1018,6 +1026,9 @@ TXT_Delete_teammember  = _('Delete teammember')
 
 TXT_This_item = _('This item')
 TXT_Upload_employees = _('Upload employees')
+TXT_Upload_payroll_periods = _('Upload payroll periods')
+
+
 TXT_Employee = _('Employee')
 TXT_Employees = _('Employees')
 TXT_This_employee = _('This employee')

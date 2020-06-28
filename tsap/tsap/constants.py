@@ -94,6 +94,7 @@ GENDER_CHOICES = (
 # SETTING KEYS PR2019-03-09
 KEY_ORDER_COLDEFS = "order_coldefs"
 KEY_EMPLOYEE_COLDEFS = "empl_coldefs"
+KEY_PAYDATECODE_COLDEFS = "pdc_coldefs"
 
 LANG_NL = 'nl'
 LANG_EN = 'en'
@@ -339,6 +340,16 @@ COLDEF_ORDER = ( {'tsaKey': 'custcode', 'caption': _('Customer - Short name')},
                 {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}
                  )
 
+
+COLDEF_PAYDATECODE = ( {'tsaKey': 'afascode', 'caption': _('Code period table')},
+                {'tsaKey': 'code', 'caption': _('Name period table')},
+                {'tsaKey': 'year', 'caption': _('Bookyear')},
+                {'tsaKey': 'period', 'caption': _('Period index')},
+                {'tsaKey': 'datefirst', 'caption': _('Startdate')},
+                {'tsaKey': 'paydate', 'caption': _('Enddate')}
+                )
+
+
 FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
@@ -401,9 +412,11 @@ FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholi
                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
+# datelast_agg is not in model
+FIELDS_PAYDATECODE = ('id', 'company', 'code', 'recurrence', 'dayofmonth', 'referencedate',
+                      'datefirst', 'datelast', 'datefirst_agg', 'datelast_agg', 'afascode', 'isdefault', 'inactive')
 
-FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence', 'dayofmonth', 'paydate', 'isdefault', 'inactive')
-
+FIELDS_PAYDATEITEM = ('id', 'paydatecode', 'datefirst', 'datelast', 'year', 'period')
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
