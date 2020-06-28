@@ -240,13 +240,18 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['Function'] = TXT_Function
         dict['Order'] = TXT_Order
+        dict['Roster_shift'] = _('Roster shift')
+
 
         dict['Payroll_period'] = TXT_Payroll_period
         dict['Payroll_periods'] = TXT_Payroll_periods
         dict['This_payrollperiod'] = TXT_This_payrollperiod
         dict['Add_payrollperiod'] = TXT_Add_payrollperiod
+        dict['Link_payrollperiod'] = _('Link payroll period')
         dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
         dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
+
+        dict['No_payrollperiod_selected'] = _('There is no payroll period selected')
 
         dict['payrollperiod_is_imported'] = _('This payrollperiod is imported from AFAS and cannot be changed.')
         dict['can_leave_description_blank'] = _('You can leave the description blank. TSA will enter it automatically.')

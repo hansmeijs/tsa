@@ -373,7 +373,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
                    'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'paydateitem', 'lockedpaydate', 'nopay',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                    'offsetstart', 'offsetend', 'excelstart', 'excelend',
-                   'wagerate', 'wagefactor', 'wage',
+                   'wagecode', 'wagerate', 'wagefactor', 'wage',
                    'pricerate', 'additionrate', 'additionisamount', 'taxrate', 'amount', 'addition', 'tax',
                     # fields: order, shift, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status

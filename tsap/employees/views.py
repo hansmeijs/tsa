@@ -3043,6 +3043,10 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
                 elif table == 'employee':
                     update_list = upload_employee_paydate_function(upload_dict, user_lang, request)
                     update_wrap['update_list'] = update_list
+# +++++ GET EMPLHOUR
+                elif table == 'emplhour':
+                    emplhour_dict = get_payroll_emplhour(upload_dict, user_lang, request)
+                    update_wrap['emplhour_dict'] = emplhour_dict
 # - return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
@@ -3432,6 +3436,39 @@ def upload_employee_paydate_function(upload_dict, user_lang, request):
 
     return update_list
 
+
+# === get_payroll_emplhour ===================================== PR2020-06-28
+def get_payroll_emplhour(upload_dict, user_lang, request):
+    logger.debug(' ===== get_payroll_emplhour =====')
+    logger.debug('upload_dict' + str(upload_dict))
+
+    emplhour_dict = {}
+    emplhour_pk = upload_dict.get('emplhour_pk')
+    if emplhour_pk:
+        sql_emplhour = """
+            SELECT eh.id, eh.rosterdate, eh.isreplacement, eh.paydate, eh.lockedpaydate, eh.nopay,
+                eh.timestart, eh.timeend, eh.timeduration, eh.breakduration, eh.plannedduration, eh.billingduration,
+                eh.offsetstart, eh.offsetend, eh.wagerate, eh.wagefactor, eh.wage, eh.status, eh.overlap, eh.locked,
+                oh.shift, oh.isrestshift, o.isabsence, e.code AS e_code, c.code AS c_code, o.code AS o_code, 
+                pdc.code AS pdc_code, 
+                e.datefirst AS e_datefirst, e.datelast AS e_datelast
+            FROM companies_emplhour AS eh
+            LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
+            LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE c.company_id = %(compid)s 
+            AND eh.id = %(emplhid)s
+            """
+        #  CONCAT(c.code, ' - ', o.code ) AS c_o_code,
+        newcursor = connection.cursor()
+        newcursor.execute(sql_emplhour, {
+            'compid': request.user.company_id,
+            'emplhid': emplhour_pk
+        })
+        emplhour_dict = f.dictfetchone(newcursor)
+    return emplhour_dict
 
 def update_employee_paydate_function(instance, upload_dict, update_dict, request):
     # --- update paydaye or function existing employee PR2020-06-18

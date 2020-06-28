@@ -59,9 +59,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # update_isabsence_istemplate was one time only, is removed after update
                     # f.update_isabsence_istemplate()
                     # update_workminutesperday is one time only, to be removed after update
-                    f.update_workminutesperday()
-                    # # function puts value of paydate in field datelast
-                    f.update_paydateitems()
+                    # f.update_workminutesperday()
+
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -300,8 +299,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['paydatecodes_inuse_list'] = \
                             ed.create_paydatecodes_inuse_list(period_dict=request_item, request=request)
 
-                        datalists['paydates_inuse_list'] = \
-                            ed.create_paydates_inuse_list(period_dict=request_item, request=request)
+                        datalists['paydateitems_inuse_list'] = \
+                            ed.create_paydateitems_inuse_list(period_dict=request_item, request=request)
 
 # - paydatecode_list
                     request_item = datalist_request.get('paydatecode_list')
@@ -4432,7 +4431,7 @@ def update_paydates_in_paydatecode(rosterdate_dte, request):  # PR2020-06-19
 
 def recalc_paydate(rosterdate_dte, paydatecode):  # PR2020-06-22
     # function update the paydates of all paydatecodes to the nearest date from rosterdate_dte
-    # called by update_paydates_in_paydatecode, create_paydates_inuse_list, recalc_paydate_in_emplhours
+    # called by update_paydates_in_paydatecode, create_paydateitems_inuse_list, recalc_paydate_in_emplhours
     #logger.debug(' ------ recalculate_paydate --- ')
     #logger.debug('............ paydatecode: ' + str(paydatecode))
     #logger.debug('............ new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))

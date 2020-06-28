@@ -370,8 +370,8 @@ class Paydateitem(TsaBaseModel):
     code = None
     name = None
     inactive = None
-    # TODO also remove field 'locked when removing field paydate
-    paydate = DateField(db_index=True)  # TODO deprecate, use datefirst datelast. this field contains the closingdate that is used on a given rosterdate
+    locked = None
+
     year = PositiveSmallIntegerField(default=0)
     period = PositiveSmallIntegerField(default=0)
 
@@ -835,6 +835,7 @@ class Emplhour(TsaBaseModel):
     excelstart = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
     excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
 
+    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)

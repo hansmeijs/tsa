@@ -2333,6 +2333,17 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+def dictfetchone(cursor):
+    # Return one row from a cursor as a dict  PR2020-06-28
+    return_dict = {}
+    try:
+        columns = [col[0] for col in cursor.description]
+        return_dict = dict(zip(columns, cursor.fetchone()))
+    except:
+        pass
+    return return_dict
+
+
 # PR20202-06-21
 def update_workminutesperday():
     with connection.cursor() as cursor:
@@ -2362,13 +2373,13 @@ def update_isabsence_istemplateXX():
         cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
 
-# PR20202-06-26
-def update_paydateitems():
-    # function puts value of paydate in field datelast
-    with connection.cursor() as cursor:
-        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
-                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL) 
-                            """)
+# PR20202-06-26 not in use any more
+#def update_paydateitems():
+#    # function puts value of paydate in field datelast
+#    with connection.cursor() as cursor:
+#        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
+#                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL)
+#                            """)
 
 ###############################################################
 # FORMAT ELEMENTS

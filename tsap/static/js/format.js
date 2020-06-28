@@ -759,6 +759,59 @@
     }  // function format_date_iso
 
 //oooooooooooooooooooooooooooooooo
+
+//========= format_time_from_rosterdate_offset  ======== PR2020-06-28
+    function format_time_from_rosterdate_offset (loc, rosterdate_JS, offset, hide_weekday, hide_year, skip_prefix_suffix) {
+        //console.log(" === format_time_from_rosterdate_offset === ");
+        "use strict";
+        let display_txt = "";
+        if(!!rosterdate_JS) {
+            const blank_when_zero = true;
+            const hide_value = ( (offset == null) ||(blank_when_zero && offset == 0) )
+            if (!hide_value){
+                // floor division: Returns the integral part of the quotient.
+                let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
+                const remainder = offset - days_offset * 1440
+                let curHours = Math.floor(remainder/60)
+                const curMinutes = remainder - curHours * 60
+
+                const isAmPm = (loc.timeformat === "AmPm")
+                const isEN = (loc.user_lang === "en")
+                const ampm_list = [" am", " pm"]
+                const curAmPm = (curHours >= 12) ? 1 : 0
+                // check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+                if (isAmPm){
+                    if (curHours >= 12) { curHours -= 12};
+                } else if (days_offset === 1 && curHours === 0 && curMinutes === 0){
+                        days_offset = 0;
+                        curHours = 24;
+                };
+                const hour_text = ("00" + curHours).slice(-2);
+                const minute_text = ("00" + curMinutes).slice(-2);
+
+                let prefix = null, suffix = null;
+                const delim = (isEN) ? ":" : "."
+                if (rosterdate_JS){
+                    skip_prefix_suffix = true
+                    prefix = (!skip_prefix_suffix && days_offset < 0) ? "<- " : "";
+                    suffix =(!isEN) ? " u" : "";
+                }
+                if (isAmPm){suffix += ampm_list[curAmPm];}
+                if (!skip_prefix_suffix && days_offset > 0){suffix += " ->"}
+
+        // get weekday
+                if (!hide_weekday && rosterdate_JS){
+                   let weekday_index = rosterdate_JS.getDay();
+                    if (!weekday_index) {weekday_index = 7};
+                    prefix = loc.weekdays_abbrev[weekday_index] + ' '
+                }
+                display_txt = [prefix, hour_text, delim, minute_text, suffix].join('');
+            }  // if (!hide_value){
+        }  // if(!!rosterdate_JS)
+        return display_txt
+    }  // function format_date_iso
+
+//oooooooooooooooooooooooooooooooo
 //========= format_datetime_element  ======== PR2019-06-03
     function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
         //console.log("------ format_datetime_element --------------")

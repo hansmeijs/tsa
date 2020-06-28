@@ -743,21 +743,18 @@ def create_paydatecodes_inuse_list(period_dict, request):
             period_datelast = '2500-01-01'
 
 # - fill paydatecode_list, it contains list of all paydatecodes en paydates in this selection
+        # dont show emplhours without employee
         sql_paydatecodes_inuse = """
-            WITH eh_sub AS (
-                                SELECT DISTINCT eh.paydatecode_id AS pdc_id
-                                FROM companies_emplhour AS eh
-                                INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-                                INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-                                INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-                                WHERE c.company_id = %(compid)s 
-                                AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
-                            )
-                SELECT pdc.id AS pdc_id, pdc.code AS pdc_code  
+                SELECT pdc.id, pdc.code  
                 FROM companies_paydatecode AS pdc 
-                INNER JOIN eh_sub ON (eh_sub.pdc_id = pdc.id)
+                INNER JOIN companies_emplhour AS eh ON (eh.paydatecode_id = pdc.id)
                 WHERE (pdc.company_id = %(compid)s)  
-                ORDER BY pdc.code ASC
+                AND (eh.employee_id IS NOT NULL)
+                AND (eh.rosterdate IS NOT NULL) 
+                AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL)
+                AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL)
+                GROUP BY pdc.id, pdc.code
+                ORDER BY pdc.code
             """
         newcursor = connection.cursor()
         newcursor.execute(sql_paydatecodes_inuse, {
@@ -767,31 +764,34 @@ def create_paydatecodes_inuse_list(period_dict, request):
 
 # add 'Blank payrollperiod' when thre are paydates without paydatecode
         sql_empty_paydatecodes_inuse = """
-        SELECT eh.id
-        FROM companies_emplhour AS eh
-        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        WHERE c.company_id = %(compid)s 
-        AND (eh.paydatecode_id IS NULL) AND (eh.paydate IS NOT NULL) 
-        AND (eh.rosterdate IS NOT NULL) AND (eh.rosterdate >= CAST(%(df)s AS DATE)) AND (eh.rosterdate <= CAST(%(dl)s AS DATE))
-        LIMIT 1
+            SELECT eh.id
+            FROM companies_emplhour AS eh
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE (c.company_id = %(compid)s)  
+            AND (eh.paydatecode_id IS NULL) 
+            AND (eh.employee_id IS NOT NULL)
+            AND (eh.rosterdate IS NOT NULL) 
+            AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL)
+            AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL)
+            LIMIT 1
             """
         newcursor.execute(sql_empty_paydatecodes_inuse, {
             'compid': request.user.company_id, 'df': period_datefirst, 'dl': period_datelast
         })
-        empty_paydatecodes_inuse = newcursor.fetchall()
-        if empty_paydatecodes_inuse:
+        empty_paydatecode_inuse = newcursor.fetchone()
+        if empty_paydatecode_inuse:
             paydatecodes_inuse_list.append( [0, _('Without payrollperiod')] )
 
     return paydatecodes_inuse_list
 
 
-def create_paydates_inuse_list(period_dict, request):
-    #logger.debug(' ============= create_paydates_inuse_list ============= ')
+def create_paydateitems_inuse_list(period_dict, request):
+    #logger.debug(' ============= create_paydateitems_inuse_list ============= ')
     # create list of paydates with paydatecode_id that are in table emplhour PR2020-06-23
 
-    paydates_inuse_list = []
+    paydateitems_inuse_list = []
     if request.user.company:
         # TODO None is for testing only, remove
         period_datefirst = None  # period_dict.get('period_datefirst')
@@ -801,7 +801,7 @@ def create_paydates_inuse_list(period_dict, request):
         if period_datelast is None:
             period_datelast = '2500-01-01'
 
-# - fill paydatecode_list, it contains list of all paydatecodes en paydates in this selection
+# - fill paydateitems_inuse_list it contains list of all paydatecodes en paydates in this selection
         sql_paydates_inuse = """
             SELECT DISTINCT 
                 CASE WHEN eh.paydatecode_id IS NULL THEN 0 ELSE eh.paydatecode_id END AS pdc_id, 
@@ -829,17 +829,12 @@ def create_paydates_inuse_list(period_dict, request):
             datelast_dte = row[1]
             paydates_row = [pdc_id, datelast_dte]
             paydatecode = m.Paydatecode.objects.get_or_none(id=pdc_id, company=request.user.company)
-            #logger.debug('paydates_row: ' + str(paydates_row))
-            #logger.debug('paydatecode: ' + str(paydatecode))
             if paydatecode:
-                #logger.debug('datelast_dte: ' + str(datelast_dte))
-                firstdate_of_period, new_paydate_dteNIU = \
-                    plv.recalc_paydate(datelast_dte, paydatecode)
-                #logger.debug('firstdate_of_period: ' + str(firstdate_of_period))
+                firstdate_of_period, new_paydate_dteNIU = plv.recalc_paydate(datelast_dte, paydatecode)
                 if firstdate_of_period:
-                                paydates_row.append(firstdate_of_period)
-            paydates_inuse_list.append(paydates_row)
-    return paydates_inuse_list
+                    paydates_row.append(firstdate_of_period)
+            paydateitems_inuse_list.append(paydates_row)
+    return paydateitems_inuse_list
 
 
 def create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request):
@@ -1039,13 +1034,13 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
             
             WHERE c.company_id = %(compid)s   
             AND o.isabsence AND NOT oh.isrestshift
-            AND NOT eh.timeduration = 0
+
             AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
             AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
                 
             GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code, o.id
             """
-
+#             AND NOT eh.timeduration = 0
         sql_noabsence = """
             SELECT eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, 
             SUM(eh.timeduration) AS eh_td, 
@@ -1061,12 +1056,13 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
             
             WHERE c.company_id = %(compid)s 
             AND NOT o.isabsence AND NOT oh.isrestshift
-            AND NOT eh.timeduration = 0
+
             AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
             AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
             
             GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code
             """
+        #             AND NOT eh.timeduration = 0
         sql_union = sql_absence + ' UNION ' + sql_noabsence + ' ORDER BY 2'
         # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
         # payroll_list = [ 0: employee_pk, 1: employee_code, 2: planned_duration, 3: dict { order_id: timeduration, ...}
@@ -1152,7 +1148,7 @@ def create_paydatecode_list(period_dict, datalists, request):
             AND ( (pdi.datelast <= CAST(%(dl)s AS DATE) ) OR ( CAST(%(dl)s AS DATE) IS NULL) )
             ORDER BY pdi.datelast
             """
-        newcursor.execute(sql_paydatecode, {
+        newcursor.execute(sql_paydateitem, {
             'compid': company_pk,
             'df': period_datefirst,
             'dl': period_datelast

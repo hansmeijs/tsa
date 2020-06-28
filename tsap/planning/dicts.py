@@ -1557,6 +1557,9 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                 employee_pk = saved_employee_pk
                 employee_code = employee.code
 
+# -  get emplhour_pk - emplhour_pk is not saved in settings PR2020-06-28
+    emplhour_pk = period_dict.get('emplhour_pk')
+
     is_absence = None  # None: all records, True: absence only, False: absence excluded, None: all records
     if 'isabsence' in period_dict:
         is_absence = period_dict.get('isabsence')
@@ -1755,6 +1758,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                    'order_code': order_code,
                    'employee_pk': employee_pk,
                    'employee_code': employee_code,
+                   'emplhour_pk': emplhour_pk,
                    'isabsence': is_absence,
                    'isrestshift': is_restshift,
                    'btn': btn,
@@ -1925,6 +1929,10 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
         if not employee_pk:
             employee_pk = None
 
+        emplhour_pk = period_dict.get('emplhour_pk')
+        if not emplhour_pk:
+            emplhour_pk = None
+
         is_absence = period_dict.get('isabsence')
         is_restshift = period_dict.get('isrestshift')
         date_part = period_dict.get('datepart')
@@ -1974,6 +1982,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
             AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
+            AND (eh.id = %(emplh_id)s OR %(emplh_id)s IS NULL)
             AND (c.isabsence = %(isabs)s OR %(isabs)s IS NULL)
             AND (oh.isrestshift = %(isrest)s OR %(isrest)s IS NULL)
             AND (eh.datepart = %(dp)s OR %(dp)s IS NULL)
@@ -1988,6 +1997,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'cust_id': customer_pk,
                 'ord_id': order_pk,
                 'empl_id': employee_pk,
+                'emplh_id': emplhour_pk,
                 'isabs': is_absence,
                 'isrest': is_restshift,
                 'dp': date_part,
