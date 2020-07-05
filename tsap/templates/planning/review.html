@@ -30,25 +30,9 @@
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
-            <input id="id_sidebar_select_employee"
-                type="text"
-                class="tw_200 border_none pointer_show px-2"
-                readonly>
-        </div>
-        <div id="id_sidebar_div_select_absence" class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
-           <select id="id_sidebar_select_absence"
-                type="text"
-                class="tw_200 border_none px-2"
-                autocomplete="off" ondragstart="return false;" ondrop="return false;"
-           ></select>
-        </div>
         <div class="tw_200 m-2">
             <h6 id="id_sidebar_select_showall" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
         </div>
-
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -86,11 +70,16 @@
             <!-- loader -->
                     <div class="content_header_middle ">
                         <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                            <img src="{% static 'img/loader.gif' %}" class="icon_24">
                         </div>
                     </div>
                 </div>
             <!-- end content_header -->
+                <!-- BUTTON GROUP -->
+                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                    <button data-btn="billing" class="btn btn-secondary ">{% trans 'Billing overview' %}</button>
+                </div>
+    <!-- end BUTTON GROUP -->
             </div>
 <!-- end CONTENT HEADER - LOADER -->
 
@@ -99,8 +88,8 @@
 
 <!-- =================== DATA TABLE  =================== -->
                 <table id="id_tbl_items" class="table tsa_tbl mx-2X my-1">
-                    <thead id="id_thead_items"></thead>
-                    <tbody id="id_tbody_items"></tbody>
+                    <thead id="id_thead_datatable"></thead>
+                    <tbody id="id_tbody_datatable"></tbody>
                 </table>
 <!-- =================== END DATA TABLE  =================== -->
             </div>
@@ -123,6 +112,7 @@
             data-imgsrc_stat03="{% static 'img/stat03.png' %}"
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
             data-imgsrc_stat05="{% static 'img/stat05.png' %}"
+            data-imgsrc_bill00="{% static 'img/bill00.png' %}"
             data-imgsrc_bill01="{% static 'img/bill01.png' %}"
             data-imgsrc_bill01_lightgrey="{% static 'img/bill01_lightgrey.png' %}"
             data-imgsrc_bill01_lightlightgrey="{% static 'img/bill01_lightlightgrey.png' %}"

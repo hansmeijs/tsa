@@ -2163,6 +2163,42 @@ def get_rate_from_value(value):
     return rate, msg_err
 
 
+def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9 PR20202-07-04
+    # logger.debug(' ============= get_pricecodeitem ============= ')
+    # logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
+
+    pricerate = 0
+    additionisamount = False
+    if pricecode_pk:
+        sql_01 = """SELECT pci.pricerate, pci.additionisamount FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s) 
+        AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL)  
+        """
+        sqlfilter = 'AND (FALSE)'
+        if field == 'pricecode':
+            sqlfilter = 'AND (pci.isprice)'
+        elif field == 'additioncode':
+            sqlfilter = 'AND (pci.isaddition)'
+        elif field == 'taxcode':
+            sqlfilter = 'AND (pci.istaxcode)'
+
+        sql_02 = 'ORDER BY pci.datefirst DESC NULLS LAST LIMIT 1'
+
+        sql = ' '.join([sql_01, sqlfilter, sql_02])
+
+        # ('sql: ' + str(sql))
+        cursor = connection.cursor()
+        cursor.execute(sql, {
+            'pcid': pricecode_pk,
+            'rd': rosterdate
+        })
+        row = cursor.fetchone()
+        if row:
+            if row[0]:
+                pricerate = row[0]
+                additionisamount = row[1]
+    return pricerate, additionisamount
+
+
 def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     # function gets rate from pricerate_dict PR2019-10-15
     # each price_startdate can have multiple rates: one for each wagefactor
@@ -2296,9 +2332,8 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 
 # -- end of save_pricerate_to_dict
 
-def calc_amount_addition_tax_rounded(time_duration, billing_duration,
-                             is_absence, is_restshift, is_billable,
-                             price_rate, addition_rate, tax_rate):  # PR2020-04-28
+def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
+                             price_rate, addition_rate, additionisamount, tax_rate):  # PR2020-04-28 PR2020-07-04
     #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     amount, addition, tax = 0, 0, 0
     if price_rate and not is_absence and not is_restshift:
@@ -2313,8 +2348,11 @@ def calc_amount_addition_tax_rounded(time_duration, billing_duration,
             # math.floor() returns the largest integer less than or equal to a given number.
             # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
             amount = math.floor(0.5 + amount_not_rounded)  # This rounds to an integer
-            addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
-            addition = math.floor(0.5 + addition_not_rounded)  # This rounds to an integer
+            if additionisamount:
+                addition = addition_rate  # additionrate is fixed amount
+            else:
+                addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
+                addition = math.floor(0.5 + addition_not_rounded)  # This rounds to an integer
             tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
             tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
@@ -2343,17 +2381,21 @@ def dictfetchone(cursor):
         pass
     return return_dict
 
-
 # PR20202-06-21
 def update_workminutesperday():
     with connection.cursor() as cursor:
         cursor.execute("""UPDATE companies_employee AS e SET 
-                            workminutesperday = CASE WHEN e.workhours = 0 OR e.workdays = 0 
+                            workminutesperday = CASE WHEN e.workhoursperweek = 0 OR e.workdays = 0 
                                                 THEN 0 
-                                                ELSE 1440 * e.workhours / e.workdays 
+                                                ELSE 1440 * e.workhoursperweek / e.workdays 
                                                 END  
                             """)
-
+# PR20202-06-29
+def update_company_workminutesperday():
+    with connection.cursor() as cursor:
+        cursor.execute("""UPDATE companies_company SET workminutesperday = 480 
+                            WHERE workminutesperday = 0 OR workminutesperday IS NULL
+                            """)
 # NOT IN USE any more
 def update_isabsence_istemplateXX():
     from django.db import connection

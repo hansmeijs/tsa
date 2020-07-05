@@ -802,7 +802,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // CreatePayrollHtmlList
 
 
-//=========  CreatePayrollHeader  === PR2020-06-25
+//=========  CreatePayrollMappedColumns  === PR2020-06-25
     function CreatePayrollMappedColumns() {
         //console.log("===  CreatePayrollMappedColumns ==");
         // payroll_abscat_list has item for each abscat that is in use in current selection.
@@ -1297,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // move the new row in alfabetic order
                 let row_index = -1
                 if(tblName === "order") {
-                    //row_index = get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
+                    //row_index = t_get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
                 } else {
                     row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, user_lang);
                     tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
@@ -1401,27 +1401,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         selected_paydatecode_pk = get_dict_value(setting_dict, ["sel_paydatecode_pk"])
         selected_paydateitem_iso = get_dict_value(setting_dict, ["sel_paydate_iso"])
+
+        console.log( " UpdateSettings selected_paydatecode_pk", selected_paydatecode_pk);
+
     }  // UpdateSettings
 
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
         console.log( "===== UpdateHeaderText  ========= ");
+        console.log( "paydatecodes_inuse_list", paydatecodes_inuse_list);
+        console.log( "selected_paydatecode_pk", selected_paydatecode_pk);
 // ---  get caption of paydatecode
-        selected_paydatecode_caption = null;
+        selected_paydatecode_caption = "";
+        let item_found = false;
         for (let i = 0, item; item=paydatecodes_inuse_list[i]; i++) {
             if(!!item && item[0] === selected_paydatecode_pk){
                 selected_paydatecode_caption = item[1];
+                item_found = true;
                 break;
         }};
+// set selected_paydatecode_pk = null when not in paydatecodes_inuse_list, only in payrollperiod tab
+        if(!item_found && selected_btn === "payrollperiod" ) {selected_paydatecode_pk = null}
+        console.log( "UpdateHeaderText selected_paydatecode_pk", selected_paydatecode_pk);
 
 // ---  get first / last date caption of selected_paydateitem
-        selected_paydateitem_caption = null
-        let paydate_caption = null;
+        selected_paydateitem_caption = "";
+        let paydate_caption = "";
+        item_found = false;
         for (let i = 0, item; item=paydateitems_inuse_list[i]; i++) {
             // index 0 contains  paydatecode_pk
             if(!!item && item[0] === selected_paydatecode_pk){
                 // index 1 contains closingdate, index 2 contains first date of period
                 if(item[1] === selected_paydateitem_iso){
+                    item_found = true;
                     paydate_caption = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
                                         loc.months_long, loc.weekdays_long, loc.user_lang, false, false);
                     const fistdate_caption = format_date_vanillaJS (get_dateJS_from_dateISO(item[2]),
@@ -1430,7 +1442,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                                    ((paydate_caption) ? paydate_caption : "")
                 break;
         }}};
-
+// set selected_paydateitem_iso = null when not in paydateitems_inuse_list
+        if(!item_found) {selected_paydateitem_iso = null}
         let header_text = "";
         if (selected_btn === "order") {
             header_text = loc.Absence_categories;
@@ -1442,9 +1455,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if(selected_paydateitem_iso){
                 header_text = loc.Payroll_period + ": " + selected_paydateitem_caption
             } else if (selected_paydatecode_pk != null) {
-                header_text = + selected_paydatecode_caption;
+                header_text += selected_paydatecode_caption;
             } else {
-                header_text = loc.Choose_payroll_period + "...";
+                header_text = loc.Payroll_period + ":";
             }
         }
         el_sbr_select_payrollperiod.value = (selected_paydatecode_pk != null) ? selected_paydatecode_caption : loc.Choose_payroll_period + "...";
@@ -1453,9 +1466,7 @@ document.addEventListener('DOMContentLoaded', function() {
         add_or_remove_class(el_sbr_select_payrollperiod, "tsa_color_darkgrey", (!selected_paydatecode_caption) )
         add_or_remove_class(el_sbr_select_paydate, "tsa_color_darkgrey", (!selected_paydateitem_caption) )
 
-        //console.log( "header_text", header_text);
         document.getElementById("id_hdr_text").innerText = header_text
-
         document.getElementById("id_SBR_hdr_text").innerText = loc.Payroll_2lines
 
     }  // UpdateHeaderText
@@ -1476,6 +1487,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
+                    // ---  hide loader
+                    el_loader.classList.add(cls_visible_hide)
                     console.log( "response");
                     console.log( response);
                     if ("update_list" in response) {
@@ -1489,6 +1502,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },  // success: function (response) {
                 error: function (xhr, msg) {
+                    // ---  hide loader
+                    el_loader.classList.add(cls_visible_hide)
                     console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }  // error: function (xhr, msg) {
@@ -1584,6 +1599,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_paydatecode_caption = null;
             selected_paydateitem_iso = null;
             selected_paydateitem_caption = null;
+        console.log( "UpdateFromResponse selected_paydatecode_pk", selected_paydatecode_pk);
     //--- remove deleted tblRow
             if (!!tblRow){tblRow.parentNode.removeChild(tblRow)};
         } else {
@@ -1594,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let row_index = -1;
                 if(row_code){
                     if (tblName === "paydatecode"){
-                        row_index = get_rowindex_by_code_datefirst(tblBody_paydatecode, tblName, paydatecode_map, row_code)
+                        row_index = t_get_rowindex_by_code_datefirst(tblBody_paydatecode, tblName, paydatecode_map, row_code)
                     }
                 }
                 const tblBody = (tblName === "paydatecode") ? tblBody_paydatecode : tblBody_datatable
@@ -1942,31 +1958,31 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_mod_employee = "";
         filter_show_inactive = false;
         filter_dict = {};
-    if(is_payroll_detail_mod_mode){
-        is_payroll_detail_mod_mode = false;
-    } else {
-        if (selected_btn === "paydatecode"){
-            EmptyFilterRow(tblHead_employee);
-            Filter_TableRows(tblBody_employee);
-            EmptyFilterRow(tblHead_paydatecode);
-            Filter_TableRows(tblBody_paydatecode);
+        if(is_payroll_detail_mod_mode){
+            is_payroll_detail_mod_mode = false;
         } else {
-            EmptyFilterRow(tblHead_datatable)
-            Filter_TableRows(tblBody_datatable)
-        }
-        if (selected_btn === "payrollperiod"){
-            selected_employee_pk = null;
-            selected_employee_code = null;
-            if (is_payroll_detail_mode){
-                is_payroll_detail_mode = false;
+            if (selected_btn === "paydatecode"){
+                EmptyFilterRow(tblHead_employee);
+                Filter_TableRows(tblBody_employee);
+                EmptyFilterRow(tblHead_paydatecode);
+                Filter_TableRows(tblBody_paydatecode);
+            } else {
+                EmptyFilterRow(tblHead_datatable)
+                Filter_TableRows(tblBody_datatable)
             }
-        // --- hide sbr button 'back to payroll overview'
-               el_sbr_select_showall.classList.add(cls_hide)
-            CreatePayrollHeader();
-            FillPayrollRows();
-            UpdateHeaderText();
+            if (selected_btn === "payrollperiod"){
+                selected_employee_pk = null;
+                selected_employee_code = null;
+                if (is_payroll_detail_mode){
+                    is_payroll_detail_mode = false;
+                }
+            // --- hide sbr button 'back to payroll overview'
+                   el_sbr_select_showall.classList.add(cls_hide)
+                CreatePayrollHeader();
+                FillPayrollRows();
+                UpdateHeaderText();
+            }
         }
-    }
     }  // function ResetFilterRows
 
 
@@ -1975,8 +1991,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("========= HandleBtnAddRemoveSelected  ========= ");
         const is_delete = (crud_mode === "remove");
         const sel_paydatecode_pk = (is_delete) ? null : selected_paydatecode_pk
+        console.log("selected_paydatecode_pk", selected_paydatecode_pk);
+        console.log("is_delete", is_delete);
         if (!is_delete && !sel_paydatecode_pk){
-    // ---  show msgbox
+    // ---  show msgbox when no payrollperiod is selected
             document.getElementById("id_confirm_header").innerText = loc.Link_payrollperiod;
             document.getElementById("id_confirm_msg01").innerText = loc.No_payrollperiod_selected;
             document.getElementById("id_confirm_msg02").innerText = null;
@@ -2027,6 +2045,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     paydatecode_pk: sel_paydatecode_pk,
                     paydatecode_code: paydatecode_code
                 };
+// ---  show loader when more than 10 employees selected
+                if(employee_list.length > 10){
+                    el_loader.classList.remove(cls_visible_hide)
+                }
+
                 UploadChanges(upload_dict, url_payroll_upload);
             }
         }
@@ -2108,6 +2131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selected_paydatecode_caption = null;
         selected_paydateitem_iso = null;
         selected_paydateitem_caption = null;
+        console.log( "MSP_Save selected_paydatecode_pk", selected_paydatecode_pk);
 
         payroll_period_detail_list = [];
         payroll_period_agg_list = [];
@@ -2686,10 +2710,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("========= MPP_Select  ========= ");
         const tblRow = get_tablerow_selected(el_clicked);
         if(tblRow) {
-            // deselect if clicked on selected row
+// --- deselect row when clicked on selected row
             const row_pk = get_attr_from_el_int(tblRow, "data-pk")
+        console.log("row_pk: " + row_pk);
+        console.log("selected_paydatecode_pk: " + selected_paydatecode_pk);
             selected_paydatecode_pk = (row_pk !== selected_paydatecode_pk) ? row_pk : null
 
+        console.log("new selected_paydatecode_pk: " + selected_paydatecode_pk);
+// --- show tickmark on selected row, hide on other rows
             const tblBody = tblRow.parentNode;
             for (let i = 0, row; row = tblBody.rows[i]; i++) {
                 if(row){
@@ -3172,11 +3200,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (is_payroll_detail_mode){
             ws["A5"] = {v: loc.Employee + ":", t: "s"};
             ws["B5"] = {v: selected_employee_code , t: "s"};
-            ws["A6"] = {v: loc.Closing_date + ":", t: "s"};
+            ws["A6"] = {v: loc.Payroll_period + ":", t: "s"};
             ws["B6"] = {v: selected_paydateitem_caption, t: "s"};
         } else {
             ws["A5"] = {v: selected_paydatecode_caption, t: "s"};
-            ws["A6"] = {v: loc.date_prefix_thru + selected_paydateitem_caption , t: "s"};
+            ws["A6"] = {v: selected_paydateitem_caption , t: "s"};
         }
 
 // header row
@@ -3185,7 +3213,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const col_count =  headerrow.length;
         for (let i = 0; i < col_count; i++) {
             const cell_value = headerrow[i];
-            const cell_index = get_excel_cell_index (i, header_rowindex);
+            const cell_index = b_get_excel_cell_index (i, header_rowindex);
             ws[cell_index] = {v: cell_value, t: "s"};
         }
         let row_index = header_rowindex + 1
@@ -3197,7 +3225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const row_data = detail_row[3]
         console.log("row_data", row_data)
                     for (let x = 0, len = row_data.length; x < len; x++) {
-                        const cell_index = get_excel_cell_index (x, row_index);
+                        const cell_index = b_get_excel_cell_index (x, row_index);
                         let cell_type = "n";
                         if (is_payroll_detail_mode){
                             if (x === 1) {cell_type = "s"}
@@ -3234,7 +3262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (payroll_total_row) {
                 let cell_values = [];
                 for (let x = 0, len = payroll_total_row.length; x < len; x++) {
-                    const cell_index = get_excel_cell_index (x, row_index);
+                    const cell_index = b_get_excel_cell_index (x, row_index);
                     const cell_type = (x===0 || (x===1 && is_payroll_detail_mode) ) ? "s" : "n";
                     ws[cell_index] = {t: cell_type}
                     let cell_format = null;
@@ -3276,19 +3304,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return ws;
     }  // FillExcelRows
 
-    function get_excel_cell_index (col_index, row_index){  // PR2020-06-13
 
-        if(!col_index){col_index = 0};
-        if(!row_index){row_index = 0};
-
-        const integer = Math.floor(col_index/26);
-        const remainder = col_index - integer * 26;
-
-        const first_letter = (integer) ? String.fromCharCode(65 + integer -1 ) : "";
-        const second_letter = String.fromCharCode(65 + remainder);
-        const row_index_str = row_index.toString();
-        const excel_cell_index = first_letter + second_letter + row_index_str;
-        return excel_cell_index;
-    }
 
 }); //$(document).ready(function()

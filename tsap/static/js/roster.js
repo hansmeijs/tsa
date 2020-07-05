@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
-        // console.log(moment.locales())
+        //console.log(moment.locales())
         //moment.locale(user_lang)
 
         // TODO        let intervalID = window.setInterval(CheckStatus, 5000);  // every 5 seconds
@@ -338,8 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request, no_loader) {
-        console.log( "=== DatalistDownload ")
-        console.log("request: ", datalist_request)
+       //console.log( "=== DatalistDownload ")
+       //console.log("request: ", datalist_request)
 
 // ---  Get today's date and time - for elapsed time
         let startime = new Date().getTime();
@@ -496,8 +496,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblModSelectPeriod  ================ PR2019-11-16
     function CreateTblModSelectPeriod() {
-        // console.log("===  CreateTblModSelectPeriod == ");
-        // console.log(selected_period);
+        //console.log("===  CreateTblModSelectPeriod == ");
+        //console.log(selected_period);
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -523,8 +523,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateSelectTableCustomers  ================ PR2019-11-16
     function CreateSelectTableCustomers() {
-        // console.log("===  CreateSelectTableCustomers == ");
-        // console.log(selected_period);
+        //console.log("===  CreateSelectTableCustomers == ");
+        //console.log(selected_period);
 
         const tblName = "customer";
         let tBody_select = document.getElementById("id_mod_order_tblbody_cust");
@@ -535,8 +535,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
  //=========  CreateSelectTableOrders  ================ PR2019-11-16
     function CreateSelectTableOrders() {
-        // console.log("===  CreateSelectTableOrders == ");
-        // console.log(selected_period);
+        //console.log("===  CreateSelectTableOrders == ");
+        //console.log(selected_period);
 
         const tblName = "order";
         let tBody_select = document.getElementById("id_mod_order_tblbody_order");
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillSelectTable  ============= PR2019-09-05
     function FillSelectTable(tBody_select, el_data, data_map, tblName, HandleSelectTable, HandleBtnClicked) {
-        console.log("FillSelectTable");
+       //console.log("FillSelectTable");
 
         //tBody_select.innerText = null;
 //--- loop through data_map
@@ -1632,8 +1632,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_SelectCustomer  ================ PR2020-01-09
     function MSO_SelectCustomer(tblRow) {
-        console.log( "===== MSO_SelectCustomer ========= ");
-        console.log( "tblRow: ", tblRow);
+       //console.log( "===== MSO_SelectCustomer ========= ");
+       //console.log( "tblRow: ", tblRow);
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 
 // ---  deselect all highlighted rows
@@ -1668,8 +1668,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_SelectOrder  ================ PR2020-01-09
     function MSO_SelectOrder(tblRow, event_target_NIU, skip_save) {
-        console.log( "===== MSO_SelectOrder ========= ");
-        console.log( "skip_save", skip_save);
+       //console.log( "===== MSO_SelectOrder ========= ");
+       //console.log( "skip_save", skip_save);
 // ---  deselect all highlighted rows
         DeselectHighlightedTblbody(el_modorder_tblbody_order, cls_selected)
 // ---  get clicked tablerow
@@ -1690,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_FilterCustomer  ================ PR2020-01-28
     function MSO_FilterCustomer() {
-        console.log( "===== MSO_FilterCustomer  ========= ");
+       //console.log( "===== MSO_FilterCustomer  ========= ");
         let new_filter = el_MSO_input_customer.value;
         //console.log( "new_filter: <" + new_filter + ">");
 // ---  deselect all highlighted rows
@@ -1719,7 +1719,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_FillSelectTableCustomer  ================ PR2020-02-07
     function MSO_FillSelectTableCustomer() {
-        console.log( "===== MSO_FillSelectTableCustomer ========= ");
+       //console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
         const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
@@ -1740,13 +1740,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-        console.log( "tr_selected: ", tr_selected);
+       //console.log( "tr_selected: ", tr_selected);
         if(!tr_selected){
 // ---  if not found, make 'addall' row selected
            //let tr_addall =  el_MSO_tblbody_customer.rows[0]
            let tr_addall = el_MSO_tblbody_customer.querySelector("[data-pk='addall']");
 
-        console.log( "tr_addall: ", tr_addall);
+       //console.log( "tr_addall: ", tr_addall);
            if(!!tr_addall){ tr_selected = tr_addall }
         }
         MSO_SelectCustomer(tr_selected);
@@ -1755,9 +1755,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
     function MSO_FillSelectTableOrder() {
-        console.log( "===== MSO_FillSelectTableOrder ========= ");
-        console.log( "mod_upload_dict.customer.pk: ", mod_upload_dict.customer.pk);
-        console.log( "mod_upload_dict.order.pk: ", mod_upload_dict.order.pk);
+       //console.log( "===== MSO_FillSelectTableOrder ========= ");
+       //console.log( "mod_upload_dict.customer.pk: ", mod_upload_dict.customer.pk);
+       //console.log( "mod_upload_dict.order.pk: ", mod_upload_dict.order.pk);
 
 // ---  hide div_tblbody_order when no customer selected, reset tblbody_order
         add_or_remove_class (document.getElementById("id_MSO_div_tblbody_order"), cls_hide, !mod_upload_dict.customer.pk)
@@ -1951,8 +1951,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL SELECT SHIFT +++++++++++++++++++++++++++++++++++++++++++
 //========= MSS_Open ====================================  PR2020-05-07
     function MSS_Open () {
-        console.log(" ===  MSS_Open  =====") ;
-        console.log("mod_upload_dict: ", mod_upload_dict) ;
+       console.log(" ===  MSS_Open  =====") ;
+       //console.log("mod_upload_dict: ", mod_upload_dict) ;
 
 // ---  put rosterdate in input box
         document.getElementById("id_MSS_input_date").value = mod_upload_dict.rosterdate;
@@ -1967,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', function() {
             add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
             const upload_dict =  {shiftdict: {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}}
             UploadChanges(upload_dict, url_emplhour_download);
-            // response handled in  MSS_UploadResponse
+            // response handled in MSS_UploadResponse
         }
 
 // ---  show modal
@@ -1977,9 +1977,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSS_Save  ================ PR2020-05-09
     function MSS_Save() {
-        console.log("===  MSS_Save =========");
-        console.log("mod_upload_dict", mod_upload_dict);
-        console.log("========mod_upload_dict.is_switch", mod_upload_dict.is_switch);
+       //console.log("===  MSS_Save =========");
+       //console.log("mod_upload_dict", mod_upload_dict);
+       //console.log("========mod_upload_dict.is_switch", mod_upload_dict.is_switch);
 
 // ---  create id_dict of current emplhour record
         let other_employee_dict = {};
@@ -2022,12 +2022,11 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MSS_input_order.readOnly = false;
             set_focus_on_el_with_timeout(el_MSS_input_order, 50)
         }
-
     }  // MSS_UploadResponse
 
 //=========  MSS_RosterdateEdit  ================ PR2020-05-08
     function MSS_RosterdateEdit (el_input) {
-        console.log(" =====  MSS_RosterdateEdit =====")
+       //console.log(" =====  MSS_RosterdateEdit =====")
 
 // ---  get new rosterdate
         mod_upload_dict.rosterdate = el_input.value
@@ -2063,7 +2062,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSS_Filter  ================ PR2020-05-09
     function MSS_Filter (tblName, el_input) {
-        //console.log("=====  MSS_Filter ===== tblName", tblName)
+        console.log("=====  MSS_Filter ===== tblName", tblName)
         //console.log("el_input", el_input)
 // ---  get value of new_filter
         let new_filter = el_input.value
@@ -2088,7 +2087,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     MRO_MRE_MSS_SelecttableUpdateAfterSelect("MSS", tblName, selected_pk, null, selected_value)
                 } else if (tblName === "employee") {
                     mod_upload_dict.selected_emplhour_pk = selected_pk;
-                    console.log("mod_upload_dict.selected_emplhour_pk: ", mod_upload_dict.selected_emplhour_pk)
+                   //console.log("mod_upload_dict.selected_emplhour_pk: ", mod_upload_dict.selected_emplhour_pk)
                     el_MSS_input_employee.value = selected_value;
                     el_MSS_btn_save.disabled = false;
                     set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
@@ -2101,7 +2100,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSS_DisableInputBoxes  ================ PR2020-05-09
     function MSS_DisableInputBoxes(disable) {
-        //console.log( "===== MSS_DisableInputBoxes ========= ");
+        console.log( "===== MSS_DisableInputBoxes ========= ");
 
 // ---  set focus to el_date, disable other input elements
         setTimeout(function (){ el_MSS_input_date .focus() }, 50);
@@ -2116,8 +2115,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSS_Reset_TableAndInputBoxes  ================ PR2020-05-09
     function MSS_Reset_TableAndInputBoxes() {
-        console.log( "===== MSS_Reset_TableAndInputBoxes ========= ");
-        console.log( "mod_upload_dict", mod_upload_dict);
+       console.log( "===== MSS_Reset_TableAndInputBoxes ========= ");
+       //console.log( "mod_upload_dict", mod_upload_dict);
 
 // set header text
         const el_header = document.getElementById("id_MSS_header");
@@ -2141,8 +2140,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSS_GotFocus  ================ PR2020-05-09
     function MSS_GotFocus (tblName, el_input) {
-        console.log(" =====  MSS_GotFocus  ===== ", tblName)
-        console.log("mod_upload_dict.skip_focus_event", mod_upload_dict.skip_focus_event)
+       console.log(" =====  MSS_GotFocus  ===== ", tblName)
+       //console.log("mod_upload_dict.skip_focus_event", mod_upload_dict.skip_focus_event)
         if(mod_upload_dict.skip_focus_event){
             mod_upload_dict.skip_focus_event = false;
         } else {
@@ -2232,10 +2231,10 @@ document.addEventListener('DOMContentLoaded', function() {
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
-        console.log("===  ModalStatusOpen  =====") ;
+       //console.log("===  ModalStatusOpen  =====") ;
 
         let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
-        console.log("emplhour_dict", emplhour_dict) ;
+       //console.log("emplhour_dict", emplhour_dict) ;
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
@@ -2245,7 +2244,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // get status from field status, not from confirm start/end
         const status_sum = get_dict_value(emplhour_dict, ["status", "value"])
-        console.log("status_sum", status_sum, typeof status_sum)
+       //console.log("status_sum", status_sum, typeof status_sum)
 
         let btn_save_text = loc.Confirm;
         let time_label = "Time:"
@@ -2361,10 +2360,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 field_text = (time_fldName === "timestart") ? loc.a_starttime : loc.an_endtime;
             }
 
-            console.log("is_field_status", is_field_status) ;
-            console.log("is_field_status", is_field_status) ;
-            console.log("field_text", field_text) ;
-            console.log("allow_lock_status", allow_lock_status) ;
+           //console.log("is_field_status", is_field_status) ;
+           //console.log("is_field_status", is_field_status) ;
+           //console.log("field_text", field_text) ;
+           //console.log("allow_lock_status", allow_lock_status) ;
             let show_confirm_box = false;
             if (fldName === "status" && allow_lock_status) {
                 show_confirm_box = true;
@@ -2399,7 +2398,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        console.log("===  ModalStatusSave =========");
+       //console.log("===  ModalStatusSave =========");
 
         // put values in el_body
         let el_body = document.getElementById("id_mod_status_body")
@@ -2464,7 +2463,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $("#id_mod_status").modal("hide");
 
         if(!!upload_dict) {
-            console.log( "upload_dict", upload_dict);
+           //console.log( "upload_dict", upload_dict);
             let parameters = {"upload": JSON.stringify(upload_dict)};
 
             let response = "";
@@ -2747,7 +2746,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= Filter_TableRows  ====================================
     function Filter_TableRows() {  // PR2019-06-09
-        console.log( "===== Filter_TableRows=== ");
+       //console.log( "===== Filter_TableRows=== ");
         //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
         //console.log( "show_inactive", show_inactive, typeof show_inactive);
         const len = tBody_roster.rows.length;
@@ -2866,7 +2865,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26
-        console.log( "===== ResetFilterRows  ========= ");
+       //console.log( "===== ResetFilterRows  ========= ");
 
         filter_dict = {};
         filter_hide_inactive = true;
@@ -2886,7 +2885,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleTblheaderFilterKeyup  ====================================
     function HandleTblheaderFilterKeyup(el, index, el_key) {
-        console.log( "===== HandleTblheaderFilterKeyup  ========= ");
+       //console.log( "===== HandleTblheaderFilterKeyup  ========= ");
         //console.log( "el_key", el_key);
 
         //console.log( "el.value", el.value, index, typeof index);
@@ -3023,7 +3022,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadTimepickerResponse  ============= PR2019-10-12
     function UploadTimepickerResponse(tp_dict) {
-        console.log("=== UploadTimepickerResponse");
+       //console.log("=== UploadTimepickerResponse");
         //console.log("tp_dict", tp_dict);
         let upload_dict = {period_datefirst: selected_period.period_datefirst,
                             period_datelast: selected_period.period_datelast,
@@ -3185,8 +3184,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponseNEW  ================ PR2019-10-14
     function UpdateFromResponseNEW(tblName, update_list) {
-        console.log(" --- UpdateFromResponseNEW  ---", tblName);
-        console.log("---------------- update_list: ", update_list);
+       //console.log(" --- UpdateFromResponseNEW  ---", tblName);
+       //console.log("---------------- update_list: ", update_list);
 
         const len = update_list.length;
         if (len > 0) {
@@ -3204,7 +3203,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if(!!pk_int){
                         const map_id = get_map_id(tblName, pk_int);
-                        console.log ("map_id", map_id);
+                       //console.log ("map_id", map_id);
 
 // ---  update or add emplhour_dict in emplhour_map
                         update_map_item(emplhour_map, map_id, update_dict, loc.user_lang);
@@ -3249,8 +3248,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponse  ================ PR2019-10-13
     function UpdateFromResponse(tblName, tr_changed, item_dict) {
-        console.log(" --- UpdateFromResponse  ---");
-        console.log(item_dict);
+       //console.log(" --- UpdateFromResponse  ---");
+       //console.log(item_dict);
 
         if (!!item_dict) {
             UpdateTableRow(tblName, tr_changed, item_dict)
@@ -3275,7 +3274,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- replace updated item in map
         if (tblName === "emplhour"){
             const map_id = get_map_id(tblName, get_dict_value(item_dict, ["pk"]));
-            console.log(">>>>>>>>>>> map_id", map_id);
+           //console.log(">>>>>>>>>>> map_id", map_id);
             emplhour_map.set(map_id, item_dict)
         }
 
@@ -3290,7 +3289,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModRosterdateOpen  ================ PR2020-01-21
     function ModRosterdateOpen(mode) {
-        console.log(" -----  ModRosterdateOpen   ----", mode)
+       //console.log(" -----  ModRosterdateOpen   ----", mode)
         //console.log("rosterdate_dict", rosterdate_dict)
 
         const is_delete = (mode === "delete")
@@ -3307,7 +3306,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // returns function ModRosterdateChecked
 
 // set header
-        console.log("loc", loc)
+       //console.log("loc", loc)
         const hdr_text = (is_delete) ? loc.rosterdate_hdr_delete : loc.rosterdate_hdr_create
         document.getElementById("id_mod_rosterdate_header").innerText = hdr_text;
 
@@ -3333,7 +3332,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset buttons
         const btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary"
         const btn_class_remove = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        console.log("loc", loc)
+       //console.log("loc", loc)
         const btn_text = (is_delete) ? loc.Delete : loc.Create
 
         el_MRD_btn_ok.innerText = btn_text;
@@ -3350,7 +3349,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateEdit  ++++++++++++++++++++++++++++++ PR2019-11-12
     function ModRosterdateEdit() {
-        console.log("=== ModRosterdateEdit =========");
+       //console.log("=== ModRosterdateEdit =========");
         //console.log("mod_upload_dict: ", mod_upload_dict);
         // called when date input changed
 
@@ -3398,7 +3397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateSave  ++++++++++++++++++++++++++++++ PR2019-11-14
     function ModRosterdateSave() {
-        console.log("=== ModRosterdateSave =========");
+       //console.log("=== ModRosterdateSave =========");
         //console.log("mod_upload_dict", mod_upload_dict);
         const mode = get_dict_value(mod_upload_dict, ["mode"])
 
@@ -3449,7 +3448,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateChecked  ++++++++++++++++++++++++++++++ PR2019-11-13
     function ModRosterdateChecked(response_dict) {
-        console.log("=== ModRosterdateChecked =========" );
+       //console.log("=== ModRosterdateChecked =========" );
         //console.log("response_dict:", response_dict );
         // response_dict: {mode: "last", value: "2019-12-19", count: 10, confirmed: 0}
 
@@ -3484,8 +3483,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
     function ModRosterdateFinished(response_dict) {
-        console.log("=== ModRosterdateFinished =========" );
-        console.log("response_dict", response_dict );
+       //console.log("=== ModRosterdateFinished =========" );
+       //console.log("response_dict", response_dict );
         // rosterdate: {rosterdate: {…}, logfile:
         // response_dict = {mode: "delete", msg_01: "16 diensten zijn gewist."}
         // response_dict = {mode: "create", msg_02: "14 diensten zijn aangemaakt.",
@@ -3494,8 +3493,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //                  rosterdate: {row_count: 16, rosterdate: "2020-03-30"}
         const mode = get_dict_value(response_dict,["mode"])
         const is_delete = (mode === "delete")
-        console.log("mode", mode );
-        console.log("is_delete", is_delete );
+       //console.log("mode", mode );
+       //console.log("is_delete", is_delete );
         const msg_01_txt = get_dict_value(response_dict,["msg_01"])
         const msg_02_txt = get_dict_value(response_dict, ["msg_02"])
         const msg_03_txt = get_dict_value(response_dict, ["msg_03"])
@@ -3537,7 +3536,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModRosterdate_SetLabelAndInfoboxes  ================ PR2019-11-13
     function ModRosterdate_SetLabelAndInfoboxes(response_dict) {
-        console.log(" -----  ModRosterdate_SetLabelAndInfoboxes   ----")
+       //console.log(" -----  ModRosterdate_SetLabelAndInfoboxes   ----")
 
 // set info textboxes
         const mode = get_dict_value(response_dict, ["mode"]);
@@ -3558,9 +3557,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // hide rosterdate input when is-delete and no emplhours
         const hide_input_rosterdate = (is_delete && no_emplhours)
-        console.log("is_delete: ", is_delete)
-        console.log("no_emplhours: ", no_emplhours)
-        console.log("hide_input_rosterdate: ", hide_input_rosterdate)
+       //console.log("is_delete: ", is_delete)
+       //console.log("no_emplhours: ", no_emplhours)
+       //console.log("hide_input_rosterdate: ", hide_input_rosterdate)
         add_or_remove_class(document.getElementById("id_mod_rosterdate_input_div"), cls_hide, hide_input_rosterdate )
 
         if (no_emplhours){
@@ -3638,7 +3637,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModRosterdateLogfile  ================ PR2020-03-30
     function ModRosterdateLogfile () {
-        console.log(" ===  ModRosterdateLogfile  =====");
+       //console.log(" ===  ModRosterdateLogfile  =====");
         if (!!log_list && log_list.length > 0 && !!log_file_name) {
             printPDFlogfile(log_list, log_file_name)
         }
@@ -3646,12 +3645,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  DeleteShift_ConfirmOpen  ================
     function DeleteShift_ConfirmOpen () {
-        console.log(" ===  DeleteShift_ConfirmOpen  =====") ;
+       //console.log(" ===  DeleteShift_ConfirmOpen  =====") ;
         let msg01_txt = null, msg02_txt = null, cancel_delete = false, is_absence = false;
         mod_upload_dict = {};
         let emplhour_dict = {};
 
-        console.log("selected_emplhour_pk: ", selected_emplhour_pk) ;
+       //console.log("selected_emplhour_pk: ", selected_emplhour_pk) ;
         if(!selected_emplhour_pk) {
             cancel_delete = true;
             msg01_txt = loc.err_msg_select_shift;
@@ -3660,7 +3659,7 @@ document.addEventListener('DOMContentLoaded', function() {
             emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, mod_upload_dict.map_id);
             mod_upload_dict.id_dict = get_dict_value(emplhour_dict, ["id"])
 
-        console.log("emplhour_dict: ", emplhour_dict) ;
+       //console.log("emplhour_dict: ", emplhour_dict) ;
             is_absence = get_dict_value(emplhour_dict, ["id", "isabsence"], false)
             const status_sum = get_dict_value(emplhour_dict, ["status", "value"], 0)
 
@@ -3692,7 +3691,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {el_confirm_btn_save.focus()}, 50);
 
             const order_code = get_dict_value(emplhour_dict, ["order", "code"])
-        console.log("order_code: ", order_code) ;
+       //console.log("order_code: ", order_code) ;
             if(is_absence){
                 const employee_code = get_dict_value(emplhour_dict, ["employee", "code"]);
                 const this_absence_code = (!order_code) ? loc.This_absence + " " : loc.Absence + " '" + order_code + "' "
@@ -3702,8 +3701,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const shift_code = get_dict_value(emplhour_dict, ["shift", "code"])
                 const customer_code = get_dict_value(emplhour_dict, ["customer", "code"])
-        console.log("shift_code: ", shift_code) ;
-        console.log("customer_code: ", customer_code) ;
+       //console.log("shift_code: ", shift_code) ;
+       //console.log("customer_code: ", customer_code) ;
                 const this_shift_code =  (!shift_code) ? loc.This_shift + " "  :  loc.Shift + " '" + shift_code + "' "
                 msg01_txt = this_shift_code + loc.of + " order '" + customer_code + " - " + order_code + "' " + loc.will_be_deleted
             }
@@ -3722,7 +3721,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  DeleteShift_ConfirmSave  ================ PR2019-06-23
     function DeleteShift_ConfirmSave() {
-        // console.log(" --- ModConfirmSave --- ");
+        //console.log(" --- ModConfirmSave --- ");
         // onsole.log("mod_upload_dict: ", mod_upload_dict);
 
             let tblRow = document.getElementById(mod_upload_dict.map_id);
@@ -3774,7 +3773,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL ROSTER ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= MRO_Open ====================================  PR2019-11-16
     function MRO_Open (selected_emplhour_pk) {
-        console.log(">>>>>>>>>>> ===  MRO_Open  =====") ;
+       //console.log(">>>>>>>>>>> ===  MRO_Open  =====") ;
 
         const emplhour_mapid = get_map_id("emplhour", selected_emplhour_pk);
         const emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, emplhour_mapid)
@@ -3796,7 +3795,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mod_upload_dict.rosterdate = rosterdate;
 
         const is_absence = get_dict_value(emplhour_dict, ["id", "isabsence"])
-        console.log("is_absence: ", is_absence) ;
+       //console.log("is_absence: ", is_absence) ;
         if(!!tblRow && !is_absence){
             mod_upload_dict.rowindex = tblRow.rowIndex;
 // ---  get info from emplhour_dict
@@ -3824,7 +3823,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_input = (!!mod_upload_dict.order.pk) ? el_MRO_input_shift :  el_MRO_input_order;
         setTimeout(function (){ el_input.focus() }, 500);
 
-        console.log("mod_upload_dict", mod_upload_dict) ;
+       //console.log("mod_upload_dict", mod_upload_dict) ;
 // ---  show modal
          $("#id_modrosterorder").modal({backdrop: true});
 
@@ -3832,8 +3831,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_Save  ================ PR2020-01-29
     function MRO_Save() {
-        console.log("===  MRO_Save =========");
-        console.log( "mod_upload_dict: ", mod_upload_dict);
+       console.log("===  MRO_Save =========");
+       //console.log( "mod_upload_dict: ", mod_upload_dict);
 
         // new orderhour and emplhour records are created in  function: create_orderhour_emplhour
         // minimum necessary parameters to create new record:
@@ -3848,10 +3847,10 @@ document.addEventListener('DOMContentLoaded', function() {
         //                      {timeend: {value: mod_upload_dict.shift.offsetend, update: true},
 
         const new_rosterdate = mod_upload_dict.rosterdate
-        console.log( "new_rosterdate: ", new_rosterdate , typeof new_rosterdate);
+       //console.log( "new_rosterdate: ", new_rosterdate , typeof new_rosterdate);
         let upload_dict = {period_datefirst: selected_period.period_datefirst,
                            period_datelast: selected_period.period_datelast,
-                           id: {create: true},
+                           id: {table: "emplhour", create: true},
                            rosterdate: {value: new_rosterdate},
                            orderhour: {order_pk: mod_upload_dict.order.pk}
                            };
@@ -3873,10 +3872,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if(mod_upload_dict.shift.offsetend != null){
             upload_dict.timeend = {value: mod_upload_dict.shift.offsetend, update: true};
         }
-        console.log( "mod_upload_dict.shift.breakduration: ", mod_upload_dict.shift.breakduration);
+       //console.log( "mod_upload_dict.shift.breakduration: ", mod_upload_dict.shift.breakduration);
         if(!!mod_upload_dict.shift.breakduration){
             upload_dict.breakduration = {value: mod_upload_dict.shift.breakduration, update: true};
-        console.log( "upload_dict.breakduration: ", upload_dict.breakduration);
+       //console.log( "upload_dict.breakduration: ", upload_dict.breakduration);
         }
         if(mod_upload_dict.shift.offsetstart == null || mod_upload_dict.shift.timeend == null){
             if(mod_upload_dict.shift.timeduration != null){
@@ -3892,8 +3891,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_InputElementKeyup  ================ PR2020-02-29
     function MRO_InputElementKeyup(tblName, el_input) {
-        console.log( "=== MRO_InputElementKeyup  ", tblName)
-        console.log( "el_input.value:  ", el_input.value)
+       //console.log( "=== MRO_InputElementKeyup  ", tblName)
+       //console.log( "el_input.value:  ", el_input.value)
 
         const new_filter = el_input.value
         let tblBody_select = document.getElementById("id_MRO_tblbody_select");
@@ -3939,10 +3938,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_FillSelectTable  ================ PR2020-02-29
     function MRO_MRE_MSS_FillSelectTable(pgeName, tblName, selected_pk) {
-        console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
-        console.log( "pgeName: ", pgeName);
-        console.log( "tblName: ", tblName);
-        console.log( "selected_pk: ", selected_pk, typeof selected_pk);
+       console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
+       //console.log( "pgeName: ", pgeName);
+       //console.log( "tblName: ", tblName);
+       //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
 
         let data_map = new Map();
         let data_dict = {};
@@ -3974,7 +3973,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 data_map = employee_map;
             };
         }
-        console.log("data_map", data_map)
+       //console.log("data_map", data_map)
 
         if(tblName === "order") {
             select_header_text = loc.Select_order + ":";
@@ -4099,9 +4098,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } else if(tblName === "shift") {
             const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
-            console.log("item_dict", item_dict)
-            console.log("order_pk_int", order_pk_int)
-            console.log("mod_upload_dict.order.pk", mod_upload_dict.order.pk)
+           //console.log("item_dict", item_dict)
+           //console.log("order_pk_int", order_pk_int)
+           //console.log("mod_upload_dict.order.pk", mod_upload_dict.order.pk)
             // PR2020-06-11 debug: no matches because mod_upload_dict.order.pk was str, not number.
             add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
         } else if(tblName === "employee") {
@@ -4141,10 +4140,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_SelecttableClicked  ================ PR2020-01-09
     function MRO_MRE_MSS_SelecttableClicked(pgeName, tblName, tblRow) {
-        //console.log( "===== MRO_MRE_MSS_SelecttableClicked ========= ");
-        //console.log( "tblName:", tblName);
-        //console.log( "pgeName:", pgeName);
-        //console.log( "tblRow:", tblRow);
+        console.log( "===== MRO_MRE_MSS_SelecttableClicked ========= ");
+        console.log( "tblName:", tblName);
+        console.log( "pgeName:", pgeName);
+        console.log( "tblRow:", tblRow);
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -4153,14 +4152,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
 // ---  get pk from id of select_tblRow
-            const pk_int = get_attr_from_el_int(tblRow, "data-pk")
+            // when clicked on shift table, pk = shift_code, therefore dont use get_attr_from_el_int
+            const pk_str = get_attr_from_el(tblRow, "data-pk")
             const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
             const code_value = get_attr_from_el(tblRow, "data-value", "")
             if(pgeName === "MSS" && tblName === "employee"){
                 const employee_pk = get_attr_from_el(tblRow, "data-employee_pk")
                 const employee_ppk = get_attr_from_el(tblRow, "data-employee_ppk")
 
-                mod_upload_dict.selected_emplhour_pk = pk_int
+                mod_upload_dict.selected_emplhour_pk = (Number(pk_str)) ? Number(pk_str) : null;
                 if (employee_pk) {mod_upload_dict.employee_pk = employee_pk};
                 if (employee_ppk) {mod_upload_dict.employee_ppk = employee_ppk};
 
@@ -4169,7 +4169,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
 
             } else {
-                MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value)
+                MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_str, ppk_int, code_value)
             };
 // ---  when MRO_table: set header and enable btn csave
             if(pgeName === "MRO"){
@@ -4180,14 +4180,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_SelecttableUpdateAfterSelect  ================ PR2020-04-12
     function MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value) {
-        //console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
+        console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
         // called when clicked on Selecttable and at Keyup of InputElement
         // called by MRO_MRE_MSS_SelecttableClicked and MRO_InputElementKeyup
-        //console.log( "tblName:", tblName);
-        //console.log( "pk_int:", pk_int, typeof pk_int);
-        //console.log( "code_value:", code_value);
-        if(!!pk_int) {
+        console.log( "tblName:", tblName);
+        console.log( "pk_int:", pk_int, typeof pk_int);
+        console.log( "code_value:", code_value);
+        if(pk_int) {
             if (pgeName === "MSS") {
                 mod_upload_dict.skip_focus_event = true;
                 if (tblName === "order") {
@@ -4202,6 +4202,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  fill selecttable shift
                     MRO_MRE_MSS_FillSelectTable("MSS", "shift", pk_int)
                 } else if (tblName === "shift") {
+                    // order can have multiple rows wit hsame shift.
+                    // Use code_value as pk and ask to select employee in next step
                     mod_upload_dict.shift_code = code_value;
 // ---  put value in input box
                     el_MSS_input_shift.value = code_value
@@ -4219,7 +4221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_MRO_input_order.value = code_value
 
 
-        console.log(">>>>>>>>>>> ===  MRO_ shift  =====") ;
+       //console.log(">>>>>>>>>>> ===  MRO_ shift  =====") ;
 
                     MRO_MRE_MSS_FillSelectTable("MRO", "shift")
                     setTimeout(function (){el_MRO_input_shift.focus()}, 50);
@@ -4268,7 +4270,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_InputDateChanged  ================ PR2020-04-14
     function MRO_InputDateChanged () {
-        console.log(" -----  MRO_InputDateChanged   ----")
+       //console.log(" -----  MRO_InputDateChanged   ----")
 
         mod_upload_dict.rosterdate = el_MRO_input_date.value
 
@@ -4288,7 +4290,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_MRO_breakduration.innerText = null;
         el_MRO_timeduration.innerText = null;
 
-        console.log(">>>>>>>>>>> ===  MRO_ order  =====") ;
+       //console.log(">>>>>>>>>>> ===  MRO_ order  =====") ;
         MRO_MRE_MSS_FillSelectTable("MRO", "order");
 
         MRO_SetHeaderAndEnableBtnSave();
@@ -4364,7 +4366,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRE_Open  ================ PR2019-06-23
     function MRE_Open(el_input) {
-        console.log(" -----  MRE_Open   ----")
+       //console.log(" -----  MRE_Open   ----")
         //console.log("el_input: ", el_input)
 
 // reset mod_upload_dict
@@ -4386,7 +4388,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblRow = get_tablerow_selected(el_input);
         const map_id = get_attr_from_el(tblRow, "data-map_id")
 
-        console.log("map_id: ", map_id)
+       //console.log("map_id: ", map_id)
 // ---  skip when no tblRow or no emplh_dict
         const emplh_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map);
         if(!!tblRow && !isEmpty(emplh_dict)){
@@ -4499,7 +4501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // crud_mode = 'delete' when clicked on MRE delete btn. Deletes absence emplhour or removes employee from emplhour
         // crud_mode = 'save' otherwise
         let btn_name = el_mod_employee_body.getAttribute("data-action");
-        console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
+       //console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
         const is_absence = mod_upload_dict.isabsence
         console.log("mod_upload_dict", mod_upload_dict);
         console.log("is_absence", is_absence);
@@ -5003,7 +5005,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
                 // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
-                // console.log("dict", dict);
+                //console.log("dict", dict);
                 if (!!rosterdate){
                     option_text += "<option value=\"" + rosterdate + "\"";
                     option_text +=  ">" + rosterdate_format + "</option>";

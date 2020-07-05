@@ -202,7 +202,14 @@
   justify-content: center;
 }
 
-
+.icon_24 {
+    width: 24px;
+    height: 24px;
+}
+.icon_18 {
+    width: 18px;
+    height: 18px;
+}
 .tw_360 {
     width: 360px;
 }

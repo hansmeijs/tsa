@@ -1237,6 +1237,22 @@
         return now_arr;
     }
 
+//========= b_get_excel_cell_index  ====================================
+    function b_get_excel_cell_index (col_index, row_index){  // PR2020-06-13
+
+        if(!col_index){col_index = 0};
+        if(!row_index){row_index = 0};
+
+        const integer = Math.floor(col_index/26);
+        const remainder = col_index - integer * 26;
+
+        const first_letter = (integer) ? String.fromCharCode(65 + integer -1 ) : "";
+        const second_letter = String.fromCharCode(65 + remainder);
+        const row_index_str = row_index.toString();
+        const excel_cell_index = first_letter + second_letter + row_index_str;
+        return excel_cell_index;
+    }  // b_get_excel_cell_index
+
 //========= get_Exceldate_from_date  ====================================
     function get_Exceldate_from_date(date_iso) {
         //console.log (' --- get_Exceldate_from_datetime --- ')
@@ -1591,7 +1607,7 @@
             caption_str = loc.Price
             multiplier = 100;
             max_value = 100000;  // max $ 1000, max 1000%
-        } else if(fldName === "workhours"){
+        } else if(fldName === "workhoursperweek"){
             caption_str = loc.Workhours
             multiplier = 60;
             max_value = 10080  // 7 * 1440 = 168 * 60

@@ -110,8 +110,8 @@
             <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers and orders' %}</a>
             <a id="id_hdr_schm" href="{% url 'schemes_url' %}">{% trans 'Planning' %}</a>
             <a id="id_hdr_rost" href="{% url 'roster_url' %}">{% trans 'Roster' %}</a>
-            <a id="id_hdr_prices" href="{% url 'prices_url' %}">{% trans 'Prices and invoices' %}</a>
-            <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Reviews' %}</a>
+            <a id="id_hdr_prices" href="{% url 'prices_url' %}">{% trans 'Prices' %}</a>
+            <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Billing' %}</a>
             {% if user.is_role_system_and_perm_admin %}
                 <a id="id_hdr_comp" href="{% url 'company_url' %}">{% trans 'Company' %}</a>
             {% endif %}

@@ -2565,8 +2565,8 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
 
     review_list = []
     if request.user.company:
-        #logger.debug(' ============= create_review_customer_list ============= ')
-        #logger.debug('period_dict:  ' + str(period_dict))
+        logger.debug(' ============= create_review_customer_list ============= ')
+        logger.debug('period_dict:  ' + str(period_dict))
 
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
@@ -2598,7 +2598,6 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
         #logger.debug(connection.queries)
 
         cursor = connection.cursor()
-
 
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
         is_restshift = False # None = show all, False = no restshifts, True = restshifts only

@@ -44,7 +44,7 @@
             </table>
 
             <table id="id_select_table_team" class="display_hide mt-4 mb-5">
-                <thead id="id_select_thead_team"class="tsa_color_white m-1"></thead>
+                <thead id="id_select_thead_team" class="tsa_color_white m-1"></thead>
                 <tbody id="id_select_tbody_team"></tbody>
                 <tfoot id="id_select_tfoot_team"></tfoot>
             </table>
@@ -65,66 +65,57 @@
     {% include 'includes/modscheme.html' %}
 
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
-    <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+    <div class="modal" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_copyfrom_header" class="modal-title mx-2" >{% trans 'Copy from template' %}</h4>
+                    <h4 id="id_mod_copyfrom_header" class="modal-title mx-2" >{% trans 'Copy template to order' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_copyfrom_body" class="modal-body">
+                <div class="modal-body">
                     <div class="modal_container">
-
-<!-- modal_body_left contains template select table -->
-                        <div class="modal_body_left m-2">
-                                <div>
-                                    <h5>{% trans 'Select template' %}:</h5>
+                        <div class="modal_body_left">
+                            <div class="content_subheader_left mx-2 my-1">
+                                <div class="mx-2">
+                                    <h6>{% trans 'Orders' %}:</h6>
                                 </div>
-<!--
-                                <div >
-                                    <input id="id_mod_copyfrom_filter_template" type="text"
-                                    class="fieldname pt-0 pb-0" colspan=2 autocomplete="off"
-                                    placeholder="{% trans 'filter name...' %}"
-                                    >
-                                </div>
-                                -->
-                                <div  class="tw_200 tbl_h_240"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table table-condensed tsa_tbl my-1">
-                                        <tbody id="id_mod_copyfrom_tblbody" data-table="scheme">
-                                        </tbody>
+                                <div class="tw_240 tbl_h_240"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table tsa_tbl m-1">
+                                        <tbody id="id_mod_copyfrom_tblbody"></tbody>
                                     </table>
                                 </div>
-
+                            </div>
                         </div>
 
-                        <div class="modal_body_left m-2">
-                            <h5 class="mx-2" >{% trans 'Copy to scheme' %}:</h5>
-                                <div>
-                                    <label for="id_mod_copyfrom_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
-                                    <select id="id_mod_copyfrom_customer" class="form-control"></select>
-                                    <small id="id_mod_copyfrom_customer_err" class="color_invalid mx-2 display_hide"></small>
-                                </div>
-                                <div>
-                                    <label for="id_mod_copyfrom_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
-                                    <select id="id_mod_copyfrom_order" class="form-control"></select>
-                                    <small id="id_mod_copyfrom_order_err" class="color_invalid mx-2 display_hide"></small>
-                                </div>
-
-                                <div>
-                                    <label for="id_mod_copyfrom_code" class="mx-2 my-2">{% trans 'Scheme name' %}:</label>
-                                    <input id="id_mod_copyfrom_code" type="text"
-                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                        class="form-control">
-                                    <small id="id_mod_copyfrom_code_err" class="color_invalid mx-2"></small>
-                                </div>
+                        <div class="modal_body_right mx-2 my-1">
+                            <div class="content_subheader_left mx-1">
+                                <label for="id_MCFT_input_order" class="mx-2 mt-0 mb-1">{% trans 'Select order' %}:</label>
+                                <input id="id_MCFT_input_order"
+                                    type="text"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control"
+                                    placeholder="{% trans 'Type a few letters and select an order in the list ...' %}">
+                            </div>
+                            <div class="content_subheader_left mx-1 my-4">
+                                <label for="id_mod_copyfrom_code" class="mx-2 mt-0 mb-1">{% trans 'Scheme name' %}:</label>
+                                <input id="id_mod_copyfrom_code"
+                                    type="text"
+                                    autocomplete="off"
+                                    ondragstart="return false;"
+                                    ondrop="return false;"
+                                    class="form-control">
+                                <small id="id_mod_copyfrom_code_err" class="color_invalid mx-2"></small>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer ">
-                    <button id="id_mod_copyfrom_btn_save" type="button" class="btn btn-primary">{% trans 'Copy' %}</button>
+                    <button id="id_MCFT_btn_save" type="button" class="btn btn-primary">{% trans 'Copy' %}</button>
                 </div>
 
             </div>
@@ -158,8 +149,6 @@
         </div>
     </div>
 
-<!-- =================== CONFIRM =================== -->
-    {% include 'includes/confirm.html' %}
 <!-- =================== MODAL GRID TEAM  =================== -->
     {% include 'includes/modgridteam.html' %}
 <!-- =================== MODAL GRID SHIFT  =================== -->
@@ -169,8 +158,10 @@
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
     {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL ABSENCE  =================== -->
-        {% include 'includes/modabsence.html' %}
+    {% include 'includes/modabsence.html' %}
 
+<!-- =================== CONFIRM =================== -->
+    {% include 'includes/confirm.html' %}
 <!-- =================== POPUP DATE  =================== -->
      <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
          <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
@@ -204,8 +195,7 @@
             <button type="button" data-mode="btn_grid" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
             <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
             <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
-            <button type="button"  data-mode="btn_team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
-            <button type="button" data-mode="btn_scheme" class="btn btn-secondary display_hide">{% trans 'Schemes' %}</button>
+            <button type="button"  data-mode="btn_teammember" class="btn btn-secondary ">{% trans 'Teams' %}</button>
             <button type="button" data-mode="btn_absence" class="btn btn-secondary">{% trans 'Absence' %}</button>
         </div>
 <!-- end BUTTON GROUP -->

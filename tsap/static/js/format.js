@@ -1486,14 +1486,14 @@
 
 
 //========= display_planning_period  ======== PR2020-01-21
-    function display_planning_period(selected_planning_period, loc) {
+    function display_planning_period(selected_planning_period, loc, skip_prefix) {
         //console.log( "===== display_planning_period  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
         const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
 
-        let period_txt = loc.Period + ": "
+        let period_txt = (!skip_prefix) ? loc.Period + ": " : "";
         if (period_tag !== "other"){
             for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
                 if(loc.period_select_list[i][0] === period_tag ){

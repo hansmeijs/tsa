@@ -532,9 +532,9 @@
 
 
 
-//========= get_rowindex_by_code_datefirst  ================= PR2020-05-18
-    function get_rowindex_by_code_datefirst(tblBody, tblName, data_map, search_code, search_datefirst) {
-        console.log(" ===== get_rowindex_by_code_datefirst =====", tblName);
+//========= t_get_rowindex_by_code_datefirst  ================= PR2020-05-18
+    function t_get_rowindex_by_code_datefirst(tblBody, tblName, data_map, search_code, search_datefirst) {
+        console.log(" ===== t_get_rowindex_by_code_datefirst =====", tblName);
         let search_rowindex = -1;
 // --- loop through rows of tblBody
         if(search_code){
@@ -577,7 +577,33 @@
         }}
         //console.log("search_rowindex", search_rowindex);
         return search_rowindex
-    }  // get_rowindex_by_code_datefirst
+    }  // t_get_rowindex_by_code_datefirst
+
+
+//========= t_get_rowindex_by_orderby  ================= PR2020-06-30
+    function t_get_rowindex_by_orderby(tblBody, search_orderby) {
+        //console.log(" ===== t_get_rowindex_by_orderby =====");
+        let row_index = -1;
+// --- loop through rows of tblBody_datatable
+        if(search_orderby){
+            if (typeof search_orderby === 'string' || search_orderby instanceof String) {
+                search_orderby = search_orderby.toLowerCase()};
+            for (let i = 0, tblRow; tblRow = tblBody.rows[i]; i++) {
+                let row_orderby = get_attr_from_el(tblRow, "data-orderby");
+                if(row_orderby){
+                    if (typeof row_orderby === 'string' || row_orderby instanceof String) {
+                        row_orderby = row_orderby.toLowerCase()};
+                    if(search_orderby < row_orderby) {
+    // --- search_rowindex = row_index - 1, to put new row above row with higher row_orderby
+                        row_index = tblRow.rowIndex - 1;
+                        break;
+        }}}}
+        if(!row_index){row_index = 0}
+        if(row_index >= 0){ row_index -= 1 }
+        return row_index
+    }  // t_get_rowindex_by_orderby
+
+
 
 
 

@@ -8,9 +8,9 @@
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        console.log("=== MODAL  ModTimepickerOpen  =====");
-        console.log( "tp_dict: ", tp_dict);
-        console.log( "st_dict: ", st_dict);
+        //console.log("=== MODAL  ModTimepickerOpen  =====");
+        //console.log( "tp_dict: ", tp_dict);
+        //console.log( "st_dict: ", st_dict);
         // tp_dict.page is not used in Timepicker. It is used when returned to page
         document.getElementById("id_mtp_modal").classList.remove("hidden");
 
@@ -486,8 +486,8 @@
 //========= HighlightAndDisableAmpm  ====================================
     function HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( "=== HighlightAndDisableAmpm === ");
-        console.log( "tp_dict: ", tp_dict);
+        //console.log( "=== HighlightAndDisableAmpm === ");
+        //console.log( "tp_dict: ", tp_dict);
         const curDate_is_rosterdate = tp_dict["curDate_is_rosterdate"];
         const prevday_disabled = tp_dict.prevday_disabled;
         const nextday_disabled = tp_dict.nextday_disabled;
@@ -754,6 +754,39 @@ function CalcMinMax(dict) {
         }  //  if (!!shift_dict)
     }  // mtp_calc_minmax_offset
 
+
+//=========  mtp_calc_minmax_offset_values  ================ PR2020-06-30
+    function mtp_calc_minmax_offset_values(fldName, offset_start, offset_end, break_duration, time_duration, is_absence){
+        //console.log( "=== mtp_calc_minmax_offset ");
+        // function calculates min and max offeset before opening timepicker
+
+        if(break_duration == null) {break_duration = 0}
+        if(time_duration == null) {time_duration = 0}
+        let minoffset = 0, maxoffset = 1440;
+        if (!is_absence && ["offsetstart", "offsetend"].indexOf(fldName) > -1) {
+            minoffset = -720;
+            maxoffset = 2160};
+        if (offset_start == null) {offset_start = minoffset};
+        if(fldName === "offsetstart") {
+            if (offset_end != null && offset_end - break_duration < maxoffset) {
+                maxoffset = offset_end - break_duration};
+        } else if(fldName === "offsetend") {
+            if(offset_start != null && offset_start + break_duration > minoffset) {
+                minoffset = offset_start + break_duration};
+        } else if(fldName === "breakduration"){
+            // if offset_start and offset_end both have values :
+            // break_duration + time_duration is fixed value (offset_end - offset_start)
+             if (offset_start != null && offset_end != null) {
+                if (offset_end - offset_start < maxoffset) {
+                    maxoffset = offset_end - offset_start};
+             } else {
+            // if offset_start or offset_end is blank:
+            // break_duration + time_duration is max 1 day (1440)
+                maxoffset = maxoffset - time_duration;
+            }
+        }
+        return [minoffset, maxoffset]
+    }  // mtp_calc_minmax_offset_values
 
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {

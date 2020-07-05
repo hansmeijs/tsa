@@ -285,7 +285,7 @@ COLDEF_EMPLOYEE = ( {'tsaKey': 'code', 'caption': _('Short name')},
                     {'tsaKey': 'tel', 'caption': _('Telephone')},
                     {'tsaKey': 'datefirst', 'caption': _('First date in service')},
                     {'tsaKey': 'datelast', 'caption': _('Last date in service')},
-                    {'tsaKey': 'workhours', 'caption': _('Working hours per week')},
+                    {'tsaKey': 'workhoursperweek', 'caption': _('Working hours per week')},
                     {'tsaKey': 'workdays', 'caption': _('Working days per week')},
                     {'tsaKey': 'leavedays', 'caption': _('Vacation days per year')},
                     {'tsaKey': 'payrollcode', 'caption': _('Payroll code')}
@@ -349,8 +349,8 @@ COLDEF_PAYDATECODE = ( {'tsaKey': 'afascode', 'caption': _('Code period table')}
                 {'tsaKey': 'paydate', 'caption': _('Enddate')}
                 )
 
-
-FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
+FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable',
+                  'pricecode_id', 'additioncode_id', 'taxcode_id', 'invoicecode_id', 'workminutesperday', 'entryrate' )
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
                          'datepayment', 'dateexpired', 'expired', 'note', 'locked')
@@ -367,7 +367,8 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'inactive', 'locked')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
-                    'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
+                    'isabsence', 'isrestshift', 'issplitshift', 'isbillable', 'nobill',
+                    'shift', 'invoicedate', 'lockedinvoice', 'hasnote', 'status', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
                    'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'paydateitem', 'lockedpaydate', 'nopay',
@@ -377,6 +378,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
                    'pricerate', 'additionrate', 'additionisamount', 'taxrate', 'amount', 'addition', 'tax',
                     # fields: order, shift, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status
+                   # 'issplitshift'
                    'order', 'shift', 'confirmstart', 'confirmend',
                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
@@ -385,7 +387,6 @@ FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultw
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
                  'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                  'pricecode', 'additioncode', 'taxcode', 'inactive')
-
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
@@ -396,8 +397,8 @@ FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'ist
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
                    'address', 'zipcode', 'city', 'country',
-                   #TODO # TODO deprecate workdays rename working hours per week
-                   'workhours', 'workminutesperday', 'workdays', 'leavedays',
+                   #TODO deprecate workdays
+                   'workhoursperweek', 'workminutesperday', 'workdays', 'leavedays',
                    'functioncode', 'wagecode', 'paydatecode',
                    'pricecode', 'additioncode', 'inactive', 'locked')
 

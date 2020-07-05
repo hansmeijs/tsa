@@ -29,8 +29,8 @@
                             <input id="id_MFE_namefirst" type="text" data-field="namefirst"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
-                     </div>
-                     <div class="content_header">
+                      </div>
+                     <div class="content_header display_hide">
                          <div class="content_subheader_left mx-1 ">
                               <small id="id_MFE_err_code"  class="text-danger tsa_margin_form_label">{% trans "The short name cannot be blank." %}</small>
                          </div>
@@ -38,9 +38,9 @@
                               <small id="id_MFE_err_lastname" class="text-danger tsa_margin_form_label">{% trans "The last name cannot be blank." %}</small>
                          </div>
                          <div class="content_subheader_left mx-1">
+                              <small id="id_MFE_err_identifier" class="text-danger tsa_margin_form_label"></small>
                          </div>
                      </div>
-
                      <div class="content_header">
                          <div class="content_subheader_left mx-1">
                             <label for="id_MFE_identifier" class="tsa_margin_form_label">{% trans 'ID-number' %}:</label>
@@ -48,8 +48,8 @@
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
                          <div class="content_subheader_left mx-1 ">
-                            <label for="id_MFE_payrollcode" class="tsa_margin_form_label">{% trans 'Payroll code' %}:</label>
-                            <input id="id_MFE_payrollcode" type="text" data-field= "payrollcode"
+                            <label for="id_MFE_email" class="tsa_margin_form_label">{% trans 'Email address' %}:</label>
+                            <input id="id_MFE_email" type="text" data-field= "email"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
                          <div class="content_subheader_left mx-1 ">
@@ -57,15 +57,16 @@
                             <input id="id_MFE_telephone" type="text" data-field= "telephone"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
+
                      </div>
 
                      <div class="content_header">
-
                          <div class="content_subheader_left mx-1 ">
-                            <label for="id_MFE_email" class="tsa_margin_form_label">{% trans 'Email address' %}:</label>
-                            <input id="id_MFE_email" type="text" data-field= "email"
+                            <label for="id_MFE_functioncode" class="tsa_margin_form_label">{% trans 'Function' %}:</label>
+                            <input id="id_MFE_functioncode" type="text" data-field= "functioncode"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
+
                          <div class="content_subheader_left mx-1 ">
                             <label for="id_MFE_datefirst" class="tsa_margin_form_label">{% trans 'First date in service' %}:</label>
                             <input id="id_MFE_datefirst" type="date" data-field= "datefirst"
@@ -77,20 +78,45 @@
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                          </div>
                      </div>
+                     <div class="content_header">
+                         <div class="content_subheader_left mx-1 ">
+                            <label for="id_MFE_payrollcode" class="tsa_margin_form_label">{% trans 'Payroll code' %}:</label>
+                            <input id="id_MFE_payrollcode" type="text" data-field= "payrollcode"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                         </div>
+                         <div class="content_subheader_left mx-1 ">
+                            <label for="id_MFE_wagecode" class="tsa_margin_form_label">{% trans 'Wage code' %}:</label>
+                            <input id="id_MFE_wagecode" type="text" data-field= "payrollcode"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                         </div>
+                         <div class="content_subheader_left mx-1 ">
+                            <label for="id_MFE_paydatecode" class="tsa_margin_form_label">{% trans 'Payroll period' %}:</label>
+                            <input id="id_MFE_paydatecode" type="text" data-field= "paydatecode"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                         </div>
+                     </div>
+
 
 
                      <div class="content_header">
                          <div class="content_subheader_left mx-1">
-                             <label for="id_MFE_workhours" class="tsa_margin_form_label">{% trans 'Working hours per week' %}:</label>
-                            <input id="id_MFE_workhours" type="text" data-field= "workhours"
+                             <label for="id_MFE_workhoursperweek" class="tsa_margin_form_label">{% trans 'Working hours per week' %}:</label>
+                            <input id="id_MFE_workhoursperweek" type="text" data-field= "workhoursperweek"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                             <div class="mx-2">
                                 <small id="id_MFE_err_workhours"  class="text-danger"></small>
                             </div>
-
+                         </div>
+                         <div class="content_subheader_left mx-1">
+                             <label for="id_MFE_workhoursperday" class="tsa_margin_form_label">{% trans 'Working hours per day' %}:</label>
+                            <input id="id_MFE_workhoursperday" type="text" data-field= "workminutesperday"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                            <div class="mx-2">
+                                <small id="id_MFE_err_workhoursperday"  class="text-danger"></small>
+                            </div>
                          </div>
                          <div class="content_subheader_left mx-1 ">
-                            <label for="id_MFE_workdays" class="tsa_margin_form_label">{% trans 'Work days per week' %}:</label>
+                            <label for="id_MFE_workdays" class="tsa_margin_form_label">{% trans 'Working days per week' %}:</label>
                             <input id="id_MFE_workdays" type="text" data-field= "workdays"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                             <div class="mx-2">
@@ -101,11 +127,18 @@
                             <label for="id_MFE_leavedays" class="tsa_margin_form_label">{% trans 'Leave days per year' %}:</label>
                             <input id="id_MFE_leavedays" type="text" data-field= "leavedays"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                            <div class="mx-2">
-                             <small id="id_MFE_err_leavedays">{% trans 'Leave days are on a full time basis.' %}</small>
-                            </div>
                          </div>
                      </div>
+
+                     <div class="content_header">
+                         <div class="content_subheader_left mx-1">
+                         </div>
+                         <div class="content_subheader_left mx-1">
+                              <small id="id_MFE_err_leavedays">{% trans 'Leave days are on a full time basis.' %}</small>
+                         </div>
+                     </div>
+
+
                 </div>
 
                 <div class="modal-footer pr-4">

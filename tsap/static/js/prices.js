@@ -44,8 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let company_dict = {};
 
-    let tblBody_items = document.getElementById("id_tbody_items");
-    let tblHead_items = document.getElementById("id_thead_items");
+    let tblBody_items = document.getElementById("id_tbody_datatable");
+    let tblHead_items = document.getElementById("id_thead_datatable");
 
 // --- get data stored in page
     let el_data = document.getElementById("id_data");

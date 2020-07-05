@@ -175,7 +175,7 @@ def create_customer_dict(customer, item_dict):
 
 
 def create_order_list(company, user_lang, is_absence=None, is_template=None, is_inactive=None):
-    logger.debug(' --- create_order_list --- ')
+    #logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # absence orders are loaded in create_abscat_list
 
@@ -702,3 +702,213 @@ def create_order_pricerate_list(company, user_lang):
                 pricerate_list.append(item_dict)
 
     return pricerate_list
+
+
+def create_billing_agg_list(period_dict, request):
+    logger.debug(' ============= create_billing_agg_list ============= ')
+    # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-06-24
+
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    logger.debug('period_dict:  ' + str(period_dict))
+
+    period_datefirst = period_dict.get('period_datefirst')
+    period_datelast = period_dict.get('period_datelast')
+    order_pk = period_dict.get('order_pk')
+    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+    customer_pk = None
+    if order_pk is None:
+        customer_pk = period_dict.get('customer_pk')
+        customer_pk = customer_pk if customer_pk else None
+
+    logger.debug('period_datefirst:  ' + str(period_datefirst))
+    logger.debug('period_datelast:  ' + str(period_datelast))
+    logger.debug('order_pk:  ' + str(order_pk))
+
+    sql_billing = """
+        SELECT o.id AS o_id, 
+        COALESCE(c.code,'-') AS c_code,
+        COALESCE(o.code,'-') AS o_code,
+        
+        SUM(eh.timeduration) AS eh_timedur, 
+        SUM(eh.plannedduration) AS eh_plandur,
+        SUM(eh.billingduration) AS eh_bildur,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(oh.isbillable::int) AS is_billable,
+        SUM((NOT oh.isbillable)::int) AS not_billable,
+        SUM(oh.nobill::int) AS is_nobill,
+        SUM((NOT oh.nobill)::int) AS not_nobill
+
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT o.isabsence AND NOT oh.isrestshift
+        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
+        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+        GROUP BY o.id, c.code, o.code
+        ORDER BY LOWER(c.code), LOWER(o.code)
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_billing, {
+        'compid': request.user.company_id,
+        'cid': customer_pk,
+        'oid': order_pk,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+    billing_agg_list = f.dictfetchall(newcursor)
+    """
+    logger.debug('---------------------')
+    for row in billing_agg_list:
+        logger.debug(str(row))
+    logger.debug('.......................')
+    """
+    return billing_agg_list
+# - end of billing_agg_list
+
+
+def create_billing_rosterdate_list(period_dict, request):
+    logger.debug(' ============= create_billing_rosterdate_list ============= ')
+
+    period_datefirst = period_dict.get('period_datefirst')
+    period_datelast = period_dict.get('period_datelast')
+    order_pk = period_dict.get('order_pk')
+    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+    customer_pk = None
+    if order_pk is None:
+        customer_pk = period_dict.get('customer_pk')
+        customer_pk = customer_pk if customer_pk else None
+
+    logger.debug('period_datefirst:  ' + str(period_datefirst))
+    logger.debug('period_datelast:  ' + str(period_datelast))
+    logger.debug('order_pk:  ' + str(order_pk))
+
+    sql_billing = """
+        SELECT o.id AS o_id, 
+        COALESCE(c.code,'-') AS c_code,
+        COALESCE(o.code,'-') AS o_code,
+        oh.rosterdate AS oh_rosterdate,
+        
+        SUM(eh.timeduration) AS eh_timedur, 
+        SUM(eh.plannedduration) AS eh_plandur,
+        SUM(eh.billingduration) AS eh_bildur,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(oh.isbillable::int) AS is_billable,
+        SUM((NOT oh.isbillable)::int) AS not_billable,
+        SUM(oh.nobill::int) AS is_nobill,
+        SUM((NOT oh.nobill)::int) AS not_nobill
+
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT o.isabsence AND NOT oh.isrestshift
+        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
+        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+
+        GROUP BY o.id, c.code, o.code, oh.rosterdate
+        ORDER BY LOWER(c.code), LOWER(o.code), oh.rosterdate
+        """
+    #             AND NOT o.isabsence AND NOT oh.isrestshift
+    #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+    #             AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+    #             AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_billing, {
+        'compid': request.user.company_id,
+        'cid': customer_pk,
+        'oid': order_pk,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+    billing_rosterdate_list = f.dictfetchall(newcursor)
+    """
+    logger.debug('---------------------')
+    for row in billing_rosterdate_list:
+        logger.debug(str(row))
+    logger.debug('.......................')
+    """
+    return billing_rosterdate_list
+# - end of billing_agg_list
+
+
+def create_billing_detail_list(period_dict, request):
+    logger.debug(' ============= create_billing_detail_list ============= ')
+
+    period_datefirst = period_dict.get('period_datefirst')
+    period_datelast = period_dict.get('period_datelast')
+    order_pk = period_dict.get('order_pk')
+    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+    customer_pk = None
+    if order_pk is None:
+        customer_pk = period_dict.get('customer_pk')
+        customer_pk = customer_pk if customer_pk else None
+
+    logger.debug('period_datefirst:  ' + str(period_datefirst))
+    logger.debug('period_datelast:  ' + str(period_datelast))
+    logger.debug('order_pk:  ' + str(order_pk))
+
+    sql_billing = """
+        SELECT oh.id AS oh_id, o.id AS o_id, 
+        COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,
+        oh.rosterdate AS oh_rosterdate,
+        oh.shift AS oh_shift,
+        SUM(eh.timeduration) AS eh_timedur, 
+        SUM(eh.plannedduration) AS eh_plandur,
+        SUM(eh.billingduration) AS eh_bildur,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(oh.isbillable::int) AS is_billable,
+        SUM((NOT oh.isbillable)::int) AS not_billable,
+        SUM(oh.nobill::int) AS is_nobill,
+        SUM((NOT oh.nobill)::int) AS not_nobill
+
+        FROM companies_emplhour AS eh
+        LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT o.isabsence AND NOT oh.isrestshift
+        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
+        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+
+        GROUP BY oh.id, o.id, oh.rosterdate, oh.shift
+        ORDER BY oh.rosterdate, LOWER(oh.shift)
+        """
+    #             AND NOT o.isabsence AND NOT oh.isrestshift
+    #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+    #             AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+    #             AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_billing, {
+        'compid': request.user.company_id,
+        'cid': customer_pk,
+        'oid': order_pk,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+    billing_detail_list = f.dictfetchall(newcursor)
+    """
+    logger.debug('---------------------')
+    for row in billing_detail_list:
+        logger.debug(str(row))
+    logger.debug('.......................')
+    """
+    return billing_detail_list
+# - end of create_billing_detail_list
+

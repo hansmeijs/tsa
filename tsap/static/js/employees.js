@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
             employee: { tbl_col_count: 9,
                         //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
                         field_caption: ["Employee", "ID_number",  "Payroll_code_abbrev", "First_date_in_service", "Last_date_in_service", "Hours_per_week", "Days_per_week", "Leavedays"],
-                        field_names: ["code", "identifier",  "payrollcode", "datefirst", "datelast", "workhours", "workdays", "leavedays",  "delete"],
+                        field_names: ["code", "identifier",  "payrollcode", "datefirst", "datelast", "workhoursperweek", "workdays", "leavedays",  "delete"],
                         field_tags: ["input", "input", "input", "input", "input", "input", "input", "input", "a"],
                         field_width:  ["180", "120", "120","090", "090",  "090","090", "090", "032"],
                         field_align: ["l", "l", "l","r", "r",  "r", "r", "r", "c"]},
@@ -795,8 +795,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 };
         DatalistDownload(datalist_request);
 
-
-
     }  // HandleBtnCalendar
 
 
@@ -1427,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("search_datefirst", search_datefirst);
         //console.log("inactive_changed", inactive_changed);
         if(is_created){
-            const row_index = get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
+            const row_index = t_get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
         console.log("search_ row_index", row_index);
             let tblRow = CreateTblRow(tblBody_datatable, selected_btn, pk_int, ppk_int, selected_employee_pk, row_index, "UpdateTeammemberFromResponse")
             UpdateTblRow(tblRow, update_dict)
@@ -1536,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // move the new row in alfabetic order
                 let row_index = -1
                 if(tblName === "teammember") {
-                    //row_index = get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
+                    //row_index = t_get_rowindex_by_code_datefirst(tblBody_datatable, tblName, teammember_map, search_code, search_datefirst)
                 } else {
                     row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, user_lang);
                     tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
@@ -1734,10 +1732,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         const key_str = "value";
                         format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
 
-                    } else if (["workhours", "workdays", "leavedays"].indexOf( fldName ) > -1){
+                    } else if (["workhoursperweek", "workdays", "leavedays"].indexOf( fldName ) > -1){
                         let quotient = null;
                         if(!!Number(value)){
-                            const divisor = (fldName === "workhours") ? 60 : 1440;
+                            const divisor = (fldName === "workhoursperweek") ? 60 : 1440;
                             quotient = value / divisor
                         }
                         el_input.value = quotient
@@ -2008,7 +2006,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         field_dict["update"] = true;
                         upload_dict[fieldname] = field_dict;
-                        //set default value to workhours
+                        //set default value to workhoursperweek
                         if(fieldname === "team" && is_create){
                             // convert to hours, because input is in hours
                             // TODO add popup hours window
@@ -3203,9 +3201,13 @@ if(pgeName === "absence"){
         el_MFE_datefirst.value = (mod_dict.employee.datefirst ? mod_dict.employee.datefirst: null);
         el_MFE_datelast.value = (mod_dict.employee.datelast ? mod_dict.employee.datelast: null);
 
-        document.getElementById("id_MFE_workhours").value = (mod_dict.employee.workhours ? mod_dict.employee.workhours / 60 : null);
+        document.getElementById("id_MFE_workhoursperweek").value = (mod_dict.employee.workhoursperweek ? mod_dict.employee.workhoursperweek / 60 : null);
+        document.getElementById("id_MFE_workhoursperday").value = (mod_dict.employee.workminutesperday ? mod_dict.employee.workminutesperday / 60 : null);
         document.getElementById("id_MFE_workdays").value = (mod_dict.employee.workdays ? mod_dict.employee.workdays / 1440 : null);
         document.getElementById("id_MFE_leavedays").value =(mod_dict.employee.leavedays ?  mod_dict.employee.leavedays / 1440 : null);
+        console.log(">>>>>>>>>>>mod_dict.employee.paydatecode", mod_dict.employee.paydatecode)
+        document.getElementById("id_MFE_paydatecode").value = (mod_dict.employee.paydatecode ? mod_dict.employee.paydatecode : null);
+
 
 // set focus to clicked field
         const fldName = get_attr_from_el(el_input, "data-field")
@@ -3251,7 +3253,7 @@ if(pgeName === "absence"){
             if(el_input){
                 const fldName = get_attr_from_el(el_input, "data-field");
                 let new_value = null
-                if(["workhours", "workdays", "leavedays"].indexOf(fldName) > -1){
+                if(["workhoursperweek", "workdays", "leavedays"].indexOf(fldName) > -1){
                     const arr = get_number_from_input(loc, fldName, el_input.value);
                     new_value = arr[0];
                 } else {
@@ -3279,7 +3281,7 @@ if(pgeName === "absence"){
         let invalid_number = false;
         if(el_input){
             const fldName = get_attr_from_el(el_input, "data-field");
-            if(["workhours", "workdays", "leavedays"].indexOf(fldName) > -1){
+            if(["workhoursperweek", "workdays", "leavedays"].indexOf(fldName) > -1){
                 const arr = get_number_from_input(loc, fldName, el_input.value);
                 const msg_err = arr[1];
                 invalid_number = (msg_err);
@@ -3578,10 +3580,12 @@ if(pgeName === "absence"){
             datefirst: get_dict_value(employee_dict, ["datefirst", "value"]),
             datelast: get_dict_value(employee_dict, ["datelast", "value"]),
 
-            workminutesperday:  get_dict_value(employee_dict, ["workminutesperday", "value"]),
-            workhours: get_dict_value(employee_dict, ["workhours", "value"]),
+            workminutesperday: get_dict_value(employee_dict, ["workminutesperday", "value"]),
+            workhoursperweek: get_dict_value(employee_dict, ["workhoursperweek", "value"]),
             workdays: get_dict_value(employee_dict, ["workdays", "value"]),
             leavedays: get_dict_value(employee_dict, ["leavedays", "value"]),
+            paydatecode_pk: get_dict_value(employee_dict, ["paydatecode", "pk"]),
+            paydatecode: get_dict_value(employee_dict, ["paydatecode", "value"]),
 
             rowindex: row_index
         }
@@ -4379,8 +4383,9 @@ console.log( "reset mod_dict: ");
         if (shift_option === "isabsence") {
             // when absence: time_duration = workhoursperweek / 5. and not workhoursperday,
             // because absence days are always enterd 5 days per week.
-            const workhours =  get_dict_value(mod_dict, ["employee", "workhours", "value"], 0);
-            time_duration = workhours / 5
+            // TODO correct
+            const workhoursperweek =  get_dict_value(mod_dict, ["employee", "workhoursperweek", "value"], 0);
+            time_duration = workhoursperweek / 5
         } else{
             offset_start =  60 * mod_dict.calendar.rowindex;
         }

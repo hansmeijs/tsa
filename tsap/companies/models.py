@@ -132,10 +132,11 @@ class Company(TsaBaseModel):
     taxcode_id = IntegerField(null=True)
     invoicecode_id = IntegerField(null=True)
 
+    workminutesperday = IntegerField(default=480)  # default working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
+    entryrate = IntegerField(default=0) # /10000 unit is currency (US$, EUR, ANG)
+
     activated = BooleanField(default=False)
     activatedat = DateTimeField(null=True)
-
-    entryrate = IntegerField(default=0) # /10000 unit is currency (US$, EUR, ANG)
 
     class Meta:
         ordering = [Lower('code')]
@@ -190,7 +191,7 @@ class Pricecodeitem(TsaBaseModel):
     locked = None
 
     isprice = BooleanField(default=False)
-    isaddition = BooleanField(default=False)  # additionrate = /10.000 unitless additionrate 10.000 = 100%
+    isaddition = BooleanField(default=False)  # additionrate = /10.000 unitless additionrate 10.000 = 100%, or amount 10.000 = $100.00
     istaxcode = BooleanField(default=False)  # taxrate = /10.000 unitless taxrate 600 = 6%
     additionisamount = BooleanField(default=False)
 
@@ -501,7 +502,7 @@ class Scheme(TsaBaseModel):
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
     nohoursonsunday = BooleanField(default=False)
-    nohoursonweekend = BooleanField(default=False)  # TODO To be deprecated
+    # nohoursonweekend = BooleanField(default=False)  # deprecated
     nohoursonpublicholiday = BooleanField(default=False)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -590,7 +591,7 @@ class Employee(TsaBaseModel):
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
-    workhours = IntegerField(default=0)  # TODO rename working hours per week * 60, unit is minute. 40 hours = 2400 workhours
+    workhoursperweek = IntegerField(default=0)  # renamed. Was workhours. Working hours per week * 60, unit is minute. 40 hours = 2400 workhours
     workminutesperday = IntegerField(default=0)  # working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
     workdays = IntegerField(default=0)  # TODO deprecated: remove workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
@@ -841,7 +842,7 @@ class Emplhour(TsaBaseModel):
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     pricerate = IntegerField(null=True)  # /100 unit is currency (US$, EUR, ANG)
-    additionrate = IntegerField(default=0)  # additionrate = /10.000 unitless additionrate 10.000 = 100%
+    additionrate = IntegerField(default=0)  # additionrate = /10.000 unitless (10.000 = 100%) or fixed amount: 10.000 = $100
     additionisamount = BooleanField(default=False)
     taxrate = IntegerField(default=0)  # taxrate = /10.000 unitless taxrate 600 = 6%
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)

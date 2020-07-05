@@ -208,17 +208,14 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 # 4. get iddict variables
                 # mode = f.get_dict_value(upload_dict, ('id','mode'))
                 shift_option = f.get_dict_value(upload_dict, ('id','shiftoption'))
-                is_absence = f.get_dict_value(upload_dict, ('id','isabsence'))
-                # TODO shift_option instead of isabsence
-                if is_absence:
-                    shift_option = None
+
                 # key 'mode' is used in calendar_employee_upload etc .
                 # from customer_calendar shiftoption': 'schemeshift'
                 # from employee calendar : mode: "create" shiftoption: "issingleshift" "isabsence"
                 # from planning: shiftoption: "grid_team"
 
                 update_dict = {}
-                if shift_option in ('issingleshift', 'isabsence'):
+                if shift_option == 'issingleshift':
                     logger.debug('------------ shift_option: ' + str(shift_option))
                     # called by employee page, calendar
                     calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
@@ -254,20 +251,18 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     # 'table' has no value in mode 'grid_team'
                     update_wrap = grid_shift_upload(request, upload_dict, user_lang)
 
+                elif shift_option == 'isabsence':
+                    update_dict = absence_upload(request, upload_dict, user_lang)
+                    update_wrap['absence_update'] = update_dict
+
                 else:
                     table = f.get_dict_value(upload_dict, ('id','table'), '')
                     #logger.debug('table: ' + str(table))
                     if table == 'teammember':
-                        # called by scheme page, teammember table update
-                        # TODO replace 'id.isabsence' by shift_option == 'isabsence':
-                        if is_absence:
-                            update_dict = absence_upload(request, upload_dict, user_lang)
-                            update_wrap['absence_update'] = update_dict
-                        else:
-                            update_dict = teammember_upload(request, upload_dict, user_lang)
-                            update_wrap['teammember_update'] = update_dict
+                        update_dict = teammember_upload(request, upload_dict, user_lang)
+                        update_wrap['teammember_update'] = update_dict
 
-                if shift_option:
+                if shift_option in ('issingleshift', 'schemeshift'):
                     # get saved calendar_period_dict
                     period_dict = {'get': True}
                     calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
@@ -278,32 +273,6 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     #logger.debug('datefirst_iso: ' + str(datefirst_iso))
                     #logger.debug('datelast_iso: ' + str(datelast_iso))
 
-            # 3. get employee
-                    # was double ??
-                    """
-                    employee_pk = None
-                    employee_dict = upload_dict.get('employee')
-                    #logger.debug('ooooooooooooooooooooooooooo employee_dict: ' + str(employee_dict))
-                    if employee_dict:
-                        employee_pk = employee_dict.get('pk')
-                    #logger.debug('employee_pk: ' + str(employee_pk))
-                    logfile = []
-                    employee_calendar_list, logfile = plrf.create_employee_planning(
-                        datefirst_iso=datefirst_iso,
-                        datelast_iso=datelast_iso,
-                        customer_pk=None,
-                        order_pk=None,
-                        employee_pk=employee_pk,
-                        add_empty_shifts=False,
-                        skip_absence_and_restshifts=False,
-                        orderby_rosterdate_customer=False,
-                        comp_timezone=comp_timezone,
-                        timeformat=timeformat,
-                        user_lang=user_lang,
-                        request=request)
-                    if employee_calendar_list:
-                        update_wrap['employee_calendar_list'] = employee_calendar_list
-                    """
         #logger.debug('update_wrap: ' + str(update_wrap))
 
         # 9. return update_wrap
@@ -986,7 +955,7 @@ def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_l
                     teammember, mapped_dict_NIU = update_instance_from_item_dict(table, item_dict, team, user_lang, request)
 
     # return teammember_dict when row is updated, created or deleted
-                    teammember_update = d.create_teammember_dict_from_model(teammember, item_dict, user_lang)
+                    teammember_update = d.create_teammember_dict_from_model(teammember, item_dict)
                     logger.debug('.......... item_dict: ' + str(item_dict))
                     teammember_updates.append(teammember_update)
                     logger.debug('teammember_update: ' + str(teammember_update))
@@ -1272,13 +1241,9 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
         table = id_dict.get('table', '')
         pk_int = id_dict.get('pk')
         ppk_int = id_dict.get('ppk')
-        temp_pk_str = id_dict.get('temp_pk', '')
         row_index = id_dict.get('rowindex', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
-
-        logger.debug('is_delete: ' + str(is_delete))
-        logger.debug('is_create: ' + str(is_create))
 
 # 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         update_dict = f.create_update_dict(
@@ -1286,7 +1251,6 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             table=table,
             pk=pk_int,
             ppk=ppk_int,
-            temp_pk=temp_pk_str,
             row_index=row_index)
 
 # A. Delete teammember and its schemeitems, team and scheme
@@ -1361,36 +1325,14 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             #    logger.debug('shift_code: ' + str(shift_code))
 
 # - get offset_start, offset_end, time_duration
-            offset_start, is_offsetstart_update = None, False
-            field_dict = upload_dict.get('offsetstart')
-            if field_dict:
-                is_offsetstart_update = field_dict.get('update', False)
-                offset_start = field_dict.get('value')
-                logger.debug('offset_start: ' + str(offset_start))
-
-            offset_end, is_offsetend_update = None, False
-            field_dict = upload_dict.get('offsetend')
-            if field_dict:
-                is_offsetend_update = field_dict.get('update', False)
-                offset_end = field_dict.get('value')
-                logger.debug('offset_end: ' + str(offset_end))
-
-            breakduration, is_breakduration_update = 0, False
-            field_dict = upload_dict.get('breakduration')
-            if field_dict:
-                is_breakduration_update = field_dict.get('update', False)
-                breakduration = field_dict.get('value', 0)
-                logger.debug('breakduration: ' + str(breakduration))
-            #logger.debug('is_breakduration_update: ' + str(is_breakduration_update))
-
-            timeduration, is_timeduration_update = 0, False
-            field_dict = upload_dict.get('timeduration', 0)
-            logger.debug('timeduration field_dict: ' + str(field_dict))
-            if field_dict:
-                is_timeduration_update = field_dict.get('update', False)
-                timeduration = field_dict.get('value')
-            logger.debug('timeduration: ' + str(timeduration))
-            logger.debug('is_timeduration_update: ' + str(is_timeduration_update))
+            offset_start = f.get_dict_value(upload_dict, ('offsetstart', 'value'))
+            is_offsetstart_update = f.get_dict_value(upload_dict, ('offsetstart', 'update'), False)
+            offset_end = f.get_dict_value(upload_dict, ('offsetend', 'value'))
+            is_offsetend_update = f.get_dict_value(upload_dict, ('offsetend', 'update'), False)
+            break_duration = f.get_dict_value(upload_dict, ('breakduration', 'value'), 0)
+            is_breakduration_update = f.get_dict_value(upload_dict, ('breakduration', 'update'), False)
+            time_duration = f.get_dict_value(upload_dict, ('timeduration', 'value'), 0)
+            is_timeduration_update = f.get_dict_value(upload_dict, ('timeduration', 'update'), False)
 
             nopay, is_nopay_update = False, False
             field_dict = upload_dict.get('nopay')
@@ -1461,8 +1403,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                                 istemplate=False,
                                 offsetstart=offset_start,
                                 offsetend=offset_end,
-                                breakduration=breakduration,
-                                timeduration=timeduration
+                                breakduration=break_duration,
+                                timeduration=time_duration
                             )
                             shift.save(request=request)
                             logger.debug('shift: ' + str(shift))
@@ -1551,7 +1493,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                             is_nohoursonsaturday_update or is_nohoursonsunday_update or is_nohoursonpublicholiday_update:
                         scheme.save(request=request)
 
-# update shift - absence can only have obe shift: delete the rest if multiple are found, create one if none found
+# update shift - absence can only have one shift: delete the rest if multiple are found, create one if none found
                 if not m.Shift.objects.filter(scheme=scheme).exists():
                     # - create new shift if none exists
                     shift = m.Shift(
@@ -1561,8 +1503,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                         istemplate=False,
                         offsetstart=offset_start,
                         offsetend=offset_end,
-                        breakduration=breakduration,
-                        timeduration=timeduration
+                        breakduration=break_duration,
+                        timeduration=time_duration
                     )
                     shift.save(request=request)
                     logger.debug('created shift: ' + str(shift))
@@ -1575,14 +1517,24 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                         if shift_count < 2:
                             if is_offsetstart_update or is_offsetend_update \
                                     or is_breakduration_update or is_timeduration_update:
-                                logger.debug('shift: ' + str(shift))
-                                if is_offsetstart_update:
-                                    shift.offsetstart = offset_start
-                                if is_offsetend_update:
-                                    shift.offsetend = offset_end
 
-                                shift.breakduration = breakduration
-                                shift.timeduration = timeduration
+                                logger.debug('offset_start: ' + str(offset_start))
+                                logger.debug('offset_end: ' + str(offset_end))
+                                logger.debug('break_duration: ' + str(break_duration))
+                                logger.debug('time_duration: ' + str(time_duration))
+
+                                if is_offsetstart_update and offset_start != shift.offsetstart:
+                                    shift.offsetstart = offset_start
+                                    update_dict['shift']['offsetstart'] = {'updated': True}
+                                if is_offsetend_update and offset_end != shift.offsetend:
+                                    shift.offsetend = offset_end
+                                    update_dict['shift']['offsetend'] = {'updated': True}
+                                if is_breakduration_update and break_duration != shift.breakduration:
+                                    shift.breakduration = break_duration
+                                    update_dict['shift']['breakduration'] = {'updated': True}
+                                if is_timeduration_update and time_duration != shift.timeduration:
+                                    shift.timeduration = time_duration
+                                    update_dict['shift']['timeduration'] = {'updated': True}
                                 shift.save(request=request)
                                 logger.debug('updated shift: ' + str(shift))
                         else:
@@ -1620,7 +1572,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
 # f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
             if teammember:
-                d.create_teammember_dict_from_model(teammember, update_dict, user_lang)
+                d.create_teammember_dict_from_model(teammember, update_dict)
 
 # h. remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
@@ -1695,7 +1647,7 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
                     update_teammember(instance, upload_dict, update_dict, request)
 # f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
             if instance:
-                d.create_teammember_dict_from_model(instance, update_dict, user_lang)
+                d.create_teammember_dict_from_model(instance, update_dict)
 
 # h. remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
@@ -2621,7 +2573,7 @@ def upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test,
                                     update_str = ((new_date_iso or blank_str) + space_str)[:25] + old_value_str
                                     logfile.append(caption_txt + update_str)
 
-                    elif field in ('workhours', 'workdays', 'leavedays'):
+                    elif field in ('workhoursperweek', 'workdays', 'leavedays'):
             # - get new value, convert to number
                         new_value = empl_dict.get(field)
                         new_value_float, msg_err = f.get_float_from_string(new_value)
@@ -2630,7 +2582,7 @@ def upload_employee(empl_dict, lookup_field, lookup_count, tsaKey_list, is_test,
                         if msg_err:
                             field_dict['error'] = msg_err
                         else:
-                            multiplier = 60 if field == 'workhours' else 1440
+                            multiplier = 60 if field == 'workhoursperweek' else 1440
                             new_value_minutes = int(new_value_float * multiplier)
                             field_dict['value'] = new_value_minutes
 
@@ -2733,7 +2685,7 @@ def get_field_caption(table, field):
             caption = _('First date in service')
         elif field == 'datelast':
             caption = _('Last date in service')
-        elif field == 'workhours':
+        elif field == 'workhoursperweek':
             caption = _('Workhours per week')
         elif field == 'workdays':
             caption = _('Workdays per week')

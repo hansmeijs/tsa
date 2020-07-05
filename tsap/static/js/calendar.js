@@ -808,7 +808,7 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
         } else if (el_datelast.value) {
             datelast_mindate = el_datefirst.value;
         }
-// ---  set 'min' and 'max' atribute of el_datefirst
+// ---  set 'min' and 'max' atribute of el_datelast
         add_or_remove_attr (el_datelast, "min", (datelast_mindate != null), datelast_mindate);
         add_or_remove_attr (el_datelast, "max", (datelast_maxdate != null), datelast_maxdate);
     }; // cal_SetDatefirstlastMinMax
