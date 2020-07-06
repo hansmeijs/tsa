@@ -739,7 +739,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Endtime_confirmed'] = TXT_Endtime_confirmed
         dict['This_shift_is_locked'] = TXT_This_shift_is_locked
         dict['This_isa_planned_shift'] = TXT_This_isa_planned_shift
-
+        dict['This_isa_restshift'] = TXT_This_isa_restshift
 
         dict['Period'] = TXT_Period
         dict['Customer'] = TXT_Customer
@@ -1238,6 +1238,7 @@ TXT_Starttime_confirmed = _('Starttime confirmed')
 TXT_Endtime_confirmed = _('Endtime confirmed')
 TXT_This_shift_is_locked = _('This shift is locked.')
 TXT_This_isa_planned_shift = _('This is a planned shift.')
+TXT_This_isa_restshift = _('This is a rest shift.')
 
 # get weekdays translated
 TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))

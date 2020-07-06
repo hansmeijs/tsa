@@ -590,7 +590,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleSelectOrder(sel_customer_pk, sel_order_pk ) {
         console.log("=====  HandleSelectOrder =========");
         console.log("mod_MSCO_dict: ", mod_MSCO_dict)
-        console.log( "is_template_mode", is_template_mode);
+        console.log( "sel_customer_pk", sel_customer_pk);
+        console.log( "sel_order_pk", sel_order_pk);
         //called by MSCO_Save, HandleSelectCustomer select_order.Event.Change, MSCH_Validate
         // retrieve the schemes etc of selected order from database
 // ---  reset lists
@@ -635,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sel_order_pk){
 // --- save selected.order_pk in Usersettings, not in template mode
             if(!is_template_mode){
-                const upload_dict ={selected_pk: {sel_customer_pk: sel_customer_pk, sel_order_pk: sel_order_pk}};
+                const upload_dict = {selected_pk: {sel_customer_pk: sel_customer_pk, sel_order_pk: sel_order_pk}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
         }
@@ -657,8 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //                            page_scheme_list: {order_pk: sel_order_pk,
         //                                                 istemplate: is_template_mode,
          //                                                isabsence: is_absence_mode}};
-        const datalist_request = { setting: {selected_pk: {get: true}},
-                                    page_scheme_list: {order_pk: sel_order_pk,
+        const datalist_request = { setting: {selected_pk: {sel_customer_pk: sel_customer_pk, sel_order_pk: sel_order_pk}},
+                                    page_scheme_list: {customer_pk: sel_customer_pk, order_pk: sel_order_pk,
                                                          istemplate: is_template_mode,
                                                          isabsence: is_absence_mode}};
         DatalistDownload(datalist_request);
@@ -4544,6 +4545,9 @@ if(selected_btn === "btn_absence"){
             } else {
                 mod_MSCO_dict.order_pk = get_attr_from_el_int(tblRow, "data-pk");
                 mod_MSCO_dict.customer_pk = get_attr_from_el_int(tblRow, "data-ppk");
+
+        console.log("mod_MSCO_dict.order_pk", mod_MSCO_dict.order_pk);
+        console.log("mod_MSCO_dict.customer_pk", mod_MSCO_dict.customer_pk);
                 MSCO_Save();
             }
         }
@@ -4581,6 +4585,7 @@ if(selected_btn === "btn_absence"){
 //=========  MSCO_Save  ================ PR2020-05-21 cleaned
     function MSCO_Save() {
         console.log("=====  MSCO_Save =========");
+        console.log("mod_MSCO_dict", mod_MSCO_dict);
         // don't update selected.customer_pk and selected.order_pk until response
         HandleSelectOrder(mod_MSCO_dict.customer_pk, mod_MSCO_dict.order_pk );
 // hide modal

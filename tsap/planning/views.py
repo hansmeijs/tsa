@@ -2760,11 +2760,7 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
             update_dict['id']['temp_pk'] = temp_pk_str
 
 # - get rosterdate
-    rosterdate_dte = None
-    order = None
-    orderhour = None
-    emplhour = None
-
+    rosterdate_dte, order, orderhour, emplhour, schemeitem_pk, teammember_pk = None, None, None, None, None, None
     field = 'rosterdate'
     if field in upload_dict:
         # a. get new and old value
@@ -2801,6 +2797,11 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
                 if shift:
                     is_restshift = shift.isrestshift
         is_billable = f.get_billable_from_order_shift(order, shift)
+
+# try to get schemeitem_pk, teammember_pk PR2020-07-05
+        # don't.'schemeitem_pk / teammember_pk / rosterdate combination is used to skip planned records when
+        # rosetdrate is made for a second time or more.
+        # a planned shift might be skipped because of an adde d shift
 
 # - get invoicedate
         # TODO get invoicedate from order settings, make it end of this month for now
@@ -3372,6 +3373,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
 # --- recalculate timeduration and amount, addition, tax, wage
         #logger.debug('calculate working hours')
         if recalc_duration:
+            logger.debug(' --- recalc_duration --- ')
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
             field = 'timeduration'
@@ -3389,26 +3391,50 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
             if emplhour.orderhour.isbillable:
     # - save billingduration
                 setattr(emplhour, 'billingduration', emplhour.timeduration)
+
+    # get pricerate, additionrate, taxrate
+            pricecode = f.get_pat_code_cascade('shift', 'pricecode', None, emplhour.orderhour, request)
+            pricecode_pk = pricecode.pk if pricecode else None
+            price_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
+                'pricecode', pricecode_pk, emplhour.rosterdate)
+
+            logger.debug('pricecode_pk: ' + str(pricecode_pk))
+            logger.debug('price_rate: ' + str(price_rate))
+
+            additioncode = f.get_pat_code_cascade('shift', 'additioncode', None, emplhour.orderhour, request)
+            additioncode_pk = additioncode.pk if additioncode else None
+            addition_rate, addition_is_amount = f.get_pricerate_from_pricecodeitem(
+                'additioncode', additioncode_pk, emplhour.rosterdate)
+
+            logger.debug('additioncode_pk: ' + str(additioncode_pk))
+            logger.debug('addition_rate: ' + str(addition_rate))
+
+            taxcode = f.get_pat_code_cascade('shift', 'taxcode', None, emplhour.orderhour, request)
+            taxcode_pk = taxcode.pk if taxcode else None
+            tax_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
+                'taxcode', taxcode_pk, emplhour.rosterdate)
+
     # - calculate amount, addition and tax
             amount, addition, tax = f.calc_amount_addition_tax_rounded(
                 billing_duration=emplhour.billingduration,
-                is_absence=emplhour.orderhour.isabsence,
+                is_absence=emplhour.orderhour.order.isabsence,
                 is_restshift=emplhour.orderhour.isrestshift,
-                price_rate=emplhour.pricerate,
-                addition_rate=emplhour.additionrate,
-                additionisamount=emplhour.additionisamount,
-                tax_rate=emplhour.taxrate)
+                price_rate=price_rate,
+                addition_rate=addition_rate,
+                additionisamount=addition_is_amount,
+                tax_rate=tax_rate)
+
+            logger.debug('amount: ' + str(amount))
+            logger.debug('addition: ' + str(addition))
+
+            emplhour.pricerate = price_rate
+            emplhour.additionrate = addition_rate
+            emplhour.additionisamount = addition_is_amount
+            emplhour.taxrate = tax_rate
             emplhour.amount = amount
             emplhour.addition = addition
             emplhour.tax = tax
 
-           #logger.debug(' --- recalc_duration --- ')
-           #logger.debug('plannedduration: ' + str(emplhour.plannedduration))
-           #logger.debug('time_duration: ' + str(emplhour.timeduration))
-           #logger.debug('billing_duration: ' + str(emplhour.billingduration))
-           #logger.debug('isbillable: ' + str(emplhour.orderhour.isbillable))
-           #logger.debug('pricerate: ' + str(emplhour.pricerate))
-           #logger.debug('amount: ' + str(amount))
         # also recalculate datepart when start- and endtime are given # PR2020-03-23
             date_part = 0
             if emplhour.rosterdate and emplhour.timestart and emplhour.timeend:

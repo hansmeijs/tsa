@@ -175,9 +175,6 @@ class Pricecode(TsaBaseModel):
     class Meta:
         ordering = ['sequence']
 
-    def __str__(self):
-        return self.code
-
 
 class Pricecodeitem(TsaBaseModel):
     objects = TsaManager()
@@ -737,7 +734,7 @@ class Schemeitem(TsaBaseModel):
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
-                scheme = Scheme.objects.get_or_none(pk=self.scheme.id)
+                scheme = Scheme.objects.get_or_none(pk=self.scheme.pk)
                 if scheme:
                     #logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only)
@@ -787,6 +784,7 @@ class Orderhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
+    invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicedate = DateField(db_index=True, null=True)
     lockedinvoice = BooleanField(default=False)
 
@@ -837,9 +835,14 @@ class Emplhour(TsaBaseModel):
     excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
 
     wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     pricerate = IntegerField(null=True)  # /100 unit is currency (US$, EUR, ANG)
     additionrate = IntegerField(default=0)  # additionrate = /10.000 unitless (10.000 = 100%) or fixed amount: 10.000 = $100

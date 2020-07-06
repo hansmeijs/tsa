@@ -822,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        //console.log(" ------>>  UpdateTableRow", tblName);
+        console.log(" ------  UpdateTableRow", tblName);
 
         if (!!item_dict && !!tblRow) {
 
@@ -896,6 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
                     if(!!el_input){
+                        const is_restshift = get_dict_value(item_dict, ["id", "isrestshift"], false)
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
@@ -926,17 +927,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value (field_dict, ["code"])
-                                if(!!value){el_input.value = value} else {el_input.value = null}
-
+                                if(value){
+                                    if (is_restshift) {value += " (R)"}
+                                } else {
+                                    value = (is_restshift) ? loc.Rest_shift : null
+                                }
+                                el_input.value = value
+                                if (is_restshift) {el_input.title = loc.This_isa_restshift}
+                                console.log(" ------  UpdateTableRow", tblName);
                             } else if (["order", "employee"].indexOf( fieldname ) > -1){
                                  // disable field orderhour
                                 if (fieldname === "order") {
                                     //field_dict.display = customer_code + " - " + order_code;;
                                     const key_str = "display";
                                     format_text_element (el_input, key_str, null, field_dict, false, [-220, 60]);
+                                    el_input.disabled = (is_locked || is_restshift);
                                 } else  if (fieldname === "employee") {
                                     // disable field employee when this is restshift
-                                    const is_restshift = get_dict_value(item_dict, ["id", "isrestshift"], false)
                                     if (is_restshift) { field_dict["locked"] = true }
                                     const key_str = "code";
                                     format_text_element (el_input, key_str, el_msg, field_dict, false, [-220, 60], title_overlap);

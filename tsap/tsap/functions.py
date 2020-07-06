@@ -2166,7 +2166,7 @@ def get_rate_from_value(value):
 def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9 PR20202-07-04
     # logger.debug(' ============= get_pricecodeitem ============= ')
     # logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
-
+    # additionisamount is only used in addition
     pricerate = 0
     additionisamount = False
     if pricecode_pk:
@@ -2239,6 +2239,32 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
             if lookup_wagefactor in rosterdate_dict:
                 pricerate = rosterdate_dict[lookup_wagefactor]
     return pricerate
+
+
+def get_pat_code_cascade(table, field, pat_code, orderhour, request):
+    logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05
+    # - get pricerate and amount and tax, seacrh higher levels when None
+    pat_code_cascade = pat_code
+    if orderhour:
+        if table == 'shift' and pat_code_cascade is None and orderhour.schemeitem:
+            scheme = orderhour.schemeitem.scheme
+            if scheme:
+                pat_code_cascade = getattr(scheme, field)
+        if table in ('shift','scheme') and pat_code_cascade is None:
+            order = orderhour.order
+            if order:
+                pat_code_cascade = getattr(order, field)
+        if table in ('shift','scheme', 'order') and pat_code_cascade is None and orderhour.order:
+            customer = orderhour.order.customer
+            if customer:
+                pat_code_cascade = getattr(customer, field)
+        if table in ('shift', 'scheme', 'order', 'customer') and pat_code_cascade is None:
+            if request.user.company:
+                # company has no linked field, use pricecode_id etc instead
+                pat_code_id = getattr(request.user.company, field + '_id')
+                if pat_code_id:
+                    pat_code_cascade = m.Pricecode.objects.get_or_none(id=pat_code_id)
+    return pat_code_cascade
 
 
 def save_pricerate_to_instanceXXX(instance, rosterdate, wagefactor, new_value, update_dict, field):
@@ -2334,14 +2360,17 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 
 def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
                              price_rate, addition_rate, additionisamount, tax_rate):  # PR2020-04-28 PR2020-07-04
-    #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
+    logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     amount, addition, tax = 0, 0, 0
+    logger.debug('price_rate: ' + str(price_rate))
+    logger.debug('is_absence: ' + str(is_absence))
+    logger.debug('is_restshift: ' + str(is_restshift))
     if price_rate and not is_absence and not is_restshift:
         base_duration = billing_duration # if is_billable else time_duration
-        #logger.debug('base_duration: ' + str(base_duration))
-        #logger.debug('price_rate: ' + str(price_rate))
-        #logger.debug('addition_rate: ' + str(addition_rate))
-        #logger.debug('tax_rate: ' + str(tax_rate))
+        logger.debug('base_duration: ' + str(base_duration))
+        logger.debug('price_rate: ' + str(price_rate))
+        logger.debug('addition_rate: ' + str(addition_rate))
+        logger.debug('tax_rate: ' + str(tax_rate))
         if base_duration:
             amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
             # use math.floor instead of int(), to get correct results when amount is negative
@@ -2356,9 +2385,9 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
             tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
             tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
-    #logger.debug('amount: ' + str(amount))
-    #logger.debug('addition: ' + str(addition))
-    #logger.debug('tax: ' + str(tax))
+    logger.debug('amount: ' + str(amount))
+    logger.debug('addition: ' + str(addition))
+    logger.debug('tax: ' + str(tax))
     return amount, addition, tax
 
 

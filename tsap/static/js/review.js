@@ -679,8 +679,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= ShowBillingRow  ==================================== PR2020-06-15
     function ShowBillingRow(filter_row, filter_dict, col_count) {
         // only called by FillPayrollRows
-        console.log( "===== ShowBillingRow  ========= ");
-        console.log( "filter_dict", filter_dict);
+        //console.log( "===== ShowBillingRow  ========= ");
+        //console.log( "filter_dict", filter_dict);
         let hide_row = false;
         if (!!filter_row){
 // ---  show all rows if filter_name = ""
@@ -696,8 +696,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         const filter_value = arr[1];
                         const cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
 
-        console.log( "filter_row", filter_row);
-        console.log( "cell_value", cell_value);
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if(mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
@@ -727,13 +725,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }  // if (!hide_row)
         }  // if (!!tblRow)
 
-        console.log( "hide_row", hide_row);
         return !hide_row
     }; // ShowBillingRow
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26 PR2020-07-03
-        console.log( "===== ResetFilterRows  ========= ");
+        //console.log( "===== ResetFilterRows  ========= ");
 
         //filter_select = "";
         filter_mod_employee = "";
@@ -775,6 +772,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected_customer_code = get_dict_value (map_dict, ["customer", "code"]);
                 billing_level = 1;
                 //UpdateHeaderText();
+               // reset filter_dict
+               filter_dict = {};
                CreateBillingHeader();
                FillBillingRows();
         // --- show sbr button 'back to overview'
@@ -790,13 +789,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected_customer_code = get_dict_value (map_dict, ["customer", "code"]);
                 billing_level = 2;
                 //UpdateHeaderText();
+               // reset filter_dict
+               filter_dict = {};
                CreateBillingHeader();
                FillBillingRows();
         // --- show sbr button 'back to overview'
                //el_sbr_select_showall.classList.remove(cls_hide)
 
         } else {
-
+/*
             const emplhour_pk = get_attr_from_el_int(tr_clicked, "data-pk");
             let upload_dict = {
                 id: {table: "emplhour"},
@@ -810,12 +811,13 @@ document.addEventListener('DOMContentLoaded', function() {
             is_billing_detail_mod_mode = true;
             // ---  show modal
             $("#id_mod_emplhour_payroll").modal({backdrop: true});
+*/
         }
     }  // HandleAggRowClicked
 
 //=========  UpdateHeaderText ================ PR2020-07-03
     function UpdateHeaderText() {
-        console.log( "===== UpdateHeaderText  ========= ");
+        //console.log( "===== UpdateHeaderText  ========= ");
 
 // set selected_paydateitem_iso = null when not in paydateitems_inuse_list
         if(!item_found) {selected_paydateitem_iso = null}
@@ -848,8 +850,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleBillingFilter  ====================================
     function HandleBillingFilter(el, col_index, el_key) {
-        console.log( "===== HandleBillingFilter  ========= ");
-        console.log( "col_index ", col_index, "el_key ", el_key);
+        //console.log( "===== HandleBillingFilter  ========= ");
+        //console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
@@ -866,7 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (col_index in filter_dict) {filter_dict_text = filter_dict[col_index]}
             let el_value_str = (el.value) ? el.value.toString() : "";
             let filter_text = el_value_str.trim().toLowerCase();
-        console.log( "filter_text ", filter_text);
+        //console.log( "filter_dict_text ", filter_dict_text);
+        //console.log( "filter_text ", filter_text);
             if (!filter_text){
                 if (filter_dict_text){
                     delete filter_dict[col_index];
@@ -917,263 +920,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
                 };
-        console.log( "filter_value ", filter_value);
                 filter_dict[col_index] = [mode, filter_value];
-        console.log( "filter_dict ", filter_dict);
             }
         }
         //UpdateHeaderText();
         FillBillingRows();
     }  // HandleBillingFilter
 
-
-
 // +++++++++++++++++ END OF BILLING OVERVIEW  +++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-//=========  CreateTblRow  ================ PR2019-04-27
-    function CreateTblRow(rptName, tblName, comp_id, empl_id, cust_id, ordr_id, ehoh_id, rosterdate_iso) {
-        //console.log("=========  CreateTblRow =========", rptName, tblName);
-
-// ---  insert tblRow ino tblBody_datatable
-        let tblRow = tblBody_datatable.insertRow(-1);
-
-        tblRow.setAttribute("data-table", tblName )
-        let row_id = null;
-        if (tblName === "empl" && !!empl_id){ row_id = tblName + empl_id.toString() } else
-        if (tblName === "cust" && !!cust_id){ row_id = tblName + cust_id.toString() } else
-        if (tblName === "ordr" && !!ordr_id){
-            if (rptName === "employee" && !!empl_id){ row_id = tblName + ordr_id.toString()  + "_empl" + empl_id.toString()} else
-            if (rptName === "customer" && !!ordr_id){ row_id = tblName + ordr_id.toString() };
-        } else
-        if (tblName === "date" && !!rosterdate_iso){ row_id = tblName + rosterdate_iso + "_ordr" + ordr_id.toString() };
-        if (tblName === "ehoh" && !!ehoh_id){ row_id = tblName + ehoh_id.toString() } else
-
-        if(!!row_id) {
-            tblRow.setAttribute("id", row_id)
-        };
-
-// ---  add EventListener to tblRow.
-        // dont add this EventListener to tblRow - to td's except last one instead
-
-//+++ insert td's in tblRowe
-        for (let j = 0; j < tbl_col_count; j++) {
-            // index -1 results in that the new cell will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            let el = document.createElement("a");
-            td.appendChild(el);
-
-// --- add width and text_align
-            td.classList.add("tw_" + field_width[j]);
-            td.classList.add("ta_" + field_align[j]);
-
-// --- add margin to first column
-            if ( j === 0) {
-                el.classList.add("ml-2")
-            }
-// --- add EventListener to td
-            if (j === 10)  {
-                // TODO open editor
-            } else {
-                td.addEventListener("click", function(event) {HandleTableRowClickedOrDoubleClicked(tblRow, event)}, false)
-            }
-// --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([4, 6].indexOf(j) > -1) {
-                //dont show pointer. Was: el.setAttribute("href", "#");
-                AppendChildIcon(el, imgsrc_stat00, "18")
-                td.classList.add("pt-0")
-            } else if (j === 10) {
-            // --- first add <a> element with EventListener to td
-                // don't use href. It  will cause the screen to go to the top when clicked
-                //el.setAttribute("href", "#");
-                el.classList.add("pointer_show")
-                AppendChildIcon(el, imgsrc_stat00, "18")
-                td.classList.add("pt-0")
-            }  //if (j === 0)
-
-// add classlists for collapsing and expanding
-            // row_id: cust_678 is set as tblRow.id
-            // subrow must collapse and expand:
-            //   add x_cust_678 to first sublevel row, add c_cust_678 to all other sub-subrowsorder row, add c_cust_678 to scheme and shift row
-
-            if (rptName === "employee" && !!empl_id) {
-                if(tblName === "ordr"){
-                    tblRow.classList.add("x_empl" + empl_id.toString());
-                } else if(tblName === "ehoh"){
-                    if(!!rosterdate_iso) {tblRow.classList.add( "x_ordr" + ordr_id.toString() + "_empl" + empl_id.toString())};
-                    tblRow.classList.add("c_empl" + empl_id.toString());
-                }
-            } else if (rptName === "customer") {
-                if(tblName === "ordr"){
-                    if(!!cust_id) { tblRow.classList.add("x_cust" + cust_id.toString())};
-                } else if(tblName === "date"){
-                    if(!!ordr_id) {tblRow.classList.add("x_ordr" + ordr_id.toString())};
-                    if(!!cust_id) {tblRow.classList.add("c_cust" + cust_id.toString())};
-                } else if(tblName === "ehoh"){
-                    if(!!rosterdate_iso && !!ordr_id) {tblRow.classList.add("x_date" + rosterdate_iso + "_ordr" + ordr_id.toString())};
-                    if(!!ordr_id) {tblRow.classList.add("c_ordr" + ordr_id.toString())};
-                    if(!!cust_id) {tblRow.classList.add("c_cust" + cust_id.toString())};
-                }
-            }  //  else if (rptName === "customer") {
-// set color of total rows
-            if(tblName === "comp"){
-                tblRow.classList.add("tsa_bc_darkgrey");
-                tblRow.classList.add("tsa_color_white");
-            } else if(["empl", "cust"].indexOf(tblName)  > -1){
-                tblRow.classList.add("tsa_bc_mediumgrey");
-                //tblRow.classList.add("tsa_color_white");
-            } else if(tblName === "ordr"){
-                tblRow.classList.add("tsa_bc_lightgrey");
-            } else if(tblName === "date"){
-                tblRow.classList.add("tsa_bc_lightlightgrey");
-            }
-
-// when creating table: add 'subrows_hidden' to all totals except "comp". It keeps track if  subrows are hidden
-            const subrows_hidden = (["empl", "cust", "ordr", "date"].indexOf(tblName) > -1)
-            if(subrows_hidden) {tblRow.setAttribute("data-subrows_hidden", true)};
-
-// when creating table: hide rows except Grand Total and customer total / employee total
-            const is_show = (["comp", "empl", "cust"].indexOf(tblName) > -1);
-            add_or_remove_class (tblRow, cls_hide, !is_show)
-
-        }  // for (let j = 0; j < 8; j++)
-        return tblRow
-    };// CreateTblRow
-
-//========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, dict){
-        //console.log(" ---- UpdateTableRow ---- ");
-        //console.log("dict:", dict );
-        // dict keys: report, table, code, shift, plan_dur, time_dur,  bill_dur, abs_dur, billable_012, show_warning, pricerate, additionrate, amount, status
-        if (!!tblRow){
-            const rptName = dict.report;
-            const tblName = dict.table;
-        //console.log("rptName: ", rptName);
-        //console.log("tblName: ", tblName);
-
-// --- loop through cells of tablerow
-            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
-                let el = tblRow.cells[i].children[0];
-                if (i === 0) {
-                    el.innerText = (!!dict.code) ? dict.code : "";
-                } else if (i === 1) {
-                    el.innerText =  (!!dict.shift) ? dict.shift : "";
-                } else if (i === 2) {
-                    el.innerText = format_total_duration (dict.plan_dur, loc.user_lang)
-                } else if (i === 3) {
-                    el.innerText = format_total_duration (dict.time_dur, loc.user_lang)
-                } else if (i === 4) {
-                    let imgsrc = imgsrc_stat00;
-                    if (rptName === "customer"){
-                        if (dict.billable_012 === 2) {
-                            imgsrc = imgsrc_bill03
-                        } else if (dict.billable_012 === 1) {
-                            if (tblName === "comp" || tblName === "cust") {
-                                imgsrc = imgsrc_bill01_lightlightgrey
-                            } else {
-                                imgsrc = imgsrc_bill01_lightgrey
-                            }
-                        }
-                    } else if (rptName === "employee" && dict.show_warning){
-                        imgsrc = imgsrc_warning;
-                    }
-                    IconChange(el, imgsrc);
-                } else if (i === 5) {
-                    if (rptName === "customer"){
-                        el.innerText = format_total_duration (dict.bill_dur, loc.user_lang)
-                    } else  if (rptName === "employee"){
-                        el.innerText = format_total_duration (dict.abs_dur, loc.user_lang)
-                    }
-                } else if (i === 6) {
-                    const imgsrc = (rptName === "customer" && dict.show_warning) ? imgsrc_warning : imgsrc_stat00;
-                    IconChange(el, imgsrc);
-                } else if (i === 7) {
-                   el.innerText = (!!dict.pricerate) ? dict.pricerate : null;
-                } else if (i === 8) {
-                   el.innerText = (!!dict.additionrate) ? dict.additionrate : null;
-                } else if (i === 9) {
-                   el.innerText =  (!!dict.amount) ? dict.amount : null;
-                } else if (i === 10) {
-                    //if (dict.status){
-                        //IconChange(el, imgsrc_stat04)
-                    //}
-                }
-            }  //  for (let j = 0; j < 8; j++)
-        } // if (!!tblRow)
-    }  // function UpdateTableRow
-
-    function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
-        //console.log("=== HandleTableRowClickedOrDoubleClicked");
-        // PR2020-02-24 dont use doubelckick event, wil also trigger clcik twice. Use this function instead
-        // from https://stackoverflow.com/questions/880608/prevent-click-event-from-firing-when-dblclick-event-fires#comment95729771_29993141
-
-        // event.detail: for mouse click events: returns the number of clicks.
-        switch (event.detail) {
-            case 1:
-                HandleTableRowClicked(tblRow)
-                break;
-            case 2:
-                HandleTableRowDoubleClicked(tblRow)
-        }
-    }
-
-//=========  HandleTableRowClicked  ================ PR2020-03-10
-    function HandleTableRowClicked(tblRow) {
-        console.log("=== HandleTableRowClicked");
-        console.log( "tblRow: ", tblRow, typeof tblRow);
-        if(!!tblRow) {
-            const tblName = get_attr_from_el(tblRow, "data-table")
-            const is_totalrow = (["empl", "cust", "ordr", "date"].indexOf(tblName) > -1)
-            if (is_totalrow){
-                const row_id = tblRow.id // id = 'cust_694'
-                let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
-                console.log( "tblName: ", tblName);
-                console.log( "row_id: ", row_id);
-                console.log( "current subrows_hidden: ", subrows_hidden);
-                if (subrows_hidden){
-                    // expand first level below this one, i.e. the rows with class = 'x_cust_694'
-                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
-                    add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, false, ".x_" + row_id);
-                console.log( "expand first level below this one, the rows with class ", "x_" + row_id);
-                    // remove attribute 'subrows_hidden' from this tblRow
-                    tblRow.removeAttribute("data-subrows_hidden")
-                } else {
-                    // collaps all levels below this one, i.e. the rows with class = 'c_cust_694, plus the rows with class = 'x_cust_694'
-                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
-                    let filter_class = ".c_" + row_id + ", .x_" + row_id;
-                    add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, true, filter_class);
-                    console.log( "collaps all levels below this, the rows with class ", "x_" + row_id);
-                    // add attribute 'subrows_hidden' from this tblRow
-                    tblRow.setAttribute("data-subrows_hidden", true)
-                }
-            }
-        }
-    }  // HandleTableRowClicked
-
-//=========  HandleTableRowDoubleClicked  ================ PR2019-03-30
-    function HandleTableRowDoubleClicked(tblRow) {
-    //console.log("=== HandleTableRowDoubleClicked");
-        // doubleclick expands all child elements of this tblRow
-        if(!!tblRow) {
-            const tblName = get_attr_from_el(tblRow, "data-table")
-            const is_totalrow = (tblName !== "ehoh")
-            if (is_totalrow ){
-                const row_id = tblRow.id //  id = 'cust_694'
-    //console.log("row_id: ", row_id);
-                let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
-                if (!subrows_hidden){
-                    // expand all levels below this one, i.e. the rows with class = 'c_cust_694',
-                    // rows with class = 'x_cust_694' are already expanded on first click
-                    let filter_class = ".c_" + row_id;
-                    add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, false, filter_class);
-                    // remove attribute 'subrows_hidden' from all lower level subtotal rows
-                    filter_class = ".x_" + row_id;
-                    add_or_remove_attr_with_qsAll(tblBody_datatable, filter_class, "data-subrows_hidden", false, null)
-                }
-            }  //  if (is_totalrow)
-        }  //  if(!!tblRow) {
-    }  // function HandleTableRowClicked
-
 
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 //========= ModPeriodOpen====================================
@@ -1437,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_SelectCustomer  ================ PR2020-01-09
     function MSO_SelectCustomer(tblRow) {
-        console.log( "@@@@@@@@@@@@@@===== MSO_SelectCustomer ========= ");
+        //console.log( "===== MSO_SelectCustomer ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -1516,7 +1270,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (rows_length === 1) {el_modorder_btn_save.focus()};
             }
             const head_txt = (!!rows_length) ? loc.Select_order + ":" : loc.No_orders;
-        console.log( "==================head_txt", head_txt);
             document.getElementById("id_MSO_div_tblbody_header").innerText = head_txt
 
             el_modorder_btn_save.disabled = (!rows_length);
@@ -1525,8 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_SelectOrder  ================ PR2020-01-09
     function MSO_SelectOrder(tblRow, event_target_NIU, skip_save) {
-        console.log( "===== MSO_SelectOrder ========= ");
-        console.log( "skip_save", skip_save);
+        //console.log( "===== MSO_SelectOrder ========= ");
+        //console.log( "skip_save", skip_save);
 
 // ---  deselect all highlighted rows
         DeselectHighlightedTblbody(el_modorder_tblbody_order, cls_selected)
@@ -1634,253 +1387,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ END MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 
-// +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
-//=========  MSE_Open  ================ PR2019-08-23
-    function MSE_Open() {
-       console.log(" -----  MSE_Open   ----")
-
-        mod_upload_dict = {
-            employee_pk: selected_employee_pk,
-            customer_pk: selected_customer_pk,
-            order_pk: selected_order_pk,
-        };
-
-// ---  put employee name in header
-        let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
-        let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
-        let header_text = null;
-        if (!!selected_employee_pk){
-            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
-            header_text = get_dict_value(employee_dict, ["code", "value"], "-");
-            el_div_remove.classList.remove(cls_hide)
-        } else {
-            header_text = loc.Select_employee + ":";
-            el_div_remove.classList.add(cls_hide)
-        }
-        el_header.innerText = header_text
-
-// remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
-        el_mod_employee_input.value = null
-
-// ---  fill selecttable employee
-        MSE_FillSelectTableEmployee()
-
-// ---  set focus to el_mod_employee_input
-        //Timeout function necessary, otherwise focus wont work because of fade(300)
-        setTimeout(function (){
-            el_mod_employee_input.focus()
-        }, 500);
-
-// ---  show modal
-        $("#id_mod_select_employee").modal({backdrop: true});
-
-        //console.log("mod_upload_dict: ", mod_upload_dict)
-    };  // MSE_Open
-
-//=========  MSE_Save  ================ PR2019-10-31
-    function MSE_Save(mode) {
-        //console.log("========= MSE_Save ===" );
-        if (mode === "delete") {
-            mod_upload_dict.employee_pk = 0;
-            selected_employee_pk = 0;
-        }
-        const datalist_request = {
-            review_period: {
-                employee_pk: mod_upload_dict.employee_pk
-            },
-            review:  true
-        };
-        DatalistDownload(datalist_request, "MSE_Save");
-// ---  hide modal
-    $("#id_mod_select_employee").modal("hide");
-    } // MSE_Save
-
-//=========  MSE_SelectEmployee  ================ PR2019-05-24
-    function MSE_SelectEmployee(tblRow) {
-        //console.log( "===== MSE_SelectEmployee ========= ");
-
-// ---  deselect all highlighted rows
-        DeselectHighlightedRows(tblRow, cls_selected)
-
-        if(!!tblRow) {
-// ---  highlight clicked row
-            tblRow.classList.add(cls_selected)
-
-// ---  get employee_pk and code from selected tblRow
-        console.log( "mod_upload_dict", mod_upload_dict);
-            selected_employee_pk = get_attr_from_el_int(tblRow, "data-pk", 0)
-            const code_value = get_attr_from_el_str(tblRow, "data-value")
-            mod_upload_dict.employee_pk = selected_employee_pk;
-// ---  put code_value in el_input_employee
-            document.getElementById("id_ModSelEmp_input_employee").value = code_value
-// save selected employee
-            MSE_Save()
-        }  // if(!!tblRow)
-    }  // MSE_SelectEmployee
-
-//=========  MSE_FilterEmployee  ================ PR2019-05-26
-    function MSE_FilterEmployee(el_input, event_key) {
-        //console.log( "===== MSE_FilterEmployee  ========= ");
-        //console.log( "event_key", event_key);
-
-// instead of enabling save on 'Enter', set focus to save button. Is easier and more obvious
-        // save when clicked 'Enter'
-        //if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
-        //    MSE_Save()
-        //} else {
-        //    el_input.removeAttribute("data-quicksave")
-        //}
-
-        let new_filter = el_input.value;
-        let skip_filter = false
- // skip filter if filter value has not changed, update variable filter_mod_employee
-        if (!new_filter){
-            if (!filter_mod_employee){
-                skip_filter = true
-            } else {
-                filter_mod_employee = "";
-// remove selected employee from mod_upload_dict
-                mod_upload_dict = {};
-            }
-        } else {
-            if (new_filter.toLowerCase() === filter_mod_employee) {
-                skip_filter = true
-            } else {
-                filter_mod_employee = new_filter.toLowerCase();
-            }
-        }
-
-        let has_selection = false, has_multiple = false;
-        let select_value, selected_pk;
-        let tblbody = document.getElementById("id_ModSelEmp_tbody_employee");
-        let len = tblbody.rows.length;
-        if (!skip_filter && !!len){
-            for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
-                tblRow = tblbody.rows[row_index];
-                el = tblRow.cells[0].children[0]
-                show_row = false;
-                if (!filter_mod_employee){
-// --- show all rows if filter_text = ""
-                     show_row = true;
-                } else if (!!el){
-// hide current employee -> is already filtered out in MSE_FillSelectTableEmployee
-                    code_value = get_attr_from_el_str(tblRow, "data-value")
-                    if (!!code_value){
-// check if code_value contains filter_mod_employee
-                        const code_value_lower = code_value.toLowerCase();
-                        show_row = (code_value_lower.indexOf(filter_mod_employee) !== -1)
-                    }
-                }
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-// put values from first selected row in select_value
-                    if(!has_selection ) {
-                        selected_pk = get_attr_from_el_int(tblRow, "data-pk")
-                        select_value = get_attr_from_el_str(tblRow, "data-value")
-                    }
-                    if (has_selection) {has_multiple = true}
-                    has_selection = true;
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
-            }  //  for (let row_index = 0, show
-        } //  if (!skip_filter) {
-
-// if only one employee in filtered list: put value in el_input /  mod_upload_dict
-        if (has_selection && !has_multiple ) {
-                selected_employee_pk = selected_pk
-                mod_upload_dict.employee_pk = selected_pk
-// put code_value of selected employee in el_input
-                el_input.value = select_value
-// instead of enabling save on 'Enter', set focus to save button. Is easier and more obvious
-                // data-quicksave = true enables saving by clicking 'Enter'
-                //el_input.setAttribute("data-quicksave", "true")
-
-
-// ---  Set focus to btn_save
-                el_modemployee_btn_save.focus()
-        }
-    }; // MSE_FilterEmployee
-
-//========= MSE_FillSelectTableEmployee  ============= PR2019-08-18
-    function MSE_FillSelectTableEmployee() {
-        console.log( "=== MSE_FillSelectTableEmployee ");
-
-        let tableBody = document.getElementById("id_ModSelEmp_tbody_employee");
-        tableBody.innerText = null;
-
-        console.log( "employee_map: ", employee_map);
-//--- when no items found: show 'select_employee_none'
-        if (employee_map.size === 0){
-            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            td.innerText = loc.No_employees;
-        } else {
-
-//--- loop through employee_map
-            for (const [map_id, item_dict] of employee_map.entries()) {
-                const pk_int = get_pk_from_dict(item_dict);
-                const ppk_int = get_ppk_from_dict(item_dict);
-                const code_value = get_dict_value(item_dict, ["code", "value"], "")
-
-//- dont filter out the selected employee
-//- employee_map has no inactive employees, no need to filter inactive
-
-//- insert tableBody row
-                let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-                // NOT IN USE:  tblRow.id = pk_int.toString()
-                tblRow.setAttribute("data-pk", pk_int);
-                tblRow.setAttribute("data-ppk", ppk_int);
-                tblRow.setAttribute("data-value", code_value);
-
-//- add hover to tableBody row
-                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
-                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
-
-//- add EventListener to Modal SelectEmployee row
-                tblRow.addEventListener("click", function() {MSE_SelectEmployee(tblRow)}, false )
-
-// - add first td to tblRow.
-                // index -1 results in that the new cell will be inserted at the last position.
-                let td = tblRow.insertCell(-1);
-
-// --- add a element to td., necessary to get same structure as item_table, used for filtering
-                let el = document.createElement("div");
-                    el.innerText = code_value;
-                    el.classList.add("mx-1")
-                td.appendChild(el);
-
-            } // for (const [pk_int, item_dict] of employee_map.entries())
-        }  //  if (employee_map.size === 0)
-    } // MSE_FillSelectTableEmployee
-
-// +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 // +++++++++++++++++ SIDEBAR SHOW ALL +++++++++++++++++++++++++++++++++++++++++++
 //=========  SBR_Showall  ================ PR2020-01-09
     function SBR_Showall(key) {
         //console.log( "===== SBR_Showall ========= ");
-// ---  get selected_option from clicked select element
-        // option 2: isabsence = true (absence only) option 1: isabsence = false (no absence) option 1: isabsence = null (absence + no absence)
-
-        let review_period_dict = {}
-        if(key === "isabsence") {
-            const selected_option = Number(el_sidebar_select_absence.options[el_sidebar_select_absence.selectedIndex].value);
-            const selected_value = (selected_option === 2) ? true : (selected_option === 1) ? false : null
-            review_period_dict[key] = selected_value
-            // if absence only: set customer and order null
-            if(selected_option === 2){
-             review_period_dict.customer_pk = null;
-             review_period_dict.order_pk = null;
-            }
-        } else if(key === "showall") {
-            review_period_dict = {employee_pk: null, customer_pk: null, order_pk: null, isabsence: null};
-        }
 
 // ---  upload new setting
-        // when 'emplhour' exists in request it downloads emplhour_list based on filters in roster_period_dict
-        let datalist_request = {review_period: review_period_dict, billing_list: {mode: "get" }};
+        let datalist_request = {
+            review_period: {employee_pk: null, customer_pk: null, order_pk: null, isabsence: null},
+            billing_list: {mode: "get" }};
         DatalistDownload(datalist_request);
     }  // SBR_Showall
 
@@ -1957,10 +1472,9 @@ function HandleExpand(mode){
     }
 }
 
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //=========  calc_pricerate_avg  === PR2020-07-03
     function calc_pricerate_avg(billing_duration, total_amount){
-        // console.log("===  calc_pricerate_avg  ===")
+        //console.log("===  calc_pricerate_avg  ===")
         // Math.trunc() returns the integer part of a floating-point number
         // Math.floor() returns the largest integer less than or equal to a given number.
         //  use Math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
@@ -2088,7 +1602,6 @@ function HandleExpand(mode){
             }
 
 // +++  add total row
-        console.log("billing_total_row", billing_total_row)
             row_index += 1;
             if (billing_total_row) {
                 let cell_values = [];
@@ -2120,8 +1633,6 @@ function HandleExpand(mode){
             ws['!cols'] = ws_cols;
 
         }
-        console.log("============= ws")
-        console.log(ws)
         return ws;
     }  // FillExcelRows
 

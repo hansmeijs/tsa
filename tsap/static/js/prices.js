@@ -2047,8 +2047,7 @@ selected_btn = "customer"
             el_MSP_input_price.value = data_display;
             document.getElementById("id_MSP_input_note").value = data_note;
 // ---  set focus to btn_save
-            // el_MSP_btn_save.focus()
-            MSP_Save()
+            el_MSP_btn_save.focus()
         }
     }  // MSP_SelectPrice
 

@@ -2125,7 +2125,7 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
     e_code = row.get('e_code', '---')
     eh_isrpl = row.get('eh_isrpl', False)
 
-    oh_shift = row.get('oh_shift', '??')
+    oh_shift = row.get('oh_shift', '')
 
     #logger.debug('oh_shift: ' + str(oh_shift))
     eh_breakdur = row.get('eh_breakdur', 0)

@@ -575,30 +575,6 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
 
-            # 1. Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
-
-            # 2. get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-
-            # upload_dict: {'id': {'pk': 694, 'table': 'cust', 'field': 'price',
-            # 'map_id': '3_694_1421_1797_795',
-            # 'row_id': 'cust_3_694_1421_1797_795'},
-            # 'pricecode': {'value': 15, 'update': True}}
-
-            # upload_dict: {'id': {'pk': 1420, 'table': 'ordr', 'code': 'Otrobanda', 'field': 'price',
-            #                       'map_id': '3_694_1420_1658_670', 'row_index': 'ordr_1420'},
-            #               'pricecode': {'value': 23, 'update': True}}
-            #               additioncode: {pk: 0, update: true, note: ""}
-
-            #
-            # upload_dict: {'id': {'table': 'cust', 'field': 'billable',
-            #   'pk': 694, 'ppk': 3, 'map_id': '3_694_1420_1658_670', 'row_id': 'cust_694'},
-            #   'billable': {'value': '1', 'remove_all': False, 'update': True}}
-
 # 3. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
@@ -608,10 +584,10 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 
                 # 6. get iddict variables
                 price_list = []
-                id_dict = upload_dict.get('id')
-                if id_dict:
+                field = f.get_dict_value(upload_dict, ('id', 'field'))
+                field_dict = upload_dict.get(field)
+                if field_dict:
                     table = f.get_dict_value(upload_dict, ('id', 'table'))
-                    field = f.get_dict_value(upload_dict, ('id', 'field'))
                     pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
                     ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
                     map_id = f.get_dict_value(upload_dict, ('id', 'map_id'))
@@ -621,23 +597,30 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 
                     update_dict = {'id': {'table': table, 'row_id': row_id, 'map_id': map_id}}
 
-                    instance = None
+                    instance, customer_pk, order_pk, scheme_pk = None, None, None, None
                     if table == 'comp':
                         instance = request.user.company
                     elif table == 'cust':
                         instance = m.Customer.objects.get_or_none(id=pk_int, company=request.user.company)
+                        if instance:
+                            customer_pk = instance.pk
                     elif table == 'ordr':
                         instance = m.Order.objects.get_or_none(id=pk_int, customer_id=ppk_int)
+                        if instance:
+                            order_pk = instance.pk
                     elif table == 'schm':
                         instance = m.Scheme.objects\
                             .get_or_none(id=pk_int, order_id=ppk_int)
+                        if instance:
+                            scheme_pk = instance.pk
                     elif table == 'shft':
                         instance = m.Shift.objects.get_or_none(id=pk_int, scheme_id=ppk_int)
                     logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
 
                     must_update_pricecodelist = False
                     if instance:
-                        if 'billable' in upload_dict:
+                        prc_instance = None
+                        if field == 'billable':
                             logger.debug('billable in upload_dict')
                             # value can be 0, 1 or 2
                             new_billable = f.get_dict_value(upload_dict, ('billable', 'value'), 0)
@@ -690,181 +673,86 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                             update_dict['billable'] = {'value': new_billable, 'updated': True}
                             logger.debug('update_dict' + str(update_dict))
 
-                            remove_all = f.get_dict_value(upload_dict, ('billable', 'remove_all'), False)
-                            if remove_all:
-                                if table == 'schm':
-                                    # remove all billable form shifts of this scheme
-                                    shifts = m.Shift.objects.filter(scheme=instance)
-                                    for shift in shifts:
-                                        shift.billable = 0
-                                        shift.save(request=request)
-                                if table == 'ordr':
-                                    # remove all billable form shifts of this order
-                                    schemes = m.Scheme.objects.filter(order=instance)
-                                    for scheme in schemes:
-                                        scheme.billable = 0
-                                        scheme.save(request=request)
-                                    shifts = m.Shift.objects.filter(scheme__order=instance)
-                                    for shift in shifts:
-                                        shift.billable = 0
-                                        shift.save(request=request)
-                                if table == 'cust':
-                                    # remove all billable form shifts of this customer
-                                    orders = m.Order.objects.filter(customer=instance)
-                                    for order in orders:
-                                        order.billable = 0
-                                        order.save(request=request)
-                                    schemes = m.Scheme.objects.filter(order__customer=instance)
-                                    for scheme in schemes:
-                                        scheme.billable = 0
-                                        scheme.save(request=request)
-                                    shifts = m.Shift.objects.filter(scheme__order__customer=instance)
-                                    for shift in shifts:
-                                        shift.billable = 0
-                                        shift.save(request=request)
-                                if table == 'comp':
-                                    # remove all billable form shifts of this company
-                                    customers = m.Customer.objects.filter(company=instance)
-                                    for customer in customers:
-                                        customer.billable = 0
-                                        customer.save(request=request)
-                                    orders = m.Order.objects.filter(customer__company=instance)
-                                    for order in orders:
-                                        order.billable = 0
-                                        order.save(request=request)
-                                    schemes = m.Scheme.objects.filter(order__customer__company=instance)
-                                    for scheme in schemes:
-                                        scheme.billable = 0
-                                        scheme.save(request=request)
-                                    shifts = m.Shift.objects.filter(scheme__order__customer__company=instance)
-                                    for shift in shifts:
-                                        shift.billable = 0
-                                        shift.save(request=request)
+                        elif field in ('pricecode', 'additioncode', 'taxcode'):
+                            is_create = f.get_dict_value(upload_dict, (field, 'create'), False)
+                            is_update = f.get_dict_value(upload_dict, (field, 'update'), False)
+                            pc_id = f.get_dict_value(upload_dict, (field, 'pc_id'))
+                            pricecode_note = f.get_dict_value(upload_dict, (field, 'note'))
+                            # TODO give date_first value
+                            date_first = f.get_date_from_ISO('2000-01-01')  # was f.get_today_dateobj()
 
-                        if field in ('pricecode', 'additioncode', 'taxcode'):
-                            if field in upload_dict:
-                                #  upload_dict: {'id': {'pk': 847, 'ppk': 1810, 'table': 'shft', 'code': '07.00 - 09.00',
-                                #           'field': 'pricecode', 'map_id': '3_694_1421_1810_847', 'row_id': 'shft_847'},
-                                #               'pricecode': {'pricerate': 4545, 'create': True}}
+                            logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
+                            logger.debug('is_update: ' + str(is_update) + ' type: ' + str(type(is_update)))
+                            logger.debug('field: ' + str(field) )
+                            logger.debug('pc_id: ' + str(pc_id) + ' type: ' + str(type(pc_id)))
+                            logger.debug('pricecode_note: ' + str(pricecode_note))
+                            if is_create:
+                                price_rate = f.get_dict_value(upload_dict, (field, 'pricerate'))
+                                logger.debug('price_rate' + str(price_rate))
+                               #  date_first = f.get_dict_value(upload_dict, (field, 'datefirst'))
+                                pricerate_note = f.get_dict_value(upload_dict, (field, 'note'))
+                                pc_id = create_pricecode(
+                                    field, price_rate, pricerate_note, date_first, request)
 
-                                is_create = f.get_dict_value(upload_dict, (field, 'create'), False)
-                                is_update = f.get_dict_value(upload_dict, (field, 'update'), False)
-                                pc_id = f.get_dict_value(upload_dict, (field, 'pc_id'))
-                                pricecode_note = f.get_dict_value(upload_dict, (field, 'note'))
-                                # TODO give date_first value
-                                date_first = f.get_today_dateobj()
+                                logger.debug('.........pc_id' + str(pc_id))
+                                must_update_pricecodelist = True
 
-                                logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
-                                logger.debug('is_update: ' + str(is_update) + ' type: ' + str(type(is_update)))
-                                logger.debug('field: ' + str(field) )
-                                logger.debug('pc_id: ' + str(pc_id) + ' type: ' + str(type(pc_id)))
-                                logger.debug('pricecode_note' + str(pricecode_note))
-                                if is_create:
-                                    price_rate = f.get_dict_value(upload_dict, (field, 'pricerate'))
-                                    logger.debug('price_rate' + str(price_rate))
-                                   #  date_first = f.get_dict_value(upload_dict, (field, 'datefirst'))
-                                    pricerate_note = f.get_dict_value(upload_dict, (field, 'note'))
-                                    pc_id = create_pricecode(
-                                        field, price_rate, pricerate_note, date_first, request)
+                            prc_instance = None
+                            if pc_id:
+                                if field == 'pricecode':
+                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isprice=True,
+                                                                                company=request.user.company)
+                                elif field == 'additioncode':
+                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isaddition=True,
+                                                                                company=request.user.company)
+                                elif field == 'taxcode':
+                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, istaxcode=True,
+                                                                                company=request.user.company)
+                            prc_instance_pk = None
+                            if prc_instance:
+                                prc_instance_pk = prc_instance.pk
+# - save prc_instance
+                            # because company.pricecode_pk has no foreign field relationship:
+                            # must use prc_instance_pk instead of prc_instance
+                            fieldname = field + '_id'
+                            setattr(instance, fieldname, prc_instance_pk)
+                            instance.save(request=request)
 
-                                    logger.debug('.........pc_id' + str(pc_id))
-                                    must_update_pricecodelist = True
+                            update_dict[field + '_updated'] = True
 
-                                prc_instance = None
-                                if pc_id:
-                                    if field == 'pricecode':
-                                        prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isprice=True,
-                                                                                    company=request.user.company)
-                                    elif field == 'additioncode':
-                                        prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isaddition=True,
-                                                                                    company=request.user.company)
-                                    elif field == 'taxcode':
-                                        prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, istaxcode=True,
-                                                                                    company=request.user.company)
-
-                                prc_instance_pk = None
-                                if prc_instance:
-                                    prc_instance_pk = prc_instance.pk
-                                # because company.pricecode_pk has no foreign field relationship:
-                                # must use prc_instance_pk instead of prc_instance
-                                prc_instance_pk = prc_instance_pk if prc_instance_pk else None
-                                fieldname = field + '_id'
-                                setattr(instance, fieldname, prc_instance_pk)
-
-                                instance.save(request=request)
-
-                                update_dict[field + '_updated'] = True
-
-                                remove_all = f.get_dict_value(upload_dict, (field, 'remove_all'), False)
-                                if remove_all:
-                                    if table == 'schm':
-                                        # remove all billable form shifts of this scheme
-                                        shifts = m.Shift.objects.filter(scheme=instance)
-                                        for shift in shifts:
-                                            setattr(shift, fieldname, None)
-                                            shift.save(request=request)
-                                    if table == 'ordr':
-                                        # remove all billable form shifts of this order
-                                        schemes = m.Scheme.objects.filter(order=instance)
-                                        for scheme in schemes:
-                                            setattr(scheme, fieldname, None)
-                                            scheme.save(request=request)
-                                        shifts = m.Shift.objects.filter(scheme__order=instance)
-                                        for shift in shifts:
-                                            setattr(shift, fieldname, None)
-                                            shift.save(request=request)
-                                    if table == 'cust':
-                                        # remove all billable form shifts of this customer
-                                        orders = m.Order.objects.filter(customer=instance)
-                                        for order in orders:
-                                            setattr(order, fieldname, None)
-                                            order.save(request=request)
-                                        schemes = m.Scheme.objects.filter(order__customer=instance)
-                                        for scheme in schemes:
-                                            setattr(scheme, fieldname, None)
-                                            scheme.save(request=request)
-                                        shifts = m.Shift.objects.filter(scheme__order__customer=instance)
-                                        for shift in shifts:
-                                            setattr(shift, fieldname, None)
-                                            shift.save(request=request)
-                                    if table == 'comp':
-                                        # remove all billable form shifts of this company
-                                        customers = m.Customer.objects.filter(company=instance)
-                                        for customer in customers:
-                                            setattr(customer, fieldname, None)
-                                            customer.save(request=request)
-                                        orders = m.Order.objects.filter(customer__company=instance)
-                                        for order in orders:
-                                            setattr(order, fieldname, None)
-                                            order.save(request=request)
-                                        schemes = m.Scheme.objects.filter(order__customer__company=instance)
-                                        for scheme in schemes:
-                                            setattr(scheme, fieldname, None)
-                                            scheme.save(request=request)
-                                        shifts = m.Shift.objects.filter(scheme__order__customer__company=instance)
-                                        for shift in shifts:
-                                            setattr(shift, fieldname, None)
-                                            shift.save(request=request)
 
 # UpdateTableRow dict has format: = {table_NIU: "cust", map_id_NIU: "3_694_1420_1658_670", pk_int_NIU: 694,
-                                #         code: "MCB", billable: {value: 2}
-                                #         pricecode_id: -64, additioncode_id: -62, taxcode_id: 61, invoicecode_id_NIU: null
+                            #         code: "MCB", billable: {value: 2}
+                            #         pricecode_id: -64, additioncode_id: -62, taxcode_id: 61, invoicecode_id_NIU: null
 
 # current update_dict = {id: {table: "cust", field: "pricecode", row_id: "cust_694", map_id: "3_694_1420_1658_670"}
-                    #         // pricecode: {pk: 67, pricerate: 4500, datefirst: "2020-03-08", note: "new", updated: true}
+                #         // pricecode: {pk: 67, pricerate: 4500, datefirst: "2020-03-08", note: "new", updated: true}
 
 # when pricecodeitem haschanged: pricecode_list must be updated first, before
-                                # get rate from pricecodeitem
-                                # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
-                                pricecode_data = get_pricecode_data(prc_instance_pk, date_first, request)
-                                update_dict[field] = {'pk': pricecode_data[0],
-                                                      'pricerate': pricecode_data[2],
-                                                      'datefirst': pricecode_data[3],
-                                                      'note': pricecode_data[4],
-                                                      'updated': pricecode_data}
+                            # get rate from pricecodeitem
+                            # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
+                            pricecode_data = get_pricecode_data(prc_instance_pk, date_first, request)
+                            update_dict[field] = {'pk': pricecode_data[0],
+                                                  'pricerate': pricecode_data[2],
+                                                  'datefirst': pricecode_data[3],
+                                                  'note': pricecode_data[4],
+                                                  'updated': pricecode_data}
 
-                    if must_update_pricecodelist:
-                        update_wrap['pricecode_list'] = create_pricecode_list(rosterdate, request=request)
+# - if remove_all: remove all pricecode / billable from lower level tables
+                        remove_all = field_dict.get('remove_all', False)
+                        if remove_all:
+                            reset_value = '0' if field == 'billable' else 'NULL'
+                            field_name =  'billable' if field == 'billable' else field + '_id'
+                            reset_patfield_billable_in_subtables(table, field_name, reset_value, customer_pk, order_pk, scheme_pk, request)
+
+# - update priceciodeid, pricerate etc in emplhour records
+                        update_patcode_in_emplhour(table, field, instance, prc_instance, request)
+
+                        if must_update_pricecodelist:
+                            update_wrap['pricecode_list'] = create_pricecode_list(rosterdate, request=request)
+
+# - update pricerate in all emplhour records that are not orderhour.lockedinvoice
+
 
                     update_wrap['update_dict'] = update_dict
 
@@ -876,6 +764,140 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
         # 9. return update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
+
+def reset_patfield_billable_in_subtables(table, fieldname, reset_value, customer_pk, order_pk, scheme_pk, request):
+    logger.debug(' --- reset_patfield_billable_in_subtables --- ') # PR2020-07-05
+    # - reset fieldname in table customer, onlywhen table = 'comp'
+    if table == 'comp':
+        sql = """UPDATE companies_customer AS c
+                      SET """ + fieldname + """ = """ + reset_value + """
+                      WHERE ( c.company_id = %(compid)s )"""
+        newcursor = connection.cursor()
+        newcursor.execute(sql, {
+            'compid': request.user.company_id
+        })
+# - reset fieldname in table order, when table = 'comp', 'cust'
+    if table in ('comp', 'cust'):
+        sql = """UPDATE companies_order AS o
+                    SET """ + fieldname + """ = """ + reset_value + """
+                    WHERE o.customer_id IN( 
+                            SELECT c.id 
+                            FROM companies_customer AS c 
+                            WHERE c.company_id = %(compid)s 
+                            AND ( c.id = %(cid)s OR %(cid)s IS NULL ) )"""
+        newcursor = connection.cursor()
+        newcursor.execute(sql, {
+            'compid': request.user.company_id,
+            'cid': customer_pk
+        })
+# - reset fieldname in table scheme, when table = 'comp', 'cust', 'ordr'
+    if table in ('comp', 'cust', 'ordr'):
+        sql = """UPDATE companies_scheme AS s
+                    SET """ + fieldname + """ = """ + reset_value + """
+                    WHERE s.order_id IN( 
+                            SELECT o.id 
+                            FROM companies_order AS o
+                            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+                            WHERE c.company_id = %(compid)s 
+                            AND ( c.id = %(cid)s OR %(cid)s IS NULL )
+                            AND ( o.id = %(oid)s OR %(oid)s IS NULL ) )"""
+        newcursor = connection.cursor()
+        newcursor.execute(sql, {
+            'compid': request.user.company_id,
+            'cid': customer_pk,
+            'oid': order_pk
+        })
+    # - reset fieldname in table shift, when table = 'comp', 'cust', 'ordr', 'schm'
+    if table in ('comp', 'cust', 'ordr', 'schm'):
+        sql = """UPDATE companies_shift AS sh
+                    SET """ + fieldname + """ = """ + reset_value + """
+                    WHERE sh.scheme_id IN( 
+                            SELECT s.id 
+                            FROM companies_scheme AS s
+                            INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+                            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+                            WHERE c.company_id = %(compid)s 
+                            AND ( c.id = %(cid)s OR %(cid)s IS NULL )
+                            AND ( o.id = %(oid)s OR %(oid)s IS NULL )
+                            AND ( s.id = %(sid)s OR %(sid)s IS NULL ) )"""
+        newcursor = connection.cursor()
+        newcursor.execute(sql, {
+            'compid': request.user.company_id,
+            'cid': customer_pk,
+            'oid': order_pk,
+            'sid': scheme_pk
+        })
+
+
+
+def update_patcode_in_emplhour(table, field, instance, new_pat_code, request):
+    #logger.debug(' --- update_patcode_in_emplhour --- ') # PR2020-07-05
+    # - update  pricerate and amount and tax in table emplhour
+
+    crit = Q(orderhour__order__customer__company=request.user.company) & \
+           Q(orderhour__order__locked=False)
+    if table == 'cust':
+        crit.add(  Q(orderhour__order__customer=instance), crit.connector)
+    elif table == 'ordr':
+        crit.add(  Q(orderhour__order=instance), crit.connector)
+    elif table == 'schm':
+        crit.add(  Q(orderhour__schemeitem__scheme=instance), crit.connector)
+    elif table == 'shft':
+            crit.add(  Q(orderhour__schemeitem__shift=instance), crit.connector)
+    emplhours = m.Emplhour.objects.filter(crit)
+
+    for emplhour in emplhours:
+# get pricecode, get pricecode from higher level if None
+        if table == 'shft' and new_pat_code is None:
+            scheme = emplhour.orderhour.schemeitem.scheme
+            if scheme:
+                new_pat_code = getattr(scheme, field)
+        if table in ('shft', 'schm') and new_pat_code is None:
+            order = emplhour.orderhour.order
+            if order:
+                new_pat_code =  getattr(order, field)
+        if table in ('shft', 'schm', 'ordr') and new_pat_code is None:
+            customer = emplhour.orderhour.order.customer
+            if customer:
+                new_pat_code = getattr(customer, field)
+        if table in ('shft', 'schm', 'ordr', 'cust') and new_pat_code is None:
+            if request.user.company:
+                # company has no linked field, use pricecode_id etc instead
+                pat_code_id = getattr(request.user.company, field + '_id')
+                if pat_code_id:
+                    new_pat_code = m.Pricecode.objects.get_or_none(id=pat_code_id)
+
+        new_pat_code_pk = new_pat_code.pk if new_pat_code.pk else None
+        billing_duration = emplhour.billingduration
+        is_absence = emplhour.orderhour.order.isabsence
+        is_restshift = emplhour.orderhour.isrestshift
+        price_rate = emplhour.pricerate
+        addition_rate = emplhour.additionrate
+        addition_is_amount = emplhour.additionisamount
+        tax_rate = emplhour.taxrate
+
+        if field == 'pricecode':
+            price_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, emplhour.rosterdate)
+            emplhour.pricerate = price_rate
+        elif field == 'additioncode':
+            addition_rate, addition_is_amount = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, emplhour.rosterdate)
+            emplhour.additionrate =  addition_rate
+            emplhour.additionisamount = addition_is_amount
+        elif field == 'taxcode':
+            tax_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, emplhour.rosterdate)
+            emplhour.taxrate = tax_rate
+
+        amount, addition, tax = f.calc_amount_addition_tax_rounded(
+            billing_duration, is_absence, is_restshift, price_rate, addition_rate, addition_is_amount, tax_rate)
+
+        emplhour.amount = amount
+        emplhour.addition = addition
+        emplhour.tax = tax
+        emplhour.save(request=request)
+# --- end ofupdate_patcode_in_emplhour ---
 
 def get_pricecode_data(pricecode_id, date_first, request):
     logger.debug(' --- pricecode_data --- ') # PR2020-03-08
@@ -895,3 +917,4 @@ def get_pricecode_data(pricecode_id, date_first, request):
     if pricecode_data is None:
         pricecode_data = [None, None, None, None, None]
     return pricecode_data
+
