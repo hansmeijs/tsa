@@ -451,10 +451,9 @@
         return map_id
     }
 
-//========= get_datamap  ================== PR2019-10-03
-    function get_datamap(data_list, data_map, tblName) {
+//========= refresh_datamap  ================== PR2019-10-03
+    function refresh_datamap(data_list, data_map, tblName) {
         data_map.clear();
-        let duration_sum = 0
         if (data_list && data_list.length) {
             for (let i = 0, len = data_list.length; i < len; i++) {
                 const item_dict = data_list[i];
@@ -465,7 +464,7 @@
                 data_map.set(map_id, item_dict);
             }
         }
-        return duration_sum
+        //return false;
     };
 
 //========= update_map_item  ================== PR2020-04-22
@@ -884,16 +883,26 @@
         return days_diff
     }  // get_days_diff_JS
 
-//========= get_today_iso new  ========== PR2019-11-15
-    function get_today_iso() {
-        const today_JS = new Date();
-        // new Date() returns '2019-11-1' and doesn't work with date input
-        // const arr = [today.getFullYear(), 1 + today.getMonth(), today.getDate()];
-        return get_yyyymmdd_from_ISOstring(today_JS.toISOString())
+
+//========= get_now_arr ========== PR2020-07-08
+    function get_now_arr() {
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
+        return now_arr;
     }
 
-//========= get_monday_JS_from_DateJS_vanilla new  ========== PR2019-12-04
-    function get_monday_JS_from_DateJS_vanilla(date_JS) {
+//========= get_today_iso new  ========== PR2020-07-08
+    function get_today_iso() {
+        // new Date() returns '2019-11-1' and doesn't work with date input
+        // today_JS.toISOString gives the today date in UTC: on 2020-07-08 20:00 it gives  2020-07-9
+        // build date_iso from year, month, date of today_JS
+        const today_JS = new Date();
+        return get_dateISO_from_dateJS_vanilla(today_JS)
+    }
+
+//========= get_thisweek_monday_JS_from_DateJS new  ========== PR2019-12-04 PR2020-07-07
+    function get_thisweek_monday_JS_from_DateJS(date_JS) {
         let monday_JS = null;
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
@@ -901,10 +910,10 @@
             monday_JS = addDaysJS(date_JS, + 1 - weekday_index)
         }
         return monday_JS;
-    }  // get_thisweek_monday_sunday_iso
+    }  // get_thisweek_monday_JS_from_DateJS
 
-//========= get_sunday_JS_from_DateJS_vanilla new  ========== PR2019-12-04
-    function get_sunday_JS_from_DateJS_vanilla(date_JS) {
+//========= get_thisweek_sunday_JS_from_DateJS new  ========== PR2019-12-04 PR2020-07-07
+    function get_thisweek_sunday_JS_from_DateJS(date_JS) {
         let sunday_JS = null;
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
@@ -912,15 +921,15 @@
             sunday_JS = addDaysJS(date_JS, + 7 - weekday_index)
         }
         return sunday_JS;
-    }  // get_sunday_JS_from_DateJS_vanilla
+    }  // get_thisweek_sunday_JS_from_DateJS
 
 //========= get_thisweek_monday_sunday_dateobj ========== PR2019-12-05
     function get_thisweek_monday_sunday_dateobj() {
         const today_JS = new Date();
-        let today_weekday = today_JS.getDay()
-        if (today_weekday === 0 ) {today_weekday = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-        const monday_JS = addDaysJS(today_JS, + 1 - today_weekday)
-        const sunday_JS = addDaysJS(today_JS, + 7 - today_weekday)
+        let weekday_index = today_JS.getDay()
+        if (weekday_index === 0 ) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
+        const monday_JS = addDaysJS(today_JS, + 1 - weekday_index)
+        const sunday_JS = addDaysJS(today_JS, + 7 - weekday_index)
         return [monday_JS, sunday_JS];
     }  // get_thisweek_monday_sunday_dateobj
 
@@ -953,10 +962,10 @@
 //========= get_nextweek_monday_sunday_dateobj ========== PR2019-12-05
     function get_nextweek_monday_sunday_dateobj() {
         const today_JS = new Date();
-        let today_weekday = today_JS.getDay()
-        if (today_weekday === 0 ) {today_weekday = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-        const nextweek_monday_JS = addDaysJS(today_JS, + 8 - today_weekday)
-        const nextweek_sunday_JS = addDaysJS(today_JS, + 14 - today_weekday)
+        let weekday_index = today_JS.getDay()
+        if (weekday_index === 0 ) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
+        const nextweek_monday_JS = addDaysJS(today_JS, + 8 - weekday_index)
+        const nextweek_sunday_JS = addDaysJS(today_JS, + 14 - weekday_index)
         return [nextweek_monday_JS, nextweek_sunday_JS];
     }  // get_nextweek_monday_sunday_dateobj
 
@@ -996,10 +1005,47 @@
         return [nextmonth_firstday_iso, nextmonth_lastday_iso];
     }  // get_nextweek_monday_sunday_iso
 
+
+//========= get_thismonth_firstJS_from_dateJS  ========== PR2020-07-06
+    function get_thismonth_firstJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const nextmonth_firstday_JS = new Date(y, m , 1);
+        return nextmonth_firstday_JS;
+    }  // get_nextmonth_
+
+//========= get_nextmonth_firstJS_from_dateJS  ========== PR2020-07-06
+    function get_nextmonth_firstJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const nextmonth_firstday_JS = new Date(y, m + 1, 1);
+        return nextmonth_firstday_JS;
+    }  // get_nextmonth_
+
+//========= get_previousmonth_firstJS_from_dateJS  ========== PR2020-07-06
+    function get_previousmonth_firstJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const nextmonth_firstday_JS = new Date(y, m - 1, 1);
+        return nextmonth_firstday_JS;
+    }  // get_nextmonth_
+
+
+//========= get_thismonth_lastJS_from_dateJS  ========== PR2020-07-07
+    function get_thismonth_lastJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const thismonth_lastday_JS = new Date(y, m + 1, 0);
+        return thismonth_lastday_JS;
+    }  // get_thismonth_lastJS_from_dateJS
+
 //========= get_nextmonth_lastJS_from_dateJS  ========== PR2020-06-19
     function get_nextmonth_lastJS_from_dateJS(dateJS) {
         const y = dateJS.getFullYear(), m = dateJS.getMonth();
         const nextmonth_lastday_JS = new Date(y, m + 2, 0);
+        return nextmonth_lastday_JS;
+    }  // get_nextmonth_lastJS_from_dateJS
+
+//========= get_previousmonth_lastJS_from_dateJS  ========== PR2020-07-06
+    function get_previousmonth_lastJS_from_dateJS(dateJS) {
+        const y = dateJS.getFullYear(), m = dateJS.getMonth();
+        const nextmonth_lastday_JS = new Date(y, m, 0);
         return nextmonth_lastday_JS;
     }  // get_nextmonth_lastJS_from_dateJS
 
@@ -1074,7 +1120,7 @@
         return datetime_utc
     } // function get_date_from_ISOstring
 
-//========= function get_array_from_ISOstring  ==================================== PR2019-04-15
+//========= function get_array_from_ISOstring  ========== PR2019-04-15 PR2020-07-06
     function get_array_from_ISOstring(datetime_iso) {
         //console.log(" --- get_array_from_ISOstring ---")
         //console.log("datetime_iso: ", datetime_iso, typeof datetime_iso)
@@ -1083,17 +1129,16 @@
         // split string into array  ["2019", "03", "30", "19", "05", "00"]
         // regex "D+" means one or more non-digit chars.
         // from https://www.dotnetperls.com/split-js
-        let arr = datetime_iso.split(/\D+/);
         let arr_int = [];
-
-        // convert strings to integer
-        for (let i = 0; i < 6; i++) {
-            arr_int[i] = parseInt(arr[i]);
-            if (!arr_int[i]){ arr_int[i] = 0};
+        if (datetime_iso) {
+            const arr = datetime_iso.split(/\D+/);
+            // convert strings to integer
+            for (let i = 0; i < 6; i++) {
+                arr_int[i] = parseInt(arr[i]);
+                if (!arr_int[i]){ arr_int[i] = 0};
+            }
         }
-
         return arr_int;
-
     } // get_array_from_ISOstring
 
 //========= function get_yyyymmdd_from_ISOstring  ========== PR2019-06-21
@@ -1230,12 +1275,6 @@
         return now_utc;
     }
 
-    function get_now_arr_JS() {
-        // send 'now' as array to server, so 'now' of local computer will be used
-        const now = new Date();
-        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
-        return now_arr;
-    }
 
 //========= b_get_excel_cell_index  ====================================
     function b_get_excel_cell_index (col_index, row_index){  // PR2020-06-13

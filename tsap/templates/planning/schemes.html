@@ -21,7 +21,7 @@
 
         <div id="id_sidebar_div_select_order" class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Select customer and order' %}:</h6>
-            <input id="id_sidebar_select_order"
+            <input id="id_SBR_select_order"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
@@ -31,24 +31,11 @@
             <div id="id_select_template_div" class="display_hide my-2">
                 <h4 class="mx-2 my-2">{% trans 'Templates' %}</h4>
             </div>
-            <table id="id_select_table_scheme" class="display_hide mt-4">
+            <table id="id_select_table_schemeXX" class="display_hideXX mt-4">
                 <thead id="id_select_thead_scheme" class="tsa_color_white m-1"></thead>
                 <tbody id="id_select_tbody_scheme"></tbody>
                 <tfoot id="id_select_tfoot_scheme"></tfoot>
             </table>
-
-             <table id="id_select_table_shift" class="display_hide mt-4">
-                <thead id="id_select_thead_shift" class="tsa_color_white m-1"></thead>
-                <tbody id="id_select_tbody_shift"></tbody>
-                <tfoot id="id_select_tfoot_shift"></tfoot>
-            </table>
-
-            <table id="id_select_table_team" class="display_hide mt-4 mb-5">
-                <thead id="id_select_thead_team" class="tsa_color_white m-1"></thead>
-                <tbody id="id_select_tbody_team"></tbody>
-                <tfoot id="id_select_tfoot_team"></tfoot>
-            </table>
-
         </div>
     </nav>
 {% endblock %}
@@ -168,7 +155,7 @@
      </div>
 
 <!-- =================== CONTAINER =================== -->
-    <div class="container">
+    <div class="containerXX">
 
     <!-- box with scheme input elements -->
     <div class="mx-4 my-1">
@@ -192,11 +179,11 @@
 
         <!-- BUTTON GROUP -->
         <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
-            <button type="button" data-mode="btn_grid" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
-            <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
-            <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
-            <button type="button"  data-mode="btn_teammember" class="btn btn-secondary ">{% trans 'Teams' %}</button>
-            <button type="button" data-mode="btn_absence" class="btn btn-secondary">{% trans 'Absence' %}</button>
+            <button type="button" data-btn="btn_grid" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
+            <button type="button" data-btn="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
+            <button type="button" data-btn="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
+            <button type="button" data-btn="btn_teammember" class="btn btn-secondary ">{% trans 'Teams' %}</button>
+            <button type="button" data-btn="btn_absence" class="btn btn-secondary">{% trans 'Absence' %}</button>
         </div>
 <!-- end BUTTON GROUP -->
 
@@ -239,9 +226,27 @@
                 </div>
 
                 <div class="tsa_shift_container">
-                    <h6 class="grid_schemeitem_hdr m-0 px-2 py-1">
-                        {% trans 'Planned shifts' %}
-                    </h6>
+
+                    <div class="content_header">
+                        <div id="id_btns_schemeitemXXX" class="content_subheader_left">
+                            <h6 class="grid_schemeitem_hdr mt-2 px-2 py-1"> {% trans 'Planned shifts' %}</h6>
+                        </div>
+                        <div  class=" content_subheader_right">
+
+                        <div id="id_btns_grid" class="btn-group btn-group-sm mt-2 mr-2" role="group" aria-label="Go back and forward">
+                            <button data-index="1" title="{% trans 'Go one month back.' %}" class="btn btn-add ml-2"><<</button>
+                            <button data-index="2" title="{% trans 'Go one week back.' %}" class="btn btn-add"><</button>
+                            <button data-index="3" title="{% trans 'Go to today.' %}" class="btn btn-add">o</button>
+                            <button data-index="4" title="{% trans 'Go one week forward.' %}" class="btn btn-add"> > </button>
+                            <button data-index="5" title="{% trans 'Go one month forward.' %}" class="btn btn-add"> >> </button>
+                            <button data-index="6" title="{% trans 'Show less dates.' %}" class="btn btn-add"> - </button>
+                            <button data-index="7" title="{% trans 'Show more dates.' %}" class="btn btn-add">+</button>
+
+                        </div>
+
+                        </div>
+                    </div>
+
                     <div class="grid_schemeitem tbl_XXborder">
                         <div class=" tbl_border">
                             <table class="grd_tbl">
@@ -257,18 +262,6 @@
         </div>
 
 <!-- =================== DATA TABLE  =================== -->
-        <div id="id_div_tbl_schemeitem" class="display_hide">
-            <div class="content_header mx-2 my-4">
-                <div id="id_btns_schemeitem" class="content_subheader_left">
-                    <button id="id_btn_cycleprev" data-mode="prev" title="{% trans 'Show previous cycle. This does not affect the shifts.' %}" class="btn btn-add ml-2">&larr;</button>
-                    <button id="id_btn_cyclenext" data-mode="next" title="{% trans 'Show next cycle. This does not affect the shifts.' %}" class="btn btn-add">&rarr;</button>
-                    <button id="id_btn_dayup" data-mode="dayup" title="{% trans 'Set all rosterdates one day earlier.' %}" class="btn btn-add"> &uarr; </button>
-                    <button id="id_btn_daydown" data-mode="daydown" title="{% trans 'Set all rosterdates one day later.' %}" class="btn btn-add"> &darr; </button>
-                    <button id="id_btn_autofill" data-mode="autofill" title="{% trans 'Copy the entered shifts to the rest of the cycle dates.' %}" class="btn btn-add">{% trans 'Fill scheme' %}</button>
-                    <button id="id_btn_schemeitems_delete" data-mode="delete" class="btn btn-add">{% trans 'Delete all shifts from this scheme' %}</button>
-                </div>
-            </div>
-        </div>
 
         <div id="id_div_datatable" class="display_hide">
             <table class="table tsa_tbl mx-2 my-2">
@@ -276,6 +269,7 @@
                 <tbody id="id_tblBody_datatable"></tbody>
                 <tfoot id="id_tblFoot_datatable"></tfoot>
             </table>
+
         </div>
     </div>
 <!-- flex_container -->

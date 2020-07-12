@@ -17,7 +17,7 @@
                         <div class="modal_body_right mx-2 my-0">
                             <div class="modal_flexcontainer">
                                 <div class="modal_flex1 mx-1">
-                                   <label class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
+                                   <label class="mx-2 my-1">{% trans 'Scheme name' %}:</label>
                                     <input id="id_MSCH_input_code"
                                         type="text" data-field="code"
                                         autocomplete="off"
@@ -38,7 +38,12 @@
 
                                 </div>
                             </div>
-
+                            <div class="modal_flexcontainer mt-0">
+                                <div class="modal_flex1 mx-1">
+                                    <input id="id_MSCH_nocycle" type="checkbox" data-field="nocycle" class="tsa_input_checkbox tw_032 ">
+                                    <label for="id_MSCH_nocycle" class="mt-1">{% trans 'Scheme has no cycle.' %}</label>
+                                </div>
+                            </div>
                             <div id="id_MSCH_date_container" class="modal_flexcontainer">
                                 <div class="modal_flex1 mx-1">
                                     <label for="id_MSCH_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
@@ -58,7 +63,7 @@
                                 </small>
                             </div>
 
-                            <div class="modal_flexcontainer mt-2">
+                            <div id="id_MSCH_div_exphch" class="modal_flexcontainer mt-2">
                                 <div class="modal_flex1 mx-1">
                                     <input id="id_MSCH_exph" type="checkbox" data-field="excludepublicholiday" class="tsa_input_checkbox tw_032 ">
                                     <label for="id_MSCH_exph" class="mt-1">{% trans 'Not on public holidays' %}</label>
@@ -68,7 +73,7 @@
                                     <label for="id_MSCH_exch" class="mt-1">{% trans 'Not on company holidays' %}</label>
                                 </div>
                             </div>
-                            <div class="modal_flexcontainer mt-0">
+                            <div id="id_MSCH_div_dvg_ph" class="modal_flexcontainer mt-0">
                                 <div class="modal_flex1 mx-1">
                                     <input id="id_MSCH_dvg_ph" type="checkbox" data-field="divergentonpublicholiday" class="tsa_input_checkbox tw_032 ">
                                     <label for="id_MSCH_dvg_ph" class="mt-1">{% trans 'Divergent shift on public holidays' %}</label>

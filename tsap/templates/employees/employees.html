@@ -16,16 +16,24 @@
         <div class="sidebar_header">
             <h3>{% trans 'Employees' %}</h3>
         </div>
-
-        <h6 class="tw_200 line_height_normal mx-2 px-2">{% trans 'Select employee' %}:</h6>
-        <div class="tw_200 mx-2 mt-2 mb-5">
-
-            <table >
-                <thead id="id_SBR_thead_select" class="mx-1 my-1 ">
-                </thead>
-                <tbody id="id_SBR_tbody_select"></tbody>
-            </table>
+        <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
+            <input id="id_SBR_select_period"
+                type="text"
+                class="tw_200 border_none pointer_show px-2"
+                readonly>
         </div>
+        <div class="tw_200 mx-2 mt-2 mb-4 display_hide">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
+            <input id="id_SBR_select_employee"
+                type="text"
+                class="tw_200 border_none pointer_show px-2"
+                readonly>
+        </div>
+        <div class="tw_200 m-2 display_hide">
+            <h6 id="id_SBR_select_showall" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
+        </div>
+
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -77,13 +85,12 @@
              <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
          </div>
 
-<!-- =================== MODAL EMPLOYEE  =================== -->
-        {% include 'includes/modemployee.html' %}
-
+<!-- =================== MODAL EMPLOYEE  ===================
+        {% include 'includes/modemployee.html' %} -->
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
-        {% include 'includes/modselectperiodandorder.html' %}
+        {% include 'includes/modselectperiod.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL SHIFT EMPLOYEE   ===================-->
@@ -94,72 +101,63 @@
         {% include 'includes/modtimepicker.html' %}
 
 <!-- =================== CONTAINER =================== -->
-        <div class="container ">
+
 
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_48">
-    <!-- class content_header -->
-                <div class="content_header">
-         <!-- header_text -->
-                    <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_text"></h5>
-                    </div>
-         <!-- loader -->
-                    <div class="content_header_middle">
-                        <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
+        <div class="tsa_margin_top_48 mx-4">
+<!-- class content_header -->
+            <div class="content_header">
+     <!-- header_text -->
+                <div class="content_subheader_left mx-4">
+                    <h5 id="id_hdr_text"></h5>
+                </div>
+     <!-- loader -->
+                <div class="content_header_middle">
+                    <div id="id_loader" class="image_container visibility_hide">
+                        <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                     </div>
                 </div>
-    <!-- end class content_header -->
-    <!-- BUTTON GROUP -->
-                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button id="id_btn_listXX" type="button" data-btn="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
-                    <button id="id_btn_absenceXX" data-btn="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                    <button id="id_btn_teamXX" data-btn="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-                    <button id="id_btn_calendarXX" type="button" data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
-                    <button id="id_btn_planningXX" type="button" data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                </div>
-    <!-- end BUTTON GROUP -->
             </div>
+<!-- end class content_header -->
+<!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                <button data-btn="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
+                <button data-btn="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
+                <button data-btn="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
+                <button data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
+                <button data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
+            </div>
+<!-- end BUTTON GROUP -->
+        </div>
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-            <div class="content_body mx-2">
+        <div class="content_body mx-4">
 <!-- =================== DATA TABLE  =================== -->
-
-                <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_shifts tab_planning display_hide">
-                    <div class="content_subheader_left mx-2 tab_show tab_planning display_hide">
-                        <h5 id="id_hdr_datatable" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
-                    </div>
-                     <table class="table tsa_tbl">
-                        <thead id="id_tblHead_datatable"></thead>
-                        <tbody id="id_tblBody_datatable"></tbody>
-                        <tfoot id="id_tblFoot_datatable"></tfoot>
-                    </table>
+            <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_shifts tab_planning display_hide">
+             <!--   <div class="content_subheader_left mx-2 tab_show tab_planning display_hide">
+                    <h5 id="id_hdr_datatable" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
                 </div>
-
-                <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
-                    {% include 'includes/calendar.html' %}
-                </div>
-<!-- =================== DATA FORM  =================== -->
-                <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey tab_show tab_employee_form display_hide">
-                </div>
+                -->
+                 <table class="table tsa_tbl">
+                    <thead id="id_tblHead_datatable"></thead>
+                    <tbody id="id_tblBody_datatable"></tbody>
+                    <tfoot id="id_tblFoot_datatable"></tfoot>
+                </table>
             </div>
+
+            <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
+                {% include 'includes/calendar.html' %}
+            </div>
+<!-- =================== DATA FORM  =================== -->
+            <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey tab_show tab_employee_form display_hide">
+            </div>
+        </div>
 <!-- END CONTENT BODY -->
-         </div>
+
 <!-- =================== END CONTAINER =================== -->
 
         <div id="id_data"
-            data-lang ="{{ lang }}"
-            data-timezone ="{{ timezone }}"
-            data-timeformat ="{{ timeformat }}"
-            data-interval ="{{ interval }}"
-
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
-            data-today ="{{ today }}"
-
             data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
             data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
@@ -175,35 +173,6 @@
             data-employee_import_url="{% url 'employee_import_url' %}"
             data-employee_upload_url="{% url 'employee_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
-
-            data-txt_company = "{% trans 'Company' %}"
-            data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_employees= "{% trans 'Employees' %}"
-
-            data-txt_shift_add= "{% trans 'Add shift' %}"
-            data-txt_planning_download = "{% trans 'Download planning' %}"
-            data-txt_planning_preview = "{% trans 'Preview planning' %}"
-
-            data-txt_customer = "{% trans 'Customer' %}"
-            data-txt_order= "{% trans 'Order' %}"
-            data-txt_order_select= "{% trans 'Select order' %}"
-            data-txt_shift= "{% trans 'Shift' %}"
-            data-txt_team= "{% trans 'Team' %}"
-            data-txt_of= "{% trans 'of' %}"
-
-            data-txt_period = "{% trans 'Period' %}"
-            data-txt_select_period = "{% trans 'Select period' %}"
-            data-txt_planning = "{% trans 'Planning' %}"
-            data-txt_printdate = "{% trans 'Print date' %}"
-            data-txt_make_inactive = "{% trans 'Make employee inactive' %}"
-            data-txt_make_active = "{% trans 'Make employee active' %}"
-
-            data-txt_date="{% trans 'Date' %}"
-            data-txt_rosterdate="{% trans 'Rosterdate' %}"
-
-            data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
-            data-txt_confirm_msg01_inactive = "{% trans 'This employee will be made inactive.' %}"
-            data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"
         >
         </div>
 

@@ -383,18 +383,33 @@ class Usersetting(Model):
         return setting_dict
 
     @classmethod
-    def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
+    def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02 PR2020-07-12
+        #logger.debug('---  set_jsonsetting  ------- ')
+        #logger.debug('key_str: ' + str(key_str))
+        #logger.debug('setting_dict: ' + str(setting_dict))
         # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
         if user and key_str:
-            row = cls.objects.get_or_none(user=user, key=key_str)
-            if row is None:
-                row = cls(  user=user,  key=key_str )
-            row.jsonsetting = setting_dict
+            rowcount = cls.objects.filter(user=user, key=key_str).count()
+            #logger.debug('rowcount: ' + str(rowcount))
+            #rows = cls.objects.filter(user=user, key=key_str)
+            #for item in rows:
+                #logger.debug('row key: ' + str(item.key) + ' jsonsetting: ' + str(item.jsonsetting))
+
+            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                #logger.debug('row exists')
+                row.jsonsetting = setting_dict
+            elif setting_dict:
+                #logger.debug('row does not exist')
+                row = cls(user=user, key=key_str, jsonsetting=setting_dict)
             row.save()
 
     # TODO get rid of set_selected_pk
     @classmethod
     def set_selected_pk(cls, new_setting, user):  # PR2020-05-24
+        #logger.debug('---  set_selected_pk  ------- ')
+        #logger.debug('new_setting: ' + str(new_setting))
         # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
         if user:
             key_str = 'selected_pk'

@@ -85,23 +85,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  side bar - select period
 // TODO add select period
 /*
-   // let el_sidebar_select_period = document.getElementById("id_sidebar_select_period");
+   // let el_sidebar_select_period = document.getElementById("id_SBR_select_period");
    //     el_sidebar_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
    //     el_sidebar_select_period.addEventListener("mouseenter", function() {el_sidebar_select_period.classList.add(cls_hover)});
    //     el_sidebar_select_period.addEventListener("mouseleave", function() {el_sidebar_select_period.classList.remove(cls_hover)});
 // ---  side bar - select customer
-    let el_sidebar_select_order = document.getElementById("id_sidebar_select_order");
+    let el_sidebar_select_order = document.getElementById("id_SBR_select_order");
         el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
         el_sidebar_select_order.addEventListener("mouseenter", function() {el_sidebar_select_order.classList.add(cls_hover)});
         el_sidebar_select_order.addEventListener("mouseleave", function() {el_sidebar_select_order.classList.remove(cls_hover)});
 // ---  side bar - select employee
-    let el_sidebar_select_employee = document.getElementById("id_sidebar_select_employee");
+    let el_sidebar_select_employee = document.getElementById("id_SBR_select_employee");
         el_sidebar_select_employee.addEventListener("click", function() {MSE_Open()}, false );
         el_sidebar_select_employee.addEventListener("mouseenter", function() {el_sidebar_select_employee.classList.add(cls_hover)});
         el_sidebar_select_employee.addEventListener("mouseleave", function() {el_sidebar_select_employee.classList.remove(cls_hover)});
 
 // ---  side bar - showall
-    let el_sidebar_select_showall = document.getElementById("id_sidebar_select_showall");
+    let el_sidebar_select_showall = document.getElementById("id_SBR_select_showall");
         el_sidebar_select_showall.addEventListener("click", function() {Sidebar_SelectAbsenceShowall("showall")}, false );
         el_sidebar_select_showall.addEventListener("mouseenter", function() {el_sidebar_select_showall.classList.add("tsa_sidebar_hover")});
         el_sidebar_select_showall.addEventListener("mouseleave", function() {el_sidebar_select_showall.classList.remove("tsa_sidebar_hover")});
@@ -724,8 +724,8 @@ selected_btn = "customer"
                             if (!!pat_id) {
                                 const map_dict = pricecode_map.get(pat_id);
                                 const is_percentage = ([3, 4].indexOf(i) > -1) ? true : false;
-                                const show_zero = true; // show_zero = true necessary to show difference between 0 and null
-                                pricerate_display = format_pricerate (map_dict.pci_pricerate, is_percentage, show_zero, loc.user_lang);
+                                // show_zero = true necessary to show difference between 0 and null
+                                pricerate_display = format_pricerate (loc.user_lang, map_dict.pci_pricerate, is_percentage, true)  // show_zero = true
                                 //if (!!map_dict.pc_note) {pricerate_display += " " + map_dict.pc_note}
 
                                 datefirst_display = format_date_vanillaJS (map_dict.shft_pricerate_df,
@@ -868,8 +868,7 @@ selected_btn = "customer"
                             td.removeAttribute("data-pk")
                         }
                         const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].indexOf(fldName) > -1);
-                        const show_zero = true;
-                        let pricerate_display = format_pricerate (pci_pricerate, is_percentage, show_zero, loc.user_lang);
+                        let pricerate_display = format_pricerate (loc.user_lang, pci_pricerate, is_percentage, true)  // show_zero = true
                         // if (!!pc_note) {pricerate_display += " " + pc_note}
                         const datefirst_JS = get_dateJS_from_dateISO (pci_datefirst)
                         const datefirst_display = format_date_vanillaJS (datefirst_JS,
@@ -2145,9 +2144,7 @@ selected_btn = "customer"
 
         //--- get info from dict
                     const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].indexOf(fldName) > -1);
-
-                    const show_zero = true;
-                    const pricerate_display = format_pricerate (dict.pci_pricerate, is_percentage, show_zero, loc.user_lang)
+                    const pricerate_display = format_pricerate (loc.user_lang, dict.pci_pricerate, is_percentage, true)  // show_zero = true
                     const datefirst_JS = get_dateJS_from_dateISO (dict.pci_datefirst)
         //--------- insert tblBody row
                     let tblRow = tblBody.insertRow(-1);

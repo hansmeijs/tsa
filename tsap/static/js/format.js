@@ -236,44 +236,49 @@
     }; // function get_period_text
 
 
-//========= get_period_text  ==================================== PR 2020-03-13
-    function get_periodtext_sidebar(rosterdatefirst, rosterdatelast, prefix, suffix, month_list, weekday_list, user_lang) {
-        //console.log( " --- get_periodtext_sidebar --- ", rosterdatefirst, rosterdatelast, prefix, suffix);
+//========= f_get_periodtext_sidebar  ==================================== PR 2020-03-13 PR2020-07-11
+    function f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso) {
+        //console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
         let period_text = "";
-        if(!!rosterdatefirst) {
-            if(!!rosterdatelast) {
-                const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
-                const is_same_date = (rosterdatefirst === rosterdatelast);
-                const is_same_year = (rosterdatefirst.slice(0,4) === rosterdatelast.slice(0,4));
-                const is_same_year_and_month = (rosterdatefirst.slice(0,7) === rosterdatelast.slice(0,7));
+        let prefix = ""; //  loc.Period + ": ";
+        if (datefirst_iso && !datelast_iso) {
+            prefix += loc.As_of_abbrev.toLowerCase();
+        } else if (!datefirst_iso && datelast_iso) {
+            prefix += loc.Through.toLowerCase();
+        } else if (!datefirst_iso && !datelast_iso) {
+            prefix += loc.Select_period + "...";
+        };
+
+        if(!!datefirst_iso) {
+            if(!!datelast_iso) {
+                const datelast_formatted = format_date_iso (datelast_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
+                const is_same_date = (datefirst_iso === datelast_iso);
+                const is_same_year = (datefirst_iso.slice(0,4) === datelast_iso.slice(0,4));
+                const is_same_year_and_month = (datefirst_iso.slice(0,7) === datelast_iso.slice(0,7));
                 let datefirst_formatted = "";
                 if (is_same_date) {
                 // display: '20 feb 2020'
                 } else if (is_same_year_and_month) {
                 // display: '20 - 28 feb 2020'
-                    datefirst_formatted = Number(rosterdatefirst.slice(8)).toString() + " - "
+                    datefirst_formatted = Number(datefirst_iso.slice(8)).toString() + " - "
                 } else if (is_same_year) {
                 // display: '20 jan - 28 feb 2020'
-                    datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, true, user_lang) + " - "
+                    datefirst_formatted = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, true, loc.user_lang) + " - "
                 } else {
-                    // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang)
-                    datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, false, user_lang) + " - "
+                    // format_date_iso (date_iso, loc.months_abbrev, loc.weekdays_abbrev, hide_weekday, hide_year, loc.user_lang)
+                    datefirst_formatted = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang) + " - "
                 }
                 period_text = datefirst_formatted + datelast_formatted
             }  else {
-                period_text = format_date_iso (rosterdatefirst, month_list, weekday_list, true, false, user_lang)
+                period_text = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
             }
-        } else if(!!rosterdatelast) {
-                period_text = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
+        } else if(!!datelast_iso) {
+                period_text = format_date_iso (datelast_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
         }
-        if(!!prefix){
-            period_text = prefix + " " + period_text;
-        }
-        if(!!suffix){
-            period_text += " " + suffix;
-        }
+        period_text = prefix + " " + period_text;
+
         return period_text;
-    }  // get_periodtext_sidebar
+    }  // f_get_periodtext_sidebar
 
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
   // NOT IN USE PR2020-04-10 (uses moment.js)
@@ -741,7 +746,7 @@
             const year_str = date_JS.getFullYear().toString();
             const month_index =  date_JS.getMonth();
             const date_str = date_JS.getDate().toString();
-            const weekday_index = (!!date_JS.getDay()) ? date_JS.getDay() : 7;  // index 0 is index 7 in weekday_list
+            const weekday_index = (date_JS.getDay()) ? date_JS.getDay() : 7;  // index 0 is index 7 in weekday_list
             //console.log(" ----- weekday_index", weekday_index);
 
             const weekday_str = (!!weekday_list) ? weekday_list[weekday_index] : "";
@@ -1245,7 +1250,7 @@
     }
 
 //========= create_shift_code  ============= PR2020-02-02 PR2020-05-27
-    function create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code) {
+    function create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code, is_restshift) {
         //console.log( "=== create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
@@ -1257,7 +1262,9 @@
 
         let may_override = false;
         let new_shift_code = "-";
-        if (!code_trimmed){
+        if( (!code_trimmed || code_trimmed === "-" ) && (is_restshift) ){
+            code_trimmed = loc.Rest_shift;
+        } else if (!code_trimmed){
             may_override = true;
         } else if (code_trimmed[0] === "-"){
             may_override = true
@@ -1368,9 +1375,14 @@
         return time_format
     }  // format_total_duration
 
-//========= format_pricerate ======== PR2019-08-22
-    function format_pricerate (value_int, is_percentage, show_zero, user_lang) {
-        //console.log(" --- format_pricerate", fldname, value_int)
+//========= format_pricerate ======== PR2019-08-22 PR2020-07-10
+    function format_pricerate (user_lang, value_int, is_percentage, show_zero, no_decimals) {
+        //console.log(" --- format_pricerate  -----")
+        is_percentage = (is_percentage) ? is_percentage : false;
+        show_zero = (show_zero) ? show_zero : false;
+        no_decimals = (no_decimals) ? no_decimals : false;
+        //console.log("no_decimals", no_decimals)
+
         let display_text = "";
 
         if (!!value_int) {
@@ -1395,16 +1407,19 @@
                 const pos = dollar_text.length - 3 ;
                 dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
             }
-
-            const cents_int = value_int - dollars_int * divisor  // % is remainder operator
-            let cent_text = "";
-            const cents_str = "00" + cents_int.toString()
-            // dont show decimals '00' when percentage
-            if ((is_percentage && !!cents_int) || (!is_percentage)){
+            if(no_decimals){
+                display_text = minus_sign + dollar_text;
+            } else {
+                const cents_int = value_int - dollars_int * divisor  // % is remainder operator
+                let cent_text = "";
                 const cents_str = "00" + cents_int.toString()
-                cent_text = decimal_separator + cents_str.slice(-2);
+                // dont show decimals '00' when percentage
+                if ((is_percentage && !!cents_int) || (!is_percentage)){
+                    const cents_str = "00" + cents_int.toString()
+                    cent_text = decimal_separator + cents_str.slice(-2);
+                }
+                display_text = minus_sign + dollar_text + cent_text;
             }
-            display_text = minus_sign + dollar_text + cent_text;
         } else if(show_zero) {
             display_text = "0"
         }  // if (!!value_int)

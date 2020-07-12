@@ -163,18 +163,16 @@ let planning_list = [] // for export and printing - can replace map?
 
 // --- create EventListener for buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
-        for (let i = 0; i < btns.length; i++) {
-            let btn = btns[i];
-            const data_mode = get_attr_from_el(btn,"data-mode")
-            btn.addEventListener("click", function() {HandleBtnSelect(data_mode, false)}, false )
+        for (let i = 0, btn; btn = btns[i]; i++) {
+            const data_btn = get_attr_from_el(btn,"data-btn")
+            btn.addEventListener("click", function() {HandleBtnSelect(data_btn, false)}, false )
         }
 
 // ---  create EventListener for buttons in calendar (goto prev week, this week, nextweek)
         btns = document.getElementById("id_btns_calendar").children;
-        for (let i = 0, btn; i < btns.length; i++) {
-            btn = btns[i];
-            const mode = get_attr_from_el(btn,"data-mode")
-            btn.addEventListener("click", function() {HandleBtnCalendar(mode)}, false )
+        for (let i = 0, btn; btn = btns[i]; i++) {
+            const data_btn = get_attr_from_el(btn,"data-btn")
+            btn.addEventListener("click", function() {HandleBtnCalendar(data_btn)}, false )
         }
 
 // ===================== event handlers for MODAL ===================================
@@ -241,7 +239,7 @@ let planning_list = [] // for export and printing - can replace map?
             el_MSO_excl_ch.addEventListener("change", function() {MSO_PublicholidayChanged("excl_ch")}, false );
 
 // ---  MOD EMPLOYEE ------------------------------------
-        let el_mod_employee_body = document.getElementById("id_ModSelEmp_select_employee_body");
+        let el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
         document.getElementById("id_ModSelEmp_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() { MSE_FilterEmployee("filter", event.key)}, 50)});
 
@@ -301,7 +299,7 @@ let planning_list = [] // for export and printing - can replace map?
         SetMenubuttonActive(document.getElementById("id_hdr_cust"));
 
 // ---  download settings and datalists
-        const now_arr = get_now_arr_JS();
+        const now_arr = get_now_arr();
         const datalist_request = {
             setting: {page_customer: {mode: "get"},
                       selected_pk: {mode: "get"}},
@@ -382,7 +380,7 @@ let planning_list = [] // for export and printing - can replace map?
             company_dict = response["company_dict"];
         }
         if ("customer_list" in response) {
-            get_datamap(response["customer_list"], customer_map)
+            refresh_datamap(response["customer_list"], customer_map)
 
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null, row_count = {};
@@ -410,7 +408,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         }
         if ("order_list" in response) {
-            get_datamap(response["order_list"], order_map);
+            refresh_datamap(response["order_list"], order_map);
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
             const filter_show_inactive = true, filter_include_absence = false, filter_istemplate = false;
@@ -441,16 +439,18 @@ let planning_list = [] // for export and printing - can replace map?
             UpdateHeaderText();
         }
 
-        if ("employee_list" in response) {get_datamap(response["employee_list"], employee_map)}
-        if ("scheme_list" in response) {get_datamap(response["scheme_list"], scheme_map)}
-        if ("shift_list" in response) {get_datamap(response["shift_list"], shift_map)}
-        if ("team_list" in response) {get_datamap(response["team_list"], team_map)}
-        if ("teammember_list" in response) {get_datamap(response["teammember_list"], teammember_map)}
-        if ("schemeitem_list" in response) {get_datamap(response["schemeitem_list"], schemeitem_map)}
+        if ("employee_list" in response) {refresh_datamap(response["employee_list"], employee_map)}
+        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
+        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
 
         if ("customer_planning_list" in response) {
             // customer_planning_list is used for PDF planning (teammembers are grouped by team)
-            const duration_sum = get_datamap(response["customer_planning_list"], planning_customer_map, null, true)
+            // TODO calc duration_sum
+            const duration_sum = 0
+            refresh_datamap(response["customer_planning_list"], planning_customer_map)
             planning_display_duration_total = display_duration (duration_sum, user_lang)
             if(print_planning_after_download){
                 print_planning_after_download = false;
@@ -461,15 +461,15 @@ let planning_list = [] // for export and printing - can replace map?
         if ("employee_planning_list" in response) {
             //console.log ("...................===== employee_planning_list in response ==== ")
             // employee_planning_list is used in table and Excel (each teammember on a separate row)
-            get_datamap(response["employee_planning_list"], planning_employee_map, null, true)
+            refresh_datamap(response["employee_planning_list"], planning_employee_map, null, true)
             FillTableRows("planning");
 
             t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
         }
 
         if ("customer_calendar_list" in response) {
-            //console.log ("===== get_datamap(response[customer_calendar_list] ==== ")
-            get_datamap(response["customer_calendar_list"], calendar_map)
+            //console.log ("===== refresh_datamap(response[customer_calendar_list] ==== ")
+            refresh_datamap(response["customer_calendar_list"], calendar_map)
             //console.log("calendar_map", calendar_map )
             UpdateHeaderText();
             CreateCalendar("order", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);
@@ -585,7 +585,7 @@ let planning_list = [] // for export and printing - can replace map?
 
     // ---  upload new selected_btn
             if(!skip_update){
-                const upload_dict = {page_customer: {btn: selected_btn}};
+                const upload_dict = {page_customer: {sel_btn: selected_btn}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
     // ---  highlight selected button
@@ -657,7 +657,7 @@ let planning_list = [] // for export and printing - can replace map?
     function DatalistDownload_Planning(called_by) {
         //console.log( "===== DatalistDownload_Planning  ========= ", called_by);
 
-        const now_arr = get_now_arr_JS();
+        const now_arr = get_now_arr();
         const planning_period = {mode: "get", now: now_arr};
         const customer_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
@@ -942,7 +942,7 @@ let planning_list = [] // for export and printing - can replace map?
                 change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, days_add)
             } else {
                 // calendar_datefirst_JS is not a Monday : goto this Monday
-                calendar_datefirst_JS = get_monday_JS_from_DateJS_vanilla(calendar_datefirst_JS)
+                calendar_datefirst_JS = get_thisweek_monday_JS_from_DateJS(calendar_datefirst_JS)
                 // if nextweek: goto net monday
                 if (mode === "nextweek"){ change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, 7)}
             }
@@ -955,7 +955,7 @@ let planning_list = [] // for export and printing - can replace map?
         const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
 
 // ---  upload settings and download calendar
-        const now_arr = get_now_arr_JS();
+        const now_arr = get_now_arr();
         if(mode === "thisweek") {
             selected_calendar_period =  {period_tag: "tweek", now: now_arr}
         } else{
@@ -2097,7 +2097,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         if (!!tr_selected){
             const row_id = tr_selected.id;
-            //const btnName = get_attr_from_el(tr_selected, "data-mode")
+            //const btnName = get_attr_from_el(tr_selected, "data-btn")
             const data_table = get_attr_from_el(tr_selected, "data-table")
             const data_pk = get_attr_from_el(tr_selected, "data-pk")
             const data_ppk = get_attr_from_el(tr_selected, "data-ppk");
@@ -2117,7 +2117,7 @@ let planning_list = [] // for export and printing - can replace map?
     // put values in el_popup_date_container
             // NIU el_popup_date_container.setAttribute("data-el_id", el_id);
             el_popup_date_container.setAttribute("data-row_id", row_id);
-            //el_popup_date_container.setAttribute("data-mode", btnName);
+            //el_popup_date_container.setAttribute("data-btn", btnName);
             el_popup_date_container.setAttribute("data-table", data_table);
             el_popup_date_container.setAttribute("data-pk", data_pk);
             el_popup_date_container.setAttribute("data-ppk", data_ppk);
@@ -4053,7 +4053,7 @@ let planning_list = [] // for export and printing - can replace map?
                         col_rosterdate_selected = col_index;
                         cls_background = "grd_shift_th_selected"
                     }
-                    const weekday_index = (!!rosterdate_dateJS.getDay()) ? rosterdate_dateJS.getDay() : 7;  // index 0 is index 7 in weekday_list
+                    const weekday_index = (rosterdate_dateJS.getDay()) ? rosterdate_dateJS.getDay() : 7;  // index 0 is index 7 in weekday_list
                     th_weekday.innerText = loc.weekdays_abbrev[weekday_index];
                     th_date.innerText = rosterdate_dateJS.getDate().toString();
 
@@ -4694,12 +4694,12 @@ let planning_list = [] // for export and printing - can replace map?
     function ModXXXEmployeeDeleteOpen(tr_clicked, mode) {
         //console.log(" -----  ModEmployeeDeleteOpen   ----")
 
-// get tblRow_id, pk and ppk from tr_clicked; put values in el_mod_employee_body
-        let el_mod_employee_body = document.getElementById("id_mod_empl_del_body")
-        el_mod_employee_body.setAttribute("data-tblrowid", tr_clicked.id);
-        el_mod_employee_body.setAttribute("data-table", get_attr_from_el(tr_clicked, "data-table"));
-        el_mod_employee_body.setAttribute("data-pk", get_attr_from_el(tr_clicked, "data-pk"));
-        el_mod_employee_body.setAttribute("data-ppk", get_attr_from_el(tr_clicked, "data-ppk"));
+// get tblRow_id, pk and ppk from tr_clicked; put values in el_modemployee_body
+        let el_modemployee_body = document.getElementById("id_mod_empl_del_body")
+        el_modemployee_body.setAttribute("data-tblrowid", tr_clicked.id);
+        el_modemployee_body.setAttribute("data-table", get_attr_from_el(tr_clicked, "data-table"));
+        el_modemployee_body.setAttribute("data-pk", get_attr_from_el(tr_clicked, "data-pk"));
+        el_modemployee_body.setAttribute("data-ppk", get_attr_from_el(tr_clicked, "data-ppk"));
 
 // get employee name from el_empl_code
         const el_empl_code = tr_clicked.cells[0].children[0];
@@ -4901,7 +4901,7 @@ let planning_list = [] // for export and printing - can replace map?
             if (!!datelast) {selected_planning_period["period_datelast"] = datelast};
         }
         // send 'now' as array to server, so 'now' of local computer will be used
-        selected_planning_period["now"] = get_now_arr_JS();
+        selected_planning_period["now"] = get_now_arr();
 
 // ---  upload new setting
         // settings are saved in function customer_planning, function 'period_get_and_save'

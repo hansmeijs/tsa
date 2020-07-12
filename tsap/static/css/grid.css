@@ -214,6 +214,40 @@
     text-overflow: ellipsis;*/
 }
 
+.grd_shift_th_wk  {
+    padding: 0.2rem 0.25rem 0.05rem 0.25rem;  /* top right bottom left*/
+    margin: 0;
+    width: 48px;
+    background-color: #f5f5f5;
+    border-left: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    border-right: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    border-bottom: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: break-word; /* not working*/
+    word-wrap: break-word;
+    /*overflow: hidden;
+    text-overflow: ellipsis;*/
+}
+
+.grd_shift_th_today  {
+    padding: 0.2rem 0.25rem 0.05rem 0.25rem;  /* top right bottom left*/
+    margin: 0;
+    width: 48px;
+    /*background-color: #fbedba; /* lighter shade of tsa yellow */
+    background: #d7f4de; /* licht groen; */
+    border-left: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    border-right: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    border-bottom: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: break-word; /* not working*/
+    word-wrap: break-word;
+    /*overflow: hidden;
+    text-overflow: ellipsis;*/
+}
+
+
 .grd_shift_td_first  {
     /*background-color: #f5f5f5;  /* licht licht licht grijs 245 245 245 */
     padding: 0.2rem 0.25rem 0.05rem 0.5rem;  /* top right bottom left

@@ -349,6 +349,152 @@
 
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
 
+// ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
+//========= t_PayrollFilter  ======================== PR2020-07-12
+    function t_PayrollFilter(el, col_index, el_key, filter_dict) {
+        console.log( "===== t_HandlePayrollFilter  ========= ");
+        console.log( "col_index ", col_index, "el_key ", el_key);
+
+// --- get filter tblRow and tblBody
+        let tblRow = get_tablerow_selected(el);
+        const fldName = get_attr_from_el(el, "data-field")
+        const col_count = tblRow.cells.length
+        let skip_filter = false;
+// --- reset filter row when clicked on 'Escape'
+        if (el_key === 27) {
+            filter_dict = {}
+            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                let el = tblRow.cells[i].children[0];
+                if(el){ el.value = null};
+            }
+        } else {
+            let filter_dict_text = ""
+            if (col_index in filter_dict) {filter_dict_text = filter_dict[col_index]}
+            let el_value_str = (el.value) ? el.value.toString() : "";
+            let filter_text = el_value_str.trim().toLowerCase();
+            if (!filter_text){
+                if (filter_dict_text){
+                    delete filter_dict[col_index];
+                }
+            } else if (filter_text !== filter_dict_text) {
+                let mode = "", filter_value = null;
+                // filter text is already trimmed and lowercase
+                if(filter_text === "#"){
+                    mode = "blanks_only";
+                } else if(filter_text === "@" || filter_text === "!"){
+                    mode = "no_blanks";
+                } else if (fldName === "text") {
+                    // employee/rosterdate and order columns, no special mode on these columns
+                    filter_value = filter_text;
+                } else {
+                    // lt and gt sign must be followed by number. Skip filter when only lt or gt sign is eneterd
+                    if (["number", "duration"].indexOf(fldName) > -1 &&
+                        [">", ">=", "<", "<="].indexOf(filter_text) > -1 ) {
+                       skip_filter = true;
+                    }
+                    if (fldName === "text"){
+                    // employee/rosterdate and order columns, no special mode on these columns
+                        filter_value = filter_text;
+                    } else if(!skip_filter) {
+                        const first_two_char = filter_text.slice(0, 2);
+                        const remainder = filter_text.slice(2);
+                        mode = (first_two_char === "<=" && remainder) ? "lte" : (first_two_char === ">="  && remainder) ? "gte" : "";
+                        if (!mode){
+                            const first_char = filter_text.charAt(0);
+                            const remainder = filter_text.slice(1);
+                            mode = (first_char === "<" && remainder) ? "lt" : (first_char === ">" && remainder) ? "gt" : "";
+                        }
+                        // remove "<" , "<=", ">" or ">=" from filter_text
+                        let filter_str = (["lte", "gte"].indexOf(mode) > -1) ? filter_text.slice(2) :
+                                         (["lt", "gt"].indexOf(mode) > -1) ? filter_text.slice(1) : filter_text;
+                        filter_value = 0;
+                        console.log( "filter_str ", filter_str);
+                        if (fldName === "number") {
+                            // replace comma's with dots, check if value = numeric, convert to minutes
+                            const value_number = Number(filter_str.replace(/\,/g,"."));
+                        console.log( "value_number ", value_number);
+                            filter_value = (value_number) ? value_number : null;
+                        } else if (fldName === "duration") {
+                            // convert to minutes if ":" in filter_str
+                            if(filter_str.indexOf(":") > -1){
+                                const arr = filter_str.split(":");
+                                const hours = Number(arr[0]);
+                                const minutes = Number(arr[1]);
+                                if( (hours || hours === 0) && (minutes || minutes === 0) ){
+                                    filter_value = 60 * hours + minutes;
+                                }
+                            } else {
+                        // replace comma's with dots, check if value = numeric, convert to minutes
+                                const value_number = Number(filter_str.replace(/\,/g,"."));
+                                if (value_number) { filter_value = 60 * value_number};
+                            }
+                        } else {
+                            skip_filter = true;
+                        }
+                    }
+                }; // other
+                if ( !skip_filter) { filter_dict[col_index] = [mode, filter_value, fldName] };
+                console.log( "skip_filter ", skip_filter);
+                console.log( "filter_dict ", filter_dict);
+            }
+        }
+        return skip_filter;
+    }  // t_PayrollFilter
+
+//========= t_ShowPayrollRow  ==================================== PR2020-07-12
+    function t_ShowPayrollRow(filter_row, filter_dict, col_count) {
+        // only called by FillPayrollRows
+        //console.log( "===== t_ShowPayrollRow  ========= ");
+        //console.log( "filter_dict", filter_dict);
+        let hide_row = false;
+        if (!!filter_row){
+// ---  show all rows if filter_name = ""
+            if (!isEmpty(filter_dict)){
+// ---  loop through filter_dict key = col_index, value = filter_value
+                Object.keys(filter_dict).forEach(function(index_str) {
+// ---  skip column if no filter on this column
+                    if(filter_dict[index_str]){
+                        const arr = filter_dict[index_str];
+                        const col_index = Number(index_str);
+                        // filter text is already trimmed and lowercase
+                        const mode = arr[0];
+                        const filter_value = arr[1];
+                        const fldName = arr[2];
+                        let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
+                        // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
+                        if(mode === "blanks_only"){  // # : show only blank cells
+                            if(cell_value){hide_row = true};
+                        } else if(mode === "no_blanks"){  // # : show only non-blank cells
+                            if(!cell_value){hide_row = true};
+                       } else if( fldName === "text") {
+                        // employee / rosterdate and order column
+                            // filter_row text is already trimmed and lowercase
+                            const cell_value = filter_row[col_index];
+                            // hide row if filter_value not found or when cell is empty
+                            if(!cell_value || cell_value.indexOf(filter_value) === -1){hide_row = true};
+                        } else {
+                            // duration columns or numeric columns, make blank cells zero
+                            cell_value = (cell_value) ? cell_value : 0;
+                            if ( mode === "lte") {
+                                if (cell_value > filter_value) {hide_row = true};
+                            } else if ( mode === "lt") {
+                                if (cell_value >= filter_value) {hide_row = true};
+                            } else if (mode === "gte") {
+                                if (cell_value < filter_value) {hide_row = true};
+                            } else if (mode === "gt") {
+                                if (cell_value <= filter_value) {hide_row = true};
+                            } else {
+                                if (cell_value !== filter_value) {hide_row = true};
+                            }
+                    }};
+                });  // Object.keys(filter_dict).forEach(function(col_index) {
+            }  // if (!hide_row)
+        }  // if (!!tblRow)
+        return !hide_row
+    }; // t_ShowPayrollRow
+
+// ++++++++++++  END OF FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
+
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
         //console.log("======== GetItemDictFromTablerow");
@@ -1184,7 +1330,7 @@
         let btns = btn_container.children;
         for (let i = 0, btn, len = btns.length; i < len; i++) {
             btn = btns[i]
-            const data_mode = get_attr_from_el(btn, "data-mode")
+            const data_mode = get_attr_from_el(btn, "data-btn")
             const is_highlighted = (data_mode === selected_btn)
             btn.disabled = (!!btns_disabled);
             if (is_highlighted){
@@ -1674,9 +1820,73 @@
         el_select.innerHTML = option_text;
     }  // t_FillOptionsWeekdays
 
-//========= FillOptionsPeriodExtension  ====================================
-    function FillOptionsPeriodExtension(el_select, option_list) {
-        //console.log( "=== FillOptionsPeriodExtension  ");
+
+//=========  t_CreateTblModSelectPeriod  ================ PR2019-11-16 PR2020-07-11
+    function t_CreateTblModSelectPeriod(loc, ModPeriodSelect, add_period_extend) {
+        //console.log("===  t_CreateTblModSelectPeriod == ");
+        //console.log(selected_period);
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+//+++ insert td's ino tblRow
+        const len = loc.period_select_list.length
+        for (let j = 0, tblRow, td, tuple; j < len; j++) {
+            tuple = loc.period_select_list[j];
+//+++ insert tblRow ino tBody
+            tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+    // --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {ModPeriodSelect(tblRow, j);}, false )
+    //- add hover to tableBody row
+            add_hover(tblRow);
+            td = tblRow.insertCell(-1);
+            td.innerText = tuple[1];
+    //- add data-tag to tblRow
+            tblRow.setAttribute("data-tag", tuple[0]);
+        }
+        if(add_period_extend){
+            let el_select = document.getElementById("id_mod_period_extend");
+            t_FillOptionsPeriodExtension(el_select, loc.period_extension)
+        }
+    } // t_CreateTblModSelectPeriod
+
+//========= t_Sidebar_DisplayPeriod  ======================== PR2020-07-11
+    function t_Sidebar_DisplayPeriod(loc, selected_period) {
+        //console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
+
+        if (!isEmpty(selected_period)){
+            const period_tag = get_dict_value(selected_period, ["period_tag"]);
+            const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
+
+            let period_text = null, default_text = null, extend_text = null;
+            for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
+                item = loc.period_select_list[i];  // item = ('today', TXT_today)
+                if (item[0] === period_tag){ period_text = item[1] }
+                if (item[0] === 'today'){ default_text = item[1] }
+            }
+            if(!period_text){period_text = default_text}
+            if(loc.period_extension){
+               let extend_default_text = null
+                for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
+                    item = loc.period_extension[i];
+                    if (item[0] === extend_offset){ extend_text = item[1] }
+                    if (item[0] === 0){ extend_default_text = item[1] }
+                }
+                if(!extend_text){extend_text = extend_default_text}
+            }
+            if(period_tag === "other"){
+                const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
+                const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
+                period_text = f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso);
+            }
+            if(!!extend_offset){
+                period_text += " +- " + extend_text;
+            }
+            // put period_textx in sidebar el_sidebar_select_period
+            document.getElementById("id_SBR_select_period").value = period_text;
+        }  // if (!isEmpty(selected_period))
+    }; // t_Sidebar_DisplayPeriod
+
+//========= t_FillOptionsPeriodExtension  ====================================
+    function t_FillOptionsPeriodExtension(el_select, option_list) {
+        //console.log( "=== t_FillOptionsPeriodExtension  ");
 
 // ---  fill options of select box
         let option_text = null;
@@ -1689,7 +1899,7 @@
             option_text +=  ">" + tuple[1] + "</option>";
         }
         el_select.innerHTML = option_text;
-    }  // function FillOptionsPeriodExtension
+    }  // function t_FillOptionsPeriodExtension
 
 //========= FillOptionsAbscat  ====================================
     function FillOptionsAbscat(el_select, abscat_map, select_txt, select_none_txt, selected_order_pk) {

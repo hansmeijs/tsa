@@ -1574,12 +1574,12 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     else:
         is_restshift = saved_period_dict.get('isrestshift')
 
-    btn = None
-    if 'btn' in period_dict:
-        btn = period_dict.get('btn')
+    sel_btn = None
+    if 'sel_btn' in period_dict:
+        sel_btn = period_dict.get('sel_btn')
         save_setting = True
     else:
-        btn = saved_period_dict.get('btn')
+        sel_btn = saved_period_dict.get('sel_btn')
 
 # get period tag
     period_datefirst_dte = None
@@ -1724,11 +1724,25 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
         periodend_datetimelocal = f.get_datetimelocal_from_offset(period_datelast_dte, offset_lastdate, comp_timezone)
         #logger.debug('---> periodend_datetimelocal: ' + str(periodend_datetimelocal) + ' ' + str(type(periodend_datetimelocal)))
 
-    #logger.debug('---> btn: ' + str(btn))
+    #logger.debug('---> sel_btn: ' + str(sel_btn))
+
+# - calculate working days in period  PR2020-07-09
+    # 3. loop through dates
+    period_workingdays = 0
+    period_workingdays_incl_ph = 0
+    if period_datefirst_dte and period_datelast_dte:
+        rosterdate_dte = period_datefirst_dte
+        while rosterdate_dte <= period_datelast_dte:
+            # 4. get is_publicholiday, is_companyholiday of this date from Calendar
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
+                rosterdate_dte, request)
+            if not is_saturday and not is_sunday:
+                period_workingdays_incl_ph += 1
+                if not is_publicholiday:
+                    period_workingdays += 1
+            rosterdate_dte = rosterdate_dte + timedelta(days=1)
 
 # 4. save update_dict
-    #logger.debug('>>>>>>>>>> save_setting: ' + str(save_setting))
-    #logger.debug('>>>>>>>>>> save_period_setting: ' + str(save_period_setting))
     if save_setting or save_period_setting:
         setting_tobe_saved = {
             'customer_pk': customer_pk,
@@ -1736,7 +1750,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             'employee_pk': employee_pk,
             'isabsence': is_absence,
             'isrestshift': is_restshift,
-            'btn': btn,
+            'sel_btn': sel_btn,
             'period_tag': period_tag
         }
         if period_tag == 'other':
@@ -1747,6 +1761,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
         #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
+        logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 # 5. create update_dict
@@ -1761,7 +1776,9 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                    'emplhour_pk': emplhour_pk,
                    'isabsence': is_absence,
                    'isrestshift': is_restshift,
-                   'btn': btn,
+                   'period_workingdays': period_workingdays,
+                   'period_workingdays_incl_ph': period_workingdays_incl_ph,
+                   'sel_btn': sel_btn,
                    'period_tag': period_tag,
                    'extend_offset': extend_offset}
 
@@ -1785,9 +1802,9 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
 
 # 5. add calendar header info ( 2020-02-23: {ispublicholiday: true, display: "Karnaval"}
     if period_datefirst_dte and period_datelast_dte:
-        calendar_header_dict = create_calendar_header(period_datefirst_dte, period_datelast_dte, user_lang, request)
-        if calendar_header_dict:
-            update_dict.update(calendar_header_dict)
+        holiday_dict = f.get_holiday_dict(period_datefirst_dte, period_datelast_dte, user_lang, request)
+        if holiday_dict:
+            update_dict.update(holiday_dict)
     if periodstart_datetimelocal and periodend_datetimelocal:
         update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
                                                                        periodend_datetimelocal, timeformat, user_lang)
@@ -1796,92 +1813,20 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
                                                                    user_lang)
 
-    #logger.debug('update_dict: ' + str(update_dict))
-    # update_dict:  {'key': 'customer_planning',
-    # 'now': [2020, 1, 10, 16, 43],  'period_tag': 'nmonth',  'extend_offset': 0,
-    # 'periodstart': datetime.datetime(2020, 2, 1, 0, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
-    #  'periodend': datetime.datetime(2020, 3, 1, 0, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
-    # 'rosterdatefirst': '2020-02-01',  'rosterdatelast': '2020-02-29',
-    # 'rosterdatefirst_minus1': '2020-01-31',  'rosterdatelast_plus1': '2020-03-01'}
-    #logger.debug(' =================================================== ')
-
     return update_dict
 
-
-def create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, request):
-    #logger.debug(' --- create_calendar_header ---')
-
-    # PR2020-01-22 function creates dict with 'ispublicholiday', 'iscompanyholiday', 'display'
-    # and is is added with key 'rosterdate' to calendar_header_dict
-    # calendar_header only has value when exists in table Calendar
-    # calendar_header: {'2019-12-26': {'ispublicholiday': True, 'display': 'Tweede Kerstdag'}}
-    calendar_header_dict = {}
-
-    calendar_dates = m.Calendar.objects.filter(
-            company=request.user.company,
-            rosterdate__gte=rosterdatefirst_dte,
-            rosterdate__lte=rosterdatelast_dte
-            )
-    for row in calendar_dates:
-        header_dict = {}
-
-        if row.ispublicholiday:
-            header_dict['ispublicholiday'] = row.ispublicholiday
-        if row.iscompanyholiday:
-            header_dict['iscompanyholiday'] = row.iscompanyholiday
-        if row.rosterdate.isoweekday() == 6:
-            header_dict['issaturday'] = True
-        if row.rosterdate.isoweekday() == 7:
-            header_dict['issunday'] = True
-
-        if row.ispublicholiday and row.code:
-            display_txt = _(row.code)
-        else:
-            display_txt = f.format_date_element(rosterdate_dte=row.rosterdate, user_lang=user_lang, show_year=False)
-        header_dict['display'] = display_txt
-
-        # was: rosterdate_iso = f.get_dateISO_from_dateOBJ(row.rosterdate)
-        rosterdate_iso = row.rosterdate.isoformat()
-
-        calendar_header_dict[rosterdate_iso] = header_dict
-
-    return calendar_header_dict
-
-
-def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
-    #logger.debug(' --- create_calendar_header ---')
-    # PR2020-01-26 function returns 'ispublicholiday', 'iscompanyholiday' from Calendar
-    # PR2020-06-22 is_saturday is_sunday added
-    is_saturday = False
-    is_sunday = False
-    is_publicholiday = False
-    is_companyholiday = False
-
-    if rosterdate_dte:
-        is_saturday = (rosterdate_dte.isoweekday() == 6)
-        is_sunday = (rosterdate_dte.isoweekday() == 7)
-
-        calendar_date = m.Calendar.objects.get_or_none(
-                company=request.user.company,
-                rosterdate=rosterdate_dte
-                )
-        if calendar_date:
-            is_publicholiday = calendar_date.ispublicholiday
-            is_companyholiday = calendar_date.iscompanyholiday
-
-    return is_saturday, is_sunday, is_publicholiday, is_companyholiday
 
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-   #logger.debug(' ============= create_emplhour_list ============= ')
-   #logger.debug('period_dict: ' + str(period_dict))
+    logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
 
     # how to convert local datetime without timezone to utc datetime without timezone
-    # step 1: add comp_timezone to datetiem, using localize Can be skipped, periodstart already has comp_timezone
+# step 1: add comp_timezone to datetiem, using localize Can be skipped, periodstart already has comp_timezone
     # this one is correct: localize converts a local naive datetime to a local datetime with company timezone
     # localize can only be used with naive datetime objects. It does not change the datetime, only adds tzinfo
     #timezone = pytz.timezone(comp_timezone)
@@ -1890,17 +1835,17 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
     #logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
     # periodstart_local_withtimezone: 2020-01-30 19:29:00+01:00 <class 'datetime.datetime'>
 
-    # step 2: convert timezone from comp_timezone to utc
+# step 2: convert timezone from comp_timezone to utc
     timezone = pytz.utc
     periodstart_datetime_utc_withtimezone = periodstart_local_withtimezone.astimezone(timezone)
     periodend_datetime_utc_withtimezone = periodend_local_withtimezone.astimezone(timezone)
     #logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
     # periodstart_datetime_utc_withtimezone: 2020-01-30 18:29:00+00:00 <class 'datetime.datetime'>
 
-    # step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
+# step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
     #periodstart_datetime_utc_naive = periodstart_datetime_utc_withtimezone.replace(tzinfo=None)
-    periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
-    #logger.debug('periodstart_datetime_utc_naive: ' + str(periodstart_datetime_utc_naive) + ' ' + str(type(periodstart_datetime_utc_naive)))
+    #periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
+    #logger.debug('periodstart_datetime_utc_naive: ' + str(periodend_datetime_utc_naive) + ' ' + str(type(periodend_datetime_utc_naive)))
     # periodstart_datetime_utc_naive: 2020-01-30 18:29:00 <class 'datetime.datetime'>
 
     rosterdatefirst = period_dict.get('period_datefirst')

@@ -75,10 +75,16 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
                     logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
+
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
                     request_item = datalist_request.get('setting')
                     new_setting_dict = download_setting(request_item, user_lang, comp_timezone, timeformat, interval, request)
+                    # only add setting_dict to  datalists when called by request_item 'setting'
+                    if request_item and new_setting_dict:
+                        datalists['setting_dict'] = new_setting_dict
+
+                    logger.debug('new_setting_dict: ' + str(new_setting_dict))
 # new_setting_dict: {'user_lang': 'nl', 'comp_timezone': 'Europe/Amsterdam',
                     # 'timeformat': '24h', 'interval': 5, 'selected_pk': {'sel_customer_pk': 748, 'sel_order_pk': 1520, 'sel_scheme_pk': 2111,
                     # 'sel_paydatecode_pk': 0,
@@ -96,8 +102,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     #logger.debug('sel_paydate_iso: ' + str(sel_paydate_iso))
                     #logger.debug('sel_btn: ' + str(saved_btn))
 
-                    if new_setting_dict:
-                        datalists['setting_dict'] = new_setting_dict
+
+                    logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 # ----- company setting
                     request_item = datalist_request.get('companysetting')
                     if request_item:
@@ -136,18 +142,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         companyinvoice_list= cust_dicts.create_companyinvoice_list(company=request.user.company)
                         if companyinvoice_list:
                             datalists['companyinvoice_list'] = companyinvoice_list
-# ----- abscat
-                    request_item = datalist_request.get('abscat')
-                    if request_item:
-                        dict_list = cust_dicts.create_absencecategory_list(request)
-                        if dict_list:
-                            datalists['abscat_list'] = dict_list
-# ----- absence_list
-                    request_item = datalist_request.get('absence_list')
-                    logger.debug('???? request_item: ' + str(request_item))
-                    if request_item:
-                        dict_list = ed.create_absence_list(filter_dict=request_item, request=request)
-                        datalists['absence_list'] = dict_list
+
 # ----- employee
                     request_item = datalist_request.get('employee_list')
                     if request_item:
@@ -172,17 +167,21 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             is_template=request_item.get('istemplate'),
                             is_inactive=request_item.get('inactive'))
                         datalists['order_list'] = dict_list
-
+# ----- abscat_list
+                    request_item = datalist_request.get('abscat_list')
+                    logger.debug('request_item abscat_list' + str(request_item))
+                    if request_item:
+                        dict_list = cust_dicts.create_absencecategory_list(request)
+                        datalists['abscat_list'] = dict_list
+# ----- absence_list
+                    request_item = datalist_request.get('absence_list')
+                    if request_item:
+                        dict_list = ed.create_absence_list(filter_dict=request_item, request=request)
+                        datalists['absence_list'] = dict_list
 # - page_scheme_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
                     request_item = datalist_request.get('page_scheme_list')
                     if request_item:
-                        if saved_btn == 'btn_absence':
-                            dict_list = cust_dicts.create_absencecategory_list(request)
-                            datalists['abscat_list'] = dict_list
-                            dict_list = ed.create_absence_list(filter_dict=request_item, request=request)
-                            datalists['absence_list'] = dict_list
-                        else:
-                            download_order_schemes_list(request_item, datalists, saved_order_pk, saved_scheme_pk,
+                        download_order_schemes_list(request_item, datalists, saved_order_pk, saved_scheme_pk,
                                                     saved_btn, user_lang, comp_timezone, request)
 
 # ----- schemes_dict - dict with all schemes with shifts, teams, schemeitems and teammembers
@@ -259,6 +258,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             # save new period and retrieve saved period
                             datalists[key] = d.period_get_and_save(key, request_item,
                                                                          comp_timezone, timeformat, user_lang, request)
+
+
+                    logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 # ----- emplhour (roster page)
                     request_item = datalist_request.get('emplhour')
                     roster_period_dict = datalists.get('roster_period')
@@ -349,6 +351,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         download_customer_calendar(request_item, calendar_period_dict, datalists, saved_order_pk,
                                                    user_lang, comp_timezone, timeformat, request)
 # ----- employee_planning
+                    logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
                     request_item = datalist_request.get('employee_planning')
                     planning_period_dict = datalists.get('planning_period')
                     # also get employee_planning at startup of page
@@ -359,6 +362,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                    saved_order_pk, saved_employee_pk, sel_page,
                                                    user_lang, comp_timezone, timeformat, request)
 
+                    logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 # ----- customer_planning
                     request_item = datalist_request.get('customer_planning')
                     # also get customer_planning at startup of page
@@ -422,6 +426,7 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                 new_selected_pk_dict[sel_key] = new_value
                 new_setting_dict[sel_key] = new_value
         if has_changed:
+            logger.debug('Usersetting.set_jsonsetting from download_setting')
             Usersetting.set_jsonsetting(key, new_selected_pk_dict, request.user)
 
 # - get rest of keys
@@ -430,18 +435,25 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                 has_changed = False
                 new_page_dict = {}
                 saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+
                 request_dict = request_item.get(key)
+                #logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
+                #logger.debug('request_dict: ' + str(request_dict))
 ################################
 # get page
                 if key[:4] == 'page':
                     # if 'page_' in request: and saved_btn == 'planning': also retrieve period
                     new_setting_dict['sel_page'] = key
-                    sel_keys = ('sel_btn', 'period_start', 'period_end')
+                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                    sel_keys = ('sel_btn', 'period_start', 'period_end', 'grid_range')
                     for sel_key in sel_keys:
                         saved_value = saved_setting_dict.get(sel_key)
+                        #logger.debug('sel_key: ' + str(sel_key))
+                        #logger.debug('saved_value: ' + str(saved_value))
                         new_value = saved_value
                         if request_dict and sel_key in request_dict:
                             request_value = request_dict.get(sel_key)
+                            #logger.debug('request_value: ' + str(request_value))
                             if request_value is None:
                                 if saved_value is not None:
                                     has_changed = True
@@ -451,6 +463,7 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                         if new_value is not None:
                             new_page_dict[sel_key] = new_value
                             new_setting_dict[sel_key] = new_value
+                        #logger.debug('new_setting_dict: ' + str(new_setting_dict))
 
 ###################################
 # get others, with key = 'value'
@@ -471,6 +484,7 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                         new_setting_dict[key] = new_value
 # - save
                 if has_changed:
+                    logger.debug('Usersetting.set_jsonsetting from download_setting')
                     Usersetting.set_jsonsetting(key, new_page_dict, request.user)
     return new_setting_dict
 
@@ -485,6 +499,15 @@ def download_order_schemes_list(request_item, datalists, saved_order_pk, saved_s
     else:
         is_absence = (saved_btn == 'btn_absence')
     #logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
+
+# - get holiday_dict from previous year thru next year PR2020-07-07
+    # holiday_dict is used in schemes.js Grid_CreateTblShiftsNoCycle
+    now = datetime.now()
+    last_year_jan01 = date(now.year - 1, 1, 1)
+    next_year_dec31 = date(now.year + 1, 12, 31)
+    holiday_dict = f.get_holiday_dict(last_year_jan01, next_year_dec31, user_lang, request)
+    if holiday_dict:
+        datalists['holiday_dict'] = holiday_dict
 
     new_order_pk = request_item.get('order_pk')
     if new_order_pk is None:
@@ -591,7 +614,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
 
         #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
         orderby_rosterdate_customer = False
-        dict_list, logfile = r.create_employee_planning(
+        dict_list, short_list, logfile = r.create_employee_planning(
             datefirst_iso=datefirst_iso,
             datelast_iso=datelast_iso,
             customer_pk=customer_pk,
@@ -641,12 +664,13 @@ def download_customer_calendar(table_dict, calendar_period_dict, datalists, save
 
 def download_employee_planning(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                   saved_employee_pk, saved_page, user_lang, comp_timezone, timeformat, request):
-
+    logger.debug(' ----------  download_employee_planning  ---------- ')
+    logger.debug('table_dict' + str(table_dict))
     customer_pk = None
     skip_restshifts = False
     orderby_rosterdate_customer = False
 
-    #logger.debug('table_dict: employee_planning' + str(table_dict))
+    # table_dict{'employee_pk': None, 'add_empty_shifts': False, 'skip_restshifts': False, 'orderby_rosterdate_customer': False}
     if table_dict:
         employee_pk = table_dict.get('employee_pk')
         customer_pk = None
@@ -667,7 +691,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
 
-    dict_list, logfile = r.create_employee_planning(
+    dict_list, short_list, logfile = r.create_employee_planning(
         datefirst_iso=datefirst_iso,
         datelast_iso=datelast_iso,
         customer_pk=customer_pk,
@@ -681,6 +705,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
         user_lang=user_lang,
         request=request)
     datalists['employee_planning_list'] = dict_list
+    datalists['employee_planning_short_list'] = short_list
     datalists['logfile'] = logfile
 
 
@@ -921,9 +946,6 @@ class SchemesView(View):
                 timeformat = request.user.company.timeformat
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
-
-# --- check calendar_lastadte and fill calendar if necessary
-            # f.check_and_fill_calendar()
 
             param = get_headerbar_param(request, {})
 
@@ -1497,7 +1519,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
 class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
     def post(self, request, *args, **kwargs):
-       #logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
+        logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -1512,6 +1534,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
+                logger.debug('..........upload_dict: ' + str(upload_dict))
 # - save quicksave
             # quicksave is saved via UploadUserSetting
 # - get iddict variables
@@ -1549,8 +1572,8 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
 
 def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
-   #logger.debug(' --- scheme_upload --- ')
-   #logger.debug(upload_dict)
+    logger.debug(' --- scheme_upload --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
 
     update_wrap = {}
 # - get iddict variables
@@ -2911,7 +2934,7 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
 # 4. get is_publicholiday, is_companyholiday of this date from Calendar
             # set absence to zero on public holidays and weekends
             rosterdate_dte = parent_orderhour.rosterdate
-            is_saturday, is_sunday, is_publicholiday, is_companyholiday = d.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
 
 # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
             abscat_nopay = abscat_order.nopay
@@ -3558,8 +3581,8 @@ def update_scheme(instance, upload_dict, update_dict, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
     #logger.debug('   ')
-    #logger.debug(' ============= update_scheme')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' ============= update_scheme')
+    logger.debug('upload_dict: ' + str(upload_dict))
 
     # FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
     #                  'code', 'datefirst', 'datelast',
@@ -3623,12 +3646,15 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         #    is_updated = True
 
 # 3. save changes in field 'cycle'
-                    elif field in ['cycle']:
-                        # when no cycle : make cycle 99.999
+                    elif field == 'cycle':
+                        logger.debug('field: ' + str(field))
+                        # when no cycle : make cycle 32.767  max value of PositiveSmallIntegerField is 32.767
                         if not new_value:
-                            new_value = 99999
+                            new_value = 32767
                         new_cycle = int(new_value)
                         saved_value = getattr(instance, field)
+                        logger.debug('new_cycle: ' + str(new_cycle))
+                        logger.debug('saved_value: ' + str(saved_value))
                         if new_cycle != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
@@ -3666,11 +3692,13 @@ def update_scheme(instance, upload_dict, update_dict, request):
         if save_changes:
             try:
                 instance.save(request=request)
+                logger.debug('instance field: ' + str(getattr(instance, field)))
             except:
                 save_changes = False
                 msg_err = _('This scheme could not be updated.')
                 if update_dict:
                     update_dict['id']['error'] = msg_err
+                logger.debug('msg_err: ' + str(msg_err))
 
 # 5. when 'divergentonpublicholiday' is changed from truw to false
     # the existing 'onpublicholiday' schemitems must be deleted PR2020-05-07

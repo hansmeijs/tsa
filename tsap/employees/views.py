@@ -93,8 +93,8 @@ class EmployeeListView(View):
             })
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'employees.html', param)
-
+        #return render(request, 'employees.html', param)
+        return render(request, 'employees.html')
 
 @method_decorator([login_required], name='dispatch')
 class EmployeeUploadView(UpdateView):  # PR2019-07-30
@@ -114,7 +114,6 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-
                 logger.debug('upload_dict' + str(upload_dict))
 # 3. get iddict variables
                 id_dict = upload_dict.get('id')
@@ -220,8 +219,8 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     # called by employee page, calendar
                     calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
 
-                    # TODO calendar_header_dict has no value. Is necessary??
-                    # update_wrap['calendar_header_dict'] = calendar_header_dict
+                    # TODO holiday_dict has no value. Is necessary??
+                    # update_wrap['holiday_dict'] = holiday_dict
 
                     # function create_updated_employee_calendar_list adds the follwing items to update_wrap:
                     # 'scheme_list', 'team_list', 'shift_list', 'teammember_list', 'schemeitem_list']
@@ -808,7 +807,8 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
         skip_restshifts = False
         orderby_rosterdate_customer = False
 
-        calendar_dictlist, logfile = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+        calendar_dictlist, short_list, logfile = \
+            plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
                                                add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
                                                 comp_timezone, timeformat, user_lang, request)
         #logger.debug('calendar_dictlist: ' + str(calendar_dictlist))
@@ -2798,16 +2798,19 @@ def create_employee(upload_dict, update_dict, request):
 def update_employee(instance, parent, upload_dict, update_dict, user_lang, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
-    #logger.debug(' --- update_employee')
+    logger.debug(' ------- update_employee -------')
     #logger.debug('upload_dict' + str(upload_dict))
 
     has_error = False
     if instance:
 # 1. get iddict variables
-        #  FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst',
-        #           'email', 'telephone', 'identifier', 'payrollcode',
-        #           'address', 'zipcode', 'city', 'country',
-        #           'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workminutesperday', 'inactive')
+        #  FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
+        #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
+        #                    'address', 'zipcode', 'city', 'country',
+        #                    #TODO deprecate workdays
+        #                    'workhoursperweek', 'workminutesperday', 'workdays', 'leavedays',
+        #                    'functioncode', 'wagecode', 'paydatecode',
+        #                    'pricecode', 'additioncode', 'inactive', 'locked')
 
         save_changes = False
         for field in c.FIELDS_EMPLOYEE:
@@ -2888,13 +2891,9 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                             if new_rate != saved_value:
                                 setattr(instance, field, new_rate)
                                 is_updated = True
-
-                    elif field in ['XXworkhours', 'XXworkdays', 'XXleavedays']:
-                        # TODO XXXXX
+                    elif field in ['workhoursperweek', 'workminutesperday', 'workdays', 'leavedays']:
                         # convert workhoursperday_hours to minutes per week
                         value_float, msg_err = f.get_float_from_string(new_value)
-                        #logger.debug('>>>>>>>>>>>>>>value_float: ' + str(value_float) + ' ' + str(type(value_float)))
-
                         if msg_err:
                             update_dict[field]['error'] = msg_err
                         else:

@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
     HandleBtnPrevNext()
 
 // ---  download settings and datalists
-    const now_arr = get_now_arr_JS();
+    const now_arr = get_now_arr();
     const datalist_request = {
         setting: {page_employeeupload: {mode: "get"}},
         companysetting: {coldefs: "paydatecode"},

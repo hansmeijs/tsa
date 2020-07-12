@@ -29,17 +29,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
-        for (let i = 0; i < btns.length; i++) {
-            let btn = btns[i];
-            const data_mode = get_attr_from_el(btn,"data-mode")
-            btn.addEventListener("click", function() {HandleBtnSelect(data_mode, false)}, false )
+        for (let i = 0, btn; btn = btns[i]; i++) {
+            const data_btn = get_attr_from_el(btn,"data-btn")
+            btn.addEventListener("click", function() {HandleBtnSelect(data_btn, false)}, false )
         }
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_comp"));
 
 // ---  download settings and datalists
-        const now_arr = get_now_arr_JS();
+        const now_arr = get_now_arr();
         const datalist_request = {
             setting: {page_company: {mode: "get"},
                       selected_pk: {mode: "get"}},
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
             company_dict = response["company_dict"];
         }
         if ("companyinvoice_list" in response) {
-            get_datamap(response["companyinvoice_list"], companyinvoice_map)
+            refresh_datamap(response["companyinvoice_list"], companyinvoice_map)
             console.log ("companyinvoice_map", companyinvoice_map)
             // ---  reset tbody_order
             document.getElementById("id_CIV_tbody").innerText = null;
@@ -245,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ---  upload new selected_btn
             if(!skip_update){
-                const upload_dict = {page_customer: {btn: selected_btn}};
+                const upload_dict = {page_customer: {sel_btn: selected_btn}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
     // ---  highlight selected button

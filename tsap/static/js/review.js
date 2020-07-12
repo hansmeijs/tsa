@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let filter_dict = {};
 
     let loc = {};  // locale_dict
-    let selected_period = {};
-    let mod_upload_dict = {};
+    let selected_review_period = {};
+    let mod_dict = {};
 
     let employee_map = new Map();
     let customer_map = new Map();
@@ -135,25 +135,29 @@ document.addEventListener('DOMContentLoaded', function() {
         //}, false);  // document.addEventListener('click',
 
 // ---  side bar - select period
-    let el_sidebar_select_period = document.getElementById("id_sidebar_select_period");
+    let el_sidebar_select_period = document.getElementById("id_SBR_select_period");
         el_sidebar_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
         el_sidebar_select_period.addEventListener("mouseenter", function() {el_sidebar_select_period.classList.add(cls_hover)});
         el_sidebar_select_period.addEventListener("mouseleave", function() {el_sidebar_select_period.classList.remove(cls_hover)});
 // ---  side bar - select order
-    let el_sidebar_select_order = document.getElementById("id_sidebar_select_order");
+    let el_sidebar_select_order = document.getElementById("id_SBR_select_order");
         el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
         el_sidebar_select_order.addEventListener("mouseenter", function() {el_sidebar_select_order.classList.add(cls_hover)});
         el_sidebar_select_order.addEventListener("mouseleave", function() {el_sidebar_select_order.classList.remove(cls_hover)});
 // ---  side bar - showall
-    let el_sidebar_select_showall = document.getElementById("id_sidebar_select_showall");
+    let el_sidebar_select_showall = document.getElementById("id_SBR_select_showall");
         el_sidebar_select_showall.addEventListener("click", function() {SBR_Showall("showall")}, false );
         el_sidebar_select_showall.addEventListener("mouseenter", function() {el_sidebar_select_showall.classList.add("tsa_sidebar_hover")});
         el_sidebar_select_showall.addEventListener("mouseleave", function() {el_sidebar_select_showall.classList.remove("tsa_sidebar_hover")});
 
-// ---  MOD PERIOD ------------------------------
-    document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
-    document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
-    document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
+// ---  MOD PERIOD ------------------------------------
+        const el_mod_period_datefirst = document.getElementById("id_mod_period_datefirst");
+            el_mod_period_datefirst.addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false );
+        const el_mod_period_datelast = document.getElementById("id_mod_period_datelast");
+            el_mod_period_datelast.addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false );
+        const el_mod_period_oneday = document.getElementById("id_mod_period_oneday");
+            el_mod_period_oneday.addEventListener("change", function() {ModPeriodDateChanged("oneday")}, false );
+        document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false );
 
 // ---  MOD SELECT ORDER ------------------------------
     let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
@@ -232,12 +236,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     company_dict = response["company_dict"];
                 }
                 if ("review_period" in response) {
-                    selected_period = response["review_period"];
-                    selected_btn = get_dict_value(selected_period, ["btn"], "customer")
+                    selected_review_period = response["review_period"];
+                    selected_btn = get_dict_value(selected_review_period, ["btn"], "customer")
 
-                    selected_employee_pk = get_dict_value(selected_period, ["employee_pk"], 0)
-                    selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)
-                    selected_order_pk = get_dict_value(selected_period, ["order_pk"], 0)
+                    selected_employee_pk = get_dict_value(selected_review_period, ["employee_pk"], 0)
+                    selected_customer_pk = get_dict_value(selected_review_period, ["customer_pk"], 0)
+                    selected_order_pk = get_dict_value(selected_review_period, ["order_pk"], 0)
 
                     Sidebar_DisplayPeriod();
 
@@ -245,15 +249,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if ("customer_list" in response) {
-                    get_datamap(response["customer_list"], customer_map)
+                    refresh_datamap(response["customer_list"], customer_map)
                     call_DisplayCustomerOrderEmployee = true;
                 }
                 if ("order_list" in response) {
-                    get_datamap(response["order_list"], order_map)
+                    refresh_datamap(response["order_list"], order_map)
                     call_DisplayCustomerOrderEmployee = true;
                 }
                 if ("employee_list" in response) {
-                    get_datamap(response["employee_list"], employee_map)
+                    refresh_datamap(response["employee_list"], employee_map)
                     call_DisplayCustomerOrderEmployee = true;
                     //MSE_FillSelectTableEmployee()
                 }
@@ -292,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log ("===== refresh_locale ==== ")
         loc = locale_dict;
         CreateSubmenu()
-        CreateTblModSelectPeriod();
+        t_CreateTblModSelectPeriod(loc, ModPeriodSelectPeriod);
     }  // refresh_locale
 
 //=========  CreateSubmenu  === PR2019-08-27
@@ -331,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.setAttribute("data-tag", tuple[0]);
         }
         //let el_select = document.getElementById("id_mod_period_extend");
-        //FillOptionsPeriodExtension(el_select, loc.period_extension)
+        //t_FillOptionsPeriodExtension(el_select, loc.period_extension)
     } // CreateTblModSelectPeriod
 
 // +++++++++++++++++ BILLING OVERVIEW  +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -366,11 +370,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                      (!item.is_billable && item.not_billable) ? -1 : 0;
                 const all_nobill = (item.is_nobill && !item.not_nobill) ? 1:
                                      (!item.is_nobill && item.not_nobill) ? -1 : 0;
-                const addition_format = format_pricerate (item.eh_addition, false, false, loc.user_lang); // is_percentage = false, show_zero = false
+                const addition_format = format_pricerate (loc.user_lang, item.eh_addition); // is_percentage = false, show_zero = false
                 const warning = (item.eh_timedur > item.eh_bildur);
                 const avg_pricerate = calc_pricerate_avg(item.eh_bildur, item.eh_total_amount);
-                const avg_pricerateformat = format_pricerate (avg_pricerate, false, false, loc.user_lang); // is_percentage = false, show_zero = false
-                const total_amount_format = format_pricerate (item.eh_total_amount, false, false, loc.user_lang); // is_percentage = false, show_zero = false
+                const avg_pricerateformat = format_pricerate (loc.user_lang, avg_pricerate); // is_percentage = false, show_zero = false
+                const total_amount_format = format_pricerate (loc.user_lang, item.eh_total_amount); // is_percentage = false, show_zero = false
 
     // --- put values of agg_dict in rowdata. eh_amount is not displayed, but needed to calculate avg pricerate
                 let col01_value = (key === "billing_agg") ? item.c_code :
@@ -528,8 +532,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let order_code = null, customer_code = null, rosterdate_formatted = null;
         if (billing_level && selected_order_pk) {
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk );
-            order_code = get_dict_value(map_dict, ["code", "value"]);
-            customer_code = get_dict_value(map_dict, ["customer", "code"]);
+            order_code = get_dict_value(map_dict, ["code", "value"], "");
+            customer_code = get_dict_value(map_dict, ["customer", "code"], "");
         }
         if (billing_level === 2 && selected_rosterdate_iso) {
                 rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(selected_rosterdate_iso),
@@ -669,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const total_amount = billing_total_row[9];
                         el_div.innerText = calc_pricerate_avg_format(total_billdur, total_amount);
                     } else if (i === 9) {
-                        el_div.innerText = format_pricerate ( billing_total_row[i], false, false, loc.user_lang); // is_percentage = false, show_zero = false
+                        el_div.innerText = format_pricerate (loc.user_lang, billing_total_row[i]); // is_percentage = false, show_zero = false
                     }
                 };
             }
@@ -929,17 +933,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ END OF BILLING OVERVIEW  +++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+// +++++++++++++++++ SIDEBAR MOD SELECT PERIOD  +++++++++++++++++++++++++++++++++++++++++++
+
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
-//========= ModPeriodOpen====================================
+//========= ModPeriodOpen=================== PR2020-07-12
     function ModPeriodOpen () {
         //console.log("===  ModPeriodOpen  =====") ;
-        //console.log("selected_period", selected_period) ;
-
-        mod_upload_dict = selected_period;
-
-    // highligh selected period in table, put period_tag in data-tag of tblRow
+        //console.log("selected_review_period", selected_review_period) ;
+        mod_dict = selected_review_period;
+// ---  highligh selected period in table, put period_tag in data-tag of tblRow
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
-        const period_tag = get_dict_value_by_key(selected_period, "period_tag")
+        const period_tag = get_dict_value(selected_review_period, ["period_tag"])
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
             if (period_tag === row_tag){
@@ -948,95 +953,89 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow.classList.remove(cls_selected)
             }
         };
-
-    // set value of extend select box
-        const extend_index = get_dict_value_by_key(selected_period, "extend_index", 0)
-        document.getElementById("id_mod_period_extend").selectedIndex = extend_index
-
-    // set value of date imput elements
+// ---  set value of date imput elements
         const is_custom_period = (period_tag === "other")
-        let el_datefirst = document.getElementById("id_mod_period_datefirst")
-        let el_datelast = document.getElementById("id_mod_period_datelast")
-        el_datefirst.value = get_dict_value(selected_period, ["period_datefirst"])
-        el_datelast.value = get_dict_value(selected_period, ["period_datelast"])
-
-    // set min max of input fields
-        ModPeriodDateChanged("datefirst");
-        ModPeriodDateChanged("datelast");
-
-        el_datefirst.disabled = !is_custom_period
-        el_datelast.disabled = !is_custom_period
-
-    // ---  show modal
-         $("#id_mod_period").modal({backdrop: true});
-
+        el_mod_period_datefirst.value = get_dict_value(selected_review_period, ["period_datefirst"])
+        el_mod_period_datelast.value = get_dict_value(selected_review_period, ["period_datelast"])
+// ---  set min max of input fields
+        ModPeriodDateChanged("setminmax");
+        el_mod_period_datefirst.disabled = !is_custom_period
+        el_mod_period_datelast.disabled = !is_custom_period
+// ---  reset checkbox oneday, hide  when not is_custom_period
+        el_mod_period_oneday.checked = false;
+        add_or_remove_class(document.getElementById("id_mod_period_oneday_container"), cls_hide, !is_custom_period)
+// ---  hide extend period input box
+        document.getElementById("id_mod_period_div_extend").classList.add(cls_hide)
+// ---  show modal
+        $("#id_mod_period").modal({backdrop: true});
 }; // function ModPeriodOpen
 
-//=========  ModPeriodSelectPeriod  ================ PR2019-07-14
+//=========  ModPeriodSelectPeriod  ================ PR2020-07-12
     function ModPeriodSelectPeriod(tr_clicked, selected_index) {
         //console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
-    // ---  deselect all highlighted rows, highlight selected row
+// ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
             tr_clicked.classList.add(cls_selected)
-
-    // add period_tag to mod_upload_dict
+// ---  add period_tag to mod_dict
             const period_tag = get_attr_from_el(tr_clicked, "data-tag")
-            mod_upload_dict["period_tag"] = period_tag;
-
-    // enable date input elements, gve focus to start
+            mod_dict["period_tag"] = period_tag;
+// ---  enable date input elements, give focus to start
             if (period_tag === "other") {
-                let el_datefirst = document.getElementById("id_mod_period_datefirst");
-                let el_datelast = document.getElementById("id_mod_period_datelast");
-                el_datefirst.disabled = false;
-                el_datelast.disabled = false;
-                el_datefirst.focus();
+                // el_mod_period_datefirst / el_datelast got value in ModPeriodOpen
+// ---  show checkbox oneday when not is_custom_period
+                document.getElementById("id_mod_period_oneday_container").classList.remove(cls_hide);
+                el_mod_period_datefirst.disabled = false;
+                el_mod_period_datelast.disabled = false;
+                el_mod_period_datefirst.focus();
             } else{
                 ModPeriodSave();
             }
         }
     }  // ModPeriodSelectPeriod
 
-//=========  ModPeriodDateChanged  ================ PR2019-07-14
+
+//=========  ModPeriodDateChanged  ================ PR2020-07-11
     function ModPeriodDateChanged(fldName) {
-        //console.log("===  ModPeriodDateChanged =========");
-        // set min max of other input field
-        let attr_key = (fldName === "datefirst") ? "min" : "max";
-        let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
-        let el_this = document.getElementById("id_mod_period_" + fldName)
-        let el_other = document.getElementById("id_mod_period_" + fldName_other)
-        if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
-        } else { el_other.removeAttribute(attr_key) };
+        //console.log("ModPeriodDateChanged");
+        //console.log("fldName", fldName);
+        if (fldName === "oneday") {
+            // set period_datelast to datefirst
+            if (el_mod_period_oneday.checked) { el_mod_period_datelast.value = el_mod_period_datefirst.value};
+            el_mod_period_datelast.readOnly = el_mod_period_oneday.checked;
+        } else if (fldName === "setminmax") {
+            // set datelast min_value to datefirst.value, remove when blank
+            add_or_remove_attr (el_mod_period_datelast, "min", (!!el_mod_period_datefirst.value), el_mod_period_datefirst.value);
+            // dont set datefirst max_value, change datelast instead
+        } else if (fldName === "datefirst") {
+            if ( (el_mod_period_oneday.checked) ||
+                 (!!el_mod_period_datefirst.value  && el_mod_period_datefirst.value > el_mod_period_datelast.value)  ) {
+                el_mod_period_datelast.value = el_mod_period_datefirst.value
+            }
+            // set datelast min_value to datefirst.value, remove when blank
+            add_or_remove_attr (el_mod_period_datelast, "min", (!!el_mod_period_datefirst.value), el_mod_period_datefirst.value);
+        }
     }  // ModPeriodDateChanged
 
-//=========  ModPeriodSave  ================ PR2019-07-11
+//=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
-        //console.log("===  ModPeriodSave =========");
-        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "today")
-        let extend_index = document.getElementById("id_mod_period_extend").selectedIndex
-        if(extend_index < 0 ){extend_index = 0}
-        // extend_index 0='None ,1='1 hour', 2='2 hours', 3='3 hours', 4='6 hours', 5='12 hours', 6='24 hours'
-        let extend_offset = (extend_index=== 1) ? 60 :
-                       (extend_index=== 2) ? 120 :
-                       (extend_index=== 3) ? 180 :
-                       (extend_index=== 4) ? 360 :
-                       (extend_index=== 5) ? 720 :
-                       (extend_index=== 6) ? 1440 : 0;
-
-        let review_period_dict = {
+        console.log("===  ModPeriodSave  =====") ;
+        console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
+// ---  get period_tag
+        const period_tag = get_dict_value(mod_dict, ["period_tag"], "tweek");
+// ---  create upload_dict
+        let upload_dict = {
+            now: get_now_arr(),
             period_tag: period_tag,
-            extend_index: extend_index,
-            extend_offset: extend_offset};
+            extend_index: 0,
+            extend_offset: 0};
         // only save dates when tag = "other"
         if(period_tag == "other"){
-            const datefirst = document.getElementById("id_mod_period_datefirst").value
-            const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {review_period_dict["period_datefirst"] = datefirst};
-            if (!!datelast) {review_period_dict["period_datelast"]= datelast};
+            if (el_mod_period_datefirst.value) {mod_dict.period_datefirst = el_mod_period_datefirst.value};
+            if (el_mod_period_datelast.value) {mod_dict.period_datelast = el_mod_period_datelast.value};
         }
-
 // ---  upload new setting
-        let datalist_request = {review_period: review_period_dict,
+        let datalist_request = {review_period: upload_dict,
                                 billing_list: {mode: "get"}};
         DatalistDownload(datalist_request, "ModPeriodSave");
 
@@ -1048,14 +1047,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function Sidebar_DisplayPeriod() {
         //console.log( "===== Sidebar_DisplayPeriod  ========= ");
 
-        if (!isEmpty(selected_period)){
-            const period_tag = get_dict_value(selected_period, ["period_tag"]);
+        if (!isEmpty(selected_review_period)){
+            const period_tag = get_dict_value(selected_review_period, ["period_tag"]);
         //console.log( "period_tag ", period_tag);
 
             let period_text = null;
             if(period_tag === "other"){
-                const rosterdatefirst = get_dict_value(selected_period, ["period_datefirst"]);
-                const rosterdatelast = get_dict_value(selected_period, ["period_datelast"]);
+                const rosterdatefirst = get_dict_value(selected_review_period, ["period_datefirst"]);
+                const rosterdatelast = get_dict_value(selected_review_period, ["period_datelast"]);
                 const is_same_date = (rosterdatefirst === rosterdatelast);
                 const is_same_year = (rosterdatefirst.slice(0,4) === rosterdatelast.slice(0,4));
                 const is_same_year_and_month = (rosterdatefirst.slice(0,7) === rosterdatelast.slice(0,7));
@@ -1086,20 +1085,20 @@ document.addEventListener('DOMContentLoaded', function() {
             el_sidebar_select_period.value = period_text
 
             // put long date in header of this page
-            const dates_display = get_dict_value(selected_period, ["dates_display_long"], "")
+            const dates_display = get_dict_value(selected_review_period, ["dates_display_long"], "")
             document.getElementById("id_hdr_period").innerText = dates_display
 
-            selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)
-            selected_order_pk = get_dict_value(selected_period, ["order_pk"], 0)
-            selected_employee_pk = get_dict_value(selected_period, ["employee_pk"], 0)
+            selected_customer_pk = get_dict_value(selected_review_period, ["customer_pk"], 0)
+            selected_order_pk = get_dict_value(selected_review_period, ["order_pk"], 0)
+            selected_employee_pk = get_dict_value(selected_review_period, ["employee_pk"], 0)
 
 
             let customer_order_text = null;
             if(!!selected_customer_pk){
-                const customer_code = get_dict_value(selected_period, ["customer_code"], "");
+                const customer_code = get_dict_value(selected_review_period, ["customer_code"], "");
                 let order_code = "";
                 if(!!selected_order_pk){
-                    order_code = get_dict_value(selected_period, ["order_code"]);
+                    order_code = get_dict_value(selected_review_period, ["order_code"]);
                 } else {
                     order_code = loc.All_orders.toLowerCase()
                 }
@@ -1141,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSO_Open () {
         //console.log(" ===  MSO_Open  =====") ;
 
-        mod_upload_dict = {
+        mod_dict = {
             employee: {pk: selected_employee_pk},
             customer: {pk: selected_customer_pk},
             order: {pk: selected_order_pk},
@@ -1172,12 +1171,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  upload new setting
         let review_period_dict = {
-                customer_pk: mod_upload_dict.customer.pk,
-                order_pk: mod_upload_dict.order.pk
+                customer_pk: mod_dict.customer.pk,
+                order_pk: mod_dict.order.pk
             };
 
         // if customer_pk or order_pk has value: set absence to 'without absence
-        if(!!mod_upload_dict.customer.pk || !!mod_upload_dict.order.pk) {
+        if(!!mod_dict.customer.pk || !!mod_dict.order.pk) {
             review_period_dict.isabsence = false;
         }
         const datalist_request = {
@@ -1205,8 +1204,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let data__pk = get_attr_from_el(tblRow, "data-pk")
             if(!Number(data__pk)){
                 if(data__pk === "addall" ) {
-                    mod_upload_dict.customer.pk = 0;
-                    mod_upload_dict.order.pk = 0;
+                    mod_dict.customer.pk = 0;
+                    mod_dict.order.pk = 0;
                     selected_customer_pk = 0;
                     selected_order_pk = 0;
                     MSO_Save();
@@ -1214,8 +1213,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const pk_int = Number(data__pk)
                 if (pk_int !== selected_customer_pk){
-                    mod_upload_dict.customer.pk = pk_int;
-                    mod_upload_dict.order.pk = 0;
+                    mod_dict.customer.pk = pk_int;
+                    mod_dict.order.pk = 0;
                     selected_customer_pk = pk_int;
                     selected_order_pk = 0;
                 }
@@ -1237,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
 
-        t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
+        t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_dict.customer.pk, null,
             HandleSelect_Filter, null, MSO_SelectCustomer, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
              filter_include_absence, filter_istemplate, addall_to_list_txt,
@@ -1247,17 +1246,17 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
     function MSO_FillSelectTableOrder() {
         //console.log( "===== MSO_FillSelectTableOrder ========= ");
-        //console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log( "mod_dict: ", mod_dict);
 
 // ---  hide div_tblbody_order when no customer selected, reset tblbody_order
-        add_or_remove_class (document.getElementById("id_MSO_div_tblbody_order"), cls_hide, !mod_upload_dict.customer.pk)
+        add_or_remove_class (document.getElementById("id_MSO_div_tblbody_order"), cls_hide, !mod_dict.customer.pk)
         el_modorder_tblbody_order.innerText = null;
 
-        if (!!mod_upload_dict.customer.pk){
-            const filter_ppk_int = mod_upload_dict.customer.pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+        if (!!mod_dict.customer.pk){
+            const filter_ppk_int = mod_dict.customer.pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
 
-            t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
+            t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_dict.customer.pk, null,
                 HandleSelect_Filter, null, MSO_SelectOrder, null, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
@@ -1292,7 +1291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = get_attr_from_el(el_select, "data-value");
 // ---  get pk from id of select_tblRow
             const data_pk_int = Number(get_attr_from_el(tblRow, "data-pk"));
-            mod_upload_dict.order.pk = (!!data_pk_int) ? data_pk_int : 0;
+            mod_dict.order.pk = (!!data_pk_int) ? data_pk_int : 0;
 
         }
         MSO_headertext();
@@ -1338,17 +1337,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!!selected_pk) {
                 el_modorder_input_customer.value = get_dict_value(filter_dict, ["selected_value"])
 
-// ---  put pk of selected customer in mod_upload_dict
+// ---  put pk of selected customer in mod_dict
                 if(!Number(selected_pk)){
                     if(selected_pk === "addall" ) {
-                        mod_upload_dict.customer.pk = 0;
-                        mod_upload_dict.order.pk = 0;
+                        mod_dict.customer.pk = 0;
+                        mod_dict.order.pk = 0;
                     }
                 } else {
                     const pk_int = Number(selected_pk)
                     if (pk_int !== selected_customer_pk){
-                        mod_upload_dict.customer.pk = pk_int;
-                        mod_upload_dict.order.pk = 0;
+                        mod_dict.customer.pk = pk_int;
+                        mod_dict.order.pk = 0;
                     }
                 }
 
@@ -1363,15 +1362,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function MSO_headertext() {
         //console.log( "=== MSO_headertext  ");
-        //console.log(  mod_upload_dict);
+        //console.log(  mod_dict);
         let header_text = null;
 
-        if(!!mod_upload_dict.customer.pk){
-            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_upload_dict.customer.pk)
+        if(!!mod_dict.customer.pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_dict.customer.pk)
             const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
             let order_code = null;
-            if(!!mod_upload_dict.order.pk){
-                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_upload_dict.order.pk)
+            if(!!mod_dict.order.pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_dict.order.pk)
                 order_code = get_dict_value(order_dict, ["code", "value"]);
             } else {
                 order_code = loc.All_orders.toLowerCase()
@@ -1487,18 +1486,18 @@ function HandleExpand(mode){
 //=========  calc_pricerate_avg_format  === PR2020-04-28
     function calc_pricerate_avg_format(billing_duration, total_amount){
         const avg_rounded = calc_pricerate_avg(billing_duration, total_amount);
-        return format_pricerate (avg_rounded, false, false, loc.user_lang); // is_percentage = false, show_zero = false
+        return format_pricerate (loc.user_lang, avg_rounded); // is_percentage = false, show_zero = false
     }
 
 //############################################################################
 // +++++++++++++++++ PRINT ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= PrintReport  ====================================
     function PrintReport(option) { // PR2020-01-25
-        //PrintReview("preview", selected_period, review_list, company_dict, loc, imgsrc_warning)
+        //PrintReview("preview", selected_review_period, review_list, company_dict, loc, imgsrc_warning)
         if (selected_btn === "employee"){
-            PrintReviewEmployee(option, selected_period, sorted_rows, company_dict, loc, imgsrc_warning)
+            PrintReviewEmployee(option, selected_review_period, sorted_rows, company_dict, loc, imgsrc_warning)
         } else {
-            PrintReviewCustomer(option, selected_period, sorted_rows, company_dict, loc, imgsrc_warning)
+            PrintReviewCustomer(option, selected_review_period, sorted_rows, company_dict, loc, imgsrc_warning)
         }
     }  // PrintReport
 
@@ -1539,7 +1538,7 @@ function HandleExpand(mode){
         const company = get_dict_value(company_dict, ["name", "value"], "")
         ws["A2"] = {v: company, t: "s"};
 // period row
-        const period_value = display_planning_period (selected_period, loc, true);  // true = skip_prefix
+        const period_value = display_planning_period (selected_review_period, loc, true);  // true = skip_prefix
         ws["A4"] = {v: loc.Period, t: "s"};
 
         ws["B4"] = {v: period_value, t: "s"};

@@ -412,15 +412,15 @@ def create_absencecategory_list(request):
     # each absence category contains abscat_customer, abscat_order
     order_list = []
 
-    #logger.debug(" --- create_absencecategory_list ---")
+    logger.debug(" --- create_absencecategory_list ---")
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
-    #logger.debug(" --- get_or_create_absence_customer ---")
+    logger.debug(" --- get_or_create_absence_customer ---")
     # order by priority: which is sequence desc
     orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True)
 
     for order in orders:
-        #logger.debug(" --- for order in orders ---")
+        logger.debug(" --- for order in orders ---")
         dict = create_absencecat_dict(order, request)
         order_list.append(dict)
 
@@ -430,14 +430,14 @@ def create_absencecategory_list(request):
 def create_absencecat_dict(order, request):
 # --- create dict of this absence category PR2019-06-25
 # if scheme or team of this order does not exist: create it
-    #logger.debug(" --- create_absencecat_dict ---")
-    #logger.debug("order: ", order)
+    logger.debug(" --- create_absencecat_dict ---")
+    logger.debug("order: ", order)
     item_dict = {}
     if order:
         abscat_code = getattr(order, 'code', '-')
         customer = order.customer
         customer_code =  getattr(customer, 'code', '-')
-        #logger.debug("abscat_code: ", abscat_code)
+        logger.debug("abscat_code: ", abscat_code)
 
         item_dict['id'] = {
             'pk': order.pk,

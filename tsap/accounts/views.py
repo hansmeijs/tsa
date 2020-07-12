@@ -537,64 +537,37 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-            #logger.debug('request.POST ' + str(request.POST))
 
 # 1. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: {'selected_pk': {'selected_customer_pk': 392, 'selected_order_pk': 0}}
-                # upload_dict: {'quicksave': {'value': False}}
-                for key in upload_dict:
-                    new_setting = upload_dict[key]
-                    #logger.debug('new_setting: ' + str(new_setting))
-                    # key: quicksave --> new_setting: {'value': False}
-                    if key == 'selected_pk':
-                        settings_dict = Usersetting.get_jsonsetting(key, request.user)
-                        #logger.debug('settings_dict: ' + str(settings_dict))
-                        # key 'sel_cust_pk' is replaced by 'sel_customer_pk'. remove olfd key (temporary) PR2020-05-21
-                        if 'sel_cust_pk' in settings_dict:
-                            settings_dict.pop('sel_cust_pk')
-                # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
-                        for sel_pk in new_setting:
-                            sel_value = new_setting[sel_pk]
-                            #logger.debug('sel_value: ' + str(sel_value))
-                            settings_dict[sel_pk] = sel_value
-                    else:
-                        # "planning_period":{"datefirst":"2019-10-10","datelast":"2019-12-13"}}
-                        settings_dict = upload_dict[key]
-                    #logger.debug('key: ' + str(key))
-                    #logger.debug('settings_dict: ' + str(settings_dict))
-                    # key: quicksave --> settings_dict: {'value': False}
+                # PR2020-07-12 debug. creates multiple rows when key does not exist ans newdict has multiple subkeys
+                # TODO find a way to fix this
+                for key, new_setting_dict in upload_dict.items():
+                    # key = page_scheme, dict = {'grid_range': 2}
+                    # key = selected_pk, dict = {'sel_customer_pk': 749, 'sel_order_pk': 1521}
+                    saved_settings_dict = Usersetting.get_jsonsetting(key, request.user)
+                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                    #logger.debug('saved_settings_dict: ' + str(saved_settings_dict))
+                    # loop through saved settings
+                    for subkey, value in new_setting_dict.items():
+                        #logger.debug('subkey: ' + str(subkey))
+                        #logger.debug('value: ' + str(value))
+                        # 'page_scheme': {'sel_btn': 'grid'}
+                        # if  subkey has value in  new_setting_dict: replace saved value with new value
+                        if value:
+                            saved_settings_dict[subkey] = value
+                        else:
+                        # if  subkey has no value in new_setting_dict: remove key from dict
+                            saved_settings_dict.pop(subkey)
+                    #logger.debug('Usersetting.set_jsonsetting from UserSettingsUploadView')
+                    Usersetting.set_jsonsetting(key, saved_settings_dict, request.user)
 
-                    # new_setting is in json format, no need for json.loads and json.dumps
-                    # new_setting = json.loads(request.POST['setting'])
-                    # new_setting_json = json.dumps(new_setting)
-                    if settings_dict:
-                        #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
-                        Usersetting.set_jsonsetting(key, settings_dict, request.user)
-
-# 2. get iddict variables
-                # if field in upload_dict:
-                    # new_dict = upload_dict.get(field)
-                    # saved_dict = Usersetting.get_jsonsetting(key, settings_dict, request.user)
-                    #.debug('settings_dict ' + str(settings_dict))
-                    # settings_dict {'page_employee': {'selected_btn': 'absence'}}
-                    # if settings_dict:
-                        # key = c.KEY_USER_PAGE_SETTINGS
-                        # page = 'pagexx'
-                        # new_setting_dict = {}
-                        # selected_btn = settings_dict.get('selected_btn')
-                        #logger.debug('selected_btn ' + str(selected_btn))
-
-                        # TODO: multiple settings, get saves settingsfirst, then update new setting
-                        # new_page_dict = {}
-                        #  new_page_dict[page] = {'selected_btn': selected_btn}
-                        #logger.debug('new_page_dict ' + str(new_page_dict))
 
         # c. add update_dict to update_wrap
-                        update_wrap['setting'] = {"result": "ok"}
+                    update_wrap['setting'] = {"result": "ok"}
 # F. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 

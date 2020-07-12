@@ -2695,13 +2695,11 @@ def calc_timeduration_from_shift(shift):
 
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10 PR2020-06-01
-def calc_timestart_time_end_from_offset(rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
-                                        offsetstart, offsetend, breakduration, timeduration,
-                                        nohoursonsaturday, nohoursonsunday, nohoursonpublicholiday,
-                                        is_restshift, is_absence, comp_timezone):
+def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, timeduration,
+                                        comp_timezone):
     #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
     # called by add_orderhour_emplhour
-
+    # set duration 0 when restshift or no_hours_on saturday etc is done outside this function
     starttime_local = None
     endtime_local = None
     new_timeduration = 0
@@ -2737,16 +2735,6 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, is_saturday, is_sunday, 
             new_timeduration = int(datediff_minutes - breakduration)
         else:
             new_timeduration= timeduration
-# when rest shift : timeduration = 0
-        if is_restshift:
-            new_timeduration = 0
-        # was 'if is_absence:' before nohoursonsaturday etc, but maybe it can be used for normal shifts as well
-        elif nohoursonsaturday and is_saturday:
-            new_timeduration = 0
-        elif nohoursonsunday and is_sunday:
-            new_timeduration = 0
-        elif nohoursonpublicholiday and is_publicholiday:
-            new_timeduration = 0
 
     return starttime_local, endtime_local, new_timeduration
 
@@ -2776,7 +2764,71 @@ def calc_datepart_from_datetimelocal(rosterdate, datetimestart_local, datetimeen
         offsetend = get_offset_from_datetimelocal(rosterdate, datetimeend_local)
         date_part = calc_datepart(offsetstart, offsetend)
     return date_part
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# ++++++ calendar functions ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+def get_holiday_dict(datefirst_dte, datelast_dte, user_lang, request):  # PR20202-07-07
+    #logger.debug(' --- get_holiday_dict ---')
+
+    # PR2020-01-22 function creates dict with 'ispublicholiday', 'iscompanyholiday', 'display'
+    # and is is added with key 'rosterdate' to holiday_dict
+    # calendar_header only has value when exists in table Calendar
+    # calendar_header: {'2019-12-26': {'ispublicholiday': True, 'display': 'Tweede Kerstdag'}}
+    holiday_dict = {}
+
+# first check if holdiays are filled in in the years of the date-range
+    check_and_fill_calendar(datefirst_dte, datelast_dte, request)
+
+    calendar_dates = m.Calendar.objects.filter(
+            company=request.user.company,
+            rosterdate__gte=datefirst_dte,
+            rosterdate__lte=datelast_dte
+            )
+    for row in calendar_dates:
+        header_dict = {}
+
+        if row.ispublicholiday:
+            header_dict['ispublicholiday'] = row.ispublicholiday
+        if row.iscompanyholiday:
+            header_dict['iscompanyholiday'] = row.iscompanyholiday
+
+        if row.ispublicholiday and row.code:
+            display_txt = _(row.code)
+        else:
+            display_txt = format_date_element(rosterdate_dte=row.rosterdate, user_lang=user_lang, show_year=False)
+        header_dict['display'] = display_txt
+
+        # was: rosterdate_iso = f.get_dateISO_from_dateOBJ(row.rosterdate)
+        rosterdate_iso = row.rosterdate.isoformat()
+
+        holiday_dict[rosterdate_iso] = header_dict
+
+    return holiday_dict
+
+
+def get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request):
+    #logger.debug(' --- create_calendar_header ---')
+    # PR2020-01-26 function returns 'ispublicholiday', 'iscompanyholiday' from Calendar
+    # PR2020-06-22 is_saturday is_sunday added
+    is_saturday = False
+    is_sunday = False
+    is_publicholiday = False
+    is_companyholiday = False
+
+    if rosterdate_dte:
+        is_saturday = (rosterdate_dte.isoweekday() == 6)
+        is_sunday = (rosterdate_dte.isoweekday() == 7)
+
+        calendar_date = m.Calendar.objects.get_or_none(
+                company=request.user.company,
+                rosterdate=rosterdate_dte
+                )
+        if calendar_date:
+            is_publicholiday = calendar_date.ispublicholiday
+            is_companyholiday = calendar_date.iscompanyholiday
+
+    return is_saturday, is_sunday, is_publicholiday, is_companyholiday
+
 
 def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21
     # function checks if calendar dates of the years of this range exist, if not: add calendar dates

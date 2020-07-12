@@ -737,9 +737,10 @@ class Schemeitem(TsaBaseModel):
                 scheme = Scheme.objects.get_or_none(pk=self.scheme.pk)
                 if scheme:
                     #logger.debug('scheme: ' + str(scheme.code))
-                    # skip if cycle = 0 (once-only)
+                    # skip if cycle = 0 (once-only). Value fore once-only is cycle = 32767
                     if scheme.cycle:
                         cycle_int = scheme.cycle
+                        # if cycle_int < 32767:
                         #logger.debug('cycle_int: ' + str(cycle_int))
 
                         # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc

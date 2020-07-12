@@ -522,7 +522,7 @@
                     period_min =  curDateMidday;
                     period_max =  curDateEndOfDay;
                 }
-                period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
+                period_within_range = mtp_period_within_range(period_min, period_max, range_min, range_max)
                 //console.log("period_min", period_min.format(), "period_max", period_max.format())
                 //console.log("range_min", range_min.format(), "range_max", range_max.format())
                 //console.log("period_within_range", period_within_range)
@@ -946,8 +946,8 @@ function CalcMinMax(dict) {
                 td.classList.remove("tr_hover")}}
     }
 
-//========= PeriodWithinRange  ====================================
-    function PeriodWithinRange(period_min, period_max, range_min, range_max) {
+//========= mtp_period_within_range  ====================================
+    function mtp_period_within_range(period_min, period_max, range_min, range_max) {
     // PR2019-08-04 Note: period is also out of range when diff === 0
 
         let out_of_range = false;
@@ -961,6 +961,6 @@ function CalcMinMax(dict) {
         }
         const within_range = !out_of_range;
         return within_range
-    }  // PeriodWithinRange
+    }  // mtp_period_within_range
 
 

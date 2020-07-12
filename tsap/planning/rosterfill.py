@@ -768,8 +768,8 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 #######################################################
 
 def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
-    # logger.debug(' ###################### FillRosterdate ###################### ')
-    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    logger.debug(' ###################### FillRosterdate ###################### ')
+    logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
     logfile = []
 
@@ -827,14 +827,14 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             calendar_setting_dict = {'rosterdate': rosterdate_dte.isoformat()}
             calendar_dictlist = []
 
-            # - check if calendar contains dates of this year, fill if necessary
-            f.check_and_fill_calendar(rosterdate_dte, rosterdate_dte, request)
+# - check if calendar contains dates of this year, fill if necessary
+            # is part of get_holiday_dict
 
-            # - create calendar_header of this date, get is_publicholiday and is_companyholiday and is_weekend
-            calendar_header_dict = pld.create_calendar_header(rosterdate_dte, rosterdate_dte, user_lang, request)
-            rosterdate_dict = f.get_dict_value(calendar_header_dict, (rosterdate_iso,))
-            # logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
-            # logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
+# - create calendar_header of this date, get is_publicholiday and is_companyholiday and is_weekend
+            holiday_dict = f.get_holiday_dict(rosterdate_dte, rosterdate_dte, user_lang, request)
+            rosterdate_dict = f.get_dict_value(holiday_dict, (rosterdate_iso,))
+            logger.debug('holiday_dict: ' + str(holiday_dict))
+            logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
 
             is_publicholiday = rosterdate_dict.get('ispublicholiday', False)
             is_companyholiday = rosterdate_dict.get('iscompanyholiday', False)
@@ -846,6 +846,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             is_sunday = (rosterdate_isoWeekDay == 7)
             # lastof_month is entered as paydate when no paydatecode is given
             lastof_month = f.get_lastof_month(rosterdate_dte)
+
             # logger.debug('publicholiday_text: ' + str(publicholiday_text) + ' ' + str(type(publicholiday_text)))
             if is_publicholiday:
                 logfile.append('--- this is a public holiday (' + str(publicholiday_text) + ')')
@@ -864,11 +865,9 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
             customer_pk, order_pk, employee_pk = None, None, None
-            all_rows = get_employee_calendar_rows(rosterdate_dte, is_publicholiday, is_companyholiday,
-                                                  customer_pk,
-                                                  order_pk, employee_pk, company_id)
-
-            # - sort rows
+            all_rows = get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
+                                                  customer_pk, order_pk, employee_pk, company_id)
+# - sort rows
             # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
             # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
             # caused bij idx_e_code = None. Coalesce added in query.
@@ -916,10 +915,13 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     # logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
                     # logger.debug('-------- count_normal: ' + str(count_normal))
 
-                    has_overlap = False
-                    overlap_siid_list = []
-                    planning_dict = create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone,
-                                                         timeformat, user_lang)
+                    planning_dict = create_planning_dict(
+                        row=row,
+                        is_saturday=is_saturday,
+                        is_sunday=is_sunday,
+                        is_publicholiday=is_publicholiday,
+                        timeformat=timeformat,
+                        user_lang=user_lang)
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         # logger.debug('=-------------- row added to dict ')
@@ -970,6 +972,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
                            lastof_month, comp_timezone, request):  # PR2020-01-5
     logger.debug(' ============= add_orderhour_emplhour ============= ')
     logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    logger.debug('is_saturday: ' + str(is_saturday))
+    logger.debug('is_sunday: ' + str(is_sunday))
+    logger.debug('is_publicholiday: ' + str(is_publicholiday))
+    logger.debug('lastof_month: ' + str(lastof_month))
 
     # mode 'i' = inactive
     # mode 'a' = isabsence
@@ -992,32 +998,21 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     row_breakduration = row[idx_sh_bd]
     row_timeduration = row[idx_sh_td]
 
-    nohoursonsaturday = row[idx_o_s_nosat]
-    nohoursonsunday = row[idx_o_s_nosun]
-    nohoursonpublicholiday = row[idx_o_s_noph]
-
-    # logger.debug('is_absence: ' + str(is_absence))
-    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
-    # logger.debug('row_timeduration: ' + str(row_timeduration))
-    # logger.debug('nohoursonsaturday: ' + str(nohoursonsaturday) + ' is_saturday: ' + str(is_saturday))
-    # logger.debug('nohoursonsunday: ' + str(nohoursonsunday) + ' is_sunday: ' + str(is_sunday))
-    # logger.debug('nohoursonpublicholiday: ' + str(nohoursonpublicholiday) + ' is_publicholiday: ' + str(is_publicholiday))
     timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
-        is_saturday=is_saturday,
-        is_sunday=is_sunday,
-        is_publicholiday=is_publicholiday,
         offsetstart=row[idx_sh_os],
         offsetend=row[idx_sh_oe],
         breakduration=row_breakduration,
         timeduration=row_timeduration,
-        nohoursonsaturday=nohoursonsaturday,
-        nohoursonsunday=nohoursonsunday,
-        nohoursonpublicholiday=nohoursonpublicholiday,
-        is_restshift=is_restshift,
-        is_absence=is_absence,
         comp_timezone=comp_timezone
     )
+    # set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
+    if (is_saturday and row[idx_o_s_nosat]) or \
+                (is_sunday and row[idx_o_s_nosun]) or \
+                (is_publicholiday and row[idx_o_s_noph]) or \
+                (is_restshift):
+        time_duration = 0
+        logger.debug('no hours: ')
 
     # calculate datepart
     date_part = 0
@@ -2470,18 +2465,19 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk,
                              add_empty_shifts, skip_absence_and_restshifts, orderby_rosterdate_customer,
                              comp_timezone, timeformat, user_lang, request):
-    logger.debug('============= create_employee_planning ============= ')
+    logger.debug(' ----------  create_employee_planning  ---------- ')
     logger.debug('employee_pk: ' + str(employee_pk))
     # logger.debug('order_pk: ' + str(order_pk))
     # logger.debug('customer_pk: ' + str(customer_pk))
-    # logger.debug('add_empty_shifts: ' + str(add_empty_shifts))
-    # logger.debug('skip_absence_and_restshifts: ' + str(skip_absence_and_restshifts))
+    logger.debug('add_empty_shifts: ' + str(add_empty_shifts))
+    logger.debug('skip_absence_and_restshifts: ' + str(skip_absence_and_restshifts))
     logger.debug('datefirst_iso: ' + str(datefirst_iso))
     logger.debug('datelast_iso: ' + str(datelast_iso))
-    # this function calcuLates the planning per employee per day, without saving emplhour records  # PR2019-11-30
+    # this function calculates the planning per employee per day, without saving emplhour records  # PR2019-11-30
     # called by DatalistDownloadView.employee_calendar, DatalistDownloadView.employee_planning, and calendar_employee_upload
     logfile = []
     calendar_dictlist = []
+    calendar_shortlist = []
 
     if datefirst_iso and datelast_iso:
         all_rows = []
@@ -2492,38 +2488,30 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
             'rosterdatelast': datelast_iso
         }
 
-        # 1. convert datefirst and datelast into date_objects
+# - convert datefirst and datelast into date_objects
         datefirst_dte = f.get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
         datelast_dte = f.get_date_from_ISO(datelast_iso)
 
-        # 2. check if calendar contains dates of this year, fill if necessary
+# - check if calendar contains dates of this year, fill if necessary
         f.check_and_fill_calendar(datefirst_dte, datelast_dte, request)
 
-        # 2. get reference date
-        # all start- and end times are calculated in minutes from reference date 00:00. Reference date can be any date.
-        # refdate = datefirst_dte
-
-        # 3. loop through dates
+# +++++ loop through dates
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
-            # 4. get is_publicholiday, is_companyholiday of this date from Calendar
-            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(
+# - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
                 rosterdate_dte, request)
-            # refdate not in use any more PR2020-05-05, becasue of introduction ofdivergent shift without rosterdatre
-
-            # 5. create list with all teammembers of this_rosterdate
+# - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
-            rows = get_employee_calendar_rows(rosterdate_dte, is_publicholiday, is_companyholiday, customer_pk,
-                                              order_pk, employee_pk, company_id)
-
-            # 6. add to all_rows
+            rows = get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
+                                              customer_pk, order_pk, employee_pk, company_id)
+# - add rows to all_rows
             all_rows.extend(rows)
-
-            # 7. add one day to rosterdate
+# - add one day to rosterdate
             rosterdate_dte = rosterdate_dte + timedelta(days=1)
-        #    end of loop
+# +++++ end of loop
 
-        # 8. sort rows
+# - sort rows
         # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
         # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
         # caused bij idx_e_code = None. Coalesce added in query
@@ -2557,29 +2545,45 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
             if row[idx_si_mod] == 's' and row[idx_si_id] is None:
                 add_row_to_dict = False
 
-            # create employee_planning dict
-            # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
+# create employee_planning dict
             if add_row_to_dict:
-                # TODO: add overlap ?? (might take to much time
-                # if row[idx_si_mod] not in ('a', 'r'):
-                #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
+# - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
+                rosterdate_dte = row[idx_tm_rd]
+                is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
+                    rosterdate_dte, request)
 
-                planning_dict = create_planning_dict(row, False, [], comp_timezone, timeformat, user_lang)
+                planning_dict = create_planning_dict(
+                    row=row,
+                    is_saturday=is_saturday,
+                    is_sunday=is_sunday,
+                    is_publicholiday=is_publicholiday,
+                    timeformat=timeformat,
+                    user_lang=user_lang)
                 if planning_dict:
                     calendar_dictlist.append(planning_dict)
 
-    # add empty dict when list has no items. To refresh a empty calendar
+                planning_dict_short = create_planning_dict_short(
+                    row=row,
+                    is_saturday=is_saturday,
+                    is_sunday=is_sunday,
+                    is_publicholiday=is_publicholiday)
+                if planning_dict_short:
+                    calendar_shortlist.append(planning_dict_short)
+
+    # add empty dict when list has no items. To refresh an empty calendar
     if len(calendar_dictlist) == 0:
         calendar_dictlist = [{}]
+    # add empty dict when list has no items. To refresh an empty calendar
+    if len(calendar_shortlist) == 0:
+        calendar_shortlist = [{}]
+    return calendar_dictlist, calendar_shortlist, logfile
 
-    return calendar_dictlist, logfile
 
-
-def get_employee_calendar_rows(rosterdate_dte, is_publicholiday, is_companyholiday, customer_pk, order_pk,
+def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday, customer_pk, order_pk,
                                employee_pk, company_id):
-    logger.debug(' =============== get_employee_calendar_rows ============= ')
-    logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
-    logger.debug('employee_pk: ' + str(employee_pk))
+    #logger.debug(' =============== get_employee_calendar_rows ============= ')
+    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
+    #logger.debug('employee_pk: ' + str(employee_pk))
     # logger.debug('customer_pk: ' + str(customer_pk))
     # logger.debug('order_pk: ' + str(order_pk))
     # called by FillRosterdate and create_employee_planning
@@ -2606,6 +2610,8 @@ def get_employee_calendar_rows(rosterdate_dte, is_publicholiday, is_companyholid
         'orderid': order_pk,
         'eid': employee_pk,
         'rd': rosterdate_dte,
+        'is_sat': is_saturday,
+        'is_sun': is_sunday,
         'ph': is_publicholiday,
         'ch': is_companyholiday
     })
@@ -2953,7 +2959,8 @@ def check_overlapping_shiftrows(employee_rows, employee_dict):
                                             break
 
 
-def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang):  # PR2019-10-27
+def create_planning_dict(row, is_saturday, is_sunday, is_publicholiday, timeformat, user_lang):  # PR2019-10-27
+    # called by FillRosterdate, create_employee_planning, create_customer_planning
     # logger.debug(' --- create_planning_dict --- ')
     # logger.debug('row: ' + str(row))
     # row: {'rosterdate': '2019-09-28', 'tm_id': 469, 'e_id': 1465, 'e_code': 'Andrea, Johnatan',
@@ -2967,7 +2974,6 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
         is_restshift = (row[idx_si_mod] == 'r')
         is_singleshift = (row[idx_si_mod] == 's')
 
-        # TODO skip teammemeber when overlap
         # skip if shift is not absence and has no schemeitem
         has_schemeitem = (row[idx_si_id] is not None)
         # logger.debug('rosterdate: ' + str(rosterdate) + ' is_absence: ' + str(is_absence) + ' is_restshift: ' + str(is_restshift) + ' has_schemeitem: ' + str(has_schemeitem))
@@ -3083,8 +3089,16 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
                 planning_dict['shift'].update({'breakduration': row[idx_sh_bd]})
             # calculate timeduration
             # sh_os etc returns value of shift if si has shift, returns si values if si has no shift
-            planning_dict['shift'].update({'timeduration': f.calc_timeduration_from_values(
+
+            time_duration = planning_dict['shift'].update({'timeduration': f.calc_timeduration_from_values(
                 is_restshift, row[idx_sh_os], row[idx_sh_oe], row[idx_sh_bd], row[idx_sh_td])})
+# set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
+            if (is_saturday and row[idx_o_s_nosat]) or \
+                        (is_sunday and row[idx_o_s_nosun]) or \
+                        (is_publicholiday and row[idx_o_s_noph]) or \
+                        (is_restshift):
+                time_duration = 0
+            planning_dict['shift'].update({'timeduration': time_duration})
 
             # sh_os etc returns value of shift if si has shift, returns si values if si has no shift
             planning_dict['shift'].update(
@@ -3111,17 +3125,51 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
 
         planning_dict['tm_count'] = row[idx_tm_count]
 
-        if has_overlap:
-            planning_dict['overlap'] = {'value': has_overlap}
-            if overlap_siid_list:
-                planning_dict['overlap']['siid_list'] = overlap_siid_list
         # add weekday_list of schemeitems of this scheme and their weekday
-        planning_dict['weekday_list'] = create_weekday_list(row[idx_s_id])
+        #planning_dict['weekday_list'] = create_weekday_list(row[idx_s_id])
 
         # monthindex: {value: 4}
         # weekindex: {value: 15}
         # yearindex: {value: 2019}
     return planning_dict
+
+
+def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday):  # PR2019-10-27 PR2020-07-10
+    # logger.debug(' --- create_planning_dict_short --- ')
+    # logger.debug(row)
+
+    planning_dict_short = {}
+    if row:
+        is_absence = (row[idx_si_mod] == 'a')
+        is_restshift = (row[idx_si_mod] == 'r')
+        rosterdate_dte = row[idx_tm_rd]
+
+        time_duration = f.calc_timeduration_from_values( is_restshift, row[idx_sh_os], row[idx_sh_oe], row[idx_sh_bd], row[idx_sh_td])
+        # set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
+        if (is_saturday and row[idx_o_s_nosat]) or \
+                (is_sunday and row[idx_o_s_nosun]) or \
+                (is_publicholiday and row[idx_o_s_noph]) or \
+                (is_restshift):
+            time_duration = 0
+
+        planning_dict_short = {
+                    'fid': '_'.join([str(row[idx_tm_id]), str(row[idx_si_id]), str(row[idx_tm_rd])]),
+                    'employee_pk': row[idx_e_id],
+                    'employee_code': row[idx_e_code],
+                    'order_pk': row[idx_o_id],
+                    'order_code': row[idx_o_code],
+                    'customer_code': row[idx_c_code],
+                    'shift_code': row[idx_sh_code],
+                    'rosterdate': rosterdate_dte.isoformat(),
+                    'offsetstart': row[idx_sh_os],
+                    'offsetend': row[idx_sh_oe],
+                    'breakduration': row[idx_sh_bd],
+                    'timeduration': time_duration,
+                    'isrestshift': is_restshift,
+                    'isabsence': is_absence,
+        }
+
+    return planning_dict_short
 
 
 def create_weekday_list(scheme_id):
@@ -3207,9 +3255,9 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         # - loop through dates
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
-            # - get is_publicholiday, is_companyholiday of this date from Calendar
-            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(
-                rosterdate_dte, request)
+# - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
+            is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = \
+                f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
 
             # - create list with all schemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -3221,15 +3269,13 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 is_publicholiday=is_publicholiday,
                 is_companyholiday=is_companyholiday
             )
-
-            # 6. add to all_rows
+# 6. add to all_rows
             all_rows.extend(rows)
-
-            # 7. add one day to rosterdate
+ # 7. add one day to rosterdate
             rosterdate_dte = rosterdate_dte + timedelta(days=1)
         #    end of loop
 
-        # 8. sort rows
+# 8. sort rows
         # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
         # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
         # caused bij idx_e_code = None. Coalesce added in query
@@ -3309,14 +3355,18 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                     # create employee_planning dict
                     # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
 
-                    overlap_siid_list = []
-                    has_overlap = False
-                    # customer_calendar doenst need to check for overlapping records
-                    # if row[idx_si_mod] not in ('a', 'r'):
-                    #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
+# - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
+                    rosterdate_dte = row[idx_tm_rd]
+                    is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+                        f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
 
-                    planning_dict = create_planning_dict(row_list, has_overlap, overlap_siid_list, comp_timezone,
-                                                         timeformat, user_lang)
+                    planning_dict = create_planning_dict(
+                        row=row_list,
+                        is_saturday=is_saturday,
+                        is_sunday=is_sunday,
+                        is_publicholiday=is_publicholiday,
+                        timeformat=timeformat,
+                        user_lang=user_lang)
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         # logger.debug('=-------------- row added to dict ')

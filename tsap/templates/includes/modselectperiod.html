@@ -15,7 +15,7 @@
 
                 <div  id="id_mod_period_body" class="modal-body">
 
-                    <div id="id_modperiod_div_selectperiod" class="mx-2 my-4 display_hideXX">
+                    <div id="id_modperiod_div_selectperiod" class="mx-2 my-4">
 
                         <h5 class="mx-2 my-1">{% trans 'Select period' %}:</h5>
                         <div class="modal_container">
@@ -29,13 +29,18 @@
 
                                 </div>
                             </div>
-                            <div class="modal_body_left">
-                                 <div class="form-group">
-                                    <label for="id_mod_period_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
-                                    <input id="id_mod_period_datefirst" type="date" class="form-control mx-2 my-1">
-                                    <label for="id_mod_period_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
-                                    <input id="id_mod_period_datelast" type="date" class="form-control mx-2 my-1">
-                                 </div>
+                            <div class="modal_body_left mr-2">
+                                <label for="id_mod_period_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
+                                <input id="id_mod_period_datefirst" type="date" class="form-control mx-2 my-1">
+                                <label for="id_mod_period_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
+                                <input id="id_mod_period_datelast" type="date" class="form-control mx-2 my-1">
+
+                                <div id="id_mod_period_oneday_container"  class="content_subheader_left mx-1">
+                                    <span>
+                                        <input id="id_mod_period_oneday" type="checkbox" data-field="oneday" class="tw_032 mx-2">
+                                        <label for="id_mod_period_oneday" class="mb-0">{% trans 'One day only' %}</label>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
