@@ -233,9 +233,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // UpdateSettings
 
 //=========  HandleBtnSelect  ================ PR2020-04-14
-    function HandleBtnSelect(btn_mode, skip_update) {
+    function HandleBtnSelect(btn_mode, skip_upload) {
         //console.log( "===== HandleBtnSelect ========= ", btn_mode);
-        //console.log( "skip_update", skip_update);
 
         // PR2020-04-12 debug. gives error when clicked on button while loc not downloaded yet. !isEmpty(loc) added.
         if(!isEmpty(loc)){
@@ -243,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!selected_btn){selected_btn = "customer"}
 
     // ---  upload new selected_btn
-            if(!skip_update){
+            if(!skip_upload){
                 const upload_dict = {page_customer: {sel_btn: selected_btn}};
                 UploadSettings (upload_dict, url_settings_upload);
             }
@@ -260,9 +259,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // ---  update addnew row: put pk and ppk of selected customer in addnew row of tBody_order
                 //dont: selected_customer has no value yet
                 UpdateAddnewRow_Order();
-            } else if (selected_btn === "calendar" && !skip_update) {
-                if(skip_update){
-                    // create emptyy calendar when skip_update
+            } else if (selected_btn === "calendar" && !skip_upload) {
+                if(skip_upload){
+                    // create emptyy calendar when skip_upload
                     UpdateHeaderText();
                     CreateCalendar("order", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);
                 } else {
@@ -277,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 DatalistDownload(datalist_request, "HandleBtnSelect calendar");
                 }
 
-            } else if (selected_btn === "planning" && !skip_update) {
+            } else if (selected_btn === "planning" && !skip_upload) {
                 DatalistDownload_Planning("HandleBtnSelect planning");
 
             } else if (selected_btn === "form") {

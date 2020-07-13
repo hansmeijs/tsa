@@ -65,6 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let abscat_map = new Map(); // list of all absence categories
 
+        let wagecode_map = new Map();
+        let wagefactor_map = new Map();
         let paydatecode_map = new Map();
         let paydateitem_map = new Map();
 
@@ -134,6 +136,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_tags: ["div", "div", "div"],
                         field_width: ["032", "200", "032"],
                         field_align: ["c", "l", "c"]},
+            wagecode: { tbl_col_count: 5,
+                        field_caption: ["", "Wage_code", "Hourly_wage"],
+                        field_names:  ["select","code", "rate", , "inactive", "delete"],
+                        field_width: ["016",  "150", "120", "032","032"],
+                        field_align: ["c", "l", "r", "c", "c"]},
+            wagefactor: { tbl_col_count: 5,
+                        field_caption: ["", "Wage_factor", "Percentage"],
+                        field_names:  ["select", "code", "rate", , "inactive", "delete"],
+                        field_width: ["016", "150", "120","032","032"],
+                        field_align: ["c", "l", "r", "c", "c"]},
             closingdate: { tbl_col_count: 2,
                         field_caption: ["Closing_date"],
                         field_names:  ["datelast", "delete"],
@@ -341,7 +353,14 @@ document.addEventListener('DOMContentLoaded', function() {
             refresh_datamap(response["abscat_list"], abscat_map);
             fill_datatable = true;
         }
-
+        if ("wagecode_list" in response) {
+            refresh_datamap(response["wagecode_list"], wagecode_map);
+            fill_datatable = true;
+        }
+        if ("wagefactor_list" in response) {
+            refresh_datamap(response["wagefactor_list"], wagefactor_map);
+            fill_datatable = true;
+        }
         if ("paydatecode_list" in response) {
             refresh_datamap(response["paydatecode_list"], paydatecode_map)
         }
@@ -377,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fill_datatable = true;
         }
         if(fill_datatable) {
-            HandleBtnSelect(selected_btn);
+            HandleBtnSelect(selected_btn, true)  // true = skip_upload
         }
     }  // refresh_maps
 
@@ -386,44 +405,45 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 
 //=========  HandleBtnSelect  ================ PR2019-05-25 PR2020-06-12
-    function HandleBtnSelect(data_btn) {
-       //console.log( "===== HandleBtnSelect ========= ");
+    function HandleBtnSelect(data_btn, skip_upload) {
+        console.log( "===== HandleBtnSelect ========= ");
         selected_btn = data_btn
         if(!selected_btn){selected_btn = "payrollperiod"}
 
-// ---  upload new selected_btn
-        const upload_dict = {page_payroll: {sel_btn: selected_btn}};
-        UploadSettings (upload_dict, url_settings_upload);
-
+// ---  upload new selected_btn, not after loading page (then skip_upload = true)
+        if(!skip_upload){
+            const upload_dict = {page_payroll: {sel_btn: selected_btn}};
+            UploadSettings (upload_dict, url_settings_upload);
+        };
 // ---  highlight selected button
         let btns = document.getElementById("id_btn_container").children;
-        for (let i = 0, btn, len = btns.length; i < len; i++) {
-            btn = btns[i]
+        for (let i = 0, btn; btn = btns[i]; i++) {
             const data_button = get_attr_from_el_str(btn, "data-btn");
             add_or_remove_class(btn, cls_btn_selected, data_button === selected_btn);
         }
-
-// ---  change caption and disable submenu items
+// ---  in submenu: change caption and disable submenu items
         const el_submenu_addnew = document.getElementById("id_submenu_addnew");
         const el_submenu_delete = document.getElementById("id_submenu_delete");
-        el_submenu_addnew.innerText = (data_btn === "order") ? loc.Add_abscat :
-                                      (data_btn === "paydatecode") ? loc.Add_payrollperiod : null;
-        el_submenu_delete.innerText = (data_btn === "order") ? loc.Delete_abscat :
-                                      (data_btn === "paydatecode") ? loc.Delete_payrollperiod : null;
-
+        el_submenu_addnew.innerText = (data_btn === "paydatecode") ? loc.Add_payrollperiod :
+                                      (data_btn === "wagecode") ? loc.Add_wagecode :
+                                      (data_btn === "wagefactor") ? loc.Add_wagefactor :
+                                      (data_btn === "order") ? loc.Add_abscat : null;
+        el_submenu_delete.innerText = (data_btn === "paydatecode") ? loc.Delete_payrollperiod :
+                                      (data_btn === "wagecode") ? loc.Delete_wagecode :
+                                      (data_btn === "wagefactor") ? loc.Delete_wagefactor :
+                                      (data_btn === "order") ? loc.Delete_abscat : null;
+        // only show submenu item 'upload' when sel_btn =  paydatecode
+        add_or_remove_class(document.getElementById("id_submenu_upload"), cls_hide, (data_btn !== "paydatecode"))
 // ---  show only the elements that are used in this tab
-        let list = document.getElementsByClassName("tab_show");
-        for (let i=0, len = list.length; i<len; i++) {
-            let el = list[i]
-            const is_show = el.classList.contains("tab_" + selected_btn)
-            show_hide_element(el, is_show)
-        }
+        show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn);
 
 // ---  fill datatable
         if(selected_btn === "payrollperiod"){
             FillPayrollRows();
         } else if(selected_btn === "paydatecode"){
             FillPaydatecodeRows();
+        } else if(["wagecode", "wagefactor"].indexOf(selected_btn) > -1){
+            FillWagecodeWagefactorRows(selected_btn);
         } else if(selected_btn === "order"){
             FillAbscatTableRows( "HandleBtnSelect")
         }
@@ -493,6 +513,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // HandleAggRowClicked
 
 //###########################################################################
+
+// +++++++++++++++++ WAGE CODE  +++++++++++++++++++++++++++++++++++++++++++++++++
+//========= FillWagecodeWagefactorRows  =================== PR2020-07-13
+    function FillWagecodeWagefactorRows(tblName) {
+       console.log( "===== FillWagecodeWagefactorRows  === ");
+
+        tblHead_datatable.innerText = null;
+        tblBody_datatable.innerText = null;
+        tblFoot_datatable.innerText = null;
+
+// --- create tblHead
+        CreateTblHeader(tblName);
+        CreateTblFoot(tblName);
+// get data_key.
+        const data_map = (tblName === "wagecode") ?  wagecode_map :  wagefactor_map;
+        if(!!data_map){
+// --- loop through data_map
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const pk_int = get_dict_value(item_dict, ["id", "pk"], 0);
+                const ppk_int = get_dict_value(item_dict, ["id", "ppk"], 0);
+                const row_index = -1;
+                const tblRow = CreateTblRow(tblBody_datatable, tblName, pk_int, ppk_int, null, row_index)
+                UpdateTblRow(tblRow, item_dict)
+            }  // for (const [map_id, item_dict] of data_map.entries())
+        }  // if(!!data_map)
+        //console.log("FillAbscatTableRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
+
+        Filter_TableRows();
+    }  // FillWagecodeWagefactorRows
+
 
 // +++++++++++++++++ PAYDATECODE  +++++++++++++++++++++++++++++++++++++++++++++++++
 //========= FillPaydateRows  ====================================
@@ -952,13 +1002,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_submenu.appendChild(el_div);
 
         const url_paydatecode_import = get_attr_from_el(el_data, "data-paydatecode_import_url");
-
         AddSubmenuButton(el_div, loc.Add_abscat, function() {AddnewOpen()}, ["mx-2"], "id_submenu_addnew")
         AddSubmenuButton(el_div, loc.Delete_abscat, function() {ModConfirmOpen("delete")}, ["mx-2"], "id_submenu_delete")
         //AddSubmenuButton(el_submenu, loc.Show_report, function() {PrintReport("preview")}, ["mx-2"]);
         //AddSubmenuButton(el_submenu, loc.Download_report, function() {PrintReport("download")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"], "id_submenu_delete");
-        AddSubmenuButton(el_div, loc.Upload_payroll_periods, null, ["mx-2"], "id_submenu_paydatecode_import", url_paydatecode_import);
+        AddSubmenuButton(el_div, loc.Upload_payroll_periods, null, ["mx-2"], "id_submenu_upload", url_paydatecode_import);
 
         el_submenu.classList.remove(cls_hide);
 
@@ -996,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblHeader  === PR2019-10-25 PR2020-06-18
     function CreateTblHeader(tblName) {
-        //console.log("===  CreateTblHeader == tblName: ", tblName);
+        console.log("===  CreateTblHeader == tblName: ", tblName);
         const tblHead = (tblName === "employee") ? tblHead_employee :
                         (tblName === "paydatecode") ? tblHead_paydatecode : tblHead_datatable;
 
@@ -1027,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const caption = (tblName === "payroll") ? data_text : loc[data_text]
                         if(caption) {el_div.innerText = caption};
                         if (j === 0 ){
-                               el_div.classList.add("ml-2");
+                              // el_div.classList.add("ml-2");
                         }
                     }
 // --- add width, text_align
@@ -1036,8 +1085,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     th.appendChild(el_div)
                     tblRow.appendChild(th);
                 }  // for (let j = 0; j < column_count; j++)
-
-                CreateTblHeaderFilter(tblHead, tblName, column_count);
+                //if ( ["employee", "paydatecode"].indexOf(tblName) > -1){
+                    CreateTblHeaderFilter(tblHead, tblName, column_count);
+                //}
             }   // if(field_settings[tblName])
         }  // iif(column_count)
     };  //  CreateTblHeader
@@ -1192,33 +1242,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblFoot  ================ PR2020-06-18
     function CreateTblFoot(tblName) {
-        //console.log("========= CreateTblFoot  ========= ");
-        // only used in table paydat
+        console.log("========= CreateTblFoot  ========= ");
+        console.log("tblName", tblName);
 // --- function adds row 'add new' in tablefoot
         if (field_settings[tblName]){
-// --- insert tblRow into tblBody
-            const el_id = (tblName === "paydatecode") ? "id_tblFoot_paydatecode" : "id_MPP_closingdate_tfoot"
-            const tblFoot = document.getElementById(el_id)
-            let tblRow = tblFoot.insertRow(-1);
-// --- add EventListener to tblRow.
-            //tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
-//+++ insert td's into tblRow
             const column_count = field_settings[tblName].tbl_col_count;
-            for (let j = 0; j < column_count; j++) {
-                let td = tblRow.insertCell(-1);
+// --- insert tblRow into tblBody
+            const el_id = (tblName === "paydatecode") ? "id_tblFoot_paydatecode" : "id_tblFoot_datatable";
+            const tblFoot = document.getElementById(el_id);
+            tblFoot.innerText = null;
+            let tblRow = tblFoot.insertRow(-1);
+//+++ insert td's into tblRow
+            let td = tblRow.insertCell(-1);
+            td = tblRow.insertCell(-1);
+            td.setAttribute("colspan",column_count -1)
 // --- create div element with tag from field_tags
-                let el_div = document.createElement("div");
+            let el_div = document.createElement("div");
 // --- add EventListener
-                if (j === 1 ){
+                if(tblName === "paydatecode"){
                     el_div.addEventListener("click", function() {MPP_Open()}, false)
-                    add_hover(el_div);
-// --- add placeholder
-// --- add left margin to first column,
-                    el_div.innerText = "< " + loc.Add_payrollperiod + " >"
-                    el_div.classList.add("pointer_show", "tsa_color_darkgrey", "tsa_transparent")
+                } else if(tblName === "wagecode"){
+                    el_div.addEventListener("click", function() {MWC_Open()}, false)
+                } else if(tblName === "wagefactor"){
+                    el_div.addEventListener("click", function() {MWF_Open()}, false)
                 }
-                td.appendChild(el_div);
-            }  // for (let j = 0; j < 8; j++)
+                add_hover(el_div);
+// --- add placeholder
+                const caption = (tblName === "paydatecode") ? loc.Add_payrollperiod :
+                                (tblName === "wagecode") ? loc.Add_wagecode :
+                                (tblName === "wagefactor") ? loc.Add_wagefactor : ""
+                el_div.innerText = "< " + caption + " >"
+// --- add class,
+                el_div.classList.add("pointer_show", "tsa_color_darkgrey", "tsa_transparent")
+            td.appendChild(el_div);
         }  //  if (field_settings[tblName])
     }  // CreateTblFoot
 
@@ -2243,7 +2299,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // MSO_headertext
 
 
+// +++++++++++++++++ MODAL WAGECODE WAGEFACTOR ++++++++++++++++++++++++++++++++++++++++++++++++++
+//=========  MWC_Open  ================ PR2020-07-13
+    function MWC_Open(el_clicked) {
+       console.log("========= MWC_Open  ========= ");
 
+// ---  show modal
+        $("#id_mod_wagecode").modal({backdrop: true});
+    }
+// +++++++++++++++++ MODAL WAGEFACTOR ++++++++++++++++++++++++++++++++++++++++++++++++++
+//=========  MWF_Open  ================ PR2020-07-13
+    function MWF_Open(el_clicked) {
+       console.log("========= MWF_Open  ========= ");
+// ---  reset input boxes
+        const input_container = document.getElementById("id_MWF_input_container");
+        let form_elements = input_container.querySelectorAll(".tsa_input_text");
+        for (let i = 0, el; el = form_elements[i]; i++) { el.value = null};
+
+// ---  show modal
+        $("#id_mod_wagefactor").modal({backdrop: true});
+    }
 // +++++++++++++++++ MODAL PAYROLL PERIOD ++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MPP_Open  ================ PR2020-06-09
     function MPP_Open(el_clicked) {
@@ -2320,7 +2395,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set recurrence checkboxes and show/hide input elements
         MPP_SetRecurrence();
 
-
 // ---  fill select box with weekdays
         const el_MPP_input_weekday = document.getElementById("id_MPP_input_weekday")
         t_FillOptionsWeekdays(el_MPP_input_weekday, loc)
@@ -2339,7 +2413,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  disable btn_save
         //el_MPP_btn_save.disabled = true;
-// ---  show modalG
+// ---  show modal
         $("#id_mod_payrolperiod").modal({backdrop: true});
     } // MPP_Open
 
@@ -2634,31 +2708,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const datelast_list = mod_dict.datelast_agg
         const datefirst_list = mod_dict.datelast_agg
         let datelast_max = null;
-        datelast_list.forEach(function (datelast_iso) {
-           //console.log( ">>>>>>>>>>>>> datelast_iso", datelast_iso, typeof datelast_iso);
-            let datelast_year = null;
-            if(datelast_iso){
-                const datelast_year_str = datelast_iso.slice(0, 4);
-                if(Number(datelast_year_str)){datelast_year = Number(datelast_year_str)};
-
-            }
-           //console.log( ">>>>>>>>>>>>> datelast_year", datelast_year, typeof datelast_year);
-            if(datelast_year && mod_dict.selected_year && mod_dict.selected_year === datelast_year){
-                let tblRow = CreateTblRow(tblBody, tblName, null, null, null, -1, is_disabled)
-                const el_input = tblRow.cells[0].children[0]
-                el_input.value = datelast_iso;
-                el_input.min = mod_dict.selected_year_firstday;
-                el_input.max =  mod_dict.selected_year_lastday;
-                if (datelast_iso){
-                    if ( (!datelast_max) || (datelast_max && datelast_iso > datelast_max) ){
-                        datelast_max = datelast_iso;
-                    }
+        if(datelast_list){
+            datelast_list.forEach(function (datelast_iso) {
+                let datelast_year = null;
+                if(datelast_iso){
+                    const datelast_year_str = datelast_iso.slice(0, 4);
+                    if(Number(datelast_year_str)){datelast_year = Number(datelast_year_str)};
                 }
-                el_input.readOnly = is_disabled;
-                // dont use UpdateTblRow(tblRow, item_dict)
-            }
-        });
-
+                if(datelast_year && mod_dict.selected_year && mod_dict.selected_year === datelast_year){
+                    let tblRow = CreateTblRow(tblBody, tblName, null, null, null, -1, is_disabled)
+                    const el_input = tblRow.cells[0].children[0]
+                    el_input.value = datelast_iso;
+                    el_input.min = mod_dict.selected_year_firstday;
+                    el_input.max =  mod_dict.selected_year_lastday;
+                    if (datelast_iso){
+                        if ( (!datelast_max) || (datelast_max && datelast_iso > datelast_max) ){
+                            datelast_max = datelast_iso;
+                        }
+                    }
+                    el_input.readOnly = is_disabled;
+                    // dont use UpdateTblRow(tblRow, item_dict)
+                }
+            });
+        };
 
 // --- loop through paydateitem_map
         for (const [map_id, item_dict] of paydateitem_map.entries()) {
@@ -3039,22 +3111,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function ExportToExcel(){
         //console.log(" === ExportToExcel ===")
-
-            /* File Name */
+// ---  create file Name and worksheet Name
             const today_JS = new Date();
             const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
-
-            let wb = XLSX.utils.book_new()
-            let ws_name = loc.Review;
             let filename = (selected_btn === "payrollperiod") ? loc.Overview_hours_per_abscat : loc.Overview_customer_hours;
             if (is_payroll_detail_mode) { filename += " " + selected_employee_code }
             filename += " " + selected_paydateitem_iso +  ".xlsx";
-
+            let ws_name = loc.Review;
+// ---  create new workbook
+            let wb = XLSX.utils.book_new()
+// ---  create worksheet
             let ws = FillExcelRows(selected_btn);
-            /* Add worksheet to workbook */
+// --- add worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, ws_name);
-
-            /* Write workbook and Download */
+// ---  write workbook and Download */
             XLSX.writeFile(wb, filename);
     }
 
@@ -3062,6 +3132,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function FillExcelRows() {
        //console.log("=== FillExcelRows  =====")
         const detail_rows = (is_payroll_detail_mode) ? payroll_period_detail_rows : payroll_period_agg_rows
+
         let ws = {};
 // title row
         let title =  loc.Overview_hours_per_abscat;
@@ -3075,7 +3146,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const today_JS = new Date();
         const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
         ws["A3"] = {v: today_str, t: "s"};
-
 
         ws["A5"] = {v: selected_paydatecode_caption, t: "s"};
         ws["A6"] = {v: selected_paydateitem_caption , t: "s"};
@@ -3187,7 +3257,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!emplhour_map){
         return ws;
     }  // FillExcelRows
-
-
-
 }); //$(document).ready(function()

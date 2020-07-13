@@ -1,0 +1,100 @@
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+<!-- =================== MODAL PAYROLL PERIOD =================== -->
+    <div class="modal" id="id_mod_wagecode" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MWC_hdr_payrolperiod" class="modal-title mx-2" >{% trans 'Payrol period' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body content_header">
+
+                    <div id="id_MWC_input_container" class="tsa_flex_2 mx-2 my-1">
+                        <div class="tsa_flex_1 mx-2 my-1">
+                            <label for="id_MWC_input_code" class="tsa_margin_form_label">{% trans 'Description payroll period' %}:</label>
+                            <input id="id_MWC_input_code" type="text" data-field= "code"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                class="tsa_input_text form-control my-1">
+                            <div class="mx-2">
+                                <small id="id_MWC_msg_code" class="text-muted"></small>
+                            </div>
+                        </div>
+                        <div class="content_header">
+                            <div id="id_MWC_option_container" class="tsa_flex_2 mx-2 my-1">
+                                <div class="mx-2">
+                                    <label class="tsa_margin_form_label">{% trans "Closing dates are" %}:</label>
+                                </div>
+                                <div class="mx-2">
+                                    <span>
+                                        <input id="id_MWC_monthly" type="checkbox" data-field="monthly" class="tsa_input_checkbox tw_032">
+                                        <label for="id_MWC_monthly" class="mx-1 mt-2 mb-0">{% trans 'monthly' %}</label>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="tsa_flex_3 mx-2 my-1">
+                                <div class="rec_show rec_monthly display_hide">
+                                    <label class="tsa_margin_form_label">{% trans "Enter a day of month" %}:</label>
+                                    <input id="id_MWC_input_dayofmonth" type="number" min="1" max="31" data-field="dayofmonth" class="form-control tsa_input_text mx-0 my-1">
+                                    <div class="mx-2">
+                                        <small id="id_MWC_dayofmonth_01" class="text-muted">{% trans "The closing date will be on this day every month." %}</small>
+                                    </div>
+                                    <div class="mx-2">
+                                        <small id="id_MWC_dayofmonth_02" class="text-muted">{% trans "If a date does not exist, the last day of the month wil be entered." %}</small>
+                                    </div>
+                                </div>
+                                <div class="rec_show rec_biweekly display_hide">
+                                    <label class="tsa_margin_form_label">{% trans "Enter a closing date" %}:</label>
+                                    <input id="id_MWC_input_weekly" type="date" data-field="referencedate" class="form-control tsa_input_text mx-0 my-1">
+                                    <div class="mx-2">
+                                        <small class="text-muted">{% trans "The closing date will be on this day every other week." %}</small>
+                                    </div>
+                                </div>
+                                <div class="rec_show rec_weekly display_hide">
+                                    <label class="tsa_margin_form_label">{% trans "Enter a day of the week" %}:</label>
+                                    <select id="id_MWC_input_weekday" data-field="weekday" class="form-control tsa_input_text mx-0 my-1"></select>
+                                    <div class="mx-2">
+                                        <small class="text-muted">{% trans "The closing date will be on this day every week." %}</small>
+                                    </div>
+                                </div>
+                                <div class="rec_show rec_irregular display_hide">
+                                    <label class="tsa_margin_form_label">{% trans "Select a year" %}:</label>
+                                    <input id="id_MWC_input_year" type="number" min="2020" max="2100" data-field="year" class="form-control tsa_input_text mx-0 my-1">
+                                    <div class="mx-2">
+                                        <small id="id_MWC_year_01" class="text-muted">{% trans "Select a year and enter the closing dates." %}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tsa_flex_1 mx-2 my-1 rec_show rec_irregular display_hide">
+                        <div class="content_header mt-2">
+                            <label class="tsa_margin_form_label">{% trans "Closing dates" %}:</label>
+                        </div>
+                        <div class="content_subheader_left tw_270 tbl_h_360 my-1">
+                            <table class="table table-condensed tsa_tbl mx-1 my-1">
+                                <tbody id="id_MWC_closingdate_tbody"></tbody>
+                                <tfoot id="id_MWC_closingdate_tfoot"></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1">
+                        <button id="id_MWC_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete payroll period' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MWC_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+

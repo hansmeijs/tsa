@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //team: {istemplate: false},
             //teammember: {datefirst: null, datelast: null, employee_nonull: false},
             employee_list: {inactive: null},
-            abscat: {inactive: false}
+            abscat_list: {inactive: false}
         };
         DatalistDownload(datalist_request, false);
 
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let fill_table = false, check_status = false;
                 if ("abscat_list" in response) {
                     refresh_datamap(response["abscat_list"], abscat_map)
-                    // TODO change from ekldata to loc
+                    // TODO change from eldata to loc
                     const select_txt = get_attr_from_el(el_data, "data-txt_select_abscat");
                     const select_none_txt = get_attr_from_el(el_data, "data-txt_select_abscat_none");
                     FillOptionsAbscat(el_MRE_select_abscat, abscat_map, select_txt, select_none_txt)
@@ -3833,9 +3833,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MRO_MRE_MSS_FillSelectTable  ================ PR2020-02-29
     function MRO_MRE_MSS_FillSelectTable(pgeName, tblName, selected_pk) {
        console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
-       //console.log( "pgeName: ", pgeName);
-       //console.log( "tblName: ", tblName);
-       //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
+       console.log( "pgeName: ", pgeName);
+       console.log( "tblName: ", tblName);
+       console.log( "selected_pk: ", selected_pk, typeof selected_pk);
 
         let data_map = new Map();
         let data_dict = {};

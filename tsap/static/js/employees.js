@@ -68,10 +68,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let is_payroll_detail_mod_mode = false;
         let payroll_header_row = [];
         let payroll_total_row = [];
-        let payroll_period_agg_list = [];
 
+        let payroll_period_agg_list = [];
         let payroll_period_detail_list = [];
-        let payroll_period_detail_rows = [];  // put all values in payroll_period_detail_rows, so it can be exported or sent to pdf
 //----------------------------------------
 // const for report
         let planning_display_duration_total = ""; // stores total hours, calculated when creating planning_map
@@ -340,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
             company: {value: true},
             employee_list: {inactive: false},
             order_list: {isabsence: false, istemplate: false, inactive: false},
-            abscat: {inactive: false},
+            abscat_list: {inactive: false},
             teammember_list: {employee_nonull: false, is_template: false},
             employee_planning: {mode: "get"}
             };
@@ -502,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 //----------------------------------------
         if(fill_datatable) {
-            HandleBtnSelect(selected_btn, true)  // true = skip_update
+            HandleBtnSelect(selected_btn, true)  // true = skip_upload
         }
         if ("employee_calendar_list" in response) {
             refresh_datamap(response["employee_calendar_list"], calendar_map)
@@ -518,14 +517,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
-    function HandleBtnSelect(data_btn, skip_update) {
+    function HandleBtnSelect(data_btn, skip_upload) {
         console.log( "==== HandleBtnSelect ========= ");
 
         selected_btn = (data_btn) ? data_btn : "employee";
         console.log( "selected_btn", selected_btn );
 
-// ---  upload new selected_btn, not after loading page (then skip_update = true)
-        if(!skip_update){
+// ---  upload new selected_btn, not after loading page (then skip_upload = true)
+        if(!skip_upload){
             const upload_dict = {page_employee: {sel_btn: selected_btn}};
             UploadSettings(upload_dict, url_settings_upload);
         }
@@ -5646,8 +5645,8 @@ console.log( "reset mod_dict: ");
 
         ResetPayrollTotalrow();
 
-// --- loop through payroll_period_detail_rows / payroll_period_agg_list
-        //  payroll_period_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+// --- loop through payroll_period_detail_list / payroll_period_agg_list
+        //  payroll_period_detail_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
         const detail_rows = (is_payroll_detail_mode) ? payroll_period_detail_list : payroll_period_agg_list;
         detail_rows.forEach(function (item, index) {
             // filter selected employee when is_payroll_detail_mode
@@ -5861,100 +5860,160 @@ console.log( "reset mod_dict: ");
     }  // HandlePayrollFilter
 
 //##################################################################################
-// +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++ PR2020-07-13
     function ExportToExcel(){
         console.log(" === ExportToExcel ===")
-
-            /* File Name */
-            let filename = "Planning.xlsx";
-
-            /* Sheet Name */
-            let ws_name = "Planning";
-
+// ---  create file Name and worksheet Name
+            const today_JS = new Date();
+            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            let filename = (selected_btn === "planning") ? loc.Planning : loc.Planning;
+            if (is_payroll_detail_mode) { filename += " " + selected_employee_code }
+            filename += " " + today_str +  ".xlsx";
+            let ws_name = loc.Planning;
+// ---  create new workbook
             let wb = XLSX.utils.book_new()
+// ---  create worksheet
             let ws = FillExcelRows();
-
-        //console.log("ws", ws)
-
-            /* Add worksheet to workbook */
+// --- add worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, ws_name);
-
-            /* Write workbook and Download */
+// ---  write workbook and Download */
             XLSX.writeFile(wb, filename);
     }
 
-//========= FillExcelRows  ====================================
+//========= FillExcelRows  ============== PR2020-07-13
     function FillExcelRows() {
         console.log("=== FillExcelRows  =====")
-        let ws = {}
-        let tBody_planning = document.getElementById("id_tbody_planning");
 
+        const detail_rows = (is_payroll_detail_mode) ? payroll_period_detail_list : payroll_period_agg_list;
+        let ws = {}
 // title row
-        let title_value = display_planning_period (selected_planning_period, loc); // UpdateHeaderPeriod();
+        let title_value = (selected_btn === "planning") ? loc.Planning : loc.Planning;
+        if (is_payroll_detail_mode) { title_value += " " + loc.of + " "  + selected_employee_code }
         ws["A1"] = {v: title_value, t: "s"};
+// company row
+        const company = get_dict_value(company_dict, ["name", "value"], "")
+        ws["A2"] = {v: company, t: "s"};
+// period row
+        //const period_value = display_planning_period (selected_period, loc);
+        //ws["A3"] = {v: period_value, t: "s"};
+        const today_JS = new Date();
+        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        ws["A3"] = {v: today_str, t: "s"};
+// period row
+        const planning_period = get_dict_value(selected_planning_period, ["dates_display_short"]);
+        ws["A5"] = {v: loc.Period, t: "s"};
+        ws["B5"] = {v: planning_period, t: "s"};
+// employee row
+        if (is_payroll_detail_mode){
+            ws["A6"] = {v: loc.Employee + ":", t: "s"};
+            ws["B6"] = {v: selected_employee_code , t: "s"};
+        }
+
 // header row
-        const header_rowindex = 3
-        let headerrow = [loc.Employee, loc.Customer, loc.Order, loc.Date, loc.Shift,  loc.Start_Endtime, loc.Working_hours]
-        for (let j = 0, len = headerrow.length, cell_index, cell_dict; j < len; j++) {
+        const header_rowindex = 8
+        let headerrow = [];
+        if (is_payroll_detail_mode){
+            headerrow = [loc.Date, loc.Order, loc.Shift, loc.Planned_hours, loc.Absence];
+        } else {
+            headerrow = [loc.Employee, loc.Working_days, loc.Contract_hours, loc.Planned_hours, loc.Absence, loc.Difference];
+        }
+        const col_count = headerrow.length;
+        for (let j = 0; j < col_count; j++) {
             const cell_value = headerrow[j];
-            cell_index = String.fromCharCode(65 + j) + header_rowindex.toString()
+            const cell_index = String.fromCharCode(65 + j) + header_rowindex.toString()
             ws[cell_index] = {v: cell_value, t: "s"};
         }
-        //console.log("------------------ws:", ws)
+        let row_index = header_rowindex + 1
+// --- loop through detail_rows
+        //  detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+        if(!!detail_rows){
+            for (let j = 0, detail_row; detail_row = detail_rows[j]; j++) {
+                if(detail_row[0]){  //  detail_row[0] = show_row
+                    const row_data = detail_row[3]
+       //console.log("row_data", row_data)
+                    for (let x = 0, len = row_data.length; x < len; x++) {
+                        const cell_index = b_get_excel_cell_index (x, row_index);
+                        const cell_type = get_payroll_celltype(x);
+                        ws[cell_index] = {t: cell_type}
+                        const cell_format = get_payroll_cellformat(x);
+                        if(cell_format){ws[cell_index]["z"] = cell_format};
 
-// --- loop through items of planning_map
-        if(!!planning_map){
-            const cell_types = ["s", "s", "s", "n", "s", "s", "n"]
-            const col_count = 7
-            const row_count = planning_map.size;
-            const first_row = 4
-            const last_row = first_row  + row_count;
-
-                console.log("cell_types: ", cell_types)
-// --- loop through data_map
-            let row_index = first_row
-            for (const [map_id, map_dict] of planning_map.entries()) {
-                console.log("map_dict: ", map_dict)
-            // Medewerker, Klant, Locatie, Datum, Dienst, Begin - Eindtijd, Werkuren
-
-                let cell_values = [
-                    get_dict_value(map_dict, ["employee", "code"], ""),
-                    get_dict_value(map_dict, ["customer", "code"], ""),
-                    get_dict_value(map_dict, ["order", "code"], ""),
-                    get_dict_value(map_dict, ["rosterdate", "exceldate"], ""),
-                    get_dict_value(map_dict, ["shift", "code"], ""),
-                    get_dict_value(map_dict, ["shift", "display"], ""),
-                    get_dict_value(map_dict, ["shift", "timeduration"], 0) / 60,
-                    ]
-                console.log("cell_values: ", cell_values)
-                for (let j = 0; j < col_count; j++) {
-                    let cell_index = String.fromCharCode(65 + j) + (row_index).toString()
-
-                    ws[cell_index] = {v: cell_values[j], t: cell_types[j]};
-                    if (j === 3){
-                        ws[cell_index]["z"] = "d mmmm yyyy"
-                    } else if ( j === 6){
-                        ws[cell_index]["z"] = "0.00"
+       //console.log("cell_format", cell_format)
+                        let cell_value = get_payroll_cellvalue (row_data, x);
+                        if(cell_value){ws[cell_index]["v"] = cell_value};
+       //console.log("cell_value", cell_value)
                     }
+                    row_index += 1;
+                }
+            }
+// +++  add total row
+            row_index += 1;
+            if (payroll_total_row) {
+                let cell_values = [];
+                for (let x = 0, len = payroll_total_row.length; x < len; x++) {
+                    const cell_index = b_get_excel_cell_index (x, row_index);
+                    const cell_type = get_payroll_celltype(x);
+                    ws[cell_index] = {t: cell_type}
+                    let cell_format = get_payroll_cellformat(x);
+                    if(cell_format){ws[cell_index]["z"] = cell_format};
+
+                    let cell_value = get_payroll_cellvalue (payroll_total_row, x);
+                    if(cell_value){ws[cell_index]["v"] = cell_value};
                 }
                 row_index += 1;
+            }
 
-            }  // for (const [map_id, map_dict] of planning_map.entries())
             // this works when col_count <= 26
             ws["!ref"] = "A1:" + String.fromCharCode(65 + col_count - 1)  + row_index.toString();
-            ws['!cols'] = [
-                    {wch:20},
-                    {wch:20},
-                    {wch:20},
-                    {wch:20},
-                    {wch:20},
-                    {wch:20},
-                    {wch:20}
-                ];
+            // set column width
+            let ws_cols = []
+            for (let i = 0, tblRow; i < col_count; i++) {
+                let col_width = 15;
+                if (is_payroll_detail_mode){
+                    if (i === 1) {col_width = 20}
+                } else {
+                    if (i === 0) {col_width = 20}
+                }
 
-        }  // if(!!planning_map){
+                ws_cols.push( {wch:col_width} );
+            }
+            ws['!cols'] = ws_cols;
+
+        }
+
         return ws;
     }  // FillExcelRows
+
+    function get_payroll_celltype (x) {
+        const cell_type = ( (x === 0) || (is_payroll_detail_mode && [1, 2].indexOf(x) > -1) ) ? "s" : "n";
+        return cell_type
+    }
+
+    function get_payroll_cellformat (x) {
+        let cell_format = null;
+        if (is_payroll_detail_mode){
+            if (x === 0) {cell_format = "dd mmm yyyy"} else
+            if (x > 2) {cell_format = "#,##0.00" } ;
+        } else {
+            if(x === 1) { cell_format = "#0"} else
+            if (x > 1) {cell_format = "#,##0.00" } ;
+        }
+        return cell_format
+    }
+
+    function get_payroll_cellvalue (row_data, x) {
+        let cell_value = null;
+        if (is_payroll_detail_mode){
+            if (x === 0) { cell_value = get_Exceldate_from_date(row_data[x + 1])} else
+            if ([1, 2].indexOf(x) > -1) { cell_value = row_data[x + 1]} else
+            if (row_data[x + 1]) {cell_value = row_data[x + 1] / 60};
+        } else {
+            if (x === 0) { cell_value = row_data[x+1]} else
+            if (x === 1) {   if(row_data[x + 1]) {cell_value = row_data[x + 1] }    } else
+            if(row_data[x + 1]) {cell_value = row_data[x + 1] / 60};
+        }
+        return cell_value
+    }
 // ##################################################################################
 
 }); //$(document).ready(function()

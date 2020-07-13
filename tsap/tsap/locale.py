@@ -91,8 +91,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['must_be_completed'] = _(' must be completed.')
     dict['cannot_be_blank'] =  _(' cannot be blank.')
 
-
-
     dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
     dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
     dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
@@ -269,6 +267,20 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Link_payrollperiod'] = _('Link payroll period')
         dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
         dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
+
+        dict['Hourly_wage'] = TXT_Hourly_wage
+        dict['Wage_code'] = TXT_Wage_code
+        dict['This_wagecode'] = TXT_This_wagecode
+        dict['Add_wagecode'] = TXT_Add_wagecode
+        dict['Make_wagecode_inactive'] = TXT_Make_wagecode_inactive
+        dict['Delete_wagecode'] = TXT_Delete_wagecode
+
+        dict['Percentage'] = TXT_Percentage
+        dict['Wage_factor'] = TXT_Wage_factor
+        dict['This_wagefactor'] = TXT_This_wagefactor
+        dict['Add_wagefactor'] = TXT_Add_wagefactor
+        dict['Make_wagefactor_inactive'] = TXT_Make_wagefactor_inactive
+        dict['Delete_wagefactor'] = TXT_Delete_wagefactor
 
         dict['No_payrollperiod_selected'] = _('There is no payroll period selected')
 
@@ -1157,6 +1169,20 @@ TXT_This_payrollperiod = _('This payroll period')
 TXT_Add_payrollperiod = _('Add payroll period')
 TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
 TXT_Delete_payrollperiod = _('Delete payroll period')
+
+TXT_Wage_code = _('Wage code')
+TXT_Hourly_wage = _('Hourly wage')
+TXT_This_wagecode = _('This wage code')
+TXT_Add_wagecode= _('Add wage code')
+TXT_Make_wagecode_inactive = _('Make wage code inactive')
+TXT_Delete_wagecode = _('Delete wage code')
+
+TXT_Wage_factor = _('Wage factor')
+TXT_Percentage = _('Percentage')
+TXT_This_wagefactor = _('This wage factor')
+TXT_Add_wagefactor= _('Add wage factor')
+TXT_Make_wagefactor_inactive = _('Make wage factor inactive')
+TXT_Delete_wagefactor = _('Delete wage factor')
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')

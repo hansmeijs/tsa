@@ -451,15 +451,18 @@
         return map_id
     }
 
-//========= refresh_datamap  ================== PR2019-10-03
+//========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
     function refresh_datamap(data_list, data_map, tblName) {
         data_map.clear();
-        if (data_list && data_list.length) {
-            for (let i = 0, len = data_list.length; i < len; i++) {
+        const data_list_length = data_list.length
+        if (data_list && data_list_length) {
+            // get tblName from first item in data_list
+            const table_in_dict = get_dict_value(data_list[0], ["id", "table"]);
+            // tblName ovverrules table in id, necessary for absence_map
+            const table = (tblName) ? tblName : (table_in_dict) ? table_in_dict : "notable";
+            for (let i = 0; i < data_list_length; i++) {
                 const item_dict = data_list[i];
                 const pk_str = get_dict_value(item_dict, ["id", "pk"]);
-                // tblName ovverrules table in id, necessary for absence_map
-                const table = (tblName) ? tblName : get_dict_value(item_dict, ["id", "table"]);
                 let map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
             }

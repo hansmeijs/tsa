@@ -43,6 +43,10 @@
         {% include 'includes/modabscat.html' %}
 <!-- =================== MODAL PAYROLL PERIOD  =================== -->
         {% include 'includes/modpayrollperiod.html' %}
+<!-- =================== MODAL WAGE CODE =================== -->
+        {% include 'includes/modwagecode.html' %}
+<!-- =================== MODAL WAGE FACTOR =================== -->
+        {% include 'includes/modwagefactor.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL SELECT PAYDATE  =================== -->
@@ -72,6 +76,8 @@
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Payroll period overview' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
+                    <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
+                    <button data-btn="wagefactor" class="btn btn-secondary display_hide">{% trans 'Wage factors' %}</button>
                     <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
@@ -82,7 +88,7 @@
             <div class="content_body ml-4 mr-0">
                 <div class="modal_containerXX">
 <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payrollperiod tab_order display_hide">
+                    <div class="tab_show tab_payrollperiod tab_wagecode tab_wagefactor tab_order display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>

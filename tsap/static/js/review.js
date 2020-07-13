@@ -1540,7 +1540,6 @@ function HandleExpand(mode){
 // period row
         const period_value = display_planning_period (selected_review_period, loc, true);  // true = skip_prefix
         ws["A4"] = {v: loc.Period, t: "s"};
-
         ws["B4"] = {v: period_value, t: "s"};
 // order row
         if  (billing_level  > 0) {

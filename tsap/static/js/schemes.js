@@ -2713,7 +2713,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             // tblNames are: shift, teammember, schemeitem, absence
         }
         FillTableRows(tblName);
-        HandleBtnSelect(selected_btn, true)  // true = skip_update
+        HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
     };  //  UpdateTablesAfterResponse
 

@@ -1903,7 +1903,7 @@
 
 //========= FillOptionsAbscat  ====================================
     function FillOptionsAbscat(el_select, abscat_map, select_txt, select_none_txt, selected_order_pk) {
-        //console.log( "=== FillOptionsAbscat  ");
+       console.log( "=== FillOptionsAbscat  ");
 
 // ---  fill options of select box
         let option_text = "";
