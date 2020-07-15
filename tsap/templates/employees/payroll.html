@@ -77,7 +77,7 @@
                     <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Payroll period overview' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
                     <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
-                    <button data-btn="wagefactor" class="btn btn-secondary display_hide">{% trans 'Wage factors' %}</button>
+                    <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>
                     <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
@@ -88,7 +88,7 @@
             <div class="content_body ml-4 mr-0">
                 <div class="modal_containerXX">
 <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payrollperiod tab_wagecode tab_wagefactor tab_order display_hide">
+                    <div class="tab_show tab_payrollperiod tab_wagecode tab_order display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>
@@ -97,7 +97,7 @@
                     </div>
                 </div>
             </div>
-            <div class="content_header ml-4 mr-0 tab_show tab_paydatecode display_hide">
+            <div class="content_header ml-4 mr-0 tab_show tab_paydatecode tab_wagefactor display_hide">
                  <div class="tsa_flex_2 m-0">
                      <table class="table tsa_tbl">
                         <thead id="id_tblHead_paydatecode"></thead>
@@ -106,8 +106,8 @@
                      </table>
                  </div>
                  <div class="tsa_flex_1 m-2">
-                    <button id="id_btn_add_selected" class="btn btn-block btn-outline-secondary "> --->  <br> {% trans 'Link payrollperiod to selected employees' %}</button>
-                    <button id="id_btn_remove_selected" class="btn btn-block btn-outline-secondary "> <---  <br> {% trans 'Remove payrollperiod from selected employees' %}</button>
+                    <button id="id_btn_add_selected" class="btn btn-block btn-outline-secondary "></button>
+                    <button id="id_btn_remove_selected" class="btn btn-block btn-outline-secondary "></button>
                  </div>
                  <div class="tsa_flex_4 m-0">
                       <table class="table tsa_tbl">

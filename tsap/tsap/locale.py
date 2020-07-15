@@ -93,10 +93,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
     dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
     dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
-    dict['err_msg_must_be_between'] = TXT_err_msg_must_be_between
+    dict['err_msg_must_be_number_between'] = TXT_err_msg_must_be_number_between
+    dict['err_msg_must_be_percentage_between'] = TXT_err_msg_must_be_percentage_between
     dict['err_msg_and'] = TXT_err_msg_and
-    dict['err_msg_must_be_less_than_or_equal_to'] = TXT_err_msg_must_be_less_than_or_equal_to
-    dict['err_msg_must_be_greater_than_or_equal_to'] = TXT_err_msg_must_be_greater_than_or_equal_to
+    dict['err_msg_must_be_number_less_than_or_equal_to'] = TXT_err_msg_must_be_number_less_than_or_equal_to
+    dict['err_msg_must_be_percentage_less_than_or_equal_to'] = TXT_err_msg_must_be_percentage_less_than_or_equal_to
+    dict['err_msg_must_be_number_greater_than_or_equal_to'] = TXT_err_msg_must_be_number_greater_than_or_equal_to
+    dict['err_msg_must_be_percentage_greater_than_or_equal_to'] = TXT_err_msg_must_be_percentage_greater_than_or_equal_to
 
 # ====== PAGE UPLOAD =========================
     if page == 'upload':
@@ -268,6 +271,17 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
         dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
 
+        dict['Link_payrollperiod_to_employees'] = _('Link payrollperiod to selected employees')
+        dict['Remove_payrollperiod_from_employees'] = _('Remove payrollperiod from selected employees')
+        dict['Link_wagefactor_to_shifts'] = _('Link wagefactor to selected shifts')
+        dict['Remove_wagefactor_from_shifts'] = _('Remove wagefactor from selected shifts')
+
+        dict['No_description_entered'] = _('No description entered.')
+        dict['Closingdate_willbe_every_other_week'] = _('The closing date will be on this day every other week.')
+        dict['Select_year_and_enter_closingdates']  = _('Select a year and enter the closing dates.')
+        dict['No_closing_dates_entered'] = _('There are no closing dates entered.')
+        dict['No_closing_date_entered'] = _('There is no closing date entered.')
+
         dict['Hourly_wage'] = TXT_Hourly_wage
         dict['Wage_code'] = TXT_Wage_code
         dict['This_wagecode'] = TXT_This_wagecode
@@ -282,7 +296,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Make_wagefactor_inactive'] = TXT_Make_wagefactor_inactive
         dict['Delete_wagefactor'] = TXT_Delete_wagefactor
 
-        dict['No_payrollperiod_selected'] = _('There is no payroll period selected')
+        dict['No_payrollperiod_selected'] = _('There is no payroll period selected.')
+        dict['Click_on_the_tickmark_column'] = _('Click on the tickmark column of the selected payroll period.')
 
         dict['payrollperiod_is_imported'] = _('This payrollperiod is imported from AFAS and cannot be changed.')
         dict['can_leave_description_blank'] = _('You can leave the description blank. TSA will enter it automatically.')
@@ -1250,10 +1265,13 @@ TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
 
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_must_be_integer = _('must be an integer.')
-TXT_err_msg_must_be_between = _('must be a number between')
+TXT_err_msg_must_be_number_between = _('must be a number between')
+TXT_err_msg_must_be_percentage_between = _('must be a percentage between')
 TXT_err_msg_and = _('and')
-TXT_err_msg_must_be_less_than_or_equal_to = _('must be a number less than or equal to ')
-TXT_err_msg_must_be_greater_than_or_equal_to = _('must be a number greater than or equal to ')
+TXT_err_msg_must_be_number_less_than_or_equal_to = _('must be a number less than or equal to ')
+TXT_err_msg_must_be_percentage_less_than_or_equal_to = _('must be a percentage less than or equal to ')
+TXT_err_msg_must_be_number_greater_than_or_equal_to = _('must be a number greater than or equal to ')
+TXT_err_msg_must_be_percentage_greater_than_or_equal_to = _('must be a percentage greater than or equal to ')
 
 TXT_Leavedays_are_on_fulltime_basis = _('Leave days are on a full time basis.')
 

@@ -1252,7 +1252,6 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 timeduration=time_duration,
                 plannedduration=time_duration,
                 billingduration=time_duration,
-
                 wagerate=wagerate,
                 wagefactor=wagefactor,
                 wage=wage,

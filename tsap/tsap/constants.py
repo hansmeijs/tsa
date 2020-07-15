@@ -413,11 +413,15 @@ FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholi
                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
-# datelast_agg is not in model
+# datefirst_agg and datelast_agg are not in model
 FIELDS_PAYDATECODE = ('id', 'company', 'code', 'recurrence', 'dayofmonth', 'referencedate',
                       'datefirst', 'datelast', 'datefirst_agg', 'datelast_agg', 'afascode', 'isdefault', 'inactive')
 
 FIELDS_PAYDATEITEM = ('id', 'paydatecode', 'datefirst', 'datelast', 'year', 'period')
+
+# datefirst_agg and datelast_agg are not in model
+FIELDS_WAGECODE = ('id', 'company', 'code', 'wagerate', 'iswage', 'iswagefactor', 'isfunctioncode',
+                   'isdefault', 'datefirst_agg', 'wagerate_agg') # to be added:  'inactive')
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes

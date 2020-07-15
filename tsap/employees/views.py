@@ -2982,6 +2982,10 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 table = f.get_dict_value(upload_dict, ('id', 'table'))
+# +++++ WAGE FACTOR
+                if table == 'wagefactor':
+                    update_list = upload_wagefactor(upload_dict, user_lang, request)
+                    update_wrap['update_list'] = update_list
 # +++++ ABSENCE CATEGORIES (table = 'order')
                 if table == 'order':
                     update_list = upload_abscat_order(upload_dict, user_lang, request)
@@ -3116,6 +3120,175 @@ def upload_abscat_order(upload_dict, user_lang, request):
 
     return update_list
 
+# === upload_wagefactor ===================================== PR2020-06-17
+def upload_wagefactor(upload_dict, user_lang, request):
+    logger.debug(' ===== upload_wagefactor =====')
+    logger.debug('upload_dict' + str(upload_dict))
+    # Wagefactors are stored in table Wagecode, iswagefactor = True
+    table = f.get_dict_value(upload_dict, ('id', 'table'))
+    pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
+    ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
+    row_index = f.get_dict_value(upload_dict, ('id', 'rowindex'))
+    is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
+    is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
+
+    update_list = []
+    logger.debug('is_create: ' + str(is_create))
+# - check if parent with ppk_int exists and is same as request.user.company
+    parent = m.Company.objects.get_or_none(id=ppk_int)
+    if parent and ppk_int == request.user.company_id:
+# ----- create new update_dict with all fields and id_dict. Unused ones will be removed at the end
+        update_dict = f.create_update_dict(
+            c.FIELDS_WAGECODE,
+            table=table,
+            pk=pk_int,
+            ppk=parent.pk,
+            temp_pk=None,
+            row_index=row_index)
+# +++++ Delete Wagefactor
+        if is_delete:
+            instance = m.Wagecode.objects.get_or_none(id=pk_int, iswagefactor=True, company=parent)
+            if instance:
+                this_text = _("Wage factor '%(tbl)s'") % {'tbl': instance.code}
+    # - check if this Wagefactor has emplhours with lockedpaydate=True
+                # has_lockedwagecode_emplhours is also used for wagefactor
+                if instance.has_lockedwagecode_emplhours():
+                    msg_err = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
+                    update_dict['id']['error'] = msg_err
+                else:
+    # - delete_instance, it adds 'deleted' or 'error' to id_dict
+                    # wagecodeitems are not in use fro wagefactor
+                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    if deleted_ok:
+                        instance = None
+        else:
+# +++++ Create new wagefactor
+            if is_create:
+                instance = create_new_wagefactor(parent, upload_dict, update_dict, request)
+    # - get existing wagefactor
+            else:
+                instance = m.Wagecode.objects.get_or_none(id=pk_int, iswagefactor=True, company=parent)
+# +++++ Update wagefactor, also when it is created
+            if instance:
+                update_wagefactor(instance, parent, upload_dict, update_dict, request)
+    # - put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+        if instance:
+            d.create_wagefactor_dict(instance, update_dict)
+    # - remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(update_dict)
+    # - add update_dict to update_wrap
+        if update_dict:
+            update_list.append(update_dict)
+    return update_list
+# --- end of upload_wagefactor
+
+def create_new_wagefactor(parent, upload_dict, update_dict, request):
+    # --- create new wagefactor # PR20120-07-14
+    # Note: all keys in update_dict must exist by running create_update_dict first
+
+    instance = None
+# - get iddict variables
+    # id_dict is added in create_update_dict
+    id_dict = upload_dict.get('id')
+    if id_dict:
+# - get parent instance
+        if parent:
+# - get value of 'code'
+            code = f.get_dict_value(upload_dict, ('code', 'value'))
+            if code:
+# - validate code
+                # TODO add validate_code_name_identifier
+                # has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                has_error = False
+                if not has_error:
+# - create and save wagefactor
+                    instance = m.Wagecode(company=parent, code=code, iswagefactor=True)
+                    instance.save(request=request)
+# - return msg_err when instance not created
+                    if instance.pk is None:
+                        msg_err = _('This wage factor could not be created.')
+                        update_dict['code']['error'] = msg_err
+                    else:
+# - put info in update_dict
+                        update_dict['id']['pk'] = instance.pk
+                        update_dict['id']['ppk'] = instance.company.pk
+                        update_dict['id']['created'] = True
+                        update_dict['code']['updated'] = True
+    return instance
+# --- end of create_new_wagefactor
+
+def update_wagefactor(instance, parent, upload_dict, update_dict, request):
+    # --- update existing and new wagefactor PR2020-07-14
+    # add new values to update_dict (don't reset update_dict, it has values)
+    #logger.debug(' --- update_wagefactor --- ')
+
+    has_error = False
+    if instance:
+        table = 'wagefactor'
+        save_changes = False
+        recalc_emplhour_wagefactors = False
+        fields = ('id', 'code', 'wagerate' )  # to be added:  'inactive')
+        for field in c.FIELDS_WAGECODE:
+# - get field_dict from  upload_dict if it exists
+            field_dict = upload_dict[field] if field in upload_dict else {}
+            if field_dict:
+                if 'update' in field_dict:
+                    is_updated = False
+# - get new_value
+                    new_value = field_dict.get('value')
+# - save changes in field 'code'
+                    if field == 'code':
+        # a. get old value
+                        saved_value = getattr(instance, field)
+                        if new_value != saved_value:
+        # b. validate code or name
+                            has_error = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
+                            if not has_error:
+        # c. save field if changed and no_error
+                                setattr(instance, field, new_value)
+                                is_updated = True
+# - save changes in text field, date field and number fields
+                    elif field == 'wagerate':
+                        saved_value = getattr(instance, field)
+                        if new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            is_updated = True
+                            recalc_emplhour_wagefactors = True
+# - save changes in boolean fields
+                    # to be added:  'inactive')
+                    elif field =='inactive':
+                        new_value = field_dict.get('value', False)
+                        saved_value = getattr(instance, field, False)
+                        if new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            is_updated = True
+# - add 'updated' to field_dict'
+                    if is_updated:
+                        update_dict[field]['updated'] = True
+                        save_changes = True
+# --- end of for loop ---
+
+# 5. save changes
+        if save_changes:
+            try:
+                instance.save(request=request)
+            except:
+                has_error = True
+                tblName = str(_('Wage factor')).lower()
+                msg_err = _('This %(tbl)s could not be updated.') % {'tbl': tblName}
+                update_dict['id']['error'] = msg_err
+
+        if not has_error:
+            if recalc_emplhour_wagefactors:
+                # update paydatecode in all emplhour records that are not locked
+                # and recalculate paydate in these emplhour records
+                pass
+                #TODO
+                # recalc_paydate_in_emplhours(instance.pk, [], True, request)
+
+    return has_error
+# ---  end of update_wagefactor
+
 
 # === upload_paydatecode ===================================== PR2020-06-17
 def upload_paydatecode(upload_dict, user_lang, request):
@@ -3177,6 +3350,7 @@ def upload_paydatecode(upload_dict, user_lang, request):
         if update_dict:
             update_list.append(update_dict)
     return update_list
+# --- end of upload_paydatecode
 
 
 def create_new_paydatecode(parent, upload_dict, update_dict, request):
@@ -3212,6 +3386,7 @@ def create_new_paydatecode(parent, upload_dict, update_dict, request):
                         update_dict['id']['created'] = True
                         update_dict['code']['updated'] = True
     return instance
+# --- end of create_new_paydatecode
 
 
 def update_paydatecode(instance, parent, upload_dict, update_dict, request):
@@ -3296,6 +3471,8 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
                 m.Paydateitem.objects.filter(paydatecode=instance).delete()
 
     return has_error
+# ---  end of update_paydatecode
+
 
 
 def update_paydatecodeitem(instance, upload_dict, update_dict, request):
@@ -3551,20 +3728,21 @@ def recalc_paydate_in_emplhours(paydatecode_pk, employee_pk_list, all_employees,
             min_rosterdate_dte = min_max_arr[0]
             max_rosterdate_dte = min_max_arr[1]
 
-    logger.debug('.......... min_rosterdate_dte: ' + str(min_rosterdate_dte))
-    logger.debug('.......... max_rosterdate_dte: ' + str(max_rosterdate_dte))
+    #logger.debug('.......... min_rosterdate_dte: ' + str(min_rosterdate_dte))
+    #logger.debug('.......... max_rosterdate_dte: ' + str(max_rosterdate_dte))
 
     if min_rosterdate_dte:
         rosterdate_dte = min_rosterdate_dte
-        if rosterdate_dte:
+        if rosterdate_dte and max_rosterdate_dte:
 
 # iterate till last rosterdate:
+            # PR2020-07-14 debug. got error when no items, because max_rosterdate_dte = None and <= not allowed then
             while rosterdate_dte <= max_rosterdate_dte:
 # ---  from first rosterdate : get closingdate
                 firstdate_of_period_dte, new_paydate_dte = plv.recalc_paydate(rosterdate_dte, paydatecode)
-                logger.debug('.......... rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-                logger.debug('.......... firstdate_of_period_dte: ' + str(firstdate_of_period_dte))
-                logger.debug('.......... new_paydate_dte: ' + str(new_paydate_dte))
+                #logger.debug('.......... rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                #logger.debug('.......... firstdate_of_period_dte: ' + str(firstdate_of_period_dte))
+                #logger.debug('.......... new_paydate_dte: ' + str(new_paydate_dte))
 # ---  update paydate in all emplhours from first rostrdate thru closingdate that are not lockedpaydate
                 sql_update_paydatecode = """
                     UPDATE companies_emplhour SET 
@@ -3590,9 +3768,9 @@ def recalc_paydate_in_emplhours(paydatecode_pk, employee_pk_list, all_employees,
                         'df': firstdate_of_period_dte,
                         'dl': new_paydate_dte
                     })
-                    paydateitems = f.dictfetchall(cursor)
-                    for paydateitem in paydateitems:
-                        logger.debug('.. updated paydateitem: ' + str(paydateitem))
+                    #paydateitems = f.dictfetchall(cursor)
+                    #for paydateitem in paydateitems:
+                        #logger.debug('.. updated paydateitem: ' + str(paydateitem))
 
 
 

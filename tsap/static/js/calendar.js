@@ -774,43 +774,34 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
     }  // MSO_MSE_CalcMinMaxOffset
 
 
-//=========  cal_SetDatefirstlastMinMax  ================ PR2020-02-07
-    function cal_SetDatefirstlastMinMax(el_datefirst, el_datelast, oneday_only, range_datefirst_iso, range_datelast_iso) {
+//=========  cal_SetDatefirstlastMinMax  ================ PR2020-02-07 PR2020-07-14
+    function cal_SetDatefirstlastMinMax(el_datefirst, el_datelast, range_datefirst_iso, range_datelast_iso, oneday_only) {
         //console.log( "===== cal_SetDatefirstlastMinMax  ========= ");
         // el_datelast.value is a string, don't use (el_datelast.value != null)
 
 // set min max of datefirst
         const datefirst_mindate = (range_datefirst_iso) ? range_datefirst_iso : null;
-        let datefirst_maxdate = null
-        if (range_datelast_iso) {
-            // when oneday_only the input box 'el_datelast' is not in use, in that case Max date = range_datelast_iso
-            if (!oneday_only && el_datelast.value) { // el_datelast.value is a string, dont use (el_datelast.value != null)
-                datefirst_maxdate = (el_datelast.value < range_datelast_iso) ? el_datelast.value : range_datelast_iso;
-            } else {
-                datefirst_maxdate = range_datelast_iso;
-            }
-        } else if (!oneday_only && el_datelast.value) {
-            datefirst_maxdate = el_datelast.value;
-        }
-// ---  set 'min' and 'max' atribute of el_datefirst
-        add_or_remove_attr (el_datefirst, "min", (datefirst_mindate != null), datefirst_mindate);
-        add_or_remove_attr (el_datefirst, "max", (datefirst_maxdate != null), datefirst_maxdate);
+        const datefirst_maxdate = (range_datelast_iso) ? range_datelast_iso : null;
+        add_or_remove_attr (el_datefirst, "min", (datefirst_mindate), datefirst_mindate);
+        add_or_remove_attr (el_datefirst, "max", (datefirst_maxdate), datefirst_maxdate);
 
 // set min max of datelast
+        let datelast_mindate = (range_datefirst_iso) ? range_datefirst_iso : null;
         const datelast_maxdate = (range_datelast_iso) ? range_datelast_iso : null;
-        let datelast_mindate = null
-        if (range_datefirst_iso) {
-            if (el_datefirst.value) { // el_datelast.value is a string, dont use (el_datelast.value != null)
+        if (el_datefirst.value) {
+            if (range_datefirst_iso) {
                 datelast_mindate = (el_datefirst.value > range_datefirst_iso) ? el_datefirst.value : range_datefirst_iso;
             } else {
-                datelast_mindate = range_datefirst_iso;
+                datelast_mindate = el_datefirst.value;
             }
-        } else if (el_datelast.value) {
-            datelast_mindate = el_datefirst.value;
         }
-// ---  set 'min' and 'max' atribute of el_datelast
         add_or_remove_attr (el_datelast, "min", (datelast_mindate != null), datelast_mindate);
         add_or_remove_attr (el_datelast, "max", (datelast_maxdate != null), datelast_maxdate);
+
+// set datelast  = datefirst when  datelast  > datefirst
+        if(el_datefirst.value && el_datelast.value && el_datelast.value > el_datefirst.value)  {
+            el_datelast.value = el_datefirst.value;
+        }
     }; // cal_SetDatefirstlastMinMax
 
 //=========  MSO_MSE_lookup_rowindex_in_list  ================ PR2020-02-13

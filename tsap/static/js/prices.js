@@ -2055,13 +2055,13 @@ selected_btn = "customer"
         console.log( "===== MSP_InputPrice  ========= ");
         console.log( "event_key: ", event_key);
 
-
 // validate input
         let err_msg = null;
         if (!!el_MSP_input_price.value){
             //output_arr = [output_value, err_msg];
             const arr = get_number_from_input(loc, "price", el_MSP_input_price.value);
             err_msg = arr[1];
+        console.log( "...................arr: ", arr);
         }
         document.getElementById("id_MSP_error_price").innerText = err_msg
         el_MSP_btn_save.disabled = (!!err_msg)
@@ -2128,7 +2128,7 @@ selected_btn = "customer"
         }  //  if(!!err_msg)
     }; // MSP_InputPrice
 
-    //========= MSP_Fill_SelectTable  ============= PR2020-03-08
+//========= MSP_Fill_SelectTable  ============= PR2020-03-08
     function MSP_Fill_SelectTable (fldName, selected_pk){
         console.log("===== MSP_Fill_SelectTable ===== ", fldName, selected_pk);
 //--- reset tblBody

@@ -1180,6 +1180,7 @@ def create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, reque
     return payroll_list_detail
 # - end of create_payroll_period_detail_list
 
+
 def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request):
     #logger.debug(' ============= create_payroll_period_agg_list ============= ')
     # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-06-24
@@ -1277,18 +1278,18 @@ def create_paydatecode_list(period_dict, datalists, request):
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
         # Note: both datefirst_agg and datelast_agg are ordered by datelast, to keep sequece in both lists the same
+        # to prevent errors when there pdi.datelast occurs multiple times: order by , sort when createing table in JS
         sql_paydateitem_sub = """
             SELECT 
                 pdi.paydatecode_id, 
-                ARRAY_AGG( TO_CHAR(pdi.datefirst, 'YYYY-MM-DD') ORDER BY pdi.datelast) AS datefirst_agg,
-                ARRAY_AGG( TO_CHAR(pdi.datelast, 'YYYY-MM-DD') ORDER BY pdi.datelast) AS datelast_agg
+                ARRAY_AGG( TO_CHAR(pdi.datefirst, 'YYYY-MM-DD') ORDER BY pdi.id) AS datefirst_agg,
+                ARRAY_AGG( TO_CHAR(pdi.datelast, 'YYYY-MM-DD') ORDER BY pdi.id) AS datelast_agg
             FROM companies_paydateitem AS pdi
             WHERE ( (pdi.datelast >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
             AND ( (pdi.datelast <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
             GROUP BY pdi.paydatecode_id
             """
-        # was:             WHERE ( (pdi.datelast >= CAST(%(df)s AS DATE) ) OR ( CAST(%(df)s AS DATE) IS NULL) )
-        #             AND ( (pdi.datelast <= CAST(%(dl)s AS DATE) ) OR ( CAST(%(dl)s AS DATE) IS NULL) )
+
         sql_paydatecode = """
             SELECT pdc.id, pdc.company_id AS comp_id, pdc.code, pdc.recurrence, pdc.dayofmonth, pdc.referencedate, 
             pdc.datefirst, pdc.datelast, pdc.isdefault, pdc.afascode, pdc.inactive,
@@ -1341,6 +1342,7 @@ def create_paydatecode_list(period_dict, datalists, request):
         if paydateitem_list:
             datalists['paydateitem_list'] = paydateitem_list
 # --- end of create_paydatecode_list
+
 
 def create_paydatecode_dict_sql(paydate):
     # --- create dict of this paydate PR2020-06-17
@@ -1406,3 +1408,177 @@ def create_paydateitem_dict_sql(paydateitem):
                 item_dict[field] = field_dict
     return item_dict
 
+# ------------------------------------------------------
+
+def create_wagecode_list(period_dict, datalists, request):
+    logger.debug(' --- create_wagecode_list --- ')
+
+# --- create list of wagecodes of this company PR2029-06-17
+    if request.user.company:
+        company_pk = request.user.company_id
+
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
+
+        # Note: both datefirst_agg and wagerate_agg are ordered by wci.id, to keep sequece in both lists the same
+        # to prevent errors when there wci.datelast occurs multiple times: order by wci.id, sort when createing table in JS
+        sql_wagecodeitem_sub = """
+            SELECT 
+                wci.wagecode_id, 
+                ARRAY_AGG( TO_CHAR(wci.datefirst, 'YYYY-MM-DD') ORDER BY wci.id) AS datefirst_agg,
+                ARRAY_AGG( TO_CHAR(wci.wagerate, 'YYYY-MM-DD') ORDER BY wci.id) AS wagerate_agg
+            FROM companies_wagecodeitem AS wci
+            WHERE ( (wci.datefirst >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
+            AND ( (wci.datefirst <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+            GROUP BY wci.wagecode_id
+            """
+        sql_wagecode = """
+            SELECT wc.id, wc.company_id AS comp_id, wc.code, wci.datefirst_agg, wci.wagerate_agg
+            FROM companies_wagecode AS wc
+            LEFT JOIN (""" + sql_wagecodeitem_sub + """) AS wci ON (wci.wagecode_id = wc.id)
+            WHERE wc.company_id = %(compid)s AND wc.iswage
+            ORDER BY LOWER(wc.code) ASC
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_wagecode, {
+            'compid': company_pk,
+            'df': period_datefirst,
+            'dl': period_datelast
+        })
+        wagecodes = f.dictfetchall(newcursor)
+
+        wagecode_list = []
+        for wagecode in wagecodes:
+            logger.debug('wagecode: ' + str(wagecode))
+            item_dict = create_wagecode_dict_sql(wagecode)
+            if item_dict:
+                wagecode_list.append(item_dict)
+        if wagecode_list:
+            datalists['wagecode_list'] = wagecode_list
+
+# --- end of create_wagecode_list
+def create_wagecode_dict_sql(wagecode):
+    # --- create dict of this wagecode PR2020-07-13
+    item_dict = {}
+    if wagecode:
+        # FIELDS_WAGECODE = ('id', 'company', 'code', 'datefirst', 'datefirst_agg', 'wagerate_agg') # to be added:  'inactive')
+        for field in c.FIELDS_WAGECODE:
+            field_dict = {}
+            if field == 'id':
+                field_dict['pk'] = wagecode.get('id')
+                field_dict['ppk'] = wagecode.get('comp_id')
+                field_dict['table'] = 'wagecode'
+
+            elif field in ('code',  'datefirst', 'datefirst_agg', 'wagerate_agg'): # to be added:  'inactive')
+                value = wagecode.get(field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+    return item_dict
+
+
+def create_wagefactor_list(request_item, datalists, request):
+    logger.debug(' --- create_wagefactor_list --- ')
+
+# --- create list of wagefactors of this company PR2029-06-17
+    if request.user.company:
+        company_pk = request.user.company_id
+
+        sql_wagecode = """
+            SELECT wc.id, wc.company_id AS comp_id, wc.code, wc.wagerate
+            FROM companies_wagecode AS wc
+            WHERE wc.company_id = %(compid)s AND wc.iswagefactor
+            ORDER BY LOWER(wc.code) ASC
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_wagecode, {
+            'compid': company_pk
+        })
+        wagefactors = f.dictfetchall(newcursor)
+
+        wagefactor_list = []
+        for wagefactor in wagefactors:
+            logger.debug('wagefactor: ' + str(wagefactor))
+            item_dict = create_wagefactor_dict_sql(wagefactor)
+            if item_dict:
+                wagefactor_list.append(item_dict)
+        if wagefactor_list:
+            datalists['wagefactor_list'] = wagefactor_list
+# --- end of create_wagefactor_list
+
+
+def create_wagefactor_dict_sql(wagefactor):
+    # --- create dict of this wagefactor PR2020-07-13
+    item_dict = {}
+    if wagefactor:
+        item_dict = {'id': {'pk': wagefactor.get('id'),
+                             'ppk': wagefactor.get('comp_id'),
+                             'table': 'wagefactor'},
+                     'code': {'value': wagefactor.get('code')},
+                     'wagerate': {'value': wagefactor.get('wagerate')}
+                    }
+    return item_dict
+
+
+def create_wagefactor_dict(instance, item_dict):
+    # --- create dict of this wagefactor PR2020-07-14
+    if instance:
+        for field in ('id', 'code', 'wagerate', 'inactive'):
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+            if field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'wagefactor'
+
+            elif field in ('code', 'wagerate', 'inactive'):
+                value = getattr(instance, field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+# end of create_wagefactor_dict
+
+
+
+def create_functioncode_list(request_item, datalists, request):
+    logger.debug(' --- create_functioncode_list --- ')
+
+# --- create list of wagefactors of this company PR2029-06-17
+    if request.user.company:
+        company_pk = request.user.company_id
+
+        sql_wagecode = """
+            SELECT wc.id, wc.company_id AS comp_id, wc.code
+            FROM companies_wagecode AS wc
+            WHERE wc.company_id = %(compid)s AND wc.isfunctioncode
+            ORDER BY LOWER(wc.code) ASC
+            """
+        newcursor = connection.cursor()
+        newcursor.execute(sql_wagecode, {
+            'compid': company_pk
+        })
+        functioncodes = f.dictfetchall(newcursor)
+
+        functioncode_list = []
+        for functioncode in functioncodes:
+            logger.debug('functioncode: ' + str(functioncode))
+            item_dict = create_functioncode_dict_sql(functioncode)
+            if item_dict:
+                functioncode_list.append(item_dict)
+        if functioncode_list:
+            datalists['functioncode_list'] = functioncode_list
+# --- end of create_wagefactor_list
+
+
+def create_functioncode_dict_sql(functioncode):
+    # --- create dict of this functioncode PR2020-07-13
+    item_dict = {}
+    if functioncode:
+        item_dict = {'id': {'pk': functioncode.get('id'),
+                             'ppk': functioncode.get('comp_id'),
+                             'table': 'functioncode'},
+                     'code': {'value': functioncode.get('code')}
+                    }
+    return item_dict

@@ -536,6 +536,8 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
     customer_pk = filter_dict.get('customer_pk')
     if customer_pk is None:
         order_pk = filter_dict.get('order_pk')
+    #logger.debug('customer_pk: ' + str(customer_pk))
+    #logger.debug('order_pk: ' + str(order_pk))
 
     sql_schemes = """SELECT 
         s.id AS s_id, 
@@ -578,6 +580,7 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
 
     scheme_list = []
     for scheme in schemes:
+        #logger.debug('scheme: ' + str(scheme))
         item_dict = {}
         create_scheme_dict_from_sql(scheme, item_dict, user_lang)
 
@@ -1761,7 +1764,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
         #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
-        logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
+        #logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 # 5. create update_dict
@@ -1819,8 +1822,8 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+    #logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
@@ -2510,8 +2513,8 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
 
     review_list = []
     if request.user.company:
-        logger.debug(' ============= create_review_customer_list ============= ')
-        logger.debug('period_dict:  ' + str(period_dict))
+        #logger.debug(' ============= create_review_customer_list ============= ')
+        #logger.debug('period_dict:  ' + str(period_dict))
 
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
@@ -3384,9 +3387,9 @@ def get_team_code(team):
 
 # #####################################################################
 
-def create_order_schemes_list(filter_dict, datalists, company, comp_timezone, user_lang):
+def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user_lang):
     # PR2020-05-23 used in scheme page, to retrieve schemes, etc from selected order
-    #logger.debug(' ================ create_order_schemes_list ================ ')
+    #logger.debug(' ================ create_page_scheme_list ================ ')
     #logger.debug('filter_dict: ' + str(filter_dict))
     # customer_pk is only used when is_absence
     checked_customer_pk = None
@@ -3402,19 +3405,21 @@ def create_order_schemes_list(filter_dict, datalists, company, comp_timezone, us
             checked_customer_pk = absence_customer_pk
     else:
         order_pk = filter_dict.get('order_pk')
-        if m.Order.objects.filter(pk=order_pk, customer__company=company).exists():
-            checked_order_pk = order_pk
+        order = m.Order.objects.get_or_none(pk=order_pk, customer__company=company)
+        if order:
+            checked_order_pk = order.pk
+            checked_customer_pk = order.customer.pk
 
-    if checked_customer_pk is not None:
-        new_filter_dict['customer_pk'] = checked_customer_pk
-    elif checked_order_pk is not None:
+    if checked_order_pk is not None:
         new_filter_dict['order_pk']= checked_order_pk
+    elif checked_customer_pk is not None:
+        new_filter_dict['customer_pk'] = checked_customer_pk
 
-   #logger.debug('is_absence: ' + str(is_absence))
-   #logger.debug('new_filter_dict: ' + str(new_filter_dict))
+    #logger.debug('is_absence: ' + str(is_absence))
+    #logger.debug('new_filter_dict: ' + str(new_filter_dict))
 
     if checked_order_pk is not None or checked_customer_pk is not None:
-       #logger.debug('new_filter_dict: ' + str(new_filter_dict))
+        #logger.debug('new_filter_dict: ' + str(new_filter_dict))
 
         if is_absence:
 # ----- absence_list
@@ -3431,6 +3436,7 @@ def create_order_schemes_list(filter_dict, datalists, company, comp_timezone, us
                 user_lang=user_lang)
             if scheme_list:
                 datalists['scheme_list'] = scheme_list
+            #logger.debug('scheme_list: ' + str(scheme_list))
 # ----- shift_list
             shift_list = create_shift_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
             if shift_list:

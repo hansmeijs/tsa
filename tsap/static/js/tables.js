@@ -151,8 +151,8 @@
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                 title_row_btn, is_selected_row) {
-        //console.log(" === t_CreateSelectRow in tables.js === ")
-        //console.log("item_dict = ", item_dict)
+        console.log(" === t_CreateSelectRow in tables.js === ")
+        console.log("item_dict = ", item_dict)
         is_selected_row = false;
 // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -180,11 +180,11 @@
                             (filter_include_absence != null && !filter_include_absence && is_absence === true )||
                             (filter_istemplate != null && filter_istemplate !== is_template);
 
-            //console.log("filter_ppk_str = ", filter_ppk_str, "ppk_str = ", ppk_str)
+            console.log("filter_ppk_str = ", filter_ppk_str, "ppk_str = ", ppk_str)
             //console.log("filter_include_inactive = ", filter_include_inactive, "is_inactive = ", is_inactive)
             //console.log("filter_include_absence = ", filter_include_absence, "is_absence = ", is_absence)
-            //console.log("filter_istemplate = ", filter_istemplate, "is_template = ", is_template)
-            //console.log("skip_row = ", skip_row)
+            console.log("filter_istemplate = ", filter_istemplate, "is_template = ", is_template)
+            console.log("skip_row = ", skip_row)
 
             if (!skip_row){
     //--------- insert tblBody_select row
@@ -676,11 +676,9 @@
         }  // for (let i = 0,
     }
 
-
-
 //========= t_get_rowindex_by_code_datefirst  ================= PR2020-05-18
     function t_get_rowindex_by_code_datefirst(tblBody, tblName, data_map, search_code, search_datefirst) {
-        console.log(" ===== t_get_rowindex_by_code_datefirst =====", tblName);
+        //console.log(" ===== t_get_rowindex_by_code_datefirst =====", tblName);
         let search_rowindex = -1;
 // --- loop through rows of tblBody
         if(search_code){
@@ -692,7 +690,6 @@
                     const code = get_dict_value(map_dict, ["code", "value"])
                     if(code) {
                         const code_lc = code.toLowerCase()
-                    console.log("code_lc  ", code_lc, "code  ", search_code_lc);
                         if( code_lc > search_code_lc) {
                             search_rowindex = tblRow.rowIndex - 1;
                             break;
@@ -725,7 +722,6 @@
         return search_rowindex
     }  // t_get_rowindex_by_code_datefirst
 
-
 //========= t_get_rowindex_by_orderby  ================= PR2020-06-30
     function t_get_rowindex_by_orderby(tblBody, search_orderby) {
         //console.log(" ===== t_get_rowindex_by_orderby =====");
@@ -748,12 +744,6 @@
         if(row_index >= 0){ row_index -= 1 }
         return row_index
     }  // t_get_rowindex_by_orderby
-
-
-
-
-
-
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11

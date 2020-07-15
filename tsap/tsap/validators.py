@@ -86,7 +86,7 @@ def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  #
     # skip companies that are not activated PR2020-04-02
     msg_err = None
     if not value:
-        msg_err = _('Company cannot be blank.')
+        msg_err = _('Company name cannot be blank.')
     else:
         if cur_company_id:
             value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exclude(pk=cur_company_id).exists()
@@ -203,7 +203,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
     # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     # filter is_absence is only used in table 'order' PR2020-06-14
     msg_err = None
     if not parent:
@@ -237,7 +237,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             # msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         if not msg_err:
             crit = None
-            if table in ('employee', 'customer', 'paydatecode'):
+            if table in ('employee', 'customer', 'paydatecode', 'wagecode', 'wagefactor', 'functioncode'):
                 crit = Q(company=request.user.company)
             elif table == 'order':
                 crit = Q(customer__company=request.user.company)

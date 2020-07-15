@@ -20,20 +20,22 @@
                             <input id="id_MWF_input_code" type="text" data-field= "code"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
-                            <div class="tsa_flex_1 mx-1 mt-1">
-                                <small id="id_MWF_err_code" class="text-danger tsa_margin_form_label">xxxxxxxxxx</small>
+                            <div class="tsa_flex_1 mx-2 my-1">
+                                <small id="id_MWF_err_code" class="text-danger">{% trans 'Description cannot be blank.' %}</small>
                             </div>
                         </div>
                         <div class="tsa_flex_1 mx-1">
-                            <label for="id_MAC_input_identifier" class="tsa_margin_form_label">{% trans 'Percentage' %}:</label>
-                            <input id="id_MAC_input_identifier" type="text" data-field= "identifier"
+                            <label for="id_MWF_input_rate" class="tsa_margin_form_label">{% trans 'Percentage' %}:</label>
+                            <input id="id_MWF_input_rate" type="text" data-field= "wagerate"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
-                            <div class="tsa_flex_1 mx-1 mt-1">
-                                <small id="id_MWF_err_rate" class="text-danger tsa_margin_form_label">xxxxxxxxxx</small>
+                            <div class="tsa_flex_1 mx-2 my-1">
+                                <small id="id_MWF_err_rate" class="text-danger"></small>
                             </div>
                         </div>
                     </div>
+
+
 
                 </div>
 

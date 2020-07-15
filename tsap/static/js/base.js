@@ -472,7 +472,7 @@
 
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
-        console.log(" --- update_map_item ---")
+        //console.log(" --- update_map_item ---")
         const id_dict = get_dict_value(update_dict, ["id"]);
         if(!!data_map && !isEmpty(id_dict)){
             const tblName = get_dict_value(id_dict, ["table"]);
@@ -494,7 +494,7 @@
                 data_map.set(map_id, update_dict)
             }
         }  // if(!isEmpty(id_dict))
-        console.log(data_map) // PR2019-11-26
+        //console.log(data_map) // PR2019-11-26
     }  // update_map_item
 
 //========= insertAtIndex  ================== PR2020-01-20
@@ -1631,10 +1631,11 @@
 //========= get_number_from_input  ========== PR2020-06-10
     function get_number_from_input(loc, fldName, input_value) {
         //console.log("--------- get_number_from_input ---------")
+        //console.log("fldName", fldName)
         let caption_str = (loc.Number) ? loc.Number : null;
 
         let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
-        let integer_only = false;
+        let integer_only = false, is_percentage = false
         if(fldName === "cycle"){
             caption_str = loc.Cycle ;
             integer_only = true;
@@ -1649,6 +1650,9 @@
             caption_str = loc.Price
             multiplier = 100;
             max_value = 100000;  // max $ 1000, max 1000%
+        } else if(fldName === "wagefactor"){
+            caption_str = loc.Wage_factor
+            is_percentage = true;
         } else if(fldName === "workhoursperweek"){
             caption_str = loc.Workhours
             multiplier = 60;
@@ -1709,13 +1713,15 @@
                     if(!err_msg){
                         if(min_value != null) {
                             if(max_value != null) {
-                                err_msg = caption_str + " " + loc.err_msg_must_be_between + " " + min_value / multiplier + " " + loc.err_msg_and +
-                                " " + max_value / multiplier + ".";
+                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
+                                err_msg = caption_str + " " + must_be + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
                             } else {
-                                err_msg = caption_str + " " + loc.err_msg_must_be_greater_than_or_equal_to + " " + max_value / multiplier + "."
+                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
+                                err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
                             }
                         } else if(max_value != null) {
-                            err_msg = caption_str + " " + loc.err_msg_must_be_less_than_or_equal_to + " " + max_value / multiplier + "."
+                            const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
+                            err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
         }}}}};
         return [output_value, err_msg];
     }  // get_number_from_input

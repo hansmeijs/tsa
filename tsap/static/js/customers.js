@@ -1945,13 +1945,9 @@ let planning_list = [] // for export and printing - can replace map?
         const map_id = get_map_id(tblName, pk_int);
         //console.log("is_delete:", is_delete, typeof is_delete);
 
+//  make tblRow red
         let tr_changed = document.getElementById(map_id);
-        if(!!tr_changed){
-            tr_changed.classList.add(cls_error);
-            setTimeout(function (){
-                tr_changed.classList.remove(cls_error);
-                }, 2000);
-        }
+        ShowClassWithTimeout(tr_changed, cls_error);
     }
     UploadChanges(upload_dict, url_str);
 }  // UploadDeleteChanges

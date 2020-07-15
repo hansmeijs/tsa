@@ -3549,7 +3549,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancel_delete = true;
             msg01_txt = loc.err_msg_select_shift;
         } else {
-            mod_upload_dict.map_id = get_map_id("emplhour",selected_emplhour_pk )
+            mod_upload_dict.map_id = get_map_id("emplhour", selected_emplhour_pk )
             emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, mod_upload_dict.map_id);
             mod_upload_dict.id_dict = get_dict_value(emplhour_dict, ["id"])
 
@@ -3615,27 +3615,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  DeleteShift_ConfirmSave  ================ PR2019-06-23
     function DeleteShift_ConfirmSave() {
-        //console.log(" --- ModConfirmSave --- ");
-        // onsole.log("mod_upload_dict: ", mod_upload_dict);
+        //console.log(" --- DeleteShift_ConfirmSave --- ");
+        //console.log("mod_upload_dict: ", mod_upload_dict);
 
-            let tblRow = document.getElementById(mod_upload_dict.map_id);
-            let id_dict = mod_upload_dict.id_dict;
-            id_dict.delete = true;
-            id_dict.rowindex = tblRow.rowIndex;
-            let upload_dict = {period_datefirst: selected_period.period_datefirst,
-                                period_datelast: selected_period.period_datelast,
-                                id: id_dict};
+        let tblRow = document.getElementById(mod_upload_dict.map_id);
 
-            mod_upload_dict.id_dict = id_dict
-            // delete emplhour row:
-            // - add 'delete' to id_dict, dont add employee dict or abscat dict
-            // - make tblRow red
-            if(!!tblRow){
-                tblRow.classList.add(cls_error);
-                setTimeout(function (){
-                    tblRow.classList.remove(cls_error);
-                    }, 2000);
-            }
+        let id_dict = mod_upload_dict.id_dict;
+        id_dict.delete = true;
+        id_dict.rowindex = tblRow.rowIndex;
+        let upload_dict = {period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast,
+                            id: id_dict};
+
+        mod_upload_dict.id_dict = id_dict
+        // delete emplhour row:
+        // - add 'delete' to id_dict, dont add employee dict or abscat dict
+
+// - make tblRow red
+        ShowClassWithTimeout(tblRow, cls_error)
 
 // ---  Upload Changes
         UploadChanges(upload_dict, url_emplhour_upload) ;

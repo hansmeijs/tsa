@@ -69,7 +69,7 @@
                                     <label class="tsa_margin_form_label">{% trans "Enter a closing date" %}:</label>
                                     <input id="id_MPP_input_weekly" type="date" data-field="referencedate" class="form-control tsa_input_text mx-0 my-1">
                                     <div class="mx-2">
-                                        <small class="text-muted">{% trans "The closing date will be on this day every other week." %}</small>
+                                        <small id="id_MPP_msg_biweekly" class="text-muted">{% trans "The closing date will be on this day every other week." %}</small>
                                     </div>
                                 </div>
                                 <div class="rec_show rec_weekly display_hide">
@@ -83,7 +83,7 @@
                                     <label class="tsa_margin_form_label">{% trans "Select a year" %}:</label>
                                     <input id="id_MPP_input_year" type="number" min="2020" max="2100" data-field="year" class="form-control tsa_input_text mx-0 my-1">
                                     <div class="mx-2">
-                                        <small id="id_MPP_year_01" class="text-muted">{% trans "Select a year and enter the closing dates." %}</small>
+                                        <small id="id_MPP_msg_year" class="text-muted"></small>
                                     </div>
                                 </div>
                             </div>

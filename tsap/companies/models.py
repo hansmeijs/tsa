@@ -360,6 +360,7 @@ class Paydatecode(TsaBaseModel):
             has_locked_emplhours = Emplhour.objects.filter(paydatecode_id=self.pk, lockedpaydate=True).exists()
         return has_locked_emplhours
 
+
 class Paydateitem(TsaBaseModel):
     objects = TsaManager()
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=CASCADE)
@@ -381,13 +382,13 @@ class Wagecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='wagecodes', on_delete=CASCADE)
 
-    wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    wagerate = IntegerField(default=0)  # /10.000 unitless, 0 = factor 100%  = 10.000)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
     datelast = None
     locked = None
-
+    # TODO remove sequence, rate. Rename iswage to iswagecode. leave 'name' for notes??
     sequence = PositiveSmallIntegerField(default=0)
     rate = JSONField(null=True)  # stores price plus startdate
     iswage = BooleanField(default=False)
@@ -398,10 +399,15 @@ class Wagecode(TsaBaseModel):
     class Meta:
         ordering = ['sequence']
 
-
     def __str__(self):
         return self.code
 
+    def has_lockedwagecode_emplhours(self):  # PR2020-07-14
+        # function checks if this wagecode has emplhours with lockedpaydate=True
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
+        return has_locked_emplhours
 
 class Wagecodeitem(TsaBaseModel):
     objects = TsaManager()
@@ -413,7 +419,7 @@ class Wagecodeitem(TsaBaseModel):
     datelast = None
     inactive = None
     locked = None
-
+    #TODO: add inactive, remove iswage, iswagefactor
     iswage = BooleanField(default=False)
     iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
 

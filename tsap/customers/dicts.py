@@ -35,8 +35,8 @@ def create_company_list(company):
 
 # ====== create_companyinvoice_list ======= PR2020-04-14
 def create_companyinvoice_list(company):
-    logger.debug(' --- create_customer_list --- ')
-    # logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
+    #logger.debug(' --- create_customer_list --- ')
+    #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
     # --- create list of customers of this company PR2019-09-03
     # .order_by(Lower('code')) is in model
@@ -48,12 +48,12 @@ def create_companyinvoice_list(company):
     #if inactive is not None:
     #    crit.add(Q(inactive=inactive), crit.connector)
     companyinvoices = m.Companyinvoice.objects.filter(crit)
-    logger.debug(str(companyinvoices.query))
+    #logger.debug(str(companyinvoices.query))
 
     companyinvoice_list = []
     for companyinvoice in companyinvoices:
         item_dict = create_companyinvoice_dict(companyinvoice)
-        logger.debug('companyinvoice_dict: ' + str(item_dict))
+        #logger.debug('companyinvoice_dict: ' + str(item_dict))
 
         if item_dict:
             companyinvoice_list.append(item_dict)
@@ -62,7 +62,7 @@ def create_companyinvoice_list(company):
 
 # ====== create_companyinvoice_dict ======= PR2020-04-14
 def create_companyinvoice_dict(companyinvoice):
-    logger.debug(' --- create_companyinvoice_dict --- ')
+    #logger.debug(' --- create_companyinvoice_dict --- ')
     item_dict = {}
     if companyinvoice:
 # FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
@@ -412,15 +412,15 @@ def create_absencecategory_list(request):
     # each absence category contains abscat_customer, abscat_order
     order_list = []
 
-    logger.debug(" --- create_absencecategory_list ---")
+    #logger.debug(" --- create_absencecategory_list ---")
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
-    logger.debug(" --- get_or_create_absence_customer ---")
+    #logger.debug(" --- get_or_create_absence_customer ---")
     # order by priority: which is sequence desc
     orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True)
 
     for order in orders:
-        logger.debug(" --- for order in orders ---")
+        #logger.debug(" --- for order in orders ---")
         dict = create_absencecat_dict(order, request)
         order_list.append(dict)
 
@@ -430,14 +430,14 @@ def create_absencecategory_list(request):
 def create_absencecat_dict(order, request):
 # --- create dict of this absence category PR2019-06-25
 # if scheme or team of this order does not exist: create it
-    logger.debug(" --- create_absencecat_dict ---")
-    logger.debug("order: ", order)
+    #logger.debug(" --- create_absencecat_dict ---")
+    #logger.debug("order: ", order)
     item_dict = {}
     if order:
         abscat_code = getattr(order, 'code', '-')
         customer = order.customer
         customer_code =  getattr(customer, 'code', '-')
-        logger.debug("abscat_code: ", abscat_code)
+        #logger.debug("abscat_code: ", abscat_code)
 
         item_dict['id'] = {
             'pk': order.pk,
@@ -705,13 +705,13 @@ def create_order_pricerate_list(company, user_lang):
 
 
 def create_billing_agg_list(period_dict, request):
-    logger.debug(' ============= create_billing_agg_list ============= ')
+    #logger.debug(' ============= create_billing_agg_list ============= ')
     # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-06-24
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
-    logger.debug('period_dict:  ' + str(period_dict))
+    #logger.debug('period_dict:  ' + str(period_dict))
 
     period_datefirst = period_dict.get('period_datefirst')
     period_datelast = period_dict.get('period_datelast')
@@ -722,9 +722,9 @@ def create_billing_agg_list(period_dict, request):
         customer_pk = period_dict.get('customer_pk')
         customer_pk = customer_pk if customer_pk else None
 
-    logger.debug('period_datefirst:  ' + str(period_datefirst))
-    logger.debug('period_datelast:  ' + str(period_datelast))
-    logger.debug('order_pk:  ' + str(order_pk))
+    #logger.debug('period_datefirst:  ' + str(period_datefirst))
+    #logger.debug('period_datelast:  ' + str(period_datelast))
+    #logger.debug('order_pk:  ' + str(order_pk))
 
     sql_billing = """
         SELECT o.id AS o_id, 
@@ -774,7 +774,7 @@ def create_billing_agg_list(period_dict, request):
 
 
 def create_billing_rosterdate_list(period_dict, request):
-    logger.debug(' ============= create_billing_rosterdate_list ============= ')
+    #logger.debug(' ============= create_billing_rosterdate_list ============= ')
 
     period_datefirst = period_dict.get('period_datefirst')
     period_datelast = period_dict.get('period_datelast')
@@ -785,9 +785,9 @@ def create_billing_rosterdate_list(period_dict, request):
         customer_pk = period_dict.get('customer_pk')
         customer_pk = customer_pk if customer_pk else None
 
-    logger.debug('period_datefirst:  ' + str(period_datefirst))
-    logger.debug('period_datelast:  ' + str(period_datelast))
-    logger.debug('order_pk:  ' + str(order_pk))
+    #logger.debug('period_datefirst:  ' + str(period_datefirst))
+    #logger.debug('period_datelast:  ' + str(period_datelast))
+    #logger.debug('order_pk:  ' + str(order_pk))
 
     sql_billing = """
         SELECT o.id AS o_id, 
@@ -844,7 +844,7 @@ def create_billing_rosterdate_list(period_dict, request):
 
 
 def create_billing_detail_list(period_dict, request):
-    logger.debug(' ============= create_billing_detail_list ============= ')
+    #logger.debug(' ============= create_billing_detail_list ============= ')
 
     period_datefirst = period_dict.get('period_datefirst')
     period_datelast = period_dict.get('period_datelast')
@@ -855,9 +855,9 @@ def create_billing_detail_list(period_dict, request):
         customer_pk = period_dict.get('customer_pk')
         customer_pk = customer_pk if customer_pk else None
 
-    logger.debug('period_datefirst:  ' + str(period_datefirst))
-    logger.debug('period_datelast:  ' + str(period_datelast))
-    logger.debug('order_pk:  ' + str(order_pk))
+    #logger.debug('period_datefirst:  ' + str(period_datefirst))
+    #logger.debug('period_datelast:  ' + str(period_datelast))
+    #logger.debug('order_pk:  ' + str(order_pk))
 
     sql_billing = """
         SELECT oh.id AS oh_id, o.id AS o_id, 

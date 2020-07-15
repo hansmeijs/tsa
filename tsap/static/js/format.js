@@ -1772,9 +1772,12 @@
         }, 2000);
     }
 
-//=========  ShowOkElement  ================ PR2020-04-26
+//=========  ShowOkElement  ================ PR2020-04-26 PR2020-07-15
     function ShowClassWithTimeout(el, className, timeout) {
         // show class, remove it after timeout milliseconds
-        el.classList.add(className);
-        setTimeout(function (){el.classList.remove(className)}, timeout);
+        if(!timeout) { timeout = 2000};
+        if(el && className){
+            el.classList.add(className);
+            setTimeout(function (){el.classList.remove(className)}, timeout);
+        };
     }
