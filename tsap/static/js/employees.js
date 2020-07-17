@@ -1854,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const page_dict = get_dict_value(setting_dict, ["page_employee"])
         if (!isEmpty(page_dict)){
-            const saved_btn = get_dict_value(page_dict, ["btn"])
+            const saved_btn = get_dict_value(page_dict, ["sel_btn"])
             //selected_btn = (!!saved_btn) ? saved_btn : "employee";
         }
         let key = "planning_period";

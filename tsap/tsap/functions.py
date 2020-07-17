@@ -979,6 +979,22 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
     return date_DM
 
 
+def calc_workingdays_in_period(period_datefirst_dte, period_datelast_dte, request):
+    # - calculate working days in period  PR2020-07-09
+    period_workingdays = 0
+    period_workingdays_incl_ph = 0
+    if period_datefirst_dte and period_datelast_dte:
+        rosterdate_dte = period_datefirst_dte
+        while rosterdate_dte <= period_datelast_dte:
+            # 4. get is_publicholiday, is_companyholiday of this date from Calendar
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = get_issat_issun_isph_isch_from_rosterdate(
+                rosterdate_dte, request)
+            if not is_saturday and not is_sunday:
+                period_workingdays_incl_ph += 1
+                if not is_publicholiday:
+                    period_workingdays += 1
+            rosterdate_dte = rosterdate_dte + timedelta(days=1)
+    return period_workingdays, period_workingdays_incl_ph
 
 # ################### FORMAT FUNCTIONS ###################
 def format_period_from_date(datefirst_dte, datelast_dte, short_names, user_lang):

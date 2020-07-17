@@ -191,9 +191,10 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-# b. get comp_timezone and timeformat
+# b. get comp_timezone and timeformat and interval
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+            interval = request.user.company.interval if request.user.company.interval else 15
 
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get("upload")
@@ -265,7 +266,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     # get saved calendar_period_dict
                     period_dict = {'get': True}
                     calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
-                                                                 comp_timezone, timeformat, user_lang, request)
+                                                                 comp_timezone, timeformat, interval, user_lang, request)
 
                     datefirst_iso = calendar_period_dict.get('rosterdatefirst')
                     datelast_iso = calendar_period_dict.get('rosterdatelast')

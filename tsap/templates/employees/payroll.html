@@ -15,13 +15,20 @@
             <h3 id="id_SBR_hdr_text"></h3>
         </div>
         <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
+            <input id="id_SBR_select_period"
+                type="text"
+                class="tw_200 border_none pointer_show px-2"
+                readonly>
+        </div>
+        <div class="tab_show tab_payrollperiodXXX display_hide tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Payroll period' %}:</h6>
             <input id="id_sbr_select_payrollperiod"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-        <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+        <div class="tab_show tab_payrollperiodXXX display_hide tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Closing date' %}:</h6>
             <input id="id_sbr_select_paydate"
                 type="text"
@@ -41,6 +48,8 @@
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL ABSCAT  =================== -->
         {% include 'includes/modabscat.html' %}
+<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modselectperiod.html' %}
 <!-- =================== MODAL PAYROLL PERIOD  =================== -->
         {% include 'includes/modpayrollperiod.html' %}
 <!-- =================== MODAL WAGE CODE =================== -->
@@ -74,7 +83,7 @@
     <!-- end class content_header -->
     <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Payroll period overview' %}</button>
+                    <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Roster overview' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
                     <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
                     <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>

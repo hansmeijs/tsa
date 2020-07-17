@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("review_period" in response) {
                     selected_period = response["review_period"];
-                    selected_btn = get_dict_value(selected_period, ["btn"], "customer")
+                    selected_btn = get_dict_value(selected_period, ["sel_btn"], "customer")
 
                     selected_employee_pk = get_dict_value(selected_period, ["employee_pk"], 0)
                     selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)

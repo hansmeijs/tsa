@@ -69,9 +69,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 # ----- get interval
-                    interval = 15
-                    if request.user.company.interval:
-                        interval = request.user.company.interval
+                    interval = request.user.company.interval if request.user.company.interval else 15
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
                     #logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
@@ -113,7 +111,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('locale')
                     if request_item:
                         # request_item: {page: "employee"}
-                        datalists['locale_dict'] = loc.get_locale_dict(request_item, user_lang, comp_timezone, timeformat, interval)
+                        datalists['locale_dict'] = loc.get_locale_dict(request_item, user_lang, comp_timezone, timeformat, interval, request)
 # ----- quicksave
                     request_item = datalist_request.get('quicksave')
                     if request_item:
@@ -257,10 +255,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 (key == 'review_period' and sel_page == 'page_review'):
                             # save new period and retrieve saved period
                             datalists[key] = d.period_get_and_save(key, request_item,
-                                                                         comp_timezone, timeformat, user_lang, request)
+                                                                         comp_timezone, timeformat, interval, user_lang, request)
 
-
-                    #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 # ----- emplhour (roster page)
                     request_item = datalist_request.get('emplhour')
                     roster_period_dict = datalists.get('roster_period')
@@ -315,12 +311,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- payroll_list
                     request_item = datalist_request.get('payroll_list')
                     if request_item:
+                        payroll_period = f.get_dict_value(datalists, ('payroll_period',))
                         datalists['payroll_abscat_list'] = \
-                            ed.create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request)
+                            ed.create_payroll_abscat_list(payroll_period, request)
                         datalists['payroll_period_agg_list'] = \
-                            ed.create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
+                            ed.create_payroll_agg_list(payroll_period, request)
                         datalists['payroll_period_detail_list'] = \
-                            ed.create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, request)
+                            ed.create_payroll_detail_list(payroll_period, request)
                         datalists['paydatecodes_inuse_list'] = \
                             ed.create_paydatecodes_inuse_list(period_dict=request_item, request=request)
                         datalists['paydateitems_inuse_list'] = \

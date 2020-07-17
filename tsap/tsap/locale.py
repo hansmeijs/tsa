@@ -1,14 +1,26 @@
 # PR2019-11-12
 
 from django.utils.translation import pgettext_lazy, ugettext_lazy as _
-import json
-
 from tsap import constants as c
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 # === get_locale_dict ===================================== PR2019-11-12
-def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
+def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, request):
     # PR2019-11-12
+    # TODO create companysetting, solve text in html
+    is_custom = False
+    #company = request.user.company
+    #if company:
+    #    company_code = company.code
+    #    if len(company_code) > 5:
+    #        logger.debug('company_code[0:6]: ' + str(company_code[0:6]))
+    #        if company_code[0:6].lower() == 'impact':
+    #            is_custom = True
+    #logger.debug('is_custom: ' + str(is_custom))
+
     #TODO use user_lang etc from settings_dict
     dict = {'user_lang': user_lang, 'comp_timezone': comp_timezone, 'timeformat': timeformat, 'interval': interval}
 
@@ -41,6 +53,18 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['Rest_shift'] = TXT_Rest_shift
     dict['No_shifts'] = TXT_No_shifts
     dict['Select_shift'] = TXT_Select_shift
+
+    dict['Customer'] = TXT_Customer
+    dict['Customers'] = TXT_Customers
+    dict['All_customers'] = TXT_All_customers
+    dict['No_customers'] = TXT_No_customers
+    dict['Customers_and_orders'] = _('Customers and orders') if not is_custom else 'Klanten en projecten'
+
+    dict['Order'] = TXT_Order if not is_custom else 'Project'
+    dict['Select_order'] = TXT_Select_order if not is_custom else 'Selecteer project'
+    dict['All_orders'] = TXT_All_orders if not is_custom else 'Alle projecten'
+    dict['No_orders'] = TXT_No_orders if not is_custom else 'Geen projecten'
+
 
     dict['Team'] = _('Team')
     dict['Teams'] = TXT_Teams
@@ -192,10 +216,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Hourly_rate'] = TXT_Hourly_rate
         dict['Wage_rate'] = TXT_Wage_rate
 
-        dict['Customer'] = TXT_Customer
-        dict['Order'] = TXT_Order
-        dict['Select_order'] = TXT_Select_order
-        dict['No_orders'] = TXT_No_orders
 
         dict['Start_Endtime'] = TXT_Start_Endtime
         dict['Weekdays'] = TXT_Weekdays
@@ -259,10 +279,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Payment'] = TXT_Payment
 
         dict['Function'] = TXT_Function
-        dict['Order'] = TXT_Order
         dict['Roster_shift'] = _('Roster shift')
 
-
+        dict['period_select_list'] = TXT_Period_planning_list
         dict['Payroll_period'] = TXT_Payroll_period
         dict['Payroll_periods'] = TXT_Payroll_periods
         dict['This_payrollperiod'] = TXT_This_payrollperiod
@@ -297,7 +316,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Delete_wagefactor'] = TXT_Delete_wagefactor
 
         dict['No_payrollperiod_selected'] = _('There is no payroll period selected.')
-        dict['Click_on_the_tickmark_column'] = _('Click on the tickmark column of the selected payroll period.')
+        dict['Click_in_the_tickmark_column'] = _('Click in the tickmark column of the selected payroll period.')
 
         dict['payrollperiod_is_imported'] = _('This payrollperiod is imported from AFAS and cannot be changed.')
         dict['can_leave_description_blank'] = _('You can leave the description blank. TSA will enter it automatically.')
@@ -325,7 +344,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Custom'] = TXT_Custom
 
         dict['Hours_overview'] = TXT_Hours_overview
-        dict['Payroll_period_overview'] = TXT_Payroll_period_overview
+        dict['Payroll_period_overview'] = TXT_Roster_overview
 
         dict['Identifier'] = TXT_Identifier
 
@@ -349,11 +368,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
 
+        dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
 
         # excel
 
-        dict['Overview_hours_per_abscat'] = _("Overview of hours per absence category")
+        dict['Overview_rosterhours_per_abscat'] = _("Overview of roster hours per absence category")
 
         # menu
         dict['Show_report'] = TXT_Show_report
@@ -377,8 +397,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Short_name'] = TXT_Short_name
         dict['Name'] = TXT_Name
 
-        dict['Customer'] = TXT_Customer
-        dict['Customers'] = TXT_Customers
         dict['Customer_name'] = TXT_Customer_name
         dict['Select_customer'] = TXT_Select_customer
         dict['No_customer_selected'] = TXT_No_customer_selected
@@ -386,8 +404,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Add_customer'] = TXT_Add_customer
         dict['Delete_customer'] = TXT_Delete_customer
         dict['Customer_list'] = TXT_Customer_list
-        dict['All_customers'] = TXT_All_customers
-        dict['No_customers'] = TXT_No_customers
         dict['Enter_short_name_of_customer'] = TXT_Enter_short_name_of_customer
         dict['Upload_customers_and_orders'] = TXT_Upload_customers_and_orders
 
@@ -399,13 +415,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Preview_planning'] = TXT_Preview_planning
         dict['Download_planning'] = TXT_Download_planning
 
-        dict['Order'] = TXT_Order
         dict['Order_name'] = TXT_Order_name
         dict['Order_code'] = TXT_Order_code
         dict['Add_order'] = TXT_Add_order
         dict['Delete_order'] = TXT_Delete_order
-        dict['All_orders'] = TXT_All_orders
-        dict['No_orders'] = TXT_No_orders
         dict['No_order_selected'] = TXT_No_order_selected
 
         dict['Rosterdate'] = TXT_Rosterdate
@@ -413,7 +426,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['Full_day'] = TXT_Full_day
 
-        dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
         dict['Scheme'] = TXT_Scheme
         dict['New_scheme'] = TXT_New_scheme
@@ -468,21 +480,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         # select table
         dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
 
-        dict['Customer'] = TXT_Customer
-        dict['Customers'] = TXT_Customers
         dict['Customer_list'] = TXT_Customer_list
         dict['Select_customer'] = TXT_Select_customer
         dict['Select_customer_and_order'] = TXT_Select_customer_and_order
-
-        dict['All_customers'] = TXT_All_customers
-        dict['No_customers'] = TXT_No_customers
-
-        dict['Order'] = TXT_Order
-        dict['Select_order'] = TXT_Select_order
-        dict['All_orders'] = TXT_All_orders
-        dict['No_orders'] = TXT_No_orders
-
-        dict['Customers_and_orders'] = _('Customers and orders')
 
         dict['Scheme'] = TXT_Scheme
         dict['Schemes'] = TXT_Schemes
@@ -624,14 +624,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Download_report'] = TXT_Download_report
         dict['Export_to_Excel'] = TXT_Export_to_Excel
 
-        dict['Customer'] = TXT_Customer
-        dict['Order'] = TXT_Order
         dict['Scheme'] = TXT_Scheme
         dict['Billable'] = TXT_Billable
 
         # sidebar
-        dict['All_customers'] = TXT_All_customers
-        dict['All_orders'] = TXT_All_orders
         dict['All_employees'] = TXT_All_employees
 
         # mod select price
@@ -668,8 +664,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         # sidebar
         dict['Select_customer'] = TXT_Select_customer
-        dict['All_customers'] = TXT_All_customers
-        dict['All_orders'] = TXT_All_orders
         dict['All_employees'] = TXT_All_employees
         dict['Current_teammember'] = TXT_Current_teammember
         dict['Current_teammembers'] = TXT_Current_teammembers
@@ -780,12 +774,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['This_isa_planned_shift'] = TXT_This_isa_planned_shift
         dict['This_isa_restshift'] = TXT_This_isa_restshift
 
-        dict['Customer'] = TXT_Customer
-        dict['No_customers'] = TXT_No_customers
-        dict['Order'] = TXT_Order
-        dict['Select_order'] = TXT_Select_order
-        dict['All_orders'] = TXT_All_orders
-        dict['No_orders'] = TXT_No_orders
         dict['This_employee'] = TXT_This_employee
         dict['All_employees'] = TXT_All_employees
 
@@ -878,13 +866,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
             ('other', TXT_customperiod)
         )
 
-        dict['Customer'] = TXT_Customer
-        dict['All_customers'] = TXT_All_customers
-        dict['No_customers'] = TXT_No_customers
-        dict['Order'] = TXT_Order
-        dict['All_orders'] = TXT_All_orders
-        dict['Select_order'] = TXT_Select_order
-        dict['No_orders'] = TXT_No_orders
+
         dict['All_employees'] = TXT_All_employees
 
         dict['Rosterdate'] = TXT_Rosterdate
@@ -1155,7 +1137,7 @@ TXT_Payment= pgettext_lazy('Wage payment = uitbetaling', 'Payment')
 TXT_Payroll_periods = _("Payroll periods")
 TXT_Payroll_period = _("Payroll period")
 TXT_Hours_overview = _("Hours overview")
-TXT_Payroll_period_overview = _("Payroll period overview")
+TXT_Roster_overview = _("Roster overview")
 
 
 TXT_Function = _("Function")
@@ -1375,8 +1357,10 @@ TXT_As_of = _('As of')
 
 TXT_Period_planning_list = (
     ('tweek', TXT_thisweek),
+    ('lweek', TXT_lastweek),
     ('nweek', TXT_nextweek),
     ('tmonth', TXT_thismonth),
+    ('lmonth', TXT_lastmonth),
     ('nmonth', TXT_nextmonth),
     ('other', TXT_customperiod)
 )

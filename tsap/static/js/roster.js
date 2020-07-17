@@ -1310,9 +1310,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // el_datefirst / el_datelast got value in ModPeriodOpen
 // ---  show checkbox oneday when not is_custom_period
                 document.getElementById("id_mod_period_oneday_container").classList.remove(cls_hide);
-                el_datefirst.disabled = false;
-                el_datelast.disabled = false;
-                el_datefirst.focus();
+                el_mod_period_datefirst.disabled = false;
+                el_mod_period_datelast.disabled = false;
+                el_mod_period_datefirst.focus();
             } else{
                 ModPeriodSave();
             }

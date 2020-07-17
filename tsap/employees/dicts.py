@@ -11,7 +11,6 @@ from companies import models as m
 from planning import views as plv
 
 import logging
-import json
 logger = logging.getLogger(__name__)
 
 def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, datelast_iso=None):
@@ -1012,12 +1011,30 @@ def create_paydateitems_inuse_list(period_dict, request):
             paydateitems_inuse_list.append(paydates_row)
     return paydateitems_inuse_list
 
+##################
+def create_payroll_abscat_list(payroll_period, request):
+    logger.debug(' +++++++++++ create_payroll_abscat_list +++++++++++ ')
+    payrollperiod_agg_list = []
+    if request.user.company:
+        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
+        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
+        if paydatecode_pk and paydate_iso:
+            payrollperiod_agg_list = create_payroll_abscat_paydatecode_list(
+                paydatecode_pk=paydatecode_pk,
+                paydate_iso=paydate_iso,
+                request=request)
+        else:
+            payrollperiod_agg_list = create_payroll_abscat_period_list(
+                period_datefirst=f.get_dict_value(payroll_period, ('period_datefirst',)),
+                period_datelast=f.get_dict_value(payroll_period, ('period_datelast',)),
+                request=request)
 
-def create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request):
+    return payrollperiod_agg_list
+
+def create_payroll_abscat_paydatecode_list(paydatecode_pk, paydate_iso, request):
     #logger.debug(' ============= create_payroll_abscat_list ============= ')
     # sql return list of all absence orders in use in this payroll period
-    paydatecode_pk = sel_paydatecode_pk
-    paydate_iso = sel_paydate_iso
+
     # paydatecode_pk = 0 is used in sql, don't change it to None
 
     sql_abscat_orders = """
@@ -1040,8 +1057,36 @@ def create_payroll_abscat_list(sel_paydatecode_pk, sel_paydate_iso, request):
     })
     payroll_abscat_list = newcursor.fetchall()
     return payroll_abscat_list
-# --- end of create_payroll_abscat_list-
+# --- end of create_payroll_abscat_paydatecode_list-
 
+def create_payroll_abscat_period_list(period_datefirst, period_datelast, request):
+    #logger.debug(' ============= create_payroll_abscat_list ============= ')
+    # sql return list of all absence orders in use in this payroll period
+
+    # paydatecode_pk = 0 is used in sql, don't change it to None
+    sql_abscat_orders = """
+        SELECT DISTINCT o.id AS o_id, o.code AS o_code, o.sequence AS o_seq, LOWER(o.code) AS o_code_lc
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        WHERE c.company_id = %(compid)s 
+        AND o.isabsence AND NOT oh.isrestshift
+        AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL )
+        AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL )
+        ORDER BY LOWER(o.code)
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_abscat_orders, {
+        'compid': request.user.company_id,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+    payroll_abscat_list = newcursor.fetchall()
+    return payroll_abscat_list
+# --- end of create_payroll_abscat_paydatecode_list-
+
+####################
 
 def create_payroll_list_groupedby_rosterdate_NIU(table_dict, sel_paydatecode_pk, sel_paydate_iso, request):
     #logger.debug(' ============= create_payroll_list_groupedby_rosterdate ============= ')
@@ -1132,70 +1177,121 @@ def create_payroll_list_groupedby_rosterdate_NIU(table_dict, sel_paydatecode_pk,
     return payroll_list
 # - end of create_payroll_list_groupedby_rosterdate
 
+def create_payroll_detail_list(payroll_period, request):
+    logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
+    payrollperiod_detail_list = []
+    if request.user.company:
+        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
+        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
+        if paydatecode_pk and paydate_iso:
+            payrollperiod_detail_list = create_payroll_paydate_detail_list(
+                paydatecode_pk=paydatecode_pk,
+                paydate_iso=paydate_iso,
+                request=request)
+        else:
+            payrollperiod_detail_list = create_payroll_payrollperiod_detail_list(
+                period_datefirst=f.get_dict_value(payroll_period, ('period_datefirst',)),
+                period_datelast=f.get_dict_value(payroll_period, ('period_datelast',)),
+                request=request)
+    return payrollperiod_detail_list
+# --- end of create_payroll_detail_list
 
-def create_payroll_period_detail_list(sel_paydatecode_pk, sel_paydate_iso, request):
-    #logger.debug(' ============= create_payroll_period_detail_list ============= ')
+
+def create_payroll_paydate_detail_list(paydatecode_pk, paydate_iso, request):
+    #logger.debug(' ============= create_payroll_paydate_detail_list ============= ')
     # create crosstab list of employees with absence hours PR2020-06-12
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
-    payroll_list_detail = []
-    if request.user.company:
-        paydatecode_pk = sel_paydatecode_pk
-        paydate_iso = sel_paydate_iso
-        # paydatecode_pk = 0 is used in sql, don't change it to None
+    sql_detail = """
+        SELECT eh.id, eh.rosterdate, eh.employee_id, e.code, 
+        CASE WHEN o.isabsence THEN o.id ELSE 0 END,
+        CONCAT(c.code,' - ',o.code), 
+        CASE WHEN o.isabsence THEN 0 ELSE eh.plannedduration END, 
+        eh.timeduration
 
-        #logger.debug('paydatecode_pk: ' + str(paydatecode_pk) + ' ' + str(type(paydatecode_pk)))
-        #logger.debug('paydate_iso: ' + str(paydate_iso) + ' ' + str(type(paydate_iso)))
-        sql_detail = """
-            SELECT eh.id, eh.rosterdate, eh.employee_id, e.code, 
-            CASE WHEN o.isabsence THEN o.id ELSE 0 END,
-            CONCAT(c.code,' - ',o.code), 
-            CASE WHEN o.isabsence THEN 0 ELSE eh.plannedduration END, 
-            eh.timeduration
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
 
-            FROM companies_emplhour AS eh
-            INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
-            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        WHERE c.company_id = %(compid)s 
+        AND NOT oh.isrestshift
+        AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
+        AND (eh.paydate = CAST(%(pdte)s AS DATE)  OR %(pdte)s IS NULL)
 
-            WHERE c.company_id = %(compid)s 
-            AND NOT oh.isrestshift
-            AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
-            AND (eh.paydate = CAST(%(pdte)s AS DATE)  OR %(pdte)s IS NULL)
- 
-            ORDER BY e.code, eh.rosterdate, o.code
-            """
-
-        newcursor = connection.cursor()
-        newcursor.execute(sql_detail, {
-            'compid': request.user.company_id,
-            'pdcid': paydatecode_pk,
-            'pdte': paydate_iso
-        })
-        payroll_list_detail = newcursor.fetchall()
+        ORDER BY e.code, eh.rosterdate, o.code
+        """
+    newcursor = connection.cursor()
+    newcursor.execute(sql_detail, {
+        'compid': request.user.company_id,
+        'pdcid': paydatecode_pk,
+        'pdte': paydate_iso
+    })
+    payroll_list_detail = newcursor.fetchall()
 
     return payroll_list_detail
-# - end of create_payroll_period_detail_list
+# - end of create_payroll_paydate_detail_list
 
 
-def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request):
-    #logger.debug(' ============= create_payroll_period_agg_list ============= ')
-    # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-06-24
+def create_payroll_payrollperiod_detail_list(period_datefirst, period_datelast, request):
+    # logger.debug(' ============= create_payroll_payrollperiod_detail_list ============= ')
+    # create crosstab list of employees with absence hours PR2020-06-12
 
     # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
-    create_payroll_period_agg_list = []
-    if request.user.company:
-        paydatecode_pk = sel_paydatecode_pk
-        paydate_iso = sel_paydate_iso
-        # paydatecode_pk = 0 is used in sql, don't change it to None
+    sql_detail = """
+        SELECT eh.id, eh.rosterdate, eh.employee_id, e.code, 
+        CASE WHEN o.isabsence THEN o.id ELSE 0 END,
+        CONCAT(c.code,' - ',o.code), 
+        CASE WHEN o.isabsence THEN 0 ELSE eh.plannedduration END, 
+        eh.timeduration
 
-        #logger.debug('paydatecode_pk:  ' + str(paydatecode_pk))
-        #logger.debug('paydate_iso:  ' + str(paydate_iso))
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT oh.isrestshift
+        AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL )
+        AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL )
+
+        ORDER BY e.code, eh.rosterdate, o.code
+        """
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_detail, {
+        'compid': request.user.company_id,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+    payroll_list_detail = newcursor.fetchall()
+
+    return payroll_list_detail
+
+# - end of create_payroll_payrollperiod_detail_list
+
+
+def create_paydate_agg_list(payroll_period, request):
+    logger.debug(' ============= create_paydate_agg_list ============= ')
+    # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-07-15
+
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    paydate_agg_list = []
+    if request.user.company:
+        # paydatecode_pk = None is used in sql, don't change it to 0
+        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
+        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
+
+        logger.debug('paydatecode_pk:  ' + str(paydatecode_pk))
+        logger.debug('paydate_iso:  ' + str(paydate_iso))
         sql_absence = """
             SELECT eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, 
             SUM(eh.timeduration) AS eh_td, 
@@ -1208,35 +1304,35 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            
+
             WHERE c.company_id = %(compid)s   
             AND o.isabsence AND NOT oh.isrestshift
 
             AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
             AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
-                
+
             GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code, o.id
             """
-#             AND NOT eh.timeduration = 0
+        #             AND NOT eh.timeduration = 0
         sql_noabsence = """
             SELECT eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, 
             SUM(eh.timeduration) AS eh_td, 
             SUM(eh.plannedduration) AS eh_pd,
             CASE WHEN eh.paydatecode_id IS NULL THEN 0 ELSE eh.paydatecode_id END AS eh_pdcid,
             eh.paydate AS eh_pdte
-            
+
             FROM companies_emplhour AS eh
             INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            
+
             WHERE c.company_id = %(compid)s 
             AND NOT o.isabsence AND NOT oh.isrestshift
 
-            AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
+            AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s IS NULL ))
             AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
-            
+
             GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code
             """
         #             AND NOT eh.timeduration = 0
@@ -1244,9 +1340,9 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
         # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
         # payroll_list = [ 0: employee_pk, 1: employee_code, 2: planned_duration, 3: dict { order_id: timeduration, ...}
 
-        #SELECT sub.e_id, sub.e_code, sub.eh_rd, CAST(SUM(sub.eh_pd) AS INT),
-              #          json_object_agg(sub.o_id, sub.eh_td),
-               #         sub.eh_pdcid, sub.eh_pdte, sub.pdc_code
+        # SELECT sub.e_id, sub.e_code, sub.eh_rd, CAST(SUM(sub.eh_pd) AS INT),
+        #          json_object_agg(sub.o_id, sub.eh_td),
+        #         sub.eh_pdcid, sub.eh_pdte, sub.pdc_code
 
         sql_json = """ SELECT sub.eh_pdcid, sub.eh_pdte, sub.e_id, sub.e_code, CAST(SUM(sub.eh_pd) AS INT), 
                         json_object_agg(sub.o_id, sub.eh_td)
@@ -1259,10 +1355,171 @@ def create_payroll_period_agg_list(sel_paydatecode_pk, sel_paydate_iso, request)
             'pdcid': paydatecode_pk,
             'pdte': paydate_iso
         })
-        create_payroll_period_agg_list = newcursor.fetchall()
+        paydate_agg_list = newcursor.fetchall()
 
-    return create_payroll_period_agg_list
-# - end of create_payroll_period_agg_list
+    return paydate_agg_list
+# - end of create_paydate_agg_list
+
+def create_payroll_agg_list(payroll_period, request):
+    logger.debug(' +++++++++++ create_payroll_agg_list +++++++++++ ')
+    payrollperiod_agg_list = []
+    if request.user.company:
+        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
+        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
+
+        logger.debug('paydatecode_pk:  ' + str(paydatecode_pk))
+        logger.debug('paydate_iso:  ' + str(paydate_iso))
+
+        if paydatecode_pk and paydate_iso:
+            payrollperiod_agg_list = create_payroll_paydatecode_agg_list(paydatecode_pk, paydate_iso, request)
+        else:
+            period_datefirst = f.get_dict_value(payroll_period, ('period_datefirst',))
+            period_datelast = f.get_dict_value(payroll_period, ('period_datelast',))
+            logger.debug('period_datefirst:  ' + str(period_datefirst))
+            logger.debug('period_datelast:  ' + str(period_datelast))
+            payrollperiod_agg_list = create_payroll_payrollperiod_agg_list(period_datefirst, period_datelast, request)
+
+    return payrollperiod_agg_list
+
+def create_payroll_paydatecode_agg_list(paydatecode_pk, paydate_iso, request):
+    logger.debug(' ============= create_payroll_paydatecode_agg_list ============= ')
+    # create crosstab list of worked- and absence hours, of 1 paydateitem, grouped by employee PR2020-07-15
+
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    sql_absence_paydate = """
+        SELECT eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, 
+        SUM(eh.timeduration) AS eh_td, 
+        0 AS eh_pd,
+        CASE WHEN eh.paydatecode_id IS NULL THEN 0 ELSE eh.paydatecode_id END AS eh_pdcid,
+        eh.paydate AS eh_pdte
+
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        
+        WHERE c.company_id = %(compid)s   
+        AND o.isabsence AND NOT oh.isrestshift
+
+        AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
+        AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
+            
+        GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code, o.id
+        """
+#             AND NOT eh.timeduration = 0
+    sql_noabsence_paydate = """
+        SELECT eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, 
+        SUM(eh.timeduration) AS eh_td, 
+        SUM(eh.plannedduration) AS eh_pd,
+        CASE WHEN eh.paydatecode_id IS NULL THEN 0 ELSE eh.paydatecode_id END AS eh_pdcid,
+        eh.paydate AS eh_pdte
+        
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        
+        WHERE c.company_id = %(compid)s 
+        AND NOT o.isabsence AND NOT oh.isrestshift
+
+        AND ( (eh.paydatecode_id = %(pdcid)s) OR (eh.paydatecode_id IS NULL AND %(pdcid)s = 0 ))
+        AND (eh.paydate = CAST(%(pdte)s AS DATE) OR %(pdte)s IS NULL)
+        
+        GROUP BY eh.paydatecode_id, eh.paydate, eh.employee_id, e.code
+        """
+    #             AND NOT eh.timeduration = 0
+
+    # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
+    # payroll_list = [ 0: employee_pk, 1: employee_code, 2: planned_duration, 3: dict { order_id: timeduration, ...}
+    newcursor = connection.cursor()
+
+    sql_json = """ SELECT sub.eh_pdcid, sub.eh_pdte, sub.e_id, sub.e_code, CAST(SUM(sub.eh_pd) AS INT), 
+                    json_object_agg(sub.o_id, sub.eh_td)
+                    FROM (""" + sql_absence_paydate + ' UNION ' + sql_noabsence_paydate + """ ORDER BY 2) AS sub 
+                    GROUP BY sub.e_id, sub.e_code, sub.eh_pdcid, sub.eh_pdte
+                    ORDER BY sub.e_code """
+    newcursor.execute(sql_json, {
+        'compid': request.user.company_id,
+        'pdcid': paydatecode_pk,
+        'pdte': paydate_iso
+    })
+
+    payrollperiod_agg_list = newcursor.fetchall()
+    return payrollperiod_agg_list
+# - end of create_payroll_paydatecode_agg_list
+
+
+def create_payroll_payrollperiod_agg_list(period_datefirst, period_datelast, request):
+    logger.debug(' ============= create_payroll_payrollperiod_agg_list ============= ')
+    # create crosstab list of worked- and absence hours, of selected period, grouped by employee PR2020-07-15
+
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    sql_absence_period = """
+        SELECT eh.employee_id AS e_id, e.code AS e_code, o.id AS o_id, 
+        SUM(eh.timeduration) AS eh_td, 
+        0 AS eh_pd
+
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s   
+        AND o.isabsence AND NOT oh.isrestshift
+        AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL )
+        AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL )
+
+        GROUP BY eh.employee_id, e.code, o.id
+        """
+
+    sql_noabsence_period = """
+        SELECT eh.employee_id AS e_id, e.code AS e_code, 0 AS o_id, 
+        SUM(eh.timeduration) AS eh_td, 
+        SUM(eh.plannedduration) AS eh_pd
+
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT o.isabsence AND NOT oh.isrestshift
+        AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL )
+        AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL )
+
+        GROUP BY eh.employee_id, e.code
+        """
+    #             AND NOT eh.timeduration = 0
+
+    # PR2020-06-13 debug: SUM(sub.eh_pd) returned string, CAST added to cast to number
+    # payroll_list = [ 0: employee_pk, 1: employee_code, 2: planned_duration, 3: dict { order_id: timeduration, ...}
+
+    newcursor = connection.cursor()
+    logger.debug('period_datefirst and period_datelast: ')
+    sql_json = """ SELECT NULL AS eh_pdcid, NULL AS eh_pdte, sub.e_id, sub.e_code, CAST(SUM(sub.eh_pd) AS INT), 
+                    json_object_agg(sub.o_id, sub.eh_td)
+                    FROM (""" + sql_absence_period + ' UNION ' + sql_noabsence_period + """ ORDER BY 2) AS sub 
+                    GROUP BY sub.e_id, sub.e_code
+                    ORDER BY sub.e_code """
+    newcursor.execute(sql_json, {
+        'compid': request.user.company_id,
+        'df': period_datefirst,
+        'dl': period_datelast
+    })
+
+    payrollperiod_agg_list = newcursor.fetchall()
+    logger.debug('payrollperiod_agg_list: ' + str(payrollperiod_agg_list))
+
+    return payrollperiod_agg_list
+# - end of create_payroll_payrollperiod_agg_list
 
 
 def create_paydatecode_list(period_dict, datalists, request):
@@ -1479,7 +1736,7 @@ def create_wagecode_dict_sql(wagecode):
 
 
 def create_wagefactor_list(request_item, datalists, request):
-    logger.debug(' --- create_wagefactor_list --- ')
+    #logger.debug(' --- create_wagefactor_list --- ')
 
 # --- create list of wagefactors of this company PR2029-06-17
     if request.user.company:
@@ -1499,7 +1756,6 @@ def create_wagefactor_list(request_item, datalists, request):
 
         wagefactor_list = []
         for wagefactor in wagefactors:
-            logger.debug('wagefactor: ' + str(wagefactor))
             item_dict = create_wagefactor_dict_sql(wagefactor)
             if item_dict:
                 wagefactor_list.append(item_dict)

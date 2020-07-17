@@ -1816,6 +1816,7 @@
         //console.log("===  t_CreateTblModSelectPeriod == ");
         //console.log(selected_period);
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+        tBody.innerText = null;
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
         for (let j = 0, tblRow, td, tuple; j < len; j++) {

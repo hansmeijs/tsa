@@ -712,6 +712,8 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
             # - get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+            interval = request.user.company.interval if request.user.company.interval else 15
+
             if 'upload' in request.POST:
                 upload_dict = json.loads(request.POST['upload'])
                 # logger.debug('upload_dict: ' + str(upload_dict))
@@ -747,7 +749,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 # save new period and retrieve saved period
                 period_dict = None  # period_dict = None means" get saved period
                 roster_period_dict = pld.period_get_and_save('roster_period', period_dict,
-                                                             comp_timezone, timeformat, user_lang, request)
+                                                             comp_timezone, timeformat, interval, user_lang, request)
 
                 emplhour_list = pld.create_emplhour_list(period_dict=roster_period_dict,
                                                          comp_timezone=comp_timezone,
