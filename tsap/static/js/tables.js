@@ -477,7 +477,7 @@
                              } else {
                                 hide_row = true;
                              }
-                            //console.log( "text cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
+                            console.log( "text cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         } else {
                             // duration columns or numeric columns, make blank cells zero
                             cell_value = (cell_value) ? cell_value : 0;

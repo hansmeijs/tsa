@@ -823,7 +823,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, item; item = payroll_period_detail_list[i]; i++) {
             const rosterdate_iso = item[1];
             const order_id = item[4];
-            const employee_code = (item[3]) ? item[3] : "---";
+            const employee_code = (item[3]) ? item[3] : "";
+            const cust_order_code = (item[5]) ? item[5] : "";
             const plannedduration = item[6];
             const timeduration = item[7];
             const timeduration_formatted = format_total_duration (timeduration, loc.user_lang);
@@ -833,7 +834,7 @@ document.addEventListener('DOMContentLoaded', function() {
             td_html[0] =  "<td><div></div></td>"
 // ---  add employee
             td_html[1] = "<td><div class=\"ta_l\">" + employee_code + "</div></td>";
-            filter_data[1] = (item[3]) ? item[3] : null
+            filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
             row_data[1] = item[3];
 // ---  add rosterdate
             const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
@@ -842,8 +843,8 @@ document.addEventListener('DOMContentLoaded', function() {
             filter_data[2] = (rosterdate_formatted) ? rosterdate_formatted : null
             row_data[2] = rosterdate_iso;
 // ---  add customer and order
-            td_html[3] = "<td><div class=\"ta_l\">" + item[5] + "</div></td>"
-            filter_data[3] = (item[5]) ? item[5].toLowerCase() : null
+            td_html[3] = "<td><div class=\"ta_l\">" + cust_order_code + "</div></td>"
+            filter_data[3] = (cust_order_code) ? cust_order_code.toLowerCase() : null
             row_data[3] = item[5];
 // ---  add planned hours
             const plannedhours = (item[6]) ? item[6] : null;

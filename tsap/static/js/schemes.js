@@ -6009,6 +6009,12 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         return {"code": new_code, "error": (!!msg_err)}
     }  // validate_input_code
 
+
+//========= ModCopyfromTemplateEdit====================================
+    function ModCopyfromTemplateEdit () {
+        // TODO validate
+    }
+
 //========= ModalTemplateCopyfrom====================================
     function ModalTemplateCopyfrom () {
         console.log("===  ModalTemplateCopyfrom  =====") ;
@@ -6071,15 +6077,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             //let new_datestart;
             //if(!!el_mod_copyfrom_datestart.value){ new_datestart = el_mod_copyfrom_datestart.value }
             //console.log("new_datestart", new_datestart);
-
-            const dict ={"id": {"pk": template_pk, "ppk": template_ppk, "table": "template_scheme"}}
+            const template_code = el_MCFT_input_code.value
+            const dict ={"id": {"pk": template_pk, "ppk": template_ppk, table: "template_scheme"}}
             if (!!template_code){
                 dict["code"] = {"value": template_code, "update": true}
                 dict["order"] = {"pk": selected.order_pk}
             }
-            let parameters = {"copyfromtemplate": JSON.stringify (dict)};
-            //console.log("parameters");
-            //console.log(parameters);
+            let parameters = {copyfromtemplate: JSON.stringify (dict)};
+            console.log("parameters");
 
             let response = "";
             $.ajax({
@@ -6092,6 +6097,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     //console.log( response);
                     if ("scheme_list" in response) {
                         refresh_datamap(response["scheme_list"], scheme_map)
+                        is_template_mode = false;
+                        HandleBtnSelect();
                     }
                 },
                 error: function (xhr, msg) {
