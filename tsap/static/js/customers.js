@@ -42,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const imgsrc_billable_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red")
         const imgsrc_billable_cross_grey = get_attr_from_el(el_data, "data-imgsrc_cross_grey")
-        const imgsrc_billable_cross_lightgrey = get_attr_from_el(el_data, "data-imgsrc_cross_lightgrey")
         const imgsrc_billable_grey = (user_lang === "en") ?
             get_attr_from_el(el_data, "data-imgsrc_b_grey") :
             get_attr_from_el(el_data, "data-imgsrc_d_grey");
@@ -950,8 +949,8 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
         let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
-        const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
-        const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
+        const calendar_datefirst_iso = get_dateISO_from_dateJS(calendar_datefirst_JS);
+        const calendar_datelast_iso = get_dateISO_from_dateJS(calendar_datelast_JS);
 
 // ---  upload settings and download calendar
         const now_arr = get_now_arr();
@@ -4041,7 +4040,7 @@ let planning_list = [] // for export and printing - can replace map?
                 if (!!col_index){
 
 // ---  add rosterdate to col_rosterdate_dict, rosterdate_dateJS gets value of next date at end of this loop
-                    const col_rosterdate = get_dateISO_from_dateJS_vanilla(rosterdate_dateJS);
+                    const col_rosterdate = get_dateISO_from_dateJS(rosterdate_dateJS);
                     col_rosterdate_dict[col_index] = col_rosterdate;
                     const is_clicked_rosterdate = (!!mod_upload_dict.calendar.rosterdate && mod_upload_dict.calendar.rosterdate === col_rosterdate)
                     if(is_clicked_rosterdate) {
@@ -4198,7 +4197,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const add_days = (- floor_value * cycle)
                     new_rosterdate_dateJS = addDaysJS(rosterdate_dateJS, add_days)
                 }
-                const new_rosterdate_iso = get_dateISO_from_dateJS_vanilla(new_rosterdate_dateJS)
+                const new_rosterdate_iso = get_dateISO_from_dateJS(new_rosterdate_dateJS)
 
                 const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
                 let team_row_id, team_abbrev = "";

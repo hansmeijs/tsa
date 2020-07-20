@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // TODO change from eldata to loc
                     const select_txt = get_attr_from_el(el_data, "data-txt_select_abscat");
                     const select_none_txt = get_attr_from_el(el_data, "data-txt_select_abscat_none");
-                    FillOptionsAbscat(el_MRE_select_abscat, abscat_map, select_txt, select_none_txt)
+                    t_FillOptionsAbscat(el_MRE_select_abscat, abscat_map, select_txt, select_none_txt)
                 }
                 if ("emplhour_list" in response) {
                     emplhour_list = response["emplhour_list"];

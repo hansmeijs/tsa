@@ -186,7 +186,7 @@
 
 //--- add 1 day to this_date
             change_dayJS_with_daysadd_vanilla(this_date, 1)
-            this_date_iso = get_dateISO_from_dateJS_vanilla(this_date)
+            this_date_iso = get_dateISO_from_dateJS(this_date)
 
 //............................................................
 //--- Put shift info from map_list_per_column in tablerows
@@ -699,7 +699,7 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
 
             // put btn_rosterdate_iso in btn attribute 'data-rosterdate'
             const btn_rosterdate_JS = addDaysJS(calendar_datefirst_JS, i)
-            const btn_rosterdate_iso = get_dateISO_from_dateJS_vanilla(btn_rosterdate_JS)
+            const btn_rosterdate_iso = get_dateISO_from_dateJS(btn_rosterdate_JS)
             btn.setAttribute("data-rosterdate", btn_rosterdate_iso);
 
             //data_values are: 'selected', 'not_selected_1', 'not_selected_1', 'create', 'delete', 'none'

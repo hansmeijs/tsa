@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             quicksave: {mode: "get"},
             locale: {page: "scheme"},
             order_list: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: false, inactive: false},
-            //order_schemes_list: {istemplate: false},
+            // FOR TESTING order_list: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: null},
             page_scheme_list: {mode: "get"},
             abscat_list: {mode: "get"},
             absence_list: {mode: "get"},
@@ -550,7 +550,6 @@ document.addEventListener('DOMContentLoaded', function() {
         selected_btn = (data_btn) ? data_btn : "btn_grid";
         console.log( "selected_btn:", selected_btn );
         console.log( "settings.scheme_pk:", settings.scheme_pk );
-        console.log( "selected.scheme_pk:", selected.scheme_pk );
 
         settings.scheme_pk
 // ---  upload new selected_btn, not after loading page (then skip_update = true)
@@ -7093,13 +7092,12 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 grid_dict.nocycle = (!grid_dict.cycle || grid_dict.cycle > 28)
                 if (grid_dict.nocycle){ grid_dict.cycle = 0 }
 
-
-    // ---  get grid_range from settings
+// ---  get grid_range from settings
                 grid_dict.grid_range = selected.grid_range
 
-    // ---  put scheme values in scheme section, and in grid_dict.scheme
+// ---  put scheme values in scheme section, and in grid_dict.scheme
                 Grid_UpdateSchemeFields(scheme_dict);
-    // ---  create grid teams and shift table
+// ---  create grid teams and shift table
                 Grid_CreateTblTeams();
                 Grid_CreateTblShifts();
             }
@@ -7280,8 +7278,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         let hide_btns_grid =  get_dict_value(grid_dict, ["nocycle"], false);
-        console.log("...................hide_btns_grid ", hide_btns_grid)
-        console.log("...................grid_dict.nocycle ", grid_dict.nocycle)
         add_or_remove_class(document.getElementById("id_btns_grid"), cls_hide, !grid_dict.nocycle)
 
 // ---  reset el_grid_tbody_shift
@@ -7291,8 +7287,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         grid_dict.first_rosterdate_JS = null
         grid_dict.last_rosterdate_JS = null
         grid_dict.col_count = null;
-        console.log("grid_dict.col_count ", grid_dict.col_count)
-        console.log("grid_dict ", grid_dict)
 
         if (grid_dict.scheme_pk){
             grid_dict.grid_range = (selected.grid_range) ? selected.grid_range : 1;
@@ -7310,9 +7304,11 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
             const add_ph_column = (grid_dict.dvg_onph && !grid_dict.nocycle) ? 1 : 0;
             let col_index_ph = null;
-
-            const today_JS = new Date();
+            // PR2020-07-17 debug.  today_JS = new Date(); gives Fri Jul 17 2020 11:16:23 GMT-0400 (Bolivia Time)
+            // this messes up the lookup dates in the grid.
+            // instead use:  today_JS = get_dateJS_from_dateISO(today_iso)
             const today_iso = get_today_iso();
+            const today_JS = get_today_JS()
 
             const today_weekday = (today_JS.getDay()) ? today_JS.getDay() : 7; // Sunday = 0 in JS, Sunday = 7 in ISO
             grid_dict.grid_range = selected.grid_range
@@ -7325,7 +7321,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                         // first day of range is monday
                         grid_dict.first_rosterdate_JS = get_thisweek_monday_JS_from_DateJS(today_JS);
                     }
-                    grid_dict.first_rosterdate_iso = get_dateISO_from_dateJS_vanilla(grid_dict.first_rosterdate_JS);
+                    grid_dict.first_rosterdate_iso = get_dateISO_from_dateJS(grid_dict.first_rosterdate_JS);
                 } else {
                     grid_dict.first_rosterdate_JS = get_dateJS_from_dateISO(grid_dict.first_rosterdate_iso)
                 }
@@ -7339,7 +7335,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     grid_dict.col_count = 7 * grid_dict.grid_range;
                     grid_dict.last_rosterdate_JS = addDaysJS(grid_dict.first_rosterdate_JS, grid_dict.col_count - 1);
                 }
-                grid_dict.last_rosterdate_iso = get_dateISO_from_dateJS_vanilla(grid_dict.last_rosterdate_JS);
+                grid_dict.last_rosterdate_iso = get_dateISO_from_dateJS(grid_dict.last_rosterdate_JS);
             } else {
                 if(grid_dict.cycle < 4) {
                     grid_dict.first_rosterdate_JS = today_JS  // first rosterdate is today if cycle < 4
@@ -7348,7 +7344,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     const add_days = (grid_dict.cycle < 7 && today_weekday > grid_dict.cycle) ? 4 : 1;
                     grid_dict.first_rosterdate_JS = addDaysJS(today_JS, + add_days - today_weekday);
                 }
-                grid_dict.first_rosterdate = get_dateISO_from_dateJS_vanilla(grid_dict.first_rosterdate_JS);
+                grid_dict.first_rosterdate = get_dateISO_from_dateJS(grid_dict.first_rosterdate_JS);
             }
 // ---  create col_rosterdate_dict
         //  stores rosterdate of each column, used to create id for each cell "2020-03-14_1784" (rosterdate + "_" + shift_pk)
@@ -7370,7 +7366,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // +++  add th's to header row with dates, number of columns = col_count + 1
             // add 1 extra column when dvg_onph (not when nocycle)
             if(!grid_dict.nocycle) { grid_dict.col_count = grid_dict.cycle + add_ph_column}
-            console.log("grid_dict.col_count ", grid_dict.col_count)
 
         // also add th's to footer row
             let first_month_index = -1, last_month_index = -1, first_year = 0, last_year = 0;
@@ -7382,7 +7377,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 const is_col_ph = (grid_dict.dvg_onph && !grid_dict.nocycle && col_index === grid_dict.cycle + add_ph_column);
                 if(is_col_ph) { col_index_ph = col_index}
 
-                const date_iso = get_dateISO_from_dateJS_vanilla(date_JS);
+                const date_iso = get_dateISO_from_dateJS(date_JS);
                 const weekday_index = (date_JS.getDay()) ? date_JS.getDay() : 7;  // Sunday = 0 in JS, Sunday = 7 in ISO
                 let  cls = null;
                 if (col_index === 0) {
@@ -7499,13 +7494,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                             const prefix = (is_shift_cell) ? "gridcell_shift_" : "si_" + rosterdate_iso + "_"
                             const cell_id = prefix + shift_pk_int.toString();
                             td_si.id = cell_id;
-                            if (is_shift_cell) {  td_si.innerText =  shift_code};
+                            if (is_shift_cell) { td_si.innerText =  shift_code};
                             td_si.classList.add((is_shift_cell) ? "grd_shift_td_first" : "grd_shift_td");
+    // ---  add EventListener to cells
                             const mode_str = (col_index === 0) ? "shift_cell" : "si_cell"
                             td_si.addEventListener("click", function() {Grid_SchemitemClicked(td_si, mode_str)}, false )
     // ---  add hover to cells
                             add_hover(td_si);
-
                             tblRow_shift.appendChild(td_si);
 
     // ---  add cell_dict to grid_dict
@@ -7566,9 +7561,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     let days_add = (day_diff % grid_dict.cycle) // % is remainder: -1 % 2 = -1,  1 % 2  = 1
                     if (days_add < 0 ) {days_add += grid_dict.cycle }
                     const cell_date_JS = addDaysJS(grid_dict.first_rosterdate_JS, days_add)
-                    const cell_date_iso = get_dateISO_from_dateJS_vanilla(cell_date_JS)
-
-    // ---  convert rosterdate and shift_pk to cell_id, use "si_onph_" when on_publicholiday
+                    const cell_date_iso = get_dateISO_from_dateJS(cell_date_JS)
+// ---  convert rosterdate and shift_pk to cell_id, use "si_onph_" when on_publicholiday
                     const cell_date = (on_publicholiday) ? "onph" : cell_date_iso
                     cell_id = "si_" + cell_date + "_" + shift_pk.toString();
                 } else {
@@ -7580,6 +7574,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 }
                 let cell = null;
                 if(cell_id){cell = document.getElementById(cell_id)};
+
                 if(!!cell){
 // get team_dict from team_map, not from si_dict
                     const team_pk = get_dict_value(si_dict, ["team", "pk"], 0);
@@ -7811,7 +7806,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     const col_count = last_dayofmonth;
                     grid_dict.col_count = col_count
                 }
-                grid_dict.first_rosterdate_iso = get_dateISO_from_dateJS_vanilla(first_rosterdate_JS);
+                grid_dict.first_rosterdate_iso = get_dateISO_from_dateJS(first_rosterdate_JS);
 // ---  first change grid_range if clicked on collapse / expand
             } else if(col_index === 3){
                 // goto today's range: reset first_rosterdate_iso

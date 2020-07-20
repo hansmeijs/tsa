@@ -60,7 +60,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # update_workminutesperday is one time only, to be removed after update
                     # f.update_workminutesperday()
                     # update_company_workminutesperday is one time only, to be removed after update PR2020-06-29
-                    f.update_company_workminutesperday()
+                    #f.update_company_workminutesperday()
 
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -96,12 +96,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     saved_employee_pk = new_setting_dict.get('sel_employee_pk')
                     sel_paydatecode_pk = new_setting_dict.get('sel_paydatecode_pk')
                     sel_paydate_iso = new_setting_dict.get('sel_paydate_iso')
-                    #logger.debug('sel_paydatecode_pk: ' + str(sel_paydatecode_pk))
-                    #logger.debug('sel_paydate_iso: ' + str(sel_paydate_iso))
-                    #logger.debug('sel_btn: ' + str(saved_btn))
 
-
-                    #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 # ----- company setting
                     request_item = datalist_request.get('companysetting')
                     if request_item:
@@ -969,7 +964,7 @@ class SchemesView(View):
 @method_decorator([login_required], name='dispatch')
 class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ====== SchemeTemplateUploadView ============= ')
+        logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -986,7 +981,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: { Note: 'pk' is pk of scheme that will be copied to template
                 # 'copytotemplate': {'id': {'pk': 1482, 'ppk': 1270, 'istemplate': True, 'table': 'scheme', 'mode': 'copyto'},
                 # 'code': {'value': '4 daags SJABLOON', 'update': True}}}
@@ -1086,12 +1081,13 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
 
 
 def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
-   #logger.debug(' ====== copy_to_template ============= ')
-   #logger.debug(upload_dict)
+    logger.debug(' ====== copy_to_template ============= ')
+    logger.debug(upload_dict)
 
     newtemplate_customer_pk, copyfrom_scheme, newtemplate_order = None, None, None
 
 # - get pk_int ppk_int and newtemplate_code
+    # Note: 'pk' in upload_dict is pk of scheme that will be copied to template
     copyfrom_scheme_pk = int(f.get_dict_value(upload_dict, ('id', 'pk'), 0))
     copyfrom_scheme_ppk = int(f.get_dict_value(upload_dict, ('id', 'ppk'), 0))
     newtemplate_code = f.get_dict_value(upload_dict, ('code','value'))
@@ -1112,6 +1108,13 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
 # - copy scheme to template  (don't copy datefirst, datelast)
     newtemplate_scheme = None
     if copyfrom_scheme and newtemplate_order:
+
+        logger.debug('copyfrom_scheme: ' + str(copyfrom_scheme))
+        logger.debug('newtemplate_order: ' + str(newtemplate_order))
+        logger.debug('newtemplate_code: ' + str(newtemplate_code))
+        logger.debug('len: ' + str(len(newtemplate_code)))
+        if len(newtemplate_code) > c.CODE_MAX_LENGTH:
+            newtemplate_code = newtemplate_code[:c.CODE_MAX_LENGTH]
         try:
             newtemplate_scheme = m.Scheme(
                 order=newtemplate_order,
@@ -1136,6 +1139,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
         except:
            logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
 
+    logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
     mapping_shifts = {}
     if is_ok and newtemplate_scheme:
 # - copy shifts to template
@@ -1165,6 +1169,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
             logger.debug('Error copy_to_template create newtemplate_shift: newtemplate_scheme: ' +
                      str(newtemplate_scheme) + ' ' +str(type(newtemplate_scheme)))
 
+    logger.debug('mapping_shifts: ' + str(mapping_shifts))
 # - copy teams to template
     mapping_teams = {}
     if is_ok:
@@ -1202,6 +1207,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
             is_ok = False
             logger.debug('Error copy_to_template create newtemplate_team: newtemplate_scheme: ' +
                          str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
+    logger.debug('mapping_teams: ' + str(mapping_teams))
 # - copy schemeitems to template
     if is_ok:
         try:

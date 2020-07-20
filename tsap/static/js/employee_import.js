@@ -1008,7 +1008,8 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
                 let employees = [];
                 for (let i = 0; i < rowLength; i++) {
                     let DataRow = worksheet_data[i];
-    //------ loop through excel_columns
+
+//------ loop through excel_columns
                     // rowindex is index of tablerow. Index 0 is header, therefore rowindex starts with 1
                     let item = {rowindex: i};
                     for (let idx = 0, len = excel_columns.length ; idx < len; idx++) {
@@ -1032,9 +1033,12 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
                                      codecalc: code_calc,
                                      test: is_test_upload,
                                      dateformat: date_format,
-                                     paydateitems: paydateitems}
+                                     employees: employees,
+                                     //paydateitems: paydateitems
+                                     }
                     const parameters = {"upload": JSON.stringify (request)};
                     console.log("request", request);
+
                     $.ajax({
                         type: "POST",
                         url: url_str,

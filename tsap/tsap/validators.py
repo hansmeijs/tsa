@@ -209,14 +209,18 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
     if not parent:
         msg_err = _("No parent record.")
     else:
-        if table == 'paydatecode':
-            max_len = c.USERNAME_MAX_LENGTH if field == 'code' else c.CODE_MAX_LENGTH
+        if table == 'paydatecode' and field == 'code':
+            max_len = c.USERNAME_MAX_LENGTH
+        elif field == 'name':
+            max_len = c.NAME_MAX_LENGTH
         else:
-            max_len = c.NAME_MAX_LENGTH if field == 'name' else c.CODE_MAX_LENGTH
+            max_len = c.CODE_MAX_LENGTH
+        logger.debug('max_len: ' + str(max_len))
+
         length = 0
         if new_value:
             length = len(new_value)
-        # logger.debug('length: ' + str(length))
+        logger.debug('length: ' + str(length))
 
         blank_not_allowed = False
         fld = ''
@@ -228,6 +232,8 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             blank_not_allowed = True
         elif field == 'identifier':
             fld = _('Id')
+
+        logger.debug('length: ' + str(length))
 
         if blank_not_allowed and length == 0:
             msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
@@ -265,8 +271,8 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
-            #logger.debug('validate_code_name_identifier')
-            #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
+            logger.debug('validate_code_name_identifier')
+            logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
             is_inactive = False
@@ -285,9 +291,19 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 instance = m.Team.objects.filter(crit).first()
             elif table == 'paydatecode':
                 instance = m.Paydatecode.objects.filter(crit).first()
+            elif table == 'functioncode':
+                crit.add(Q(isfunctioncode=True), crit.connector)
+                instance = m.Wagecode.objects.filter(crit).first()
+            elif table == 'wagecode':
+                crit.add(Q(iswagecode=True), crit.connector)
+                instance = m.Wagecode.objects.filter(crit).first()
+            elif table == 'wagefactor':
+                crit.add(Q(iswagefactor=True), crit.connector)
+                instance = m.Wagecode.objects.filter(crit).first()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
             # TODO msg not working yet
+            logger.debug('instance: ' + str(instance))
             if instance:
                 exists = True
                 is_inactive = getattr(instance, 'inactive', False)
@@ -297,6 +313,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 else:
                     msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
 
+    logger.debug('msg_err: ' + str(msg_err))
     if msg_err:
         if update_dict:
             if field not in update_dict:

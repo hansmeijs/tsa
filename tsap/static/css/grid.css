@@ -235,7 +235,8 @@
     margin: 0;
     width: 48px;
     /*background-color: #fbedba; /* lighter shade of tsa yellow */
-    background: #d7f4de; /* licht groen; */
+    /* background: #d7f4de; /* licht groen; */
+    background-color: #d7e4f3; /*#d7e4f3 is even lighter blueish
     border-left: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
     border-right: 1px solid #a5a5a5; /* medium grey; 165 165 165 */
     border-bottom: 1px solid #a5a5a5; /* medium grey; 165 165 165 */

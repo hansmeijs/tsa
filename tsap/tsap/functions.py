@@ -2426,39 +2426,42 @@ def dictfetchone(cursor):
         pass
     return return_dict
 
-# PR20202-06-21
-def update_workminutesperday():
-    with connection.cursor() as cursor:
-        cursor.execute("""UPDATE companies_employee AS e SET 
-                            workminutesperday = CASE WHEN e.workhoursperweek = 0 OR e.workdays = 0 
-                                                THEN 0 
-                                                ELSE 1440 * e.workhoursperweek / e.workdays 
-                                                END  
-                            """)
-# PR20202-06-29
-def update_company_workminutesperday():
-    with connection.cursor() as cursor:
-        cursor.execute("""UPDATE companies_company SET workminutesperday = 480 
-                            WHERE workminutesperday = 0 OR workminutesperday IS NULL
-                            """)
 # NOT IN USE any more
-def update_isabsence_istemplateXX():
-    from django.db import connection
-    with connection.cursor() as cursor:
-        cursor.execute('UPDATE companies_customer SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
-        cursor.execute('UPDATE companies_order SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
-        cursor.execute('UPDATE companies_scheme SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
-        cursor.execute('UPDATE companies_team SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
-        cursor.execute('UPDATE companies_teammember SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
-        cursor.execute('UPDATE companies_emplhour SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+# PR20202-06-21
+#def update_workminutesperday():
+#    with connection.cursor() as cursor:
+##        cursor.execute("""UPDATE companies_employee AS e SET
+ #                           workminutesperday = CASE WHEN e.workhoursperweek = 0 OR e.workdays = 0
+ #                                               THEN 0
+ #                                               ELSE 1440 * e.workhoursperweek / e.workdays
+    #                                               END
+#
+#                           """)
 
-        cursor.execute('UPDATE companies_customer SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_order SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_scheme SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_shift SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_team SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-        cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+# PR20202-06-29
+#def update_company_workminutesperday():
+    #    with connection.cursor() as cursor:
+    #        cursor.execute("""UPDATE companies_company SET workminutesperday = 480
+    #                            WHERE workminutesperday = 0 OR workminutesperday IS NULL
+#                            """)
+
+#def update_isabsence_istemplateXX():
+    #    from django.db import connection
+    #with connection.cursor() as cursor:
+    #    cursor.execute('UPDATE companies_customer SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+    #    cursor.execute('UPDATE companies_order SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+    #    cursor.execute('UPDATE companies_scheme SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+    #    cursor.execute('UPDATE companies_team SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+    #    cursor.execute('UPDATE companies_teammember SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+    #    cursor.execute('UPDATE companies_emplhour SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+
+    #    cursor.execute('UPDATE companies_customer SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+    #    cursor.execute('UPDATE companies_order SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+    #    cursor.execute('UPDATE companies_scheme SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+    #    cursor.execute('UPDATE companies_shift SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+    #    cursor.execute('UPDATE companies_team SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+    #    cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+#    cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
 
 # PR20202-06-26 not in use any more
 #def update_paydateitems():

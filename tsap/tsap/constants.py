@@ -288,6 +288,7 @@ COLDEF_EMPLOYEE = ( {'tsaKey': 'code', 'caption': _('Short name')},
                     {'tsaKey': 'workhoursperweek', 'caption': _('Working hours per week')},
                     {'tsaKey': 'workdays', 'caption': _('Working days per week')},
                     {'tsaKey': 'leavedays', 'caption': _('Vacation days per year')},
+                    {'tsaKey': 'functioncode', 'caption': _('Function')},
                     {'tsaKey': 'payrollcode', 'caption': _('Payroll code')}
                     # {'tsaKey': 'wagecode', 'caption': 'Wage code'}
                    )
@@ -420,8 +421,9 @@ FIELDS_PAYDATECODE = ('id', 'company', 'code', 'recurrence', 'dayofmonth', 'refe
 FIELDS_PAYDATEITEM = ('id', 'paydatecode', 'datefirst', 'datelast', 'year', 'period')
 
 # datefirst_agg and datelast_agg are not in model
-FIELDS_WAGECODE = ('id', 'company', 'code', 'wagerate', 'iswage', 'iswagefactor', 'isfunctioncode',
-                   'isdefault', 'datefirst_agg', 'wagerate_agg') # to be added:  'inactive')
+FIELDS_WAGECODE = ('id', 'company', 'code', 'wagerate',
+                   'iswagecode', 'iswagefactor', 'isfunctioncode', 'isdefault', 'inactive',
+                   'datefirst_agg', 'wagerate_agg')
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes

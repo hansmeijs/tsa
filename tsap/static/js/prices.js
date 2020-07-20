@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const imgsrc_bill01 = get_attr_from_el(el_data, "data-imgsrc_bill01");
     const imgsrc_bill02 = get_attr_from_el(el_data, "data-imgsrc_bill02");
     const imgsrc_bill03 = get_attr_from_el(el_data, "data-imgsrc_bill03");
-    const imgsrc_cross_lightgrey = get_attr_from_el(el_data, "data-imgsrc_cross_lightgrey");
     const imgsrc_cross_grey = get_attr_from_el(el_data, "data-imgsrc_cross_grey");
     const imgsrc_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red");
 

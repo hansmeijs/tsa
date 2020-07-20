@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let order_map = new Map();
         let abscat_map = new Map();
+        let functioncode_map = new Map();
 
         let scheme_map = new Map();
         let shift_map = new Map();
@@ -341,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
             order_list: {isabsence: false, istemplate: false, inactive: false},
             abscat_list: {inactive: false},
             teammember_list: {employee_nonull: false, is_template: false},
+            functioncode_list: {mode: "get"},
             employee_planning: {mode: "get"}
             };
         DatalistDownload(datalist_request);
@@ -431,58 +433,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("company_dict" in response) {
             company_dict = response["company_dict"];
         }
+
         if ("employee_list" in response) {
             refresh_datamap(response["employee_list"], employee_map)
-/*
-            const tblName = "employee";
-            const include_parent_code = null;
-            let tblHead = document.getElementById("id_SBR_thead_select");
-            const filter_ppk_int = null, filter_show_inactive = true, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false, addall_to_list_txt = null;
-
-            const imgsrc_default = imgsrc_inactive_grey;
-            const imgsrc_default_header = imgsrc_inactive_lightgrey;
-            const imgsrc_default_black = imgsrc_inactive_black;
-            const imgsrc_hover = imgsrc_inactive_black;
-            const header_txt = null;
-
-            t_Fill_SelectTable(SBR_tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
-                HandleSelect_Filter, HandleSelectFilterButtonInactive, HandleSelect_Row, HandleSelectRowButton, false,
-                filter_ppk_int, filter_show_inactive, filter_include_inactive,
-                filter_include_absence, filter_istemplate, addall_to_list_txt,
-                cls_bc_lightlightgrey, cls_bc_yellow,
-                imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
-                header_txt, loc.Click_show_inactive_employees)
-
-            FilterSelectRows(SBR_tblBody_select, filter_select);
-            */
             fill_datatable = true;
         }
 
-        if ("abscat_list" in response) {
-            refresh_datamap(response["abscat_list"], abscat_map)
-        }
+        if ("abscat_list" in response) {refresh_datamap(response["abscat_list"], abscat_map)};
+        if ("functioncode_list" in response) {refresh_datamap(response["functioncode_list"], functioncode_map)};
+
         if ("teammember_list" in response) {
             refresh_datamap(response["teammember_list"], teammember_map)
             fill_datatable = true;
         }
-        if ("order_list" in response) {
-            refresh_datamap(response["order_list"], order_map)
-        }
-        if ("scheme_list" in response) {
-            refresh_datamap(response["scheme_list"], scheme_map)
-        }
-        if ("shift_list" in response) {
-            refresh_datamap(response["shift_list"], shift_map)
-        }
-        if ("team_list" in response) {
-            refresh_datamap(response["team_list"], team_map)
-        }
-        if ("teammember_list" in response) {
-            refresh_datamap(response["teammember_list"], teammember_map)
-        }
-        if ("schemeitem_list" in response) {
-            refresh_datamap(response["schemeitem_list"], schemeitem_map)
-        }
+        if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
+        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
+        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
+
         if ("employee_planning_list" in response) {
             // TODO duration_sum not in refresh datamap any more
             const duration_sum = 0;
@@ -785,8 +755,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
-        const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
-        const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
+        const calendar_datefirst_iso = get_dateISO_from_dateJS(calendar_datefirst_JS);
+        const calendar_datelast_iso = get_dateISO_from_dateJS(calendar_datelast_JS);
 
 // ---  upload settings and download calendar
         const now_arr = get_now_arr();
@@ -3326,9 +3296,13 @@ if(pgeName === "absence"){
 
         document.getElementById("id_MFE_workhoursperweek").value = (mod_dict.employee.workhoursperweek ? mod_dict.employee.workhoursperweek / 60 : null);
         document.getElementById("id_MFE_workhoursperday").value = (mod_dict.employee.workminutesperday ? mod_dict.employee.workminutesperday / 60 : null);
-        document.getElementById("id_MFE_workdays").value = (mod_dict.employee.workdays ? mod_dict.employee.workdays / 1440 : null);
+        // TODO calc workdays Was: document.getElementById("id_MFE_workdays").value = (mod_dict.employee.workdays ? mod_dict.employee.workdays / 1440 : null);
         document.getElementById("id_MFE_leavedays").value =(mod_dict.employee.leavedays ?  mod_dict.employee.leavedays / 1440 : null);
         document.getElementById("id_MFE_paydatecode").value = (mod_dict.employee.paydatecode ? mod_dict.employee.paydatecode : null);
+
+// ---  fill functioncode select options. t_FillOptionsAbscat is also used for functioncodes
+        const el_MFE_functioncode = document.getElementById("id_MFE_functioncode");
+        t_FillOptionsAbscat(el_MFE_functioncode, functioncode_map, "", "", mod_dict.employee.functioncode);
 
 // set focus to clicked field
         const fldName = get_attr_from_el(el_input, "data-field")
@@ -3377,6 +3351,8 @@ if(pgeName === "absence"){
                 if(["workhoursperweek", "workminutesperday", "workdays", "leavedays"].indexOf(fldName) > -1){
                     const arr = get_number_from_input(loc, fldName, el_input.value);
                     new_value = arr[0];
+                } else if(["functioncode"].indexOf(fldName) > -1){
+                    new_value = (el_input.value) ? Number(el_input.value) : null;
                 } else {
                     new_value = (el_input.value) ? el_input.value : null;
                 }
@@ -3389,6 +3365,7 @@ if(pgeName === "absence"){
             let tr_changed = document.getElementById(mod_dict.map_id);
             ShowClassWithTimeout(tr_changed, cls_error);
         }
+
 // ---  modal is closed by data-dismiss="modal"
         UploadChanges(upload_dict, url_employee_upload);
     }  // MFE_save
@@ -3706,6 +3683,8 @@ if(pgeName === "absence"){
             leavedays: get_dict_value(employee_dict, ["leavedays", "value"]),
             paydatecode_pk: get_dict_value(employee_dict, ["paydatecode", "pk"]),
             paydatecode: get_dict_value(employee_dict, ["paydatecode", "value"]),
+            functioncode: get_dict_value(employee_dict, ["functioncode", "pk"]),
+            //functioncode_code: get_dict_value(employee_dict, ["functioncode", "value"]),
 
             rowindex: row_index
         }
@@ -4230,7 +4209,7 @@ console.log( "reset mod_dict: ");
 
     // ---  fill absence select options, put value in select box
             //console.log("loc.Select_abscat", loc.Select_abscat)
-            FillOptionsAbscat(el_modshift_absence, abscat_map, loc.Select_abscat, loc.No_absence_categories)
+            t_FillOptionsAbscat(el_modshift_absence, abscat_map, loc.Select_abscat, loc.No_absence_categories)
             // put value of abscat (=order_pk) in select abscat element
             el_modshift_absence.value = (!!order_pk) ? order_pk : 0;
 
@@ -5426,7 +5405,7 @@ console.log( "reset mod_dict: ");
                     }
                 }
                 change_dayJS_with_daysadd_vanilla(date_JS, 1)
-                date_iso = get_dateISO_from_dateJS_vanilla(date_JS)
+                date_iso = get_dateISO_from_dateJS(date_JS)
             };
         };
         return workingdays;

@@ -231,6 +231,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['No_absence_categories'] = TXT_No_absence_categories
         dict['Absence_hours'] = TXT_Absence_hours
 
+        dict['No_functions'] = TXT_No_functions
         dict['period_select_list'] = TXT_Period_planning_list
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
@@ -265,6 +266,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Upload_payroll_periods'] = TXT_Upload_payroll_periods
 
 
+        dict['Absence'] = TXT_Absence
         dict['Absence_category'] = TXT_Absence_category
         dict['The_absence_category'] = TXT_The_absence_category
         dict['This_absence_category'] = TXT_This_absence_category
@@ -278,7 +280,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Payment'] = TXT_Payment
 
-        dict['Function'] = TXT_Function
         dict['Roster_shift'] = _('Roster shift')
 
         dict['period_select_list'] = TXT_Period_planning_list
@@ -294,12 +295,23 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Remove_payrollperiod_from_employees'] = _('Remove payrollperiod from selected employees')
         dict['Link_wagefactor_to_shifts'] = _('Link wagefactor to selected shifts')
         dict['Remove_wagefactor_from_shifts'] = _('Remove wagefactor from selected shifts')
+        dict['Add_function_to_employees'] = _('Add function to selected employees')
+        dict['Remove_function_from_employees'] = _('Remove function from selected employees')
 
         dict['No_description_entered'] = _('No description entered.')
         dict['Closingdate_willbe_every_other_week'] = _('The closing date will be on this day every other week.')
         dict['Select_year_and_enter_closingdates']  = _('Select a year and enter the closing dates.')
         dict['No_closing_dates_entered'] = _('There are no closing dates entered.')
         dict['No_closing_date_entered'] = _('There is no closing date entered.')
+
+        dict['Function'] = TXT_Function
+        dict['Functions'] = TXT_Functions
+        dict['No_functions'] = TXT_No_functions
+        dict['This_function'] = TXT_This_function
+        dict['Add_function'] = TXT_Add_function
+        dict['Make_function_inactive'] = TXT_Make_function_inactive
+        dict['Delete_function'] = TXT_Delete_function
+        dict['No_function_selected'] = _('There is no function selected.')
 
         dict['Hourly_wage'] = TXT_Hourly_wage
         dict['Wage_code'] = TXT_Wage_code
@@ -315,8 +327,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Make_wagefactor_inactive'] = TXT_Make_wagefactor_inactive
         dict['Delete_wagefactor'] = TXT_Delete_wagefactor
 
-        dict['No_payrollperiod_selected'] = _('There is no payroll period selected.')
-        dict['Click_in_the_tickmark_column'] = _('Click in the tickmark column of the selected payroll period.')
+        dict['There_is_no'] = _('There is no ')
+        dict['selected'] = _(' selected')
+        dict['Select'] = _('Select ')
+        dict['a_payrollperiod'] = _('a payroll period')
+        dict['a_function'] = _('a function')
+        dict['in_the_list'] = _(' in the list')
+        dict['by_clicking_the_tickmarkcolumn_infrontof'] = _(' by clicking the tickmark column in front of ')
+        dict['the_function'] = _('the function')
+        dict['the_payroll_period'] = _('the payroll period')
 
         dict['payrollperiod_is_imported'] = _('This payrollperiod is imported from AFAS and cannot be changed.')
         dict['can_leave_description_blank'] = _('You can leave the description blank. TSA will enter it automatically.')
@@ -373,6 +392,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         # excel
 
+        dict['Overview_rosterhours'] = _("Overview of roster hours")
         dict['Overview_rosterhours_per_abscat'] = _("Overview of roster hours per absence category")
 
         # menu
@@ -1139,9 +1159,6 @@ TXT_Payroll_period = _("Payroll period")
 TXT_Hours_overview = _("Hours overview")
 TXT_Roster_overview = _("Roster overview")
 
-
-TXT_Function = _("Function")
-
 TXT_Saturday_hours = _("Count hours on Saturdays")
 TXT_Sunday_hours = _("Count hours on Sundays")
 TXT_Public_holiday_hours = _("Count hours on public holidays")
@@ -1166,6 +1183,14 @@ TXT_This_payrollperiod = _('This payroll period')
 TXT_Add_payrollperiod = _('Add payroll period')
 TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
 TXT_Delete_payrollperiod = _('Delete payroll period')
+
+TXT_Function = _("Function")
+TXT_Functions = _("Functions")
+TXT_No_functions = _('No functions')
+TXT_This_function = _('This function')
+TXT_Add_function= _('Add function')
+TXT_Make_function_inactive = _('Make function inactive')
+TXT_Delete_function = _('Delete function')
 
 TXT_Wage_code = _('Wage code')
 TXT_Hourly_wage = _('Hourly wage')

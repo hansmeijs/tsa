@@ -22,8 +22,8 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
     sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
         e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
-        e.identifier, e.payrollcode, e.workhoursperweek, e.workdays, e.leavedays, e.workminutesperday,
-        fc.id AS fc_id, fc.code AS fn_code, wc.id AS wc_id, wc.code AS wc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
+        e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,
+        fc.id AS fc_id, fc.code AS fc_code, wc.id AS wc_id, wc.code AS wc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
         e.locked, e.inactive
     
         FROM companies_employee AS e 
@@ -1248,13 +1248,19 @@ def create_payroll_payrollperiod_detail_list(period_datefirst, period_datelast, 
         CASE WHEN o.isabsence THEN o.id ELSE 0 END,
         CONCAT(c.code,' - ',o.code), 
         CASE WHEN o.isabsence THEN 0 ELSE eh.plannedduration END, 
-        eh.timeduration
+        eh.timeduration,
+        fc.code AS eh_functioncode,
+        wf.code AS eh_wagefactor,
+        pdc.code AS eh_paydatecode
 
         FROM companies_emplhour AS eh
         INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
         INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
         INNER JOIN companies_order AS o ON (o.id = oh.order_id)
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        LEFT JOIN companies_wagecode AS fc ON (fc.id = eh.functioncode_id) 
+        LEFT JOIN companies_wagecode AS wf ON (wf.id = eh.wagefactorcode_id) 
+        LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id) 
 
         WHERE c.company_id = %(compid)s 
         AND NOT oh.isrestshift
@@ -1693,7 +1699,7 @@ def create_wagecode_list(period_dict, datalists, request):
             SELECT wc.id, wc.company_id AS comp_id, wc.code, wci.datefirst_agg, wci.wagerate_agg
             FROM companies_wagecode AS wc
             LEFT JOIN (""" + sql_wagecodeitem_sub + """) AS wci ON (wci.wagecode_id = wc.id)
-            WHERE wc.company_id = %(compid)s AND wc.iswage
+            WHERE wc.company_id = %(compid)s AND wc.iswagecode
             ORDER BY LOWER(wc.code) ASC
             """
         newcursor = connection.cursor()
@@ -1801,14 +1807,15 @@ def create_wagefactor_dict(instance, item_dict):
 def create_functioncode_list(request_item, datalists, request):
     logger.debug(' --- create_functioncode_list --- ')
 
-# --- create list of wagefactors of this company PR2029-06-17
+# --- create list of functioncodes of this company PR2029-06-17
     if request.user.company:
         company_pk = request.user.company_id
 
         sql_wagecode = """
             SELECT wc.id, wc.company_id AS comp_id, wc.code
             FROM companies_wagecode AS wc
-            WHERE wc.company_id = %(compid)s AND wc.isfunctioncode
+            WHERE wc.company_id = %(compid)s 
+            AND wc.isfunctioncode
             ORDER BY LOWER(wc.code) ASC
             """
         newcursor = connection.cursor()
@@ -1819,7 +1826,6 @@ def create_functioncode_list(request_item, datalists, request):
 
         functioncode_list = []
         for functioncode in functioncodes:
-            logger.debug('functioncode: ' + str(functioncode))
             item_dict = create_functioncode_dict_sql(functioncode)
             if item_dict:
                 functioncode_list.append(item_dict)

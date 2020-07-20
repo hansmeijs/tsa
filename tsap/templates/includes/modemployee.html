@@ -63,9 +63,15 @@
                      <div class="content_header">
                          <div class="content_subheader_left mx-1 ">
                             <label for="id_MFE_functioncode" class="tsa_margin_form_label">{% trans 'Function' %}:</label>
-                            <input id="id_MFE_functioncode" type="text" data-field= "functioncode"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                            <select id="id_MFE_functioncode"
+                                   data-field= "functioncode"
+                                   autocomplete="off"
+                                   ondragstart="return false;"
+                                   ondrop="return false;"
+                                   class="form-control">
+                            </select>
                          </div>
+
 
                          <div class="content_subheader_left mx-1 ">
                             <label for="id_MFE_datefirst" class="tsa_margin_form_label">{% trans 'First date in service' %}:</label>

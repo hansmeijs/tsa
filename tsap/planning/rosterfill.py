@@ -889,6 +889,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
                 # - create orderhour_emplhour record
                 if add_row:
+                    logger.debug("........row: " + str(row))
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
                         rosterdate_dte=rosterdate_dte,
@@ -1037,9 +1038,12 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 
     # get employee
     # Note: employee can be different from teammember.employee (when replacement employee)
+
+    # >>> NOTE: employee info in row is replaced by replacement employee info in function calculate_add_row_to_dict
+
     # logger.debug('teammember: ' + str(teammember))
     employee = m.Employee.objects.get_or_none(id=row[idx_e_id], company=request.user.company)
-    is_replacement = row[idx_isreplacement] if row[idx_isreplacement] == True else False
+    is_replacement = True if row[idx_isreplacement] is True else False
 
     # 1. check if emplhours from this schemeitem/teammmeber/rosterdate already exist
     # (happens when FillRosterdate for this rosterdate is previously used)
@@ -1062,7 +1066,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             schemeitemid=schemeitem.id,
             orderhour__order=order).exists()
 
-    # skip if linked_emplhours exist
+    # skip if there are already emplhours with the same rosterdate, teammemberid, schemeitemid and order
     if not linked_emplhours_exist:
         # 3. create new orderhour
         orderhour = m.Orderhour(
@@ -1123,6 +1127,8 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
     # logger.debug(' ============= add_emplhour ============= ')
     # ('row: ')
     # logger.debug(str(row))
+
+    # >>> NOTE: employee info in row is replaced by replacement employee info in function calculate_add_row_to_dict
 
     emplhour_is_added = False
 
@@ -1217,46 +1223,54 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             amount, addition, tax = f.calc_amount_addition_tax_rounded(billing_duration, orderhour.isabsence, orderhour.isrestshift,
                                                                        price_rate, addition_rate, additionisamount, tax_rate)
 
+            # add pay_date PR2020-06-18
+            # note: pay_date must be updated in table Paydatecode before filling rosterdate
+            # IMPORTANT: dont forget to change paydate in emplhour when changing employee
+
+            # Note: employee info in row contains info from replacemenet employee when is_replacement
+            paydatecode_id = row[idx_e_pdc_id]
+            pay_date = row[idx_e_pdc_dte]
+            if paydatecode_id is None:
+                pay_date = lastof_month
+            functioncode_id = row[idx_e_fnc_id]
+            wagecode_id = row[idx_e_wgc_id]
+
             # TODO instead of  wagefactor use wagefactorcode
             # if teammember.wagefactor:
             #    wagefactor = teammember.wagefactor
             # elif shift_wagefactor:
             #    wagefactor = shift_wagefactor
-
-            # add pay_date PR2020-06-18
-            # note: pay_date must be updated in table Paydatecode before filling rosterdate
-            # IMPORTANT: dont forget to change paydate in emplhour when changing employee
-            paydatecode_id = None
-            if is_replacement:
-                paydatecode_id = row[idx_r_pdc_id]
-                pay_date = row[idx_r_pdc_dte]
-            else:
-                paydatecode_id = row[idx_e_pdc_id]
-                pay_date = row[idx_e_pdc_dte]
-            if paydatecode_id is None:
-                pay_date = lastof_month
+            wagefactorcode_id = None
 
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
                 rosterdate=orderhour.rosterdate,
+
                 paydate=pay_date,
                 paydatecode_id=paydatecode_id,
                 lockedpaydate=False,
                 isreplacement=is_replacement,
                 datepart=date_part,
+
                 timestart=timestart,
                 timeend=timeend,
+                timeduration=time_duration,
+                breakduration=break_duration,
+                plannedduration=time_duration,
+                billingduration=time_duration,
+
                 offsetstart=offset_start,
                 offsetend=offset_end,
                 excelstart=excel_start,
                 excelend=excel_end,
-                breakduration=break_duration,
-                timeduration=time_duration,
-                plannedduration=time_duration,
-                billingduration=time_duration,
+
+                functioncode_id=functioncode_id,
+                wagecode_id=wagecode_id,
+                wagefactorcode_id=wagefactorcode_id,
                 wagerate=wagerate,
                 wagefactor=wagefactor,
                 wage=wage,
+
                 pricerate=price_rate,
                 additionrate=addition_rate,
                 taxrate=tax_rate,
@@ -2272,24 +2286,13 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 
     # row_tuple cannot be modified. Convert to list 'row'
     row = list(row_tuple)
-
-    is_normal_employee = (employee_pk) and (employee_pk == row[idx_e_id])
-    # is_replacement_employee is only true when employee and replacement are not the same
+    # only used in create_employee_planning
+    # employee_is_replacement is only true when employee and replacement are not the same
     # in case an employee is also his replacement...
-    is_replacement_employee = (employee_pk) and (employee_pk != row[idx_e_id]) and (employee_pk == row[idx_rpl_id])
+    employee_is_replacement = (employee_pk) and (employee_pk != row[idx_e_id]) and (employee_pk == row[idx_rpl_id])
     rosterdate_display = f.format_DMY_from_dte(row[idx_tm_rd], user_lang)
 
     logfile.append('------------ ' + rosterdate_display + ' ------------------------------ ')
-    if row[idx_si_mod] == 'a':
-        mode = 'absence'
-    elif row[idx_si_mod] == 'r':
-        mode = 'rest shift'
-    elif row[idx_si_mod] == 'n':
-        mode = 'normal shift'
-    elif row[idx_si_mod] == 'i':
-        mode = 'inactive shift'
-    else:
-        mode = 'unknown'
 
     logfile.append('order      : ' + str(row[idx_c_code]) + ' - ' + str(row[idx_o_code]))
     if row[idx_sh_code]:
@@ -2299,7 +2302,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 
     add_row_to_dict = False
 
-    # >>>>> SHIFT IS INACTIVE
+# >>>>> SHIFT IS INACTIVE
     if row[idx_si_mod] == 'i':
         logfile.append('--- this is an inactive shift')
         logfile.append('--> inactive shift is skipped')
@@ -2308,10 +2311,10 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
         logfile.append('--- this is absence')
         if skip_absence_and_restshifts:
             logfile.append('--> absence skipped: skip_absence_and_restshifts')
-        elif is_replacement_employee:
-            logfile.append('--> absence skipped: is_replacement_employee')
-        elif is_replacement_employee:
-            logfile.append('--> absence skipped: is_replacement_employee')
+        elif employee_is_replacement:
+            logfile.append('--> absence skipped: employee is replacement')
+        elif employee_is_replacement:
+            logfile.append('--> absence skipped: employee is replacement')
         elif row[idx_e_id]:
             # logfile.append('--> absence has employee')
             # logfile.append('--- check absencerow for_doubles: ')
@@ -2321,13 +2324,13 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
         else:
             logfile.append('--> absence skipped: no employee')
 
-    # >>>>> SHIFT IS REST SHIFT
+# >>>>> SHIFT IS REST SHIFT
     elif row[idx_si_mod] == 'r':
         logfile.append('--- this is a rest shift')
         if skip_absence_and_restshifts:
             logfile.append('--> rest shift skipped')
-        elif is_replacement_employee:
-            logfile.append('--> skip, dont add rest row when is_replacement_employee')
+        elif employee_is_replacement:
+            logfile.append('--> skip, dont add rest row when employee is replacement')
         elif row[idx_e_id]:
             # logfile.append('--- rest shift has an employee')
             # check if employee is absent or has restshift
@@ -2343,10 +2346,10 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
         else:
             logfile.append('--> skip, rest shift has no employee')
 
-    # >>>>> SHIFT IS NORMAL SHIFT
+# >>>>> SHIFT IS NORMAL SHIFT
     else:
         logfile.append('--- this is a normal shift')
-        if is_replacement_employee:
+        if employee_is_replacement:
             logfile.append('    is replacement employee')
             # only add shift when employee is absent and replacement is not sbsent
             # check if normal shift has overlap with absence or restshift
@@ -2359,16 +2362,33 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
                 if not no_overlap_with_absence_or_restshift(row, True):  # True = check_replacement
                     logfile.append('--> skip, replacement employee is absent')
                 else:
-                    # replace employee_id and -code by replacement_id and -code
+# replace employee info by info of replacement employee
+                    row[idx_isreplacement] = True
+
                     row[idx_e_id] = row[idx_rpl_id]
                     row[idx_e_code] = '*' + row[idx_rpl_code]
                     row[idx_e_nl] = None
                     row[idx_e_nf] = None
-                    row[idx_isreplacement] = True
+
+                    row[idx_e_tm_id_arr] = row[idx_r_tm_id_arr]
+                    row[idx_e_si_id_arr] = row[idx_r_si_id_arr]
+                    row[idx_e_mod_arr] = row[idx_r_mod_arr]
+                    row[idx_e_os_arr] = row[idx_r_os_arr]
+                    row[idx_e_oe_arr] = row[idx_r_oe_arr]
+                    row[idx_e_o_seq_arr] = row[idx_r_o_seq_arr]
+
+                    row[idx_e_pdc_id] = row[idx_r_pdc_id]
+                    row[idx_e_adc_id] = row[idx_r_adc_id]
+
+                    row[idx_e_fnc_id] = 99999 # row[idx_r_fnc_id]
+                    row[idx_e_wgc_id] = row[idx_r_wgc_id]
+                    row[idx_e_pdc_id] = row[idx_r_pdc_id]
+                    row[idx_e_pdc_dte] = row[idx_r_pdc_dte]
+
                     add_row_to_dict = True
                     # logfile.append('--> replacement employee is not absent: add replacement to shift')
         else:
-            # employee is 'normal' employee, i.e. not replcement employee
+            # employee is 'normal' employee, i.e. not replacement employee
             if row[idx_e_id]:
                 # check if employee is absent or has restshift
                 if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
@@ -2386,28 +2406,64 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
                             logfile.append('     replacement found: ' + str(row[idx_rpl_code]))
                             # is replacement absent?
                             if no_overlap_with_absence_or_restshift(row, True):  # True = check_replacement
+# >>> employee id and code will be replaced by replacement_info
+
+                                row[idx_isreplacement] = True
                                 # replace employee_id and -code by replacement_id and -code
-                                row[idx_e_id] = row[idx_rpl_id]
-                                row[idx_e_code] = '*' + row[idx_rpl_code]
+                                row[idx_e_id] =  '*' + row[idx_rpl_id]
+                                row[idx_e_code] = row[idx_rpl_code]
                                 row[idx_e_nl] = None
                                 row[idx_e_nf] = None
-                                row[idx_isreplacement] = True
+
+                                row[idx_e_tm_id_arr] = row[idx_r_tm_id_arr]
+                                row[idx_e_si_id_arr] = row[idx_r_si_id_arr]
+                                row[idx_e_mod_arr] = row[idx_r_mod_arr]
+                                row[idx_e_os_arr] = row[idx_r_os_arr]
+                                row[idx_e_oe_arr] = row[idx_r_oe_arr]
+                                row[idx_e_o_seq_arr] = row[idx_r_o_seq_arr]
+
+                                row[idx_e_pdc_id] = row[idx_r_pdc_id]
+                                row[idx_e_adc_id] = row[idx_r_adc_id]
+
+                                row[idx_e_fnc_id] = row[idx_r_fnc_id]
+                                row[idx_e_wgc_id] = row[idx_r_wgc_id]
+                                row[idx_e_pdc_id] = row[idx_r_pdc_id]
+                                row[idx_e_pdc_dte] = row[idx_r_pdc_dte]
+
                                 add_row_to_dict = True
                                 logfile.append(
                                     '--> replacement is not absent and has no restshift: add replacement to shift')
                             else:
                                 if add_empty_shifts:
+# >>> employee_id and -code will be removed
                                     # remove employee_id and -code
                                     row[idx_e_id] = None
                                     row[idx_e_code] = '**---'
                                     row[idx_e_nl] = None
                                     row[idx_e_nf] = None
+
+                                    row[idx_e_tm_id_arr] = None
+                                    row[idx_e_si_id_arr] = None
+                                    row[idx_e_mod_arr] = None
+                                    row[idx_e_os_arr] = None
+                                    row[idx_e_oe_arr] = None
+                                    row[idx_e_o_seq_arr] = None
+
+                                    row[idx_e_pdc_id] = None
+                                    row[idx_e_adc_id] = None
+
+                                    row[idx_e_fnc_id] = None
+                                    row[idx_e_wgc_id] = None
+                                    row[idx_e_pdc_id] = None
+                                    row[idx_e_pdc_dte] = None
+
                                     add_row_to_dict = True
                                     logfile.append(
                                         '--> replacement is absent or has restshift: add shift without employee')
                                 else:
                                     logfile.append('--> skip empty shift')
                         else:
+# >>> employee id and code be removed
                             logfile.append('     no replacement found')
                             if add_empty_shifts:
                                 # remove employee_id and -code
@@ -2415,6 +2471,22 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
                                 row[idx_e_code] = '*---'
                                 row[idx_e_nl] = None
                                 row[idx_e_nf] = None
+
+                                row[idx_e_tm_id_arr] = None
+                                row[idx_e_si_id_arr] = None
+                                row[idx_e_mod_arr] = None
+                                row[idx_e_os_arr] = None
+                                row[idx_e_oe_arr] = None
+                                row[idx_e_o_seq_arr] = None
+
+                                row[idx_e_pdc_id] = None
+                                row[idx_e_adc_id] = None
+
+                                row[idx_e_fnc_id] = None
+                                row[idx_e_wgc_id] = None
+                                row[idx_e_pdc_id] = None
+                                row[idx_e_pdc_dte] = None
+
                                 add_row_to_dict = True
                                 logfile.append('--> no replacement found: add shift without employee')
                             else:
@@ -2617,12 +2689,11 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
         'ch': is_companyholiday
     })
     rows = newcursor.fetchall()
-    """
-    FOR TESTING ONLY
+
+    #FOR TESTING ONLY
     logger.debug('--------------------- sql_teammember_sub08 --------------------- ')
     logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     logger.debug('employee_pk: ' + str(employee_pk) + ' order_pk: ' + str(order_pk) + ' customer_pk: ' + str(customer_pk))
-    customer_pk = 705
     newcursor.execute(sql_teammember_sub08, {
         'cid': company_id,
         'customerid': customer_pk,
@@ -2636,7 +2707,7 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
     for dictrow in dictrows:
         logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
         logger.debug(str(dictrow))
-    """
+
     # TODO to filter multiple order_pk's Works, but add 'Show All orders
     # order_pk = [44]
     # newcursor.execute(

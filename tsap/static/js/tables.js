@@ -352,7 +352,7 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_PayrollFilter  ======================== PR2020-07-12
     function t_PayrollFilter(el, col_index, el_key, filter_dict) {
-        console.log( "===== t_HandlePayrollFilter  ========= ");
+        console.log( "===== t_PayrollFilter  ========= ");
         console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
@@ -460,6 +460,7 @@
                         const mode = arr[0];
                         const filter_value = arr[1];
                         const fldName = arr[2];
+
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if(mode === "blanks_only"){  // # : show only blank cells
@@ -471,7 +472,12 @@
                             // filter_row text is already trimmed and lowercase
                             const cell_value = filter_row[col_index];
                             // hide row if filter_value not found or when cell is empty
-                            if(!cell_value || cell_value.indexOf(filter_value) === -1){hide_row = true};
+                             if(cell_value){
+                                if(cell_value.indexOf(filter_value) === -1){hide_row = true};
+                             } else {
+                                hide_row = true;
+                             }
+                            //console.log( "text cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         } else {
                             // duration columns or numeric columns, make blank cells zero
                             cell_value = (cell_value) ? cell_value : 0;
@@ -486,7 +492,9 @@
                             } else {
                                 if (cell_value !== filter_value) {hide_row = true};
                             }
-                    }};
+                           // console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
+                        }
+                    };
                 });  // Object.keys(filter_dict).forEach(function(col_index) {
             }  // if (!hide_row)
         }  // if (!!tblRow)
@@ -686,7 +694,7 @@
             for (let i = 0, tblRow; i < tblBody.rows.length; i++) {
                 tblRow = tblBody.rows[i];
                 const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id)
-                if(tblName === "paydatecode"){
+                if (["paydatecode", "functioncode", "wagefactor"].indexOf(tblName) > -1){
                     const code = get_dict_value(map_dict, ["code", "value"])
                     if(code) {
                         const code_lc = code.toLowerCase()
@@ -700,7 +708,7 @@
         //console.log("tblRow.id", tblRow.id);
                     const employee_code = get_dict_value(map_dict, ["employee", "code"])
                     const datefirst = get_dict_value(map_dict, ["employee", "datefirst"])
-        //console.log("employee_code", employee_code);
+
         //console.log("datefirst", datefirst);
                     if(employee_code) {
                         const employee_code_lc = employee_code.toLowerCase()
@@ -1892,28 +1900,28 @@
         el_select.innerHTML = option_text;
     }  // function t_FillOptionsPeriodExtension
 
-//========= FillOptionsAbscat  ====================================
-    function FillOptionsAbscat(el_select, abscat_map, select_txt, select_none_txt, selected_order_pk) {
-       console.log( "=== FillOptionsAbscat  ");
+//========= t_FillOptionsAbscat  ====================================
+    function t_FillOptionsAbscat(el_select, data_map, select_txt, select_none_txt, selected_pk) {
+       console.log( "=== t_FillOptionsAbscat  ");
 
 // ---  fill options of select box
         let option_text = "";
         el_select.innerText = null
         let row_count = 0
-// --- loop through abscat_map
-        if (!!abscat_map.size) {
-            for (const [map_id, item_dict] of abscat_map.entries()) {
-                const order_pk_int = get_dict_value_by_key (item_dict, "pk", 0)
-                const customer_pk_int = get_dict_value_by_key (item_dict, "ppk", 0)
+// --- loop through data_map (abscat_map, functioncode_map)
+        if (data_map.size) {
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const pk_int = get_dict_value (item_dict, ["id", "pk"], 0)
+                const ppk_int = get_dict_value_by_key (item_dict, ["id", "ppk"], 0)
                 const code = get_subdict_value_by_key(item_dict, "code", "value", "-")
 
-                option_text += "<option value=\"" + order_pk_int + "\" data-ppk=\"" + customer_pk_int + "\"";
-// --- add selected if selected_order_pk has value
-                if (!!selected_order_pk && order_pk_int === selected_order_pk) {option_text += " selected=true" };
+                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
+// --- add selected if selected_pk has value
+                if (selected_pk && pk_int === selected_pk) {option_text += " selected=true" };
                 option_text +=  ">" + code + "</option>";
 
                 row_count += 1
-            }  // for (const [map_id, item_dict] of abscat_map.entries())
+            }  // for (const [map_id, item_dict] of data_map.entries())
         }  // if (!!len)
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
         let select_first_option = false
@@ -1930,7 +1938,7 @@
         if (select_first_option){
             el_select.selectedIndex = 0
         }
-    }  // function FillOptionsAbscat
+    }  // function t_FillOptionsAbscat
 
 //========= t_FillOptionShiftOrTeamFromList  ============= PR2020-01-08
     function t_FillOptionShiftOrTeamFromList(data_list, sel_parent_pk, selected_pk, with_rest_abbrev, firstoption_txt) {
@@ -2046,7 +2054,6 @@
         }}}}}}}};
         return same_shift_pk
     }  // Lookup_Same_Shift
-
 
 //========= t_set_mode_delete_in_si_tm  ============= PR2020-03-27
     function t_set_mode_delete_in_si_tm(data_list, parent_tblName, parent_pk) {
@@ -2341,7 +2348,6 @@
         return default_code + " " + String.fromCharCode(new_index);
     } ; // get_teamcode_with_sequence_from_map
 
-
     function get_teamcode_with_sequence_from_list(teams_list, parent_pk, default_code){
         "use strict";
         //console.log(' --- get_teamcode_with_sequence_from_list --- ')
@@ -2410,11 +2416,8 @@
         return new_code;
     } ; // get_paydatecode_with_sequence
 
-
-
-
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
+//=========  Calendar_BtnWeekdaySetClass  ================ PR2020-01-05
     function Calendar_BtnWeekdaySetClass(btn, data_value) {
         // functiuon stores data_value in btn and sets backgroundcolor
         btn.setAttribute("data-selected", data_value);

@@ -14,7 +14,7 @@
         <div class="sidebar_header">
             <h3 id="id_SBR_hdr_text"></h3>
         </div>
-        <div class="tab_show tab_payrollperiod display_hide tw_200 mx-2 mt-2 mb-4">
+        <div class="tab_show tab_payrollperiod tab_payrolltabular display_hide tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
             <input id="id_SBR_select_period"
                 type="text"
@@ -46,12 +46,16 @@
     {% if user.is_authenticated %}
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
+<!-- =================== MODAL MESSAGE  =================== -->
+        {% include 'includes/modmessage.html' %}
 <!-- =================== MODAL ABSCAT  =================== -->
         {% include 'includes/modabscat.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modselectperiod.html' %}
 <!-- =================== MODAL PAYROLL PERIOD  =================== -->
         {% include 'includes/modpayrollperiod.html' %}
+<!-- =================== MODAL FUNCTION CODE =================== -->
+        {% include 'includes/modfunctioncode.html' %}
 <!-- =================== MODAL WAGE CODE =================== -->
         {% include 'includes/modwagecode.html' %}
 <!-- =================== MODAL WAGE FACTOR =================== -->
@@ -84,6 +88,8 @@
     <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Roster overview' %}</button>
+                    <button data-btn="payrolltabular" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
+                    <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
                     <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
                     <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>
@@ -97,7 +103,7 @@
             <div class="content_body ml-4 mr-0">
                 <div class="modal_containerXX">
 <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payrollperiod tab_wagecode tab_order display_hide">
+                    <div class="tab_show tab_payrollperiod tab_payrolltabular tab_order display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>
@@ -106,7 +112,7 @@
                     </div>
                 </div>
             </div>
-            <div class="content_header ml-4 mr-0 tab_show tab_paydatecode tab_wagefactor display_hide">
+            <div class="content_header ml-4 mr-0 tab_show tab_paydatecode tab_functioncode tab_wagefactor display_hide">
                  <div class="tsa_flex_2 m-0">
                      <table class="table tsa_tbl">
                         <thead id="id_tblHead_paydatecode"></thead>

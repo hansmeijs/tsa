@@ -757,15 +757,6 @@
 
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= get_dateJS_from_dateISO  ======== PR2019-10-28
-    function get_dateISO_from_dateJS_NEW (dateJS) {
-      // PR2020-06-19 from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString
-      const year = dateJS.getFullYear(), month = 1 + dateJS.getMonth(), day = dateJS.getDate();
-      return year.toString() + "-" + pad(month) + "-" + pad(day);
-    };
-    function pad(number) {
-        return (number < 10) ? "0" + number : number.toString();
-    }
 
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
     function get_dateJS_from_dateISO (date_iso) {
@@ -796,19 +787,16 @@
         return date_JS
     }  // get_dateJS_from_dateISO_vanilla
 
-//========= get_dateISO_from_dateJS_vanilla new  ========== PR2019-12-04
-    function get_dateISO_from_dateJS_vanilla(date_JS) {
-        let date_iso = null
-        if (!!date_JS){
-            // add 1 to month, getMonth starts with 0 for January
-            let year_str = date_JS.getFullYear().toString();
-            let month_index = 1 + date_JS.getMonth();
-            let month_str = "00" + month_index.toString();
-            let day_str = "00" + date_JS.getDate().toString();
-            date_iso = [year_str, month_str.slice(-2), day_str.slice(-2)].join("-");
-        }
-        return date_iso;
-    }
+
+//========= get_dateISO_from_dateJS  ======== PR2020-06-19
+    function get_dateISO_from_dateJS (dateJS) {
+      // PR2020-06-19 from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString
+      const year = dateJS.getFullYear(), month = 1 + dateJS.getMonth(), day = dateJS.getDate();
+      return year.toString() + "-" + pad(month) + "-" + pad(day);
+    };
+    function pad(number) {
+        return (number < 10) ? "0" + number : number.toString();
+    }  // get_dateISO_from_dateJS
 
 //========= get_tomorrow_iso new  ========== PR2019-11-15
     function get_tomorrow_iso() {
@@ -900,9 +888,23 @@
         // new Date() returns '2019-11-1' and doesn't work with date input
         // today_JS.toISOString gives the today date in UTC: on 2020-07-08 20:00 it gives  2020-07-9
         // build date_iso from year, month, date of today_JS
-        const today_JS = new Date();
-        return get_dateISO_from_dateJS_vanilla(today_JS)
+        const date_JS = new Date();
+        return get_dateISO_from_dateJS(date_JS)
     }
+
+//========= get_today_JS new  ========== PR2020-07-17
+    function get_today_JS() {
+        // new Date() returns '2019-11-1' and doesn't work with date input
+        // today_JS.toISOString gives the today date in UTC: on 2020-07-08 20:00 it gives  2020-07-9
+        // build date_iso from year, month, date of today_JS
+        // PR2020-07-17 debug.  today_JS = new Date(); gives Fri Jul 17 2020 11:16:23 GMT-0400 (Bolivia Time)
+        // this messes up the lookup dates in the scheme grid.
+        // instead use:  today_JS = get_dateJS_from_dateISO(today_iso)
+        const today_iso =  get_today_iso()
+        const today_JS =  get_dateJS_from_dateISO(today_iso)
+        return today_JS
+    }
+
 
 //========= get_thisweek_monday_JS_from_DateJS new  ========== PR2019-12-04 PR2020-07-07
     function get_thisweek_monday_JS_from_DateJS(date_JS) {
