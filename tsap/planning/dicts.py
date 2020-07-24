@@ -656,6 +656,9 @@ def create_scheme_dict_from_sql(scheme, item_dict, user_lang):
             elif field in ['isabsence', 'istemplate']:
                 pass
 
+            elif field == 'inactive':
+                field_dict['value'] = scheme.get(field, False)
+
             if field_dict:
                 item_dict[field] = field_dict
 
@@ -750,6 +753,9 @@ def create_scheme_dict(scheme, item_dict, user_lang):
 
             elif field in ['isabsence', 'istemplate']:
                 pass
+
+            elif field == 'inactive':
+                field_dict['value'] = getattr(scheme, field, False)
 
             else:
                 value = getattr(scheme, field)
@@ -1874,11 +1880,11 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
     # logger.debug('---> sel_btn: ' + str(sel_btn))
     return period_datefirst_dte, period_datelast_dte, periodstart_datetimelocal, periodend_datetimelocal
 
-# ========================
+# ========================================================================
 
-def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    #logger.debug(' ============= create_emplhour_list ============= ')
-    #logger.debug('period_dict: ' + str(period_dict))
+def create_emplhour_rows(period_dict, request):  # PR2019-11-16 PR2020-07-22
+    # logger.debug(' ============= create_emplhour_rows ============= ')
+    # logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
@@ -1887,23 +1893,23 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
 # step 1: add comp_timezone to datetiem, using localize Can be skipped, periodstart already has comp_timezone
     # this one is correct: localize converts a local naive datetime to a local datetime with company timezone
     # localize can only be used with naive datetime objects. It does not change the datetime, only adds tzinfo
-    #timezone = pytz.timezone(comp_timezone)
-    #periodstart_local_withtimezone = timezone.localize(periodstart_datetimelocal_withouttimezone)
-    #periodend_local_withtimezone = timezone.localize(periodend_datetimelocal_withouttimezone)
-    #logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
+    # timezone = pytz.timezone(comp_timezone)
+    # periodstart_local_withtimezone = timezone.localize(periodstart_datetimelocal_withouttimezone)
+    # periodend_local_withtimezone = timezone.localize(periodend_datetimelocal_withouttimezone)
+    # logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
     # periodstart_local_withtimezone: 2020-01-30 19:29:00+01:00 <class 'datetime.datetime'>
 
 # step 2: convert timezone from comp_timezone to utc
     timezone = pytz.utc
-    periodstart_datetime_utc_withtimezone = periodstart_local_withtimezone.astimezone(timezone)
-    periodend_datetime_utc_withtimezone = periodend_local_withtimezone.astimezone(timezone)
-    #logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
+    periodstart_datetime_utc_withtimezone = periodstart_local_withtimezone.astimezone(timezone) if periodstart_local_withtimezone else None
+    periodend_datetime_utc_withtimezone = periodend_local_withtimezone.astimezone(timezone)  if periodend_local_withtimezone else None
+    # logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
     # periodstart_datetime_utc_withtimezone: 2020-01-30 18:29:00+00:00 <class 'datetime.datetime'>
 
-# step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
-    #periodstart_datetime_utc_naive = periodstart_datetime_utc_withtimezone.replace(tzinfo=None)
-    #periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
-    #logger.debug('periodstart_datetime_utc_naive: ' + str(periodend_datetime_utc_naive) + ' ' + str(type(periodend_datetime_utc_naive)))
+    # step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
+    # periodstart_datetime_utc_naive = periodstart_datetime_utc_withtimezone.replace(tzinfo=None)
+    # periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
+    # logger.debug('periodstart_datetime_utc_naive: ' + str(periodend_datetime_utc_naive) + ' ' + str(type(periodend_datetime_utc_naive)))
     # periodstart_datetime_utc_naive: 2020-01-30 18:29:00 <class 'datetime.datetime'>
 
     rosterdatefirst = period_dict.get('period_datefirst')
@@ -1913,7 +1919,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
 
     # Exclude template.
 
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     if request.user.company is not None:
         company_pk = request.user.company.pk
@@ -1940,8 +1946,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
         is_restshift = period_dict.get('isrestshift')
         date_part = period_dict.get('datepart')
 
-        #logger.debug('is_restshift: ' + str(is_restshift))
-    # show emplhour records with :
+        # logger.debug('is_restshift: ' + str(is_restshift))
+        # show emplhour records with :
         # LEFT JOIN employee (also records without employee are shown)
         # - this company
         # - this customer if not blank
@@ -1959,8 +1965,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
         # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
         # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
 
-        newcursor = connection.cursor()
-        newcursor.execute("""
+        sql_select_emplhour = """
             SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, c.id AS cust_id, c.company_id AS comp_id, 
             eh.rosterdate AS eh_rd, 
             o.isabsence AS o_abs, 
@@ -1968,20 +1973,28 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             eh.isreplacement AS eh_isrpl,
             COALESCE(oh.shift,'') AS oh_shift, 
             eh.datepart AS eh_datepart,
-            eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
+            eh.timestart AS eh_ts, eh.timeend AS eh_te,
             eh.breakduration AS eh_breakdur, eh.timeduration AS eh_timedur, 
             eh.plannedduration AS eh_plandur, eh.billingduration AS eh_billdur, 
             COALESCE(c.code,'') AS c_code, 
             COALESCE(o.code,'') AS o_code, 
             e.id AS e_id, 
-            COALESCE(e.code,'---') AS e_code
-            
+            COALESCE(e.code,'---') AS e_code,
+            eh.haschanged AS eh_haschanged, eh.status AS eh_st, eh.overlap AS eh_ov,
+            eh.modifiedat AS eh_modat,
+            COALESCE(SUBSTRING (u.username, 7), '') AS u_usr
+
             FROM companies_emplhour AS eh 
             LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
+            LEFT JOIN accounts_user AS u ON (eh.modifiedby_id = u.id)
             INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
             INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+
             WHERE (c.company_id = %(comp_id)s)
+            """
+
+        sql_filter = """
             AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
             AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
@@ -1994,8 +2007,25 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
             AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
             AND (eh.timeend   > %(pts)s OR eh.timeend   IS NULL OR %(pts)s IS NULL)
+            """
+
+        sql_orderby = """
             ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(o.code) ASC, o.id, oh.isrestshift ASC, eh.timestart ASC
-            """, {
+            """
+
+        newcursor = connection.cursor()
+
+        if emplhour_pk:
+            # when emplhour_pk exists: only get this emplhour
+            sql_filter = """
+                AND (eh.id = %(emplh_id)s)
+                """
+            newcursor.execute(sql_select_emplhour + sql_filter + sql_orderby, {
+                'comp_id': company_pk,
+                'emplh_id': emplhour_pk
+            })
+        else:
+            newcursor.execute(sql_select_emplhour + sql_filter + sql_orderby, {
                 'comp_id': company_pk,
                 'cust_id': customer_pk,
                 'ord_id': order_pk,
@@ -2010,41 +2040,46 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'rdlp1': rosterdatelast_plus1,
                 'pts': periodstart_datetime_utc_withtimezone,
                 'pte': periodend_datetime_utc_withtimezone
-                })
-#  PR2020-03-22 was order by customer, order: ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, oh.isrestshift ASC, eh.timestart ASC
+            })
+        #  PR2020-03-22 was order by customer, order: ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, oh.isrestshift ASC, eh.timestart ASC
 
         #             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
-#             AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
-        #logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
-        #logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
-        #logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
-        #logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
+        #             AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
+        # logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
+        # logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
+        # logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
+        # logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
 
         emplhours_rows = f.dictfetchall(newcursor)
 
-        # dictfetchall returns a list with dicts for each emplhour row
-        # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
+        return emplhours_rows
+# ---  end of create_emplhour_rows
 
-        # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-        #                         'timestart', 'timeend', 'timeduration', 'breakduration',
-        #                         'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
-        field_tuple = c.FIELDS_EMPLHOUR
+# ========================================================================
 
-        emplhour_list = []
-        for row in emplhours_rows:
-            #logger.debug('...................................')
-            #logger.debug('emplhours_row' + str(row))
-    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # --- start of create_emplhour_itemdict_from_row
-            item_dict = create_emplhour_itemdict_from_row(row, {}, comp_timezone, timeformat, user_lang)
-    # --- end of create_emplhour_itemdict_from_row
-     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
+    #logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
-            #logger.debug('create_emplhour_itemdict_from_row: ' + str(item_dict))
-            if item_dict:
-                emplhour_list.append(item_dict)
+    emplhours_rows = create_emplhour_rows(period_dict, request)
 
-        return emplhour_list
+    emplhour_list = []
+    for row in emplhours_rows:
+        #logger.debug('...................................')
+        #logger.debug('emplhours_row' + str(row))
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# --- start of create_emplhour_itemdict_from_row
+        item_dict = create_emplhour_itemdict_from_row(row, {}, comp_timezone, timeformat, user_lang)
+# --- end of create_emplhour_itemdict_from_row
+ # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        #logger.debug('create_emplhour_itemdict_from_row: ' + str(item_dict))
+        if item_dict:
+            emplhour_list.append(item_dict)
+
+    return emplhour_list, emplhours_rows
+
+
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone, timeformat, user_lang):  # PR2019-10-11
     # this function converts emplhour instance to row_dict, and then uses create_emplhour_itemdict_from_row
@@ -2087,6 +2122,8 @@ def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone,
         if emplhour.overlap:
             row['eh_ov'] = emplhour.overlap
 
+        row['eh_haschanged'] = emplhour.haschanged
+
 # replaced by create_emplhour_itemdict_from_row
         # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
         item_dict = create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang)
@@ -2099,8 +2136,8 @@ def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone,
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    #logger.debug(' === create_emplhour_itemdict_from_row ==')
-    #logger.debug('row: ' + str(row))
+    logger.debug(' === create_emplhour_itemdict_from_row ==')
+    logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict_from_row
@@ -2117,6 +2154,7 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
     status_conf_start = f.get_status_value(status_sum, 1)
     status_conf_end = f.get_status_value(status_sum, 2)
     status_locked = (status_sum >= c.STATUS_08_LOCKED)
+    has_changed = row.get('eh_haschanged', False)
 
     comp_id = row.get('comp_id')
     cust_id = row.get('cust_id')
@@ -2130,7 +2168,6 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
 
     oh_shift = row.get('oh_shift', '')
 
-    #logger.debug('oh_shift: ' + str(oh_shift))
     eh_breakdur = row.get('eh_breakdur', 0)
     eh_timedur = row.get('eh_timedur', 0)
     eh_plandur = row.get('eh_plandur', 0)
@@ -2144,9 +2181,9 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
     timeend_utc = row.get('eh_te')  # instance.timeend
     overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
 
+    # daylight saving time warning
     timestart_local = None
     timeend_local = None
-
     dst_warning = False
     if timestart_utc and timeend_utc:
         timezone = pytz.timezone(comp_timezone)
@@ -2306,11 +2343,10 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
 
         elif field == 'status':
             field_dict['value'] = status_sum
-
-        # else:
-        # value = getattr(instance, field)
-        #  if value:
-        #    field_dict['value'] = value
+            field_dict['haschanged'] = has_changed
+            if has_changed:
+                field_dict['modified_by'] = row.get('u_usr')
+                field_dict['modified_date'] = row.get('eh_modat')
 
         item_dict[field] = field_dict
 

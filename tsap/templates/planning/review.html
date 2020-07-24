@@ -5,7 +5,9 @@
 {% block title %}{% trans 'Billing' %}{% endblock %}
 
 {% block script %}
+    <!--
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.1/xlsx.full.min.js"></script>
+    -->
     <script src="{% static 'js/review.js' %}"></script>
 {% endblock %}
 
@@ -57,15 +59,15 @@
 <!-- =================== MODAL SELECT EMPLOYEE  ===================-->
         {% include 'includes/modselectemployee.html' %}
 <!-- =================== CONTAINER =================== -->
-        <div class="container">
+        <div class="containerXX">
 
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_48">
+            <div class="tsa_margin_top_48 mx-4">
             <!-- content_header -->
                 <div class="content_header ">
                 <!-- header_text -->
                     <div class="content_subheader_left ml-4">
-                        <h5 id="id_hdr_period"></h5>
+                        <h5 id="id_hdr_text"></h5>
                     </div>
             <!-- loader -->
                     <div class="content_header_middle ">

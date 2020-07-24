@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             teammember: { tbl_col_count: 6,
                         field_caption: ["Team", "Employee", "Start_date", "End_date", "Replacement_employee", ""],
                         field_names: ["team", "employee", "datefirst", "datelast", "replacement", "delete"],
-                        field_tags:  ["div", "div", "input", "input", "div", "div"],
+                        field_tags:  ["div", "div", "div", "div", "div", "div"],
                         field_width: ["120", "150", "150", "150", "150", "032"],
                         field_align: ["l", "l", "l", "l", "l", "r"]},
             absence: { tbl_col_count: 8,
@@ -343,8 +343,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- Datalist Download
         // TODO set show_absence = false
         //show_absence = null is for testing, show_absence must be false in production
-        //const show_absence_FOR_TESTING_ONLY = null;
-        const show_absence_FOR_TESTING_ONLY = false;
+        const show_absence_FOR_TESTING_ONLY = null;
+        //const show_absence_FOR_TESTING_ONLY = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}},
@@ -429,6 +429,70 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  update tables
         UpdateTablesAfterResponse(response);
     }  // refresh_maps
+
+
+//========= UpdateTablesAfterResponse  =============
+    function UpdateTablesAfterResponse(response){
+        console.log("--- UpdateTablesAfterResponse  --------------");
+        //SBR_FillSelectTable fills selecttable and makes visible
+
+        // TODO check use of it
+        // refresh_tables dict gets value in SchemeTemplateUploadView
+        // update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
+        //console.log("response[copied_from_template: ", response["copied_from_template"]);
+
+        if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
+        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
+        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
+        if ("employee_list" in response) {refresh_datamap(response["employee_list"], employee_map)}
+        if ("abscat_list" in response) {refresh_datamap(response["abscat_list"], abscat_map)}
+        if ("absence_list" in response) {refresh_datamap(response["absence_list"], absence_map, "absence")}
+        if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
+
+        if ("scheme_list" in response) {
+            // tblNames are: shift, teammember, schemeitem, absence
+        }
+
+        if("copied_from_template" in response) {
+            let new_scheme_pk = get_dict_value(response, ["copied_from_template", "scheme_pk"])
+            let new_order_pk = get_dict_value(response, ["copied_from_template", "order_pk"])
+            let new_customer_pk = get_dict_value(response, ["copied_from_template", "customer_pk"])
+            if (new_scheme_pk && new_order_pk && new_customer_pk){
+                //console.log( "is_template_mode", is_template_mode);
+                // get saved scheme_pk from settings. Settings is retrieved from server before UpdateTablesAfterResponse
+                settings.scheme_pk =  new_scheme_pk;
+                settings.order_pk = new_order_pk;
+                settings.customer_pk = new_customer_pk;
+
+                selected.customer_pk = settings.customer_pk;
+                selected.order_pk = settings.order_pk;
+                selected.scheme_pk =  settings.scheme_pk;
+
+                is_template_mode = false;
+                selected_btn = "btn_grid" // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
+
+            }
+        }
+
+        // tblNames are 'shift', 'teammember', 'scheme', 'absence', 'schemeitem'. Null for btn_grid
+        const tblName = get_tblName_from_selectedBtn(selected_btn);
+        // reset header text
+        UpdateHeaderText("HandleSubmenubtnTemplateShow");
+// --- reset grid
+        Grid_Reset();
+// reset sidebar_tblBody_scheme
+        //>>>>>>>>>sidebar_tblBody_scheme.innerText = null;
+        SBR_FillSelectTable("UpdateTablesAfterResponse")
+
+        FillTableRows(tblName);
+        HandleBtnSelect(selected_btn, true)  // true = skip_upload
+
+    };  //  UpdateTablesAfterResponse
+
+
 
 //=========  selected_item_exists_in_map  === PR2020-05-01
     function selected_item_exists_in_map(data_map, tblName, selected_pk) {
@@ -533,6 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         HandleSelectOrder(sel_customer_pk, sel_order_pk);
+
 // hide sidebar select_order in template mode
         add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
         add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
@@ -694,11 +759,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // HandleSelectOrder
 
 //=========  HandleSelect_Row ================ PR2019-12-01 PR2020-07-02
-    function HandleSelect_Row(sel_tr_clicked) {
+    function HandleSelect_Row(sel_tr_clicked, event_target) {
         console.log( "===== HandleSelect_Row  ========= ");
          // selectRow table = scheme
+         // skip when clicked on inactive img
+        const is_tag_img = (event_target && event_target.tagName === "IMG");
         let map_dict = {};
-        if(sel_tr_clicked) {
+        if(sel_tr_clicked && !is_tag_img) {
 // ---  get map_dict
             const data_pk = get_attr_from_el(sel_tr_clicked, "data-pk")
             const tblName = get_attr_from_el(sel_tr_clicked, "data-table")
@@ -735,15 +802,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // make all rows of this select_table light yellow
         // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
 
-            ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_yellow_lightlight, false, sel_tr_clicked, cls_bc_yellow)
+            ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow)
 
+
+// happens in HandleBtnSelect
     // --- fill grid with new scheme
-            Grid_FillGrid("HandleSelect_Row")
-
+           // Grid_FillGrid("HandleSelect_Row")
     // --- get header_text
-            UpdateHeaderText("HandleSelect_Row")
+            //UpdateHeaderText("HandleSelect_Row")
 
-    // hide or show tables
+// hide or show tables
             //console.log( "tblName", tblName);
 
             // change selected_btn to 'team' when team is selected, to 'shift' when shift is selected,
@@ -970,21 +1038,6 @@ document.addEventListener('DOMContentLoaded', function() {
         UpdateTableRow(tblRow, item_dict, "HandleCreateSchemeItem")
     }  // HandleCreateSchemeItem
 
-//=========  HandleFilterInactive  ================ PR2019-07-18
-    function HandleFilterInactive(el) {
-        console.log("=========  function HandleFilterInactive =========");
-        console.log(el);
-// toggle value
-        selected_order_pk = !selected_order_pk
-
-// toggle icon
-        let img_src = (selected_order_pk) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
-        console.log("img_src", img_src);
-        el.firstChild.setAttribute("src", img_src);
-
-        //FilterTableRows(sidebar_tblBody_scheme, "", 1, selected_order_pk)
-    }  // function HandleFilterInactive
-
 //##################################################################################
 
 // +++++++++++++++++ CREATE ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1164,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const has_delete_btn = false
         const selected_pk = (is_template_mode) ? null : selected.scheme_pk;
         const filter_ppk = (is_template_mode) ? null : selected.order_pk;
-        const filter_show_inactive = true;
+
         const filter_include_inactive = true;
         const filter_include_absence = (show_absence_FOR_TESTING_ONLY !== false);
         const filter_istemplate = is_template_mode;
@@ -1180,13 +1233,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const title_row_btn = null;
         let tblRow_selected = null;
 
-        console.log( "=== SBR_FillSelectTable === ", called_by);
+// hide sidebar select_order in template mode
+        add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
+        add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
+
+        console.log( "filter_show_inactive ", filter_show_inactive);
         t_Fill_SelectTable(tblBody, tblHead, data_map, tblName, selected_pk, include_parent_code,
-            HandleSelect_Filter, HandleSelectFilterButton, HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
+            HandleSelect_Filter, HandleSelectFilterBtnInactive, HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
             filter_ppk, filter_show_inactive, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
-            cls_bc_lightlightgrey, cls_bc_yellow,
+            cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
             imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
             header_txt, title_header_btn, title_row_btn);
+
+// --- filter inactive scheme's
+        // has_ppk_filter = false, because only schemes of selected order are in the list
+
+       t_Filter_TableRows(sidebar_tblBody_scheme, "scheme", {}, filter_show_inactive);
 
 // --- show select_table scheme when selected.order_pk exists
        add_or_remove_class(document.getElementById("id_select_table_scheme"), cls_hide, !selected.order_pk)
@@ -1200,7 +1262,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
-function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
+
+//=========  HandleSelectFilterBtnInactive  ================ PR2019-07-18
+    function HandleSelectFilterBtnInactive(el) {
+        console.log(" --- HandleSelectFilterBtnInactive --- ", selected_btn);
+// toggle value
+        filter_show_inactive = !filter_show_inactive
+// toggle icon
+        if(el){
+            const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
+            // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
+            el.children[0].setAttribute("src", img_src);
+        }
+// Filter TableRows
+        // TODO there is no scehem table yet
+        // has_ppk_filter = false, because only schemes of selected order are in the list
+        //t_Filter_TableRows(sidebar_tblBody_scheme, "scheme", {}, filter_show_inactive);
+
+        t_Filter_SelectRows(sidebar_tblBody_scheme, null, filter_show_inactive);
+
+    }  // HandleSelectFilterBtnInactive
 
 
 //========= HandleSelectRowButton  ============= PR2020-05-21
@@ -1213,12 +1294,13 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
     }
 //========= HandleBtnInactiveDeleteClicked  ============= PR2020-05-21
     function HandleBtnInactiveDeleteClicked(mode, el_input) {
-        //console.log( " ==== HandleBtnInactiveDeleteClicked ====");
+        console.log( " ==== HandleBtnInactiveDeleteClicked ====");
+        //console.log( "mode", mode);
         //console.log( "el_input", el_input);
         // values of mode are: "delete", "inactive"
-
+        mod_dict = {};
         let tblRow = get_tablerow_selected(el_input)
-        if(!!tblRow){
+        if(tblRow){
             const tblName = get_attr_from_el(tblRow, "data-table")
             const pk_str = get_attr_from_el_str(tblRow, "data-pk");
             const map_id = get_map_id(tblName, pk_str);
@@ -1226,42 +1308,39 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             if (tblName === "order") { map_dict = order_map.get(map_id)} else
             if (tblName === "scheme") { map_dict = scheme_map.get(map_id)} else
             if (tblName === "roster"){ map_dict = roster_map.get(map_id)};
-
             //console.log( "map_dict", map_dict);
-        //console.log(map_dict);
-    // ---  create upload_dict with id_dict
-            const map_dict_id = get_dict_value(map_dict, ["id"])
-            let upload_dict = {id:  {pk: get_dict_value(map_dict, ["id", "pk"]),
+            // store el_input.id, so el can be changed after modconfirm.save
+            // Note: event can be called by img element. In that case there is no id. Get id of parent instead
+            let el_id = (!!el_input.id) ? el_input.id : el_input.parentNode.id
+
+// ---  create upload_dict with id_dict
+            mod_dict = {id:  {pk: get_dict_value(map_dict, ["id", "pk"]),
                                     ppk:  get_dict_value(map_dict, ["id", "ppk"]),
                                     table:  get_dict_value(map_dict, ["id", "table"]),
                                     isabsence:  get_dict_value(map_dict, ["id", "isabsence"]),
-                                    istemplate:  get_dict_value(map_dict, ["id", "istemplate"])}
-            };
+                                    istemplate:  get_dict_value(map_dict, ["id", "istemplate"]),
+                                    el_id: el_id
+                                }
+                            };
             if (mode === "delete"){
+                mod_dict.id.delete = true
                 ModConfirmOpen("delete", el_input);
-                return false;
 
             } else if (mode === "inactive"){
         // get inactive from map_dict
                 const inactive = get_dict_value(map_dict, ["inactive", "value"], false)
         // toggle inactive
                 const new_inactive = (!inactive);
-                upload_dict.inactive = {value: new_inactive, update: true};
+                mod_dict.inactive = {value: new_inactive, update: true};
         // ---  show modal, only when made inactive
-                if(!!new_inactive){
-                    // create mod_dict, to store new_inactive
-                    // store el_input.id, so el can be changed after modconfirm.save
-                    // Note: event can be called by img element. In that case there is no id. Get id of parent instead
-                    let el_id = (!!el_input.id) ? el_input.id : el_input.parentNode.id
-                    mod_dict = {inactive: upload_dict.inactive, el_id: el_id};
+                if(new_inactive){
                     ModConfirmOpen("inactive", el_input);
-                    return false;
                 } else {
                     // change inactive icon, before uploading, not when new_inactive = true
                     format_inactive_element (el_input, {value: new_inactive}, imgsrc_inactive_black, imgsrc_inactive_grey)
+                    UploadChanges(mod_dict, url_scheme_shift_team_upload);
                 }
             }
-            UploadDeleteChanges(upload_dict, url_scheme_shift_team_upload);
         }  // if(!!tblRow)
     }  // HandleBtnInactiveDeleteClicked
 
@@ -1329,6 +1408,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             el_a.innerText = loc.Add_scheme + "..."
             el_a.addEventListener("click", function() {MSCH_Open()}, false )
             el_a.classList.add("tsa_color_darkgrey");
+            el_a.classList.add("pointer_show")
         td.appendChild(el_a);
         td.setAttribute("colspan", "2");
         td.classList.add("px-2")
@@ -1384,13 +1464,13 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //=========  CreateTblFooter  ===  PR2019-12-01 PR2020-05-26
     function CreateTblFooter(tblName) {
-        //console.log("===  CreateTblFooter == ");
-        //console.log("tblName", tblName);
+        console.log("===  CreateTblFooter == ");
+        console.log("tblName", tblName);
         // tblName = "schemeitem", "shift", "teammember", absence'
         tblFoot_datatable.innerText = null
 
 // --- function adds row 'add new' in tfoot
-        if(!!tblFoot_datatable){
+        if(tblFoot_datatable){
             id_new += 1;
             const pk_new = "new" + id_new.toString()
             // selected.scheme_pk is still 0 when footer is created
@@ -1398,10 +1478,15 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
             const scheme_pk = (tblName !== "absence") ? selected.scheme_pk : null
             let tblRow = CreateTblRow(tblFoot_datatable, tblName, true, pk_new, selected.scheme_pk, scheme_pk);
 
+        console.log("tblRow", tblRow);
             let dict = {id: {pk: pk_new, ppk: selected.scheme_pk, temp_pk: pk_new, table: tblName}};
 
             if (tblName === "shift"){dict.code = {value: "< " + loc.Add_shift + " >"}
-            } else if (tblName === "shift"){dict.code = {value: "< " + loc.Add_teammember + " >"}
+            } else if (tblName === "teammember") {
+                //const el_div = tblRow.cells[0]
+               // el_div.innerText = "< " + loc.Add_teammember + " >"
+                //el_div.classList.add("mx-2")
+                {dict.teammember = {value: "< " + loc.Add_teammember + " >"}}
             } else if (tblName === "absence"){dict.employee = {code: "< " + loc.Add_absence + " >"}
             } else if (tblName === "schemeitem"){
                 // TODO  dict.rosterdate = today_dict
@@ -1495,8 +1580,8 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, is_absence_mode) {
-        //console.log( "===== FillTableRows  ========= ");
-        //console.log( "tblName:", tblName);
+        console.log( "===== FillTableRows  ========= ");
+        console.log( "tblName:", tblName);
         // tblNames are: "shift", "teammember", "scheme", "absence" (=teamemmber", "schemeitem" : null;
 
 // --- reset tblBody
@@ -1618,7 +1703,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
                 if (is_addnew_row) {
                     el.classList.add("tsa_color_darkgrey")
 // --- in addnew row: merge firsat 2 rows
-                    td.setAttribute("colspan",2)
+                    td.setAttribute("colspan", 2)
                 };
             }
 
@@ -2071,7 +2156,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
                     if ("scheme_list" in response) {
                         refresh_datamap(response["scheme_list"], scheme_map)
-                        SBR_FillSelectTable("UploadSchemeOrShiftOrTeam scheme_list");
+                        // >>>> SBR_FillSelectTable("UploadSchemeOrShiftOrTeam scheme_list");
                     }
                     if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map) }
                     if ("team_list" in response) {refresh_datamap(response["team_list"], team_map) }
@@ -2528,7 +2613,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 //=========  UpdateFromResponse  ================ PR2019-10-14
     function UpdateFromResponse(update_dict) {
         console.log(" ==== UpdateFromResponse ====");
-        console.log("update_dict", update_dict);
+        console.log("update_dict", deepcopy_dict(update_dict) );
 
 //----- get id_dict of updated item
         const id_dict = get_dict_value(update_dict, ["id"]);
@@ -2673,7 +2758,7 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
 //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
             // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
-            const filter_show_inactive = false; // no inactive filtering on this page
+            //const filter_show_inactive = false; // no inactive filtering on this page
             const include_parent_code = false;
             t_UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // if( tblName === "scheme"...
@@ -2693,47 +2778,6 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
         UpdateHeaderText("UpdateFromResponse");
     }  // UpdateFromResponse
 
-
-//========= UpdateTablesAfterResponse  =============
-    function UpdateTablesAfterResponse(response){
-        //console.log("--- UpdateTablesAfterResponse  --------------");
-        //SBR_FillSelectTable fills selecttable and makes visible
-
-        // TODO check use of it
-        // refresh_tables dict gets value in SchemeTemplateUploadView
-        // update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
-        //console.log("response[copied_from_template: ", response["copied_from_template"]);
-        let new_scheme_pk = get_dict_value(response, ["copied_from_template", "scheme_pk"], 0)
-        let new_order_pk = get_dict_value(response, ["copied_from_template", "order_pk"], 0)
-
-        //console.log( "is_template_mode", is_template_mode);
-        // get saved scheme_pk from settings. Settings is retrieved from server before UpdateTablesAfterResponse
-        settings.scheme_pk = (new_scheme_pk) ? new_scheme_pk : settings.scheme_pk;
-        settings.order_pk = (new_order_pk) ? new_order_pk : settings.order_pk;
-
-        // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
-        // tblNames are 'shift', 'teammember', 'scheme', 'absence', 'schemeitem'. Null for btn_grid
-        const tblName = get_tblName_from_selectedBtn(selected_btn);
-
-        if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
-        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
-        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
-        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
-        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
-        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
-        if ("employee_list" in response) {refresh_datamap(response["employee_list"], employee_map)}
-        if ("abscat_list" in response) {refresh_datamap(response["abscat_list"], abscat_map)}
-        if ("absence_list" in response) {refresh_datamap(response["absence_list"], absence_map, "absence")}
-        if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
-
-        if ("scheme_list" in response) {
-            SBR_FillSelectTable("UpdateTablesAfterResponse")
-            // tblNames are: shift, teammember, schemeitem, absence
-        }
-        FillTableRows(tblName);
-        HandleBtnSelect(selected_btn, true)  // true = skip_upload
-
-    };  //  UpdateTablesAfterResponse
 
 //========= UpdateAbsenceTableRow  =============
     function UpdateAbsenceTableRow(tblRow, update_dict, called_by){
@@ -4110,11 +4154,18 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
     function ModConfirmOpen(mode, el_input, get_text) {
         console.log(" -----  ModConfirmOpen   ----", mode)
         console.log("mode: ", mode)
-        console.log("mod_MGS_dict: ", mod_MGS_dict)
         console.log("get_text: ", get_text)
         // modes are schemeitem_delete, delete, inactive, 'grid_si', 'grid_team_delete', 'gridrow_shift_delete'
 
+console.log("mod_dict: ", mod_dict)
+
+        // tblRow is undefined when el_input = undefined
         const tblRow = get_tablerow_selected(el_input);
+        let tblName = get_attr_from_el(tblRow, "data-table")  // can be 'absence' from UploadDeleteInactive
+        const pk_str = get_attr_from_el(tblRow, "data-pk")
+        const map_id =  get_map_id(tblName, pk_str);
+        const map_dict = get_mapdict_from_tblRow(tblRow)
+
         let header_text = null;
         let msg_01_txt = null, msg_02_txt = null, msg_03_txt = null;
         let btn_save_caption = loc.Save, btn_save_style = "btn-primary", btn_save_hidden = false, btn_save_focus = false;
@@ -4122,17 +4173,26 @@ function HandleSelectFilterButton(){console.log("HandleSelectFilterButton")}
 
         console.log("selected_btn: ", selected_btn)
 
-        let tblName = get_attr_from_el(tblRow, "data-table")  // can be 'absence' from UploadDeleteInactive
-        let pk_str = get_attr_from_el(tblRow, "data-pk")
-        let map_id =  get_map_id(tblName, pk_str);
-        let map_dict = get_mapdict_from_tblRow(tblRow)
 
 if(selected_btn === "btn_absence"){
-        if(tblRow){
+        if(!isEmpty(map_dict)){
             header_text = get_dict_value(map_dict, ["employee", "code"])
         } else {
             header_text = mod_dict.selected_employee
         }
+
+} else if(mode === "inactive"){
+        // called by sbr_scheme_select, maybe also by schemeitem table
+        btn_save_hidden = (isEmpty(map_dict));
+        if(!btn_save_hidden){
+            header_text = loc.Scheme + ": " + get_dict_value(map_dict, ["code", "value"], "-")
+            msg_01_txt = loc.Scheme + " '" + get_dict_value(map_dict, ["code", "value"], "-") + "' " +
+                            loc.will_be_made_inactive + "\n" + loc.Do_you_want_to_continue;;
+            btn_save_caption = loc.Yes_make_inactive;
+            btn_save_focus = true;
+            btn_cancel_caption =  loc.No_cancel;
+        }
+
 } else if(mode === "grid_si"){
             header_text = get_text;
             msg_01_txt = loc.Select_team_first + " " +  loc.before_add_or_remove_a_shift;
@@ -4176,11 +4236,8 @@ if(selected_btn === "btn_absence"){
         mod_dict.mode = mode //used in ModConfirmSave
 
         // tblRow is undefined when el_input = undefined
-        if(!!tblRow){
-            tblName = get_attr_from_el(tblRow, "data-table")  // can be 'absence' from UploadDeleteInactive
-            pk_str = get_attr_from_el(tblRow, "data-pk")
-            const map_id =  get_map_id(tblName, pk_str);
-            map_dict = get_mapdict_from_tblRow(tblRow)
+        if(tblRow){
+
         } else if (selected_btn === "absence"){
 
         } else if(mode === "schemeitem_delete"){
@@ -4236,33 +4293,25 @@ if(selected_btn === "btn_absence"){
 
         if (mode === "schemeitem_delete"){
             msg_01_txtXX = loc.All_schemeitems_willbe_deleted;
-        } else if (mode === "inactive"){
-            msg_01_txtXX = msg_01_txt + " " + loc.will_be_made_inactive;
         } else if (["delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1){
             msg_01_txtXX = msg_01_txt + " " + loc.will_be_deleted;
         }
 
 
-        let el_btn_save = document.getElementById("id_confirm_btn_save")
-        el_btn_save.innerText = (mode === "inactive") ? loc.Yes_make_inactive : loc.Yes_delete;
-        let el_btn_cancel = document.getElementById("id_confirm_btn_cancel")
-        el_btn_cancel.innerText = (mode === "grid_si") ? loc.OK : loc.No_cancel;
-
 // hide ok button when (mode === "grid_si")
-        add_or_remove_class (el_btn_save, cls_hide, (mode === "grid_si"))
+        //add_or_remove_class (el_btn_save, cls_hide, (mode === "grid_si"))
         //setTimeout(function() {el_btn_save.focus()}, 300);
 
 // set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
-        let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
-        setTimeout(function (){document.getElementById(id_str).focus();}, 500);
-        const is_delete = (["delete", "schemeitem_delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1)
-        let btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary";
-        let btn_class_remove = (is_delete) ? "btn-primary" : "btn-outline-danger";
-        document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
-        document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
+        //let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
+        //setTimeout(function (){document.getElementById(id_str).focus();}, 500);
+        //const is_delete = (["delete", "schemeitem_delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1)
+        //let btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary";
+        //let btn_class_remove = (is_delete) ? "btn-primary" : "btn-outline-danger";
+        //document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
+        //document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
 
 }  //if(selected_btn === "btn_absence"){
-
 
         document.getElementById("id_confirm_header").innerText = header_text;
 
@@ -4275,19 +4324,20 @@ if(selected_btn === "btn_absence"){
         el_msg03.innerText = msg_03_txt;
         add_or_remove_class (el_msg02, cls_hide, (!msg_02_txt))
         add_or_remove_class (el_msg03, cls_hide, (!msg_03_txt))
-
+// ---  set btn save
         const el_btn_save = document.getElementById("id_confirm_btn_save")
         el_btn_save.innerText = btn_save_caption
         el_btn_save.classList.remove("btn-primary", "btn-secondary", "btn-outline-danger")
         el_btn_save.classList.add(btn_save_style)
         add_or_remove_class(el_btn_save, cls_hide, btn_save_hidden);
-
+// ---  set btn cancel
         const el_btn_cancel = document.getElementById("id_confirm_btn_cancel")
         el_btn_cancel.innerText = btn_cancel_caption
         el_btn_cancel.classList.remove("btn-primary", "btn-secondary", "btn-outline-secondary", "btn-outline-danger")
         el_btn_cancel.classList.add(btn_cancel_style)
 
-        const el_focus = (btn_save_focus) ? el_btn_save : el_btn_cancel
+// ---  set focus
+        const el_focus = (btn_save_focus && !btn_save_hidden) ? el_btn_save : el_btn_cancel
         set_focus_on_el_with_timeout(el_focus, 50)
 
 // show modal
@@ -5779,7 +5829,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             ModCopytoTemplateOpen ();
         }
     }
-//========= MCFT_Open====================================
+//========= MOD COPY FROM TEMPLATE Open====================================
     function MCFT_Open () {
         console.log("===  MCFT_Open  =====") ;
 
@@ -5822,19 +5872,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
               // selected.order_pk is the order to which de template scheme will be copied.
         // cannot copy if selected.order_pk is blank
             el_MCFT_btn_save.readOnly = (!selected.order_pk)
-
-    console.log("mod_dict", mod_dict) ;
-        // ---  show modal
+// ---  show modal
             $("#id_mod_copyfrom").modal({backdrop: true});
         }  //  if(!!selected.order_pk && selected.customer_pk) {
     }; // function MCFT_Open
 
-
 //=========  ModCopyfromTemplateSave  ================ PR2019-07-24
     function MCFT_Save() {
         console.log("=========  MCFT_Save =========");
-
-        console.log("mod_dict", mod_dict)
         let newscheme_code = document.getElementById("id_mod_copyfrom_code").value;
         const dict = {id: {pk: mod_dict.template_scheme_pk,
                            ppk: mod_dict.template_scheme_ppk,
@@ -5845,10 +5890,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                      }
         const upload_dict = {"copyfromtemplate": dict};
         UploadChanges(upload_dict, url_scheme_template_upload)
-
         $("#id_mod_copyfrom").modal("hide");
     }  // MCFT_Save
-
 
 //=========  MCFT_SelectOrder  ================ PR2019-11-22
     function MCFT_SelectOrder(tr_clicked) {
@@ -6973,7 +7016,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= Grid_Reset  ==================== PR2020-07-02
     function Grid_Reset() {
-        console.log(" === Grid_Reset ===") // PR2020-07-06
+        //console.log(" === Grid_Reset ===") // PR2020-07-06
 // ---  reset grid_dict
         grid_dict = {}
 // ---  reset grid_tbody_team
@@ -7082,7 +7125,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
         //console.log("mode", mode)
         //console.log("selected.grid_range", selected.grid_range)
-        //console.log("selected.scheme_pk", selected.scheme_pk)
+        console.log("selected.scheme_pk", selected.scheme_pk)
 
 // ---  reset grid_dict
         Grid_Reset();
@@ -7099,6 +7142,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 grid_dict.nocycle = (!grid_dict.cycle || grid_dict.cycle > 28)
                 if (grid_dict.nocycle){ grid_dict.cycle = 0 }
 
+                console.log("scheme_dict", scheme_dict)
 // ---  get grid_range from settings
                 grid_dict.grid_range = selected.grid_range
 
@@ -7281,8 +7325,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  Grid_CreateTblShifts  === PR2020-03-13 PR2020-07-08
     function Grid_CreateTblShifts(col_index) {
-        console.log("===  Grid_CreateTblShifts == ")
-        console.log("grid_dict ", deepcopy_dict(grid_dict))
+        //console.log("===  Grid_CreateTblShifts == ")
+        //console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         let hide_btns_grid =  get_dict_value(grid_dict, ["nocycle"], false);
         add_or_remove_class(document.getElementById("id_btns_grid"), cls_hide, !grid_dict.nocycle)

@@ -607,7 +607,7 @@ class Employee(TsaBaseModel):
 
     workhoursperweek = IntegerField(default=0)  # renamed. Was workhours. Working hours per week * 60, unit is minute. 40 hours = 2400 workhours
     workminutesperday = IntegerField(default=0)  # working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
-    # workdays = IntegerField(default=0)  # TODO deprecated: remove workdays per week * 1440, unit is minute. 5 days = 7200 workdays
+    # workdays = IntegerField(default=0)  # deprecated: removed: workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -800,12 +800,11 @@ class Orderhour(TsaBaseModel):
     # TODO add nobill to pricepage
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
-    status = PositiveSmallIntegerField(db_index=True, default=0)
-
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicedate = DateField(db_index=True, null=True)
     lockedinvoice = BooleanField(default=False)
 
+    status = PositiveSmallIntegerField(db_index=True, default=0)
     hasnote = BooleanField(default=False)
 
     class Meta:
@@ -921,6 +920,13 @@ class Emplhourlog(TsaBaseModel):
     timeend = DateTimeField(null=True)
     breakduration = IntegerField(default=0)
     timeduration = IntegerField(default=0)
+    plannedduration = IntegerField(default=0)
+    billingduration = IntegerField(default=0)
+    offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    excelstart = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
+    excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
+
     status = PositiveSmallIntegerField(default=0)
 
     class Meta:

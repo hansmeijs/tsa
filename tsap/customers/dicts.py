@@ -47,7 +47,7 @@ def create_companyinvoice_list(company):
     #    crit.add(Q(istemplate=is_template), crit.connector)
     #if inactive is not None:
     #    crit.add(Q(inactive=inactive), crit.connector)
-    companyinvoices = m.Companyinvoice.objects.filter(crit)
+    companyinvoices = m.Companyinvoice.objects.filter(crit).order_by('-modifiedat')
     #logger.debug(str(companyinvoices.query))
 
     companyinvoice_list = []
@@ -81,6 +81,11 @@ def create_companyinvoice_dict(companyinvoice):
 
             elif field == 'cat':
                 field_dict['value'] = getattr(companyinvoice, field, 0)
+
+            elif field == 'modifiedat':
+                modifiedat_dte = getattr(companyinvoice, field)
+                if modifiedat_dte:
+                    field_dict['value'] = modifiedat_dte.isoformat()[:10]
 
             else:
                 value = getattr(companyinvoice, field)

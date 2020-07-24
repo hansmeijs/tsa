@@ -755,8 +755,8 @@
         return dict_clone;
     }  // deepcopy_dict
 
-// +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+// +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
     function get_dateJS_from_dateISO (date_iso) {
@@ -777,7 +777,7 @@
 
 //=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
     function get_dateJS_from_dateISO_vanilla(date_iso) {
-        //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
+        console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
         let date_JS = null;
         if (!!date_iso){
             let arr_int = get_array_from_ISOstring(date_iso);
@@ -787,6 +787,19 @@
         return date_JS
     }  // get_dateJS_from_dateISO_vanilla
 
+//=========  parse_dateJS_from_dateISO ================ PR2020-07-22
+    function parse_dateJS_from_dateISO(date_iso) {
+        //console.log( "===== parse_dateJS_from_dateISO  ========= ");
+        // function creates date in local timezone.
+        // date_iso = '2020-07-22T12:03:52.842Z'
+        // date_JS = Wed Jul 22 2020 08:03:52 GMT-0400 (Bolivia Time)
+
+        let date_JS = null;
+        if (date_iso){
+           date_JS =  new Date(Date.parse(date_iso));
+        }
+        return  date_JS;
+    }  // parse_dateJS_from_dateISO
 
 //========= get_dateISO_from_dateJS  ======== PR2020-06-19
     function get_dateISO_from_dateJS (dateJS) {
@@ -1032,7 +1045,6 @@
         return nextmonth_firstday_JS;
     }  // get_nextmonth_
 
-
 //========= get_thismonth_lastJS_from_dateJS  ========== PR2020-07-07
     function get_thismonth_lastJS_from_dateJS(dateJS) {
         const y = dateJS.getFullYear(), m = dateJS.getMonth();
@@ -1053,7 +1065,6 @@
         const nextmonth_lastday_JS = new Date(y, m, 0);
         return nextmonth_lastday_JS;
     }  // get_nextmonth_lastJS_from_dateJS
-
 
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {
@@ -1162,7 +1173,7 @@
 //========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
     function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
         "use strict";
-        //console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
+        console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = companyoffset
 
@@ -1170,9 +1181,9 @@
         let datetimearr = [];
         if (!!datetimeUTCiso){
 
-            //console.log("datetimeUTCiso: ", datetimeUTCiso)
+            console.log("datetimeUTCiso: ", datetimeUTCiso)
             let datUTC = get_dateJS_from_dateISO_vanilla(datetimeUTCiso)
-            //console.log("datUTC: ", datUTC, typeof datUTC)
+            console.log("datUTC: ", datUTC, typeof datUTC)
 
             let arr = get_array_from_ISOstring(datetimeUTCiso)
             // Month 4 april has index 3
@@ -1183,18 +1194,18 @@
             // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
             //console.log("datetime_local: ", datetime_local, typeof datetime_local)
 
-            //console.log("companyoffset: ", companyoffset)
-            //console.log("useroffset: ", useroffset)
+            console.log("companyoffset: ", companyoffset)
+            console.log("useroffset: ", useroffset)
 
             // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
             //companyoffset stores offset from UTC to company_timezone in seconds
             const datetime_offset = datetime_local.setSeconds(offset)
             // datetime_offset:  1561455540000 number
-            //console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+            console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
 
             const datetime_new = new Date(datetime_offset);
             //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
-            //console.log("datetime_new: ", datetime_new, typeof datetime_new)
+            console.log("datetime_new: ", datetime_new, typeof datetime_new)
             datetimearr[0] = datetime_new.getFullYear()
             datetimearr[1]  = datetime_new.getMonth()
             datetimearr[2] = datetime_new.getDate()

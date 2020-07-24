@@ -3873,6 +3873,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_MEP_breakduration").innerText = display_duration (emplhour_dict.breakduration, loc.user_lang);
         document.getElementById("id_MEP_timeduration").innerText = display_duration (emplhour_dict.timeduration, loc.user_lang);
 
+        document.getElementById("id_MEP_function").innerText = emplhour_dict.fc_code;
+        document.getElementById("id_MEP_wagecode").innerText = emplhour_dict.wc_code;
         document.getElementById("id_MEP_paydatecode").innerText = emplhour_dict.pdc_code;
     }
 

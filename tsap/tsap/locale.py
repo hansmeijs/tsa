@@ -580,6 +580,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['This_teammember'] = TXT_This_teammember
         dict['Add_employee'] = TXT_Add_employee
 
+
+        dict['Add_teammember'] = TXT_Add_teammember
+        dict['Delete_teammember'] = TXT_Delete_teammember
+
         dict['All_schemeitems_willbe_deleted'] = _('All shifts of this scheme will be deleted.')
         dict['Delete_scheme_shifts'] = _('Delete scheme shifts.')
 
@@ -690,6 +694,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['for_txt'] = TXT_for_txt
 
+        # tblHeader
+        dict['Date'] = TXT_Date
+
         # mod rosterdate
         dict['TXT_Create_another_roster'] = TXT_Create_another_roster
         dict['TXT_Delete_another_roster'] = TXT_Delete_another_roster
@@ -792,6 +799,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Endtime_confirmed'] = TXT_Endtime_confirmed
         dict['This_shift_is_locked'] = TXT_This_shift_is_locked
         dict['This_isa_planned_shift'] = TXT_This_isa_planned_shift
+        dict['This_isan_added_shift'] = TXT_This_isan_added_shift
         dict['This_isa_restshift'] = TXT_This_isa_restshift
 
         dict['This_employee'] = TXT_This_employee
@@ -818,9 +826,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['You_must_first_select'] = _('You must first select ')
         dict['before_confirm_shift'] = _(', before you can confirm a shift.')
-
         dict['an_order'] = TXT_an_order
         dict['an_employee'] = TXT_an_employee
+
+        dict['You_must_first_enter'] = _('You must first enter ')
+        dict['before_confirm_shift'] = _(', before you can confirm a shift.')
+
+        dict['select_before_confirm_shift'] = pgettext_lazy('You must first select', ', before you can confirm a shift.')
+        dict['enter_before_confirm_shift'] = pgettext_lazy('You must first enter', ', before you can confirm a shift.')
+
         dict['a_starttime'] = TXT_a_starttime
         dict['an_endtime'] = TXT_an_endtime
 
@@ -846,6 +860,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Absence_2lines'] = TXT_Absence_2lines
 
         dict['Total'] = TXT_Total
+
+        dict['Modified_by'] = TXT_Modified_by
+        dict['on'] = TXT_on
 
 # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
@@ -1303,6 +1320,7 @@ TXT_Starttime_confirmed = _('Starttime confirmed')
 TXT_Endtime_confirmed = _('Endtime confirmed')
 TXT_This_shift_is_locked = _('This shift is locked.')
 TXT_This_isa_planned_shift = _('This is a planned shift.')
+TXT_This_isan_added_shift = _('This is an added shift.')
 TXT_This_isa_restshift = _('This is a rest shift.')
 
 # get weekdays translated
@@ -1379,6 +1397,10 @@ TXT_Next_day = _('Next day')
 TXT_Previous_day_title = _('Shift starts on the previous day')
 TXT_Next_day_title = _('Shift ends on the next day')
 TXT_As_of = _('As of')
+
+TXT_Modified_by = _('Modified by ')
+TXT_on = _('on ')
+
 
 TXT_Period_planning_list = (
     ('tweek', TXT_thisweek),

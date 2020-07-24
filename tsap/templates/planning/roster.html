@@ -181,7 +181,7 @@
             <!-- loader -->
                     <div class="content_header_middle ">
                         <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                            <img src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
                     </div>
                 </div>
@@ -195,40 +195,8 @@
 <!-- =================== DATA TABLE  =================== -->
                  <div>
                     <table class="table tsa_tbl mx-4X my-1">
-
-                        <thead id="id_thead_roster" class="thead-inversXXXe">
-                            <tr>
-                                <th class="ta_l">{% trans 'Date' %}</th>
-                                <th class="ta_l">{% trans 'Order' %}</th>
-                                <th class="ta_l">{% trans 'Shift' %}</th>
-                                <th class="ta_l">{% trans 'Employee' %}</th>
-                                <th >{% trans 'Start' %}</th>
-                                <th>
-                                    <a id="id_filter_check" href="#" data-value="false">
-                                        <img id="id_img_filter_check" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
-                                    </a>
-                                </th>
-                                <th >{% trans 'End' %}</th>
-                                <th>
-                                    <a id="id_filter_check_end" href="#" data-value="false">
-                                      <img id="id_img_filter_check_end" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
-                                    </a>
-                                </th>
-
-                                <th class="ta_r">{% trans 'Break' %}</th>
-                                <th class="ta_r">{% trans 'Hours' %}</th>
-                                <th>
-                                    <a id="id_filter_status" href="#" data-value="false">
-                                        <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">
-                                    </a>
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody id="id_tbody_roster">
-                        </tbody>
-                        <tfoot id="id_tfoot_roster">
-                        </tfoot>
+                        <thead id="id_tblHead_datatable"></thead>
+                        <tbody id="id_tblBody_datatable"></tbody>
                     </table>
                 </div>
   <!-- =================== END DATA TABLE  =================== -->
@@ -252,6 +220,7 @@
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
             data-imgsrc_stat05="{% static 'img/stat05.png' %}"
             data-imgsrc_real03="{% static 'img/real03.png' %}"
+            data-imgsrc_status="{% static 'img/status.png' %}"
 
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
@@ -312,7 +281,6 @@
 
             data-txt_hour= "{% trans 'hour' %}"
             data-txt_hours= "{% trans 'hours' %}"
-
 
             data-msg_overlap = "{% trans 'This shift overlaps an other shift of this employee' %}"
         >

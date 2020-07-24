@@ -1168,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
             HandleSelect_Filter, null, MSO_SelectCustomer, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
              filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected)
+            null, cls_selected, cls_hover)
     }  // MSO_FillSelectTableCustomer
 
 //=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
@@ -1188,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 HandleSelect_Filter, null, MSO_SelectOrder, null, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
-                null, cls_selected);
+                null, cls_selected, cls_hover);
     // select first tblRow
             const rows_length = el_modorder_tblbody_order.rows.length;
             if(!!rows_length) {

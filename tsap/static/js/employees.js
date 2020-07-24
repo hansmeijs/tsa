@@ -2133,7 +2133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         t_Fill_SelectTable(SBR_tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleSelectFilterButtonInactive, HandleSelect_Row, HandleSelectRowButton, false,
                             filter_ppk_int, filter_show_inactive, filter_include_inactive, filter_include_absence, filter_istemplate, addall_to_list_txt,
-                            cls_bc_lightlightgrey, cls_bc_yellow,
+                            cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
                             imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
                             header_txt, loc.Click_show_inactive_employees)
 
@@ -2746,7 +2746,7 @@ if(pgeName === "absence"){
             ModSelectEmployee_FilterEmployee, null, ModSelectEmployee_SelectEmployee, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
             filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected );
+            null, cls_selected, cls_hover );
         ModSelectEmployee_headertext();
 // hide button /remove employee'
         document.getElementById("id_ModSelEmp_div_remove_employee").classList.add(cls_hide)

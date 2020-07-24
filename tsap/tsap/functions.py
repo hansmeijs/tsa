@@ -203,7 +203,7 @@ def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
 
     # !!! this is the correct way !!! tested and ok PR2019-09-17
 
-    # a. create new naive datetime object with hour and minute offset
+# a. create new naive datetime object with hour and minute offset
         dt = get_datetime_naive_from_offset(rosterdate, offset_int)
         #logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
             # dt with offset: 2019-11-22 12:00:00 <class 'datetime.datetime'>
@@ -211,7 +211,7 @@ def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
             # datetime_naive has no tzinfo
             # dt.tzinfo: None <class 'NoneType'>
 
-    # b. add timezone to naive datetime object
+# b. add timezone to naive datetime object
         timezone = pytz.timezone(comp_timezone)
         dt_local = timezone.localize(dt)  # dt_local.tzinfo: Europe/Amsterdam <class 'pytz.tzfile.Europe/Amsterdam'>
         #logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
@@ -2377,18 +2377,19 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
                              price_rate, addition_rate, additionisamount, tax_rate):  # PR2020-04-28 PR2020-07-04
     logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
+    # when billable has changed billing_duration is changed outside this function
+    # you must run this function after changing billing_duration PR2020-07-23
     amount, addition, tax = 0, 0, 0
-    logger.debug('price_rate: ' + str(price_rate))
-    logger.debug('is_absence: ' + str(is_absence))
-    logger.debug('is_restshift: ' + str(is_restshift))
+    #logger.debug('price_rate: ' + str(price_rate))
+    #logger.debug('is_absence: ' + str(is_absence))
+    #logger.debug('is_restshift: ' + str(is_restshift))
     if price_rate and not is_absence and not is_restshift:
-        base_duration = billing_duration # if is_billable else time_duration
-        logger.debug('base_duration: ' + str(base_duration))
-        logger.debug('price_rate: ' + str(price_rate))
-        logger.debug('addition_rate: ' + str(addition_rate))
-        logger.debug('tax_rate: ' + str(tax_rate))
-        if base_duration:
-            amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
+        #logger.debug('billing_duration: ' + str(billing_duration))
+        #logger.debug('price_rate: ' + str(price_rate))
+        #logger.debug('addition_rate: ' + str(addition_rate))
+        #logger.debug('tax_rate: ' + str(tax_rate))
+        if billing_duration:
+            amount_not_rounded = (billing_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
             # use math.floor instead of int(), to get correct results when amount is negative
             # math.floor() returns the largest integer less than or equal to a given number.
             # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
@@ -2401,9 +2402,9 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
             tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
             tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
-    logger.debug('amount: ' + str(amount))
-    logger.debug('addition: ' + str(addition))
-    logger.debug('tax: ' + str(tax))
+    #logger.debug('amount: ' + str(amount))
+    #logger.debug('addition: ' + str(addition))
+    #logger.debug('tax: ' + str(tax))
     return amount, addition, tax
 
 
@@ -2725,21 +2726,21 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
 
     # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
     if rosterdate_dte:
-    # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
+# a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
         #logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
         # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
         #logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
         # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
 
-    # b. get starttime from rosterdate and offsetstart
+# b. get starttime from rosterdate and offsetstart
         starttime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
             offset_int=offsetstart,
             comp_timezone=comp_timezone)
         #logger.debug(' starttime_local: ' + str(starttime_local) + ' ' + str(type(starttime_local)))
 
-    # c. get endtime from rosterdate and offsetstart
+# c. get endtime from rosterdate and offsetstart
         #logger.debug('c. get endtime from rosterdate and offsetstart ')
         endtime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
@@ -2747,7 +2748,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             comp_timezone=comp_timezone)
         #logger.debug(' endtime_local: ' + str(endtime_local) + ' ' + str(type(endtime_local)))
 
-    # d. recalculate timeduration, only when both starttime and endtime have value
+# d. recalculate timeduration, only when both starttime and endtime have value
         if starttime_local and endtime_local:
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))
@@ -3134,19 +3135,19 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
     #logger.debug('datefirst' + str(datefirst) + ' ' + str(type(datefirst)))
     #logger.debug('datelast' + str(datelast) + ' ' + str(type(datelast)))
 
-    # - create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
-    datefirst_dte = get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
-    datefirst_minus_one_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
-    datefirst_minus_one_iso = datefirst_minus_one_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
-    # this is not necessary: rosterdate_minus_one = rosterdate_minus_one_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
-    #logger.debug('datefirst_minusone: ' + str(datefirst_minusone) + ' ' + str(type(datefirst_minusone)))
-
-    datelast_dte = get_date_from_ISO(datelast_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
-    datelast_plus_one_dtm = datelast_dte + timedelta(days=1)
-    datelast_plus_one_iso = datelast_plus_one_dtm.isoformat()
-
     overlap_dict = {}
-    if datefirst_minus_one_iso and datelast_plus_one_iso:
+    if datefirst_iso and datelast_iso:
+# - create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
+        datefirst_dte = get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+        datefirst_minus_one_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
+        datefirst_minus_one_iso = datefirst_minus_one_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
+        # this is not necessary: rosterdate_minus_one = rosterdate_minus_one_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
+        #logger.debug('datefirst_minusone: ' + str(datefirst_minusone) + ' ' + str(type(datefirst_minusone)))
+
+        datelast_dte = get_date_from_ISO(datelast_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+        datelast_plus_one_dtm = datelast_dte + timedelta(days=1)
+        datelast_plus_one_iso = datelast_plus_one_dtm.isoformat()
+
         sql_emplhour = """ 
             SELECT eh.id, e.id, eh.excelstart, eh.excelend, 
             oh.isabsence OR oh.isrestshift

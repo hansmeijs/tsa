@@ -158,7 +158,7 @@ let planning_list = [] // for export and printing - can replace map?
         //        setTimeout(function() {HandleSelect_Filter()}, 50)});
 
        // let el_sel_inactive = document.getElementById("id_sel_inactive")
-       //     el_sel_inactive.addEventListener("click", function() {HandleFilterInactive(el_sel_inactive)});
+       //     el_sel_inactive.addEventListener("click", function() {HandleSelectFilterBtnInactive(el_sel_inactive)});
 
 // --- create EventListener for buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
@@ -391,10 +391,10 @@ let planning_list = [] // for export and printing - can replace map?
             const imgsrc_hover = imgsrc_inactive_black;
             const header_txt = null;
             t_Fill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
-                HandleSelect_Filter, HandleFilterInactive, HandleSelect_Row, HandleSelectRowButton, false,
+                HandleSelect_Filter, HandleSelectFilterBtnInactive, HandleSelect_Row, HandleSelectRowButton, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
-                cls_bc_lightlightgrey, cls_bc_yellow,
+                cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
                 imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
                 header_txt, loc.TXT_Cick_show_inactive_customers);
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
@@ -418,10 +418,10 @@ let planning_list = [] // for export and printing - can replace map?
             const imgsrc_hover = imgsrc_inactive_black;
             const header_txt = null;
             t_Fill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
-                HandleSelect_Filter, HandleFilterInactive, HandleSelect_Row,  HandleSelectRowButton, false,
+                HandleSelect_Filter, HandleSelectFilterBtnInactive, HandleSelect_Row,  HandleSelectRowButton, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
-                cls_bc_lightlightgrey, cls_bc_yellow,
+                cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
                 imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
                 header_txt, loc.TXT_Cick_show_inactive_orders);
             const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
@@ -5165,9 +5165,9 @@ let planning_list = [] // for export and printing - can replace map?
 
     }; // HandleFilterName
 
-//=========  HandleFilterInactive  ================ PR2019-03-23
-    function HandleFilterInactive(el) {
-        //console.log("===== HandleFilterInactive ===== ");
+//=========  HandleSelectFilterBtnInactive  ================ PR2019-03-23
+    function HandleSelectFilterBtnInactive(el) {
+        //console.log("===== HandleSelectFilterBtnInactive ===== ");
 // toggle value
         filter_show_inactive = !filter_show_inactive
 // toggle icon
@@ -5175,6 +5175,7 @@ let planning_list = [] // for export and printing - can replace map?
         const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
         // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
         el.children[0].setAttribute("src", img_src);
+
 // Filter SelectRows
         t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
         const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk);
@@ -5194,7 +5195,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 
-    }  // function HandleFilterInactive
+    }  // HandleSelectFilterBtnInactive
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26

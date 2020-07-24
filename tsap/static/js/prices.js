@@ -135,6 +135,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let el_MSP_btn_remove = document.getElementById("id_MSP_btn_remove")
         el_MSP_btn_remove.addEventListener("click", function() {MSP_Save("delete")}, false )
 
+// ---  MOD SELECT BILLABLE ------------------------------
+    let el_MSB_btn_save = document.getElementById("id_MSB_btn_save")
+        el_MSB_btn_save.addEventListener("click", function() {MSB_Save()}, false )
 // ---  set selected menu button active
     SetMenubuttonActive(document.getElementById("id_hdr_prices"));
 
@@ -793,6 +796,18 @@ selected_btn = "customer"
                         const update_dict = response["update_dict"];
                         UpdateFromResponse(update_dict);
                     };
+                    if ("price_list" in response) {
+                        price_list = response["price_list"];
+                        if (!!price_list) {
+                            price_map.clear();
+                            for (let i = 0, len = price_list.length; i < len; i++) {
+                                const item_dict = price_list[i];
+                                const map_id = price_list[i].map_id;
+                                price_map.set(map_id, item_dict);
+                            }
+                        }
+                        FillTableRows()
+                    }
 
 // --- refresh maps and fill tables
                     //refresh_maps(response);
@@ -1235,7 +1250,7 @@ selected_btn = "customer"
             HandleSelect_Filter, null, MSO_SelectCustomer, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
             filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected)
+            null, cls_selected, cls_hover)
     }  // MSO_FillSelectTableCustomer
 
 //=========  MSO_FillSelectOrder  ================ PR2020-02-07
@@ -1258,7 +1273,7 @@ selected_btn = "customer"
                 HandleSelect_Filter, null, MSO_SelectOrder, null, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
-                null, cls_selected
+                null, cls_selected, cls_hover
             );
     // select first tblRow
             if(!!tblBody_select_order.rows.length) {
@@ -1637,7 +1652,7 @@ selected_btn = "customer"
             HandleSelect_Filter, null, MSE_SelectEmployee, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
             filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected);
+            null, cls_selected, cls_hover);
         MSE_headertext();
 
 // hide button /remove employee'
@@ -1849,7 +1864,7 @@ selected_btn = "customer"
         const billable_str = get_attr_from_el(tblRow, "data-value");
         const billable_int = (!!Number(billable_str) ? Number(billable_str) : 0 )
         mod_upload_dict.billable = billable_int;
-        MSB_Save()
+        //MSB_Save()
     }  // MSB_Select_billable
 
     //========= MSB_Fill_SelectTable  ============= PR2020-03-08

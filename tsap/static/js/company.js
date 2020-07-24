@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const CIV_fieldsettings = {tblName: "companyinvoice", colcount: 6,
                                 caption: ["", "", "", "", "", ""],  // filled after loc is downloaded
-                                fldName: ["datepayment", "note", "entries", "used", "balance", "dateexpired"],
+                                fldName: ["modifiedat", "note", "entries", "used", "balance", "dateexpired"],
                                 tag: ["div", "div", "div", "div", "div", "div"],
                                 width: ["120", "300", "120", "120", "120", "120"],
                                 align: ["l", "l", "r", "r", "r", "l"]}
@@ -202,10 +202,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const fldName = CIV_fieldsettings.fldName[j];
                 const field_value = get_dict_value(item_dict, [fldName, "value"]);
                 let display_text = null;
-                if (["datepayment", "dateexpired"].indexOf(fldName) > -1 ) {
+                if (["modifiedat", "dateexpired"].indexOf(fldName) > -1 ) {
                     const hide_weekday = true, hide_year = false;
-                    const datepayment_JS = get_dateJS_from_dateISO (field_value);
-                    display_text = format_date_vanillaJS (datepayment_JS,
+                    const date_JS = get_dateJS_from_dateISO (field_value);
+                    display_text = format_date_vanillaJS (date_JS,
                                     loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, hide_weekday, hide_year);
                 } else if (["entries", "used", "balance"].indexOf(fldName) > -1 ) {
                     const blank_when_zero =  (fldName === "used") ? false : true;

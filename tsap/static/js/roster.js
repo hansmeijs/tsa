@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const imgsrc_stat04 = get_attr_from_el(el_data, "data-imgsrc_stat04");
         const imgsrc_stat05 = get_attr_from_el(el_data, "data-imgsrc_stat05");
         const imgsrc_real03 = get_attr_from_el(el_data, "data-imgsrc_real03");
+        const imgsrc_status = get_attr_from_el(el_data, "data-imgsrc_status");
 
         const title_overlap = get_attr_from_el(el_data, "data-msg_overlap");
 
@@ -84,17 +85,22 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id_new assigns fake id to new records
         let id_new = 0;
 
-        const tbl_col_count = 11;
-        const tbl_col_images = [5, 7, 10];
-        const field_tags = ["input", "input", "input", "input", "input",
-                             "a", "input", "a", "input", "input", "a"];
+        let payroll_header_row = [];
 
-// --- data_fields used in CreateTblRow and CreateTblHeaderFilter
-        const data_fields = ["rosterdate", "order", "shift", "employee", "timestart", "confirmstart",
-                             "timeend", "confirmend", "breakduration", "timeduration", "status"];
+// --- field settings used in CreateTblRow and CreateTblHeader
+        const field_settings = {
+            emplhour: { tbl_col_count: 11,
+                        //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
+                        field_caption: ["Date", "Order", "Shift", "Employee", "-", "Start_time", "-", "End_time", "Break", "Hours", "-"],
+                        field_names: ["rosterdate", "order", "shift", "employee", "confirmstart", "timestart", "confirmend", "timeend", "breakduration", "timeduration", "status"],
+                        field_tags: ["input", "input", "input", "input", "div", "input", "div", "input", "input", "input", "div"],
+                        field_width:  ["090", "200", "150", "180", "020", "090", "020", "090", "090", "090", "020"],
+                        field_align: ["l", "l", "l", "l", "c", "l", "c", "l", "l", "l", "c"]}
+            }
 
 // get elements
-        let tBody_roster = document.getElementById("id_tbody_roster");
+        let tblHead_datatable = document.getElementById("id_tblHead_datatable");
+        let tblBody_datatable = document.getElementById("id_tblBody_datatable");
         let tBody_select = document.getElementById("id_tbody_select");
 
         let el_loader = document.getElementById("id_loader");
@@ -185,8 +191,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_MSS_replace").addEventListener("change", function() {MSS_CheckboxEdit("replace")}, false)
         document.getElementById("id_MSS_switch").addEventListener("change", function() {MSS_CheckboxEdit("switch")}, false)
 
-
-
         let el_MSS_btn_save = document.getElementById("id_MSS_btn_save")
             el_MSS_btn_save.addEventListener("click", function() {MSS_Save()}, false )
 
@@ -269,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //let tr_selected = get_tablerow_selected(event.target)
             //if(!tr_selected) {
             //    selected_emplhour_pk = 0;
-            //    DeselectHighlightedTblbody(tBody_roster, cls_selected);
+            //    DeselectHighlightedTblbody(tblBody_datatable, cls_selected);
             //};
         }, false);
 
@@ -296,8 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         SetMenubuttonActive(document.getElementById("id_hdr_rost"));
 
 // --- create header filter
-        CreateTblHeaderFilter()
-
+        //CreateTblHeaderFilter()
 
 // --- first get locale, to make it faster
         // send 'now' as array to server, so 'now' of local computer will be used
@@ -344,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // show loader, except when no_loader
         add_or_remove_class(el_loader, cls_visible_hide, no_loader )
+
         // show loader in MRE
         if (is_replacement) {
             document.getElementById("id_modroster_employee_loader").classList.remove(cls_hide)
@@ -360,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(response)
 
                 // hide loader
-                el_loader.classList.add(cls_visible_hide)
+                //el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
 
                 if ("locale_dict" in response) {
@@ -444,7 +448,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     ModRosterdateChecked(response["rosterdate_check"]);
                 };
 
-                if (fill_table) {FillTableRows()}
+                if (fill_table) {
+                    CreateTblHeader();
+                    FillTableRows()
+                }
                 if (check_status) {
 
 // check for overlap
@@ -538,13 +545,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnClicked() {
     }
 //????????????????????????????????????????????????????????
+///////////////////////////////
+
+
+
+
+
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
         //console.log(" ===== FillTableRows =====");
 
-// --- reset tBody_roster
-        tBody_roster.innerText = null;
+// --- reset tblBody_datatable
+        tblBody_datatable.innerText = null;
 
 // --- loop through emplhour_map
         let previous_rosterdate_dict = {};
@@ -567,79 +580,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-
     }  // FillTableRows
 
+//=========  CreateTblHeader  === PR2020-07-21
+    function CreateTblHeader() {
+        //console.log("===  CreateTblHeader ==");
 
-//=========  CreateTblHeaderFilter  ================ PR2019-09-15
-    function CreateTblHeaderFilter() {
-        //console.log("=========  function CreateTblHeaderFilter =========");
+        const tblName = "emplhour";
 
-        let thead_roster = document.getElementById("id_thead_roster");
+// --- reset table
+        tblHead_datatable.innerText = null
+        tblBody_datatable.innerText = null
 
-//+++ insert tblRow into thead_roster
-        let tblRow = thead_roster.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-        tblRow.setAttribute("id", "id_thead_filter");
-        tblRow.classList.add(cls_bc_lightlightgrey);
+// +++  insert header and filter row ++++++++++++++++++++++++++++++++
+        let tblHeadRow = tblHead_datatable.insertRow (-1);
+        let tblFilterRow = tblHead_datatable.insertRow (-1);
 
-        const column_count = tbl_col_count;
+// ---  create header_row, put caption in columns
+        for (let j = 0, len = field_settings[tblName].field_caption.length; j < len; j++) {
+            const key = field_settings[tblName].field_caption[j];
+            const caption = (loc[key]) ? loc[key] : key;
+            payroll_header_row.push(caption)
+            const class_width = "tw_" + field_settings[tblName].field_width[j];
+            const class_align = "ta_" + field_settings[tblName].field_align[j];
 
-//+++ iterate through columns
-        for (let j = 0, td, el; j < column_count; j++) {
+// +++ add th to tblHeadRow +++
+            let th = document.createElement("th");
+                let el_div = document.createElement("div");
+                    if ([4, 6, 10].indexOf(j) > -1) {
+                        const class_name = (j === 4) ? "stat_0_2" : (j === 6) ? "stat_0_3" : "stat_0_4";
+                        el_div.classList.add(class_name)
+                    } else {
+                        el_div.innerText = caption;
+                    }
+                    el_div.classList.add(class_width, class_align);
+                th.appendChild(el_div);
+            tblHeadRow.appendChild(th);
 
-// insert td ino tblRow
-            // index -1 results in that the new cell will be inserted at the last position.
-            td = tblRow.insertCell(-1);
-
-    // --- create element with tag from field_tags
-           let el = document.createElement(field_tags[j]);
-
-// add fieldname
-            el.setAttribute("data-field", data_fields[j]);
-
-// --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if (tbl_col_images.indexOf( j ) > -1){
-            // --- first add <a> element with EventListener to td
-                el = document.createElement("a");
-                el.setAttribute("href", "#");
-// --- add img
-                const img_list = [imgsrc_stat00,,,,,,imgsrc_questionmark,,imgsrc_warning,,,imgsrc_stat00]
-                const img_src = img_list[j]
-                if(!!img_src){AppendChildIcon(el, img_src, "18")}
-            } else {
-// --- add input element to td.
-                el.setAttribute("type", "text");
-
-                el.classList.add("tsa_color_darkgrey")
-                el.classList.add("tsa_transparent")
-// --- add width
-                if (j === 1){
-                    el.classList.add("tw_180")
-                } else if (j === 3){
-                    el.classList.add("tw_180");
-                } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("tw_060");
-                } else {
-                    el.classList.add("tw_090")};
-// --- add text_align
-                if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
-                    el.classList.add("ta_l")
-                } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("ta_r");
-                }
-// --- add other attributes to td
-                el.setAttribute("autocomplete", "off");
-                el.setAttribute("ondragstart", "return false;");
-                el.setAttribute("ondrop", "return false;");
-            }  //if (j === 0)
-
-// --- add EventListener to td
-            el.addEventListener("keyup", function(event){HandleTblheaderFilterKeyup(el, j, event.which)});
-
-            td.appendChild(el);
-        }  // for (let j = 0; j < 8; j++)
-        return tblRow
-    };  //function CreateTblHeaderFilter
+// +++ add th to tblFilterRow +++
+            th = document.createElement("th");
+                const el_tag = field_settings[tblName].field_tags[j];
+                const el_input = document.createElement(el_tag);
+                    const fldName = field_settings[tblName].field_names[j];
+                    el_input.setAttribute("data-field", fldName);
+                    if ([4, 6, 10].indexOf(j) > -1) {
+                        el_input.addEventListener("click", function(event){HandleFilterImage(el_input, j)});
+                        el_input.classList.add("stat_0_0")
+                        el_input.classList.add("pointer_show");
+                    } else {
+                        el_input.addEventListener("keyup", function(event){HandleFilterKeyup(el_input, j, event.which)});
+                        el_input.setAttribute("autocomplete", "off");
+                        el_input.setAttribute("ondragstart", "return false;");
+                        el_input.setAttribute("ondrop", "return false;");
+                    }
+                    el_input.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
+                th.appendChild(el_input);
+            tblFilterRow.appendChild(th);
+        }
+    };  //  CreateTblHeader
 
 
 //=========  CreateTblRow  ================ PR2019-04-27
@@ -647,17 +645,13 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("=========  CreateTblRow =========");
         //console.log("pk_int", pk_int, "ppk_int", ppk_int, "is_new_item", is_new_item);
 
-        const tblName =  "emplhour"
-
-// check if row is addnew row - when pk is NaN, or when absence / split record is made
-        if(!parseInt(pk_int)){is_new_item = true};
-
-//+++ insert tblRow ino tBody_roster
+//+++ insert tblRow into tblBody_datatable
         // if no row_index given, lookup index by exceldatetime
         if(row_index < 0 && !!new_exceldatetime ) { row_index = get_rowindex_by_exceldatetime(new_exceldatetime) }
         if(row_index < -1 ) {row_index = -1} // somewhere row_index got value -2 PR2020-04-09
-        let tblRow = tBody_roster.insertRow(row_index); //index -1 results in that the new row will be inserted at the last position.
+        let tblRow = tblBody_datatable.insertRow(row_index); //index -1 results in that the new row will be inserted at the last position.
 
+        const tblName =  "emplhour"
         const map_id = get_map_id(tblName, pk_int);
         tblRow.setAttribute("id", map_id);
         tblRow.setAttribute("data-map_id", map_id );
@@ -669,125 +663,54 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
 //+++ insert td's ino tblRow
-        for (let j = 0; j < tbl_col_count; j++) {
+        const column_count = field_settings.emplhour.tbl_col_count;
+        for (let j = 0; j < column_count; j++) {
+            const tagName = field_settings[tblName].field_tags[j];
+            const fldName = field_settings[tblName].field_names[j];
+            const class_width = "tw_" + field_settings[tblName].field_width[j];
+            const class_align = "ta_" + field_settings[tblName].field_align[j];
 
-            // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-
-    // --- create element with tag from field_tags
-            //
-            // const tbl_col_images = [5, 7, 10];
-            // const tagName = (tbl_col_images.indexOf(j) > -1) ? "a" : "input"
-            let tagName = null;
-            if (tbl_col_images.indexOf(j) > -1) {
-                tagName = "a";
-            } else  if([4, 6, 8, 9].indexOf(j) > -1) {
-                tagName = "input";
-            } else {
-                tagName = "input";
-            }
-
+// --- create element with tag from field_tags
             let el = document.createElement(tagName);
-            el.setAttribute("data-field", data_fields[j]);
-
-// --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if (tbl_col_images.indexOf( j ) > -1){
-                if (!is_new_item){
-
-                // --- first add <a> element with EventListener to td
-                    el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
-
-//- add hover to confirm elements
-                    //if ([5, 7].indexOf( j ) > -1){
-                        //el.addEventListener("mouseenter", function(){HandleConfirmMouseenter(el)});
-                        //el.addEventListener("mouseleave", function(){el.children[0].setAttribute("src", imgsrc_stat00)});
-                    //} else {
-                    //    el.setAttribute("href", "#");
-                    //}
-                    AppendChildIcon(el, imgsrc_stat00, "18")
-
-                    td.appendChild(el);
-
-                    td.classList.add("tw_032")
-                    td.classList.add("pt-0")
-                }
+            el.setAttribute("data-field", fldName);
+// --- add img , not in new_item, first column not in teammembers
+            if ([4, 6, 10].indexOf( j ) > -1){
+                el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
+                add_hover(el)
+                el.classList.add("pointer_show");
+                el.classList.add("stat_0_0")
             } else {
-
 // --- add input element to td.
                 el.setAttribute("type", "text");
-
+                el.classList.add("input_text"); // makes background transparent
 // --- add EventListener to td
-                if (j === 0) {
-                    if (is_new_item){
-                        el.classList.add("input_popup_date");
-                        el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false )
-                    }
-                } else if ([1, 2].indexOf( j ) > -1){
-                    if (is_new_item){
-                        el.addEventListener("change", function() {UploadElChanges(el)}, false )
-                        el.classList.add("pointer_show");
-                    }
+                if ([0, 2].indexOf( j ) > -1){
+                    el.disabled = true;
+                } else if (j === 1){
+                    el.addEventListener("click", function() {MRE_Open(el)}, false )
+                    add_hover(el)
                 } else if (j === 3){
                     el.addEventListener("click", function() {MRE_Open(el)}, false )
-                    el.classList.add("pointer_show");
-                } else if ([4, 6, 8, 9].indexOf( j ) > -1){
-                    //el.classList.add("input_timepicker")
-                    //el.setAttribute("data-toggle", "modal");
-                    //el.setAttribute("data-target", "#id_mod_timepicker");
-                    el.setAttribute("tabindex", "0");
-                    //el.classList.add("form-control");
-                    // moved to updatetblrow format: was:  el.classList.add("pointer_show");
-                    el.classList.add("mb-0");
-
+                    add_hover(el)
+                } else if ([5, 7, 8, 9].indexOf( j ) > -1){
+                    //el.setAttribute("tabindex", "0");
                     el.addEventListener("click", function() {MRO_MRE_TimepickerOpen(el, "tblRow")}, false)
+                    add_hover(el)
                 };
 
-// --- add datalist_ to td orders, shifts todo: SHIFTS NOT WORKING YET
-               // if (j === 1){
-               //     if (is_new_item){el.setAttribute("list", "id_datalist_orders")}
-               // } else if (j === 2){
-               //     if (is_new_item){el.setAttribute("list", "id_datalist_shifts")}
-               // }
-
-// --- disable 'rosterdate', 'order' and 'shift', except in new_item
-                if ([0, 1, 2].indexOf( j ) > -1){
-                    if (!is_new_item){el.disabled = true}
-                }
-
-// --- add width
-                if (j === 1){
-                    el.classList.add("tw_200")
-                } else if (j === 2){
-                    el.classList.add("tw_120");
-                } else if (j === 3){
-                    el.classList.add("tw_180");
-                } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("tw_060");
-                } else {
-                    el.classList.add("tw_090")};
-
-// --- add text_align
-                if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
-                    el.classList.add("ta_l")
-                } else if ( [8, 9].indexOf( j ) > -1 ){
-                    el.classList.add("ta_r");
-                }
-
 // --- add other classes to td
-                // el.classList.add("border_none");
-                // el.classList.add("input_text"); // makes background transparent
-                el.classList.add("input_text"); // makes background transparent
 
-
+// --- add width and text_align
+                el.classList.add(class_width, class_align);
     // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
                 el.setAttribute("ondrop", "return false;");
 
-                td.appendChild(el);
             }  //if (j === 0)
+            td.appendChild(el);
         }  // for (let j = 0; j < 8; j++)
-
         return tblRow
     };// CreateTblRow
 
@@ -796,17 +719,9 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log(" ------  UpdateTableRow", tblName);
 
         if (!!item_dict && !!tblRow) {
-
-// get temp_pk_str and id_pk from item_dict["id"]
-            const id_dict = get_dict_value (item_dict, ["id"]);
-            //console.log("id_dict", id_dict);
-
-            let temp_pk_str, msg_err, is_created = false, is_deleted = false;
-            if ("created" in id_dict) {is_created = true};
-            if ("deleted" in id_dict) {is_deleted = true};
-            if ("error" in id_dict) {msg_err = id_dict["error"]};
-            if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
-            //console.log("is_created", is_created, "temp_pk_str", temp_pk_str);
+            const is_created = get_dict_value(item_dict, ["id", "created"], false);
+            const is_deleted = get_dict_value(item_dict, ["id", "deleted"], false);
+            const msg_err = get_dict_value(item_dict, ["id", "error"]);
 
 // ---  add exceldatetime to tblRow, for ordering new rows
             let exceldatetime = get_exceldatetime_from_emplhour_dict(item_dict);
@@ -828,18 +743,12 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (is_created){
                 let id_str = get_attr_from_el_str(tblRow,"id")
         // if 'created' exists then 'pk' also exists in id_dict
-                const pk_int = get_dict_value(id_dict, ["pk"])
-                const ppk_int = get_dict_value(id_dict, ["ppk"])
+                const pk_int = get_dict_value(item_dict, ["id", "pk"])
+                const ppk_int = get_dict_value(item_dict, ["id", "ppk"])
                 const map_id = get_map_id("emplhour", pk_int);
 
-               //console.log("id_str", id_str, typeof id_str);
-                //console.log("pk_int", pk_int, typeof pk_int);
-                //console.log("map_id", map_id, typeof map_id);
-            // check if item_dict.id 'new_1' is same as tablerow.id
-                if(id_str  === temp_pk_str || id_str === map_id){
-
-            // update tablerow.id from temp_pk_str to pk_int
-                    tblRow.setAttribute("id", map_id);  // or tblRow.id = pk_int
+                if(id_str === map_id){
+                    tblRow.setAttribute("id", map_id);
                     tblRow.setAttribute("data-pk", pk_int)
                     tblRow.setAttribute("data-ppk", ppk_int)
                     tblRow.setAttribute("data-map_id", map_id)
@@ -847,55 +756,52 @@ document.addEventListener('DOMContentLoaded', function() {
             // make row green, / --- remove class 'ok' after 2 seconds
                     ShowOkRow(tblRow )
                 }
-            } else if (!!msg_err){
+            } else if (msg_err){
             // make row red, / --- show error message
                 tblRow.classList.add("border_bg_invalid");
                 ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
 
             };  // if (is_deleted){
 
-            // tblRow can be deleted in  if (is_deleted){
-            if (!!tblRow){
-// --- new record: replace temp_pk_str with id_pk when new record is saved
-        // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
-        // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
-
+            // tblRow can be deleted in if (is_deleted){
+            if (tblRow){
 // --- loop through cells of tablerow
                 for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                     let field_dict = {}, fieldname, err;
                     let value = "", o_value, n_value, data_value, data_o_value;
-                    // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
-                    if(!!el_input){
+                    if(el_input){
                         const is_restshift = get_dict_value(item_dict, ["id", "isrestshift"], false)
+                        const is_absence = get_dict_value(item_dict, ["id", "isabsence"], false)
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
                             field_dict = get_dict_value (item_dict, [fieldname]);
                             //console.log("fieldname: ", fieldname)
                             //console.log("field_dict: ", field_dict)
-                            const is_updated = ("updated" in field_dict);
-                            const is_locked = get_dict_value(field_dict, ["locked"], false)
-
-                            //console.log("is_updated: ", is_updated)
-                            if(is_updated){
-                                el_input.classList.add("border_bg_valid");
-                                setTimeout(function (){
-                                    el_input.classList.remove("border_bg_valid");
-                                    }, 2000);
+                            const is_updated = get_dict_value(field_dict, ["updated"], false);
+                            const is_locked = get_dict_value(field_dict, ["locked"], false);
+                            const is_confirmed = get_dict_value(field_dict, ["confirmed"], false);
+                            const msg_err = null;
+                            if(msg_err){
+                                //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
+                                //console.log("+++++++++ ShowMsgError")
+                               ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
+                            } else if(is_updated){
+                                ShowOkElement(el_input, "border_bg_valid");
                             }
+
                             if (fieldname === "rosterdate") {
-                                const hide_weekday = false, hide_year = true;
-                                format_date_elementMOMENT (el_input, el_msg, field_dict, month_list, weekday_list,
-                                                    user_lang, comp_timezone, hide_weekday, hide_year)
-                        // when row is new row: remove data-o_value from dict,
-                        // otherwise will not recognize rosterdate as a new value and will not be saved
-                                if (!!temp_pk_str) {
-                                    el_input.removeAttribute("data-o_value")
-                                } else {
-                                // disable field rosterdate
-                                    el_input.disabled = true
-                                }
+                                const rosterdate_iso = get_dict_value (field_dict, ["value"]);
+                                const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(rosterdate_iso),
+                                        loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+                                el_input.value =  rosterdate_formatted
+                            } else if (fieldname === "order") {
+                                el_input.value = get_dict_value (field_dict, ["display"]);
+                                // enable field when it is absence
+                                el_input.disabled = (is_locked || !is_absence);
+                                // hover doesn't show when el is disabled PR2020-07-22
+                                add_or_remove_class (el_input, "pointer_show", !is_locked && is_absence)
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value (field_dict, ["code"])
                                 if(value){
@@ -906,49 +812,50 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_input.value = value
                                 if (is_restshift) {el_input.title = loc.This_isa_restshift}
 
-                            } else if (["order", "employee"].indexOf( fieldname ) > -1){
-                                 // disable field orderhour
-                                if (fieldname === "order") {
-                                    //field_dict.display = customer_code + " - " + order_code;;
-                                    const key_str = "display";
-                                    format_text_element (el_input, key_str, null, field_dict, false, [-220, 60]);
-                                    el_input.disabled = (is_locked || is_restshift);
-                                } else  if (fieldname === "employee") {
-                                    // disable field employee when this is restshift
-                                    if (is_restshift) { field_dict["locked"] = true }
-                                    const key_str = "code";
-                                    format_text_element (el_input, key_str, el_msg, field_dict, false, [-220, 60], title_overlap);
-                                    const is_locked = get_dict_value(field_dict, ["locked"], false);
-                                    el_input.disabled = (is_locked || is_restshift);
-                                    add_or_remove_class (el_input, "pointer_show", !is_locked && !is_restshift)
-                                }
+                            } else if (fieldname === "employee") {
+                                // disable field employee when this is restshift, also when is absence
+                                if (is_restshift) { field_dict["locked"] = true }
+                                const key_str = "code";
+                                format_text_element (el_input, key_str, el_msg, field_dict, false, [-220, 60], title_overlap);
+                                el_input.disabled = (is_locked || is_restshift || is_absence);
+                                // hover doesn't show when el is disabled PR2020-07-22
+                                add_or_remove_class (el_input, "pointer_show", !is_locked && !is_restshift && !is_absence)
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 // format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
                                 const display_text = get_dict_value(field_dict, ["display"]);
                                 el_input.value = display_text;
-                                const is_locked = get_dict_value(field_dict, ["locked"], false);
-                                const is_confirmed = get_dict_value(field_dict, ["confirmed"], false);
                                 el_input.disabled = (is_locked || is_confirmed);
+                                // hover doesn't show when el is disabled PR2020-07-22
                                 add_or_remove_class (el_input, "pointer_show", !is_locked && !is_confirmed)
 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
-                                format_duration_element (el_input, el_msg, field_dict, user_lang)
+                                const value_int = get_dict_value(field_dict, ["value"], 0);
+                                const dst_warning = get_dict_value(field_dict, ["dst_warning"], false);
+                                const title = get_dict_value(field_dict, ["title"]);
+                                if (title){el_input.title = title};
+
+                                let display_value = display_duration (value_int, user_lang);
+                                if (dst_warning) {display_value += "*"};
+                                el_input.value = display_value;
+                                //el_input.innerText = display_value;
+
+                                el_input.disabled = (is_locked || is_confirmed)
+                                add_or_remove_class (el_input, "pointer_show", !is_locked)
 
                             } else if (["confirmstart", "confirmend"].indexOf( fieldname ) > -1){
-                                format_confirmation_element (el_input, fieldname, field_dict,
+                                format_confirmation_element (loc, el_input, fieldname, field_dict,
                                     imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
                                     "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due" )
 
                             } else if (["status"].indexOf(fieldname ) > -1){
-                                format_status_element (el_input, field_dict,
-                                        imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
-                                        "", loc.This_isa_planned_shift, loc.Starttime_confirmed, loc.Endtime_confirmed,
-                                        loc.Start_and_endtime_confirmed, loc.This_shift_is_locked)
-
+                                format_status_element (loc, el_input, field_dict)
                                 // put status also in tblRow
-                                const status_int = parseInt(get_dict_value(item_dict, ["status", "value"]))
+                                const status_int = Number(get_dict_value(item_dict, ["status", "value"]))
+                                const has_changed = get_dict_value(item_dict, ["status", "haschanged"], false);
+                                const data_haschanged = (has_changed) ? "1" : "0";
                                 tblRow.setAttribute("data-status", status_int)
+                                tblRow.setAttribute("data-haschanged", data_haschanged)
 
                             } else if (fieldname === "overlap"){
                                 //console.log("----------fieldname", fieldname);
@@ -1622,7 +1529,7 @@ document.addEventListener('DOMContentLoaded', function() {
             MSO_MSE_Filter_SelectRows, null, MSO_SelectCustomer, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
             filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected)
+            null, cls_selected, cls_hover)
 // ---  lookup selected tblRow
         let tr_selected = null;
         if(!!mod_upload_dict.customer.pk) {
@@ -1665,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 MSO_MSE_Filter_SelectRows, null, MSO_SelectOrder, null, false,
                 filter_ppk_int, filter_show_inactive, filter_include_inactive,
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
-                null, cls_selected);
+                null, cls_selected, cls_hover);
     // select first tblRow
             const rows_length = el_modorder_tblbody_order.rows.length;
             if(!!rows_length) {
@@ -1723,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
             MSO_MSE_Filter_SelectRows, null, MSE_SelectEmployee, null, false,
             filter_ppk_int, filter_show_inactive, filter_include_inactive,
             filter_include_absence, filter_istemplate, addall_to_list_txt,
-            null, cls_selected );
+            null, cls_selected, cls_hover );
 
         MSE_headertext();
 
@@ -2125,20 +2032,17 @@ document.addEventListener('DOMContentLoaded', function() {
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
-       //console.log("===  ModalStatusOpen  =====") ;
+       console.log("===  ModalStatusOpen  =====") ;
 
-        let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
-       //console.log("emplhour_dict", emplhour_dict) ;
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
-
-// get values from el_input
+// get fldName from el_input
         const fldName = get_attr_from_el(el_input, "data-field");
-
 // get status from field status, not from confirm start/end
+        let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
         const status_sum = get_dict_value(emplhour_dict, ["status", "value"])
-       //console.log("status_sum", status_sum, typeof status_sum)
+        console.log("status_sum", status_sum, typeof status_sum)
 
         let btn_save_text = loc.Confirm;
         let time_label = "Time:"
@@ -2157,31 +2061,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const time_fldName = (fldName === "confirmstart") ? "timestart" : "timeend"
         const time_fielddict = get_dict_value(emplhour_dict, [time_fldName])
-            const timefield_is_locked = ("locked" in time_fielddict)
-            const has_overlap = ("overlap" in time_fielddict)
+        const timefield_is_locked = ("locked" in time_fielddict)
+        const has_overlap = ("overlap" in time_fielddict)
         const has_no_employee = (!get_dict_value(emplhour_dict, ["employee", "pk"]))
         const has_no_order = (!get_dict_value(emplhour_dict, ["orderhour", "ppk"]))
 
-        //console.log("allow_lock_status", allow_lock_status)
-        //console.log("status_locked", status_locked)
+        console.log("allow_lock_status", allow_lock_status)
+        console.log("status_locked", status_locked)
 
         mod_upload_dict = {id: emplhour_dict.id,
                             fieldname: fldName,
                             locked: timefield_is_locked,
                             confirmed: field_is_confirmed}
-        //console.log("mod_upload_dict", mod_upload_dict)
+        console.log("mod_upload_dict", mod_upload_dict)
 
         let header_text = null;
         if (fldName === "confirmstart") {
             header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_start_of_shift;
             btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
-            time_label = "Start time:"
-            time_col_index = 4
+            time_label = loc.Start_time + ":"
+            time_col_index = 5
         } else if (fldName === "confirmend") {
             header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_end_of_shift;
             btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
-            time_label = "End time:"
-            time_col_index = 6
+            time_label = loc.End_time + ":"
+            time_col_index = 7
         } else if (fldName === "status") {
             is_field_status = true;
 
@@ -2229,7 +2133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById("id_mod_status_header").innerText = header_text
             document.getElementById("id_mod_status_time_label").innerText = time_label
 
-            const customer_order_code = get_dict_value(emplhour_dict, ["orderhour", "code"])
+            const customer_order_code = get_dict_value(emplhour_dict, ["order", "display"])
             document.getElementById("id_mod_status_order").innerText = customer_order_code;
 
             const employee_code = get_dict_value(emplhour_dict, ["employee", "code"])
@@ -2240,24 +2144,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!shift){el_shift.innerText = shift} else {el_shift.innerText = null};
 
             const el_time_col = tr_selected.cells[time_col_index].firstChild
-            const time_display =el_time_col.value;
+            const time_display = el_time_col.value;
 
             let el_mod_status_time = document.getElementById("id_mod_status_time");
             el_mod_status_time.innerText = (!!time_display) ? time_display : null;
 
-            let field_text = null;
+            let msg01_text = null;
             if(has_no_order){
-                field_text = loc.an_order;
+                msg01_text = loc.You_must_first_select + loc.an_order + loc.select_before_confirm_shift;
             } else if(has_no_employee && !is_field_status){
-                field_text = loc.an_employee;
+                msg01_text = loc.You_must_first_select + loc.an_employee + loc.select_before_confirm_shift;
             } else if(!time_display && !is_field_status){
-                field_text = (time_fldName === "timestart") ? loc.a_starttime : loc.an_endtime;
+                msg01_text = loc.You_must_first_enter +
+                             ( (time_fldName === "timestart") ? loc.a_starttime : loc.an_endtime ) +
+                             loc.enter_before_confirm_shift;
             }
 
-           //console.log("is_field_status", is_field_status) ;
-           //console.log("is_field_status", is_field_status) ;
-           //console.log("field_text", field_text) ;
-           //console.log("allow_lock_status", allow_lock_status) ;
+           console.log("is_field_status", is_field_status) ;
+           console.log("allow_lock_status", allow_lock_status) ;
+
             let show_confirm_box = false;
             if (fldName === "status" && allow_lock_status) {
                 show_confirm_box = true;
@@ -2265,7 +2170,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(field_is_confirmed) {
                     // when field is confirmed: can undo
                     show_confirm_box = true;
-                } else if (!field_text){
+                } else if (!msg01_text){
                     show_confirm_box = true;
                 }
             }
@@ -2277,7 +2182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  show modal confirm with message 'First select employee'
                 document.getElementById("id_confirm_header").innerText = loc.Confirm + " " + loc.Shift.toLowerCase();
-                document.getElementById("id_confirm_msg01").innerText = loc.You_must_first_select + field_text + loc.before_confirm_shift;
+                document.getElementById("id_confirm_msg01").innerText = msg01_text;
                 document.getElementById("id_confirm_msg02").innerText = null;
                 document.getElementById("id_confirm_msg03").innerText = null;
 
@@ -2292,7 +2197,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-       //console.log("===  ModalStatusSave =========");
+        console.log("===  ModalStatusSave =========");
 
         // put values in el_body
         let el_body = document.getElementById("id_mod_status_body")
@@ -2310,9 +2215,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let tr_changed = document.getElementById(data_pk)
 
         const id_dict = get_iddict_from_element(el_body);
-        let upload_dict = {period_datefirst: selected_period.period_datefirst,
-                            period_datelast: selected_period.period_datelast,
-                            id: id_dict}
+        // period_datefirst and period_datelast necessary for check_emplhour_overlap PR2020-07-22
+        let upload_dict = {id: id_dict,
+                            period_datefirst: selected_period.period_datefirst,
+                            period_datelast: selected_period.period_datelast
+                            }
 
         //console.log("---------------status_value: ", status_value);
         //console.log("---------------data_field: ", data_field);
@@ -2357,7 +2264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $("#id_mod_status").modal("hide");
 
         if(!!upload_dict) {
-           //console.log( "upload_dict", upload_dict);
+            console.log( "upload_dict", upload_dict);
             let parameters = {"upload": JSON.stringify(upload_dict)};
 
             let response = "";
@@ -2367,14 +2274,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
+                    console.log( "response");
+                    console.log( response);
 
                     if ("update_list" in response) {
                         let update_list = response["update_list"];
                         UpdateFromResponseNEW(tblName, update_list)
                     }
-
 
                     if ("item_update" in response) {
                         let item_dict =response["item_update"]
@@ -2402,13 +2308,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             // row_index = -1 (add to end), is_new_item = true
                             let tblRow = CreateTblRow(pk_new, parent_pk, -1, true)
 
-                        //console.log("<<< UpdateTableRow <<<");
+                            console.log("<<< UpdateTableRow <<<");
                             UpdateTableRow("emplhour", tblRow, new_dict)
                         }
                     }
                 },
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -2433,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // remove all red background from timestart/timeend elements. Not when refreshing one employee
         if(!skip_reset_all){
-            let elements = tBody_roster.querySelectorAll(filter);
+            let elements = tblBody_datatable.querySelectorAll(filter);
             for (let i = 0, el; el = elements[i]; i++) {
                 add_or_remove_class(el, "border_bg_invalid", false)
                 add_or_remove_attr(el, "title", false, title_overlap)
@@ -2532,11 +2438,11 @@ document.addEventListener('DOMContentLoaded', function() {
                //  if(mode === 'current')
         }  // if(!!selected_period){
 
-// --- loop through tBody_roster.rows
-        let len =  tBody_roster.rows.length;
+// --- loop through tblBody_datatable.rows
+        let len =  tblBody_datatable.rows.length;
         if (!!len){
             for (let row_index = 0, tblRow; row_index < len; row_index++) {
-                tblRow = tBody_roster.rows[row_index];
+                tblRow = tblBody_datatable.rows[row_index];
 
                 let item_dict = get_itemdict_from_datamap_by_tblRow(tblRow, emplhour_map);
 
@@ -2643,10 +2549,10 @@ document.addEventListener('DOMContentLoaded', function() {
        //console.log( "===== Filter_TableRows=== ");
         //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
         //console.log( "show_inactive", show_inactive, typeof show_inactive);
-        const len = tBody_roster.rows.length;
+        const len = tblBody_datatable.rows.length;
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
-                tblRow = tBody_roster.rows[i]
+                tblRow = tblBody_datatable.rows[i]
                 //console.log( tblRow);
                 show_row = ShowTableRow_dict(tblRow)
                 if (show_row) {
@@ -2659,9 +2565,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }; // Filter_TableRows
 
 //========= ShowTableRow_dict  ====================================
-    function ShowTableRow_dict(tblRow) {  // PR2019-09-15
-        //console.log( "===== ShowTableRow_dict  ========= ");
-        //console.log( tblRow);
+    function ShowTableRow_dict(tblRow) {  // PR2019-09-15 PR2020-07-21
+        console.log( "===== ShowTableRow_dict  ========= ");
+        console.log( "filter_dict", filter_dict);
         // function filters by inactive and substring of fields
         //  - iterates through cells of tblRow
         //  - skips filter of new row (new row is always visible)
@@ -2672,71 +2578,49 @@ document.addEventListener('DOMContentLoaded', function() {
         //       - checks data-value of column 'inactive'.
         //       - hides row if inactive = true
         let hide_row = false;
-        if (!!tblRow){
-            const pk_str = get_attr_from_el(tblRow, "data-pk");
+        if (tblRow){
+            Object.keys(filter_dict).forEach(function(index_str) {
+                if(!hide_row){
+                    const index = (Number(index_str)) ? Number(index_str) : 0;
+                    console.log("index", index, typeof index )
+                    if(index === 10){
+                        const filter_value = filter_dict[index];
+                        if(filter_value) {
+                            const has_changed = Number(get_attr_from_el(tblRow, "data-haschanged", "0"));
+                            hide_row = (filter_value !== has_changed);
 
-    // check if row is_new_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
-            let is_new_row = false;
-            if(!!pk_str){
-    // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-                is_new_row = (!parseInt(pk_str))
-            }
-            //console.log( "pk_str", pk_str, "is_new_row", is_new_row);
-            if(!is_new_row){
-            // hide inactive rows if filter_hide_inactive
-            /* TODO filter status
-                if(col_inactive !== -1 && !show_inactive) {
-                    // field 'inactive' has index col_inactive
-                    let cell_inactive = tblRow.cells[col_inactive];
-                    if (!!cell_inactive){
-                        let el_inactive = cell_inactive.children[0];
-                        if (!!el_inactive){
-                            let value = get_attr_from_el(el_inactive,"data-value")
-                            if (!!value) {
-                                if (value.toLowerCase() === "true") {
-                                    show_row = false;
-                                }
-                            }
                         }
-                    }
-                }; // if(col_inactive !== -1){
-            */
-
-// show all rows if filter_name = ""
-            //console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
-                if (!hide_row){
-                    Object.keys(filter_dict).forEach(function(key) {
-                        const filter_text = filter_dict[key];
-                        const filter_blank = (filter_text ==="#")
-
-                        let tbl_cell = tblRow.cells[key];
-                        //console.log( "tbl_cell", tbl_cell);
-                        if(!hide_row){
-                            if (!!tbl_cell){
-                                let el = tbl_cell.children[0];
-                                if (!!el) {
-                            // skip if no filter om this colums
-                                    if(!!filter_text){
-                            // get value from el.value, innerText or data-value
-                                        const el_tagName = el.tagName.toLowerCase()
-                                        let el_value;
-                                        if (el_tagName === "select"){
-                                            //el_value = el.options[el.selectedIndex].text;
-                                            el_value = get_attr_from_el(el, "data-value")
-                                        } else if (el_tagName === "input"){
+                    } else {
+                        const filter_value = filter_dict[index];
+                        const filter_blank = (filter_value ==="#")
+                        const is_img_filter = ([4,6,10].indexOf(index) > -1)
+                        let tbl_cell = tblRow.cells[index];
+                        if (tbl_cell){
+                            let el = tbl_cell.children[0];
+                            if (el) {
+                        // skip if no filter om this column
+                                if(filter_value){
+                        // get value from el.value, innerText or data-value
+                                    if(index === 10){
+                                        const has_changed = get_attr_from_el(tblRow, "data-haschanged", false)
+                                        const filter_val = (filter_value) ? true : false;
+                                        hide_row = (filter_val !== has_changed);
+                                    } else {
+                                        let el_value = null;
+                                        if (el.tagName === "INPUT"){
                                             el_value = el.value;
                                         } else {
                                             el_value = el.innerText;
                                         }
                                         if (!el_value){el_value = get_attr_from_el(el, "data-value")}
 
-                                        if (!!el_value){
+                                        if (el_value){
                                             if (filter_blank){
                                                 hide_row = true
                                             } else {
                                                 el_value = el_value.toLowerCase();
-                                                // hide row if filter_text not found
-                                                if (el_value.indexOf(filter_text) === -1) {
+                                                // hide row if filter_value not found
+                                                if (el_value.indexOf(filter_value) === -1) {
                                                     hide_row = true
                                                 }
                                             }
@@ -2745,14 +2629,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 hide_row = true
                                             } // iif (filter_blank){
                                         }   // if (!!el_value)
-                                       //console.log( "filter_text", filter_text, "el_value", el_value, "hide_row", hide_row);
-                                    }  //  if(!!filter_text)
-                                }  // if (!!el) {
-                            }  //  if (!!tbl_cell){
-                        }  // if(!hide_row){
-                    });  // Object.keys(filter_dict).forEach(function(key) {
-                }  // if (!hide_row)
-            } //  if(!is_new_row){
+                                    }
+                                }  //  if(!!filter_text)
+                            }  // if (!!el) {
+                        }  //  if (!!tbl_cell){
+                    }  // if(index === 10){
+                }  // if(!hide_row){
+            });  // Object.keys(filter_dict).forEach(function(key) {
         }  // if (!!tblRow)
         return !hide_row
     }; // function ShowTableRow_dict
@@ -2765,21 +2648,35 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_hide_inactive = true;
 
 // ---   empty filter input boxes in filter header
-        let thead_roster = document.getElementById("id_thead_roster");
-        if(!!thead_roster){f_reset_tblHead_filter(thead_roster)}
+        f_reset_tblHead_filter(tblHead_datatable)
 
 // ---  deselect highlighted rows, reset selected_emplhour_pk
         selected_emplhour_pk = 0;
-        DeselectHighlightedTblbody(tBody_roster, cls_selected)
+        DeselectHighlightedTblbody(tblBody_datatable, cls_selected)
 
 // ---  reset filtered tablerows
         Filter_TableRows();
 
     }  // function ResetFilterRows
 
-//========= HandleTblheaderFilterKeyup  ====================================
-    function HandleTblheaderFilterKeyup(el, index, el_key) {
-       //console.log( "===== HandleTblheaderFilterKeyup  ========= ");
+
+//========= HandleFilterImage  =============== PR2020-07-21
+    function HandleFilterImage(el_input, index) {
+        console.log( "===== HandleFilterImage  ========= ");
+        console.log( "index", index);
+        console.log( "filter_dict", filter_dict);
+        //filter_dict = [ [], ["", "2", "text"], ["", "z", "text"] ];
+        const value = (filter_dict[index]) ? filter_dict[index] : 0;
+        const new_value = Math.abs(value - 1);
+        filter_dict[index] = new_value
+        add_or_remove_class(el_input, "stat_1_0", (new_value === 1), "stat_0_0")
+        Filter_TableRows();
+
+    };
+
+//========= HandleFilterKeyup  ====================================
+    function HandleFilterKeyup(el, index, el_key) {
+       //console.log( "===== HandleFilterKeyup  ========= ");
         //console.log( "el_key", el_key);
 
         //console.log( "el.value", el.value, index, typeof index);
@@ -2827,7 +2724,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!skip_filter) {
             Filter_TableRows();
         } //  if (!skip_filter) {
-    }; // function HandleTblheaderFilterKeyup
+    }; // function HandleFilterKeyup
 
 
 // +++++++++++++++++ END FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2983,7 +2880,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -3645,10 +3542,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function get_rowindex_by_exceldatetime(search_exceldatetime) {
         //console.log(" ===== get_rowindex_by_exceldatetime =====");
         let search_rowindex = -1;
-// --- loop through rows of tBody_roster
+// --- loop through rows of tblBody_datatable
         if(!!search_exceldatetime){
-            for (let i = 0, tblRow; i < tBody_roster.rows.length; i++) {
-                tblRow = tBody_roster.rows[i];
+            for (let i = 0, tblRow; i < tblBody_datatable.rows.length; i++) {
+                tblRow = tblBody_datatable.rows[i];
                 const exceldatetime = Number(get_attr_from_el(tblRow, "data-exceldatetime"));
                 if(!!exceldatetime && exceldatetime > search_exceldatetime) {
 // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
@@ -5027,8 +4924,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     }
-
-
 
 //========= PrintReport  ====================================
     function PrintReport(option) { // PR2020-01-25 PR2020-04-22

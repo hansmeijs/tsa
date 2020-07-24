@@ -3954,10 +3954,13 @@ def get_payroll_emplhour(upload_dict, user_lang, request):
                 eh.timestart, eh.timeend, eh.timeduration, eh.breakduration, eh.plannedduration, eh.billingduration,
                 eh.offsetstart, eh.offsetend, eh.wagerate, eh.wagefactor, eh.wage, eh.status, eh.overlap, eh.locked,
                 oh.shift, oh.isrestshift, o.isabsence, e.code AS e_code, c.code AS c_code, o.code AS o_code, 
-                pdc.code AS pdc_code, 
+                pdc.code AS pdc_code, fc.code AS fc_code, wc.code AS wc_code, wfc.code AS wfc_code, 
                 e.datefirst AS e_datefirst, e.datelast AS e_datelast
             FROM companies_emplhour AS eh
             LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
+            LEFT JOIN companies_wagecode AS fc ON (fc.id = eh.functioncode_id)
+            LEFT JOIN companies_wagecode AS wc ON (wc.id = eh.wagecode_id)
+            LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id)
             LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id)
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)

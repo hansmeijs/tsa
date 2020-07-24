@@ -111,7 +111,7 @@
             time_formatted = prefix + hour_str + delim + minute_str + ampm_str + suffix
         }  // if (offset != null && !!rosterdate_iso)
         return time_formatted
-    }  // format_offset_time
+    }  // format_time_from_offset_JSvanilla
 
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1607,7 +1607,7 @@
             let is_inactive = get_dict_value(field_dict, ["value"], false)
             let is_updated = get_dict_value(field_dict, ["updated"], false)
             // TODO deprecate
-            el_input.setAttribute("data-value", is_inactive);
+           // el_input.setAttribute("data-value", is_inactive);
             // for row filtering
             const tblRow = get_tablerow_selected(el_input)
             if(tblRow){tblRow.setAttribute("data-inactive", is_inactive)};
@@ -1648,12 +1648,14 @@
     }  // format_overlap_element
 
 //========= format_confirmation_element  ======== PR2019-06-09
-    function format_confirmation_element (el_input, fieldname, field_dict,
+    function format_confirmation_element (loc, el_input, fieldname, field_dict,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
          "use strict";
         //console.log("==== format_confirmation_element  ====", fieldname, field_dict)
-
+        // TODO add check overdue again
+        //  imgsrc_questionmark, imgsrc_warning,
+        // "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due"
         if(!!el_input){
             const is_confirmed = get_dict_value(field_dict, ["value"], false)
             const is_locked = get_dict_value(field_dict, ["locked"], false)
@@ -1675,69 +1677,129 @@
     }  // function format_confirmation_element
 
 
-//========= format_status_element  ======== PR2019-09-18
-    function format_status_element (el_input, field_dict,
+//========= format_status_element  ======== PR2019-09-18 PR2020-07-21
+    function format_status_element (loc, el_input, field_dict,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
-        title_stat00, title_stat01, title_stat02, title_stat03, title_stat04, title_stat05) {
+        ) {
 
+        //console.log("==== format_confirmation_element  ====", fieldname, field_dict)
         "use strict";
 
         // inactive: {value: true}
         //console.log("+++++++++ format_status_element")
         //console.log(field_dict)
         //console.log(el_input)
-
+        const title_stat00 = "";
+        const title_stat01 = loc.This_isa_planned_shift;
+        const title_stat02 = loc.Starttime_confirmed;
+        const title_stat03 = loc.Endtime_confirmed;
+        const title_stat04 = loc.Start_and_endtime_confirmed;
+        const title_stat05 = loc.This_shift_is_locked;
+        let modified_date_formatted = '-', modified_by = '-';
         if(!!el_input){
             let status_sum = 0;
+            let has_changed = false;
             if(!isEmpty(field_dict)){
-                status_sum = parseInt(get_dict_value_by_key(field_dict, "value"));
+                status_sum = Number(get_dict_value(field_dict, ["value"]));
+                has_changed = Number(get_dict_value(field_dict, ["haschanged"], false));
+                const modified_date_iso = get_dict_value(field_dict, ["modified_date"]);
+                const modified_dateJS =  parse_dateJS_from_dateISO(modified_date_iso);
+                modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
+                modified_by = get_dict_value(field_dict, ["modified_by"],'-');
             }
             //console.log("status_sum: ", status_sum)
-
             el_input.setAttribute("data-value", status_sum);
+            el_input.setAttribute("data-haschanged", has_changed);
 
-            // update icon if img existst
-            let el_img = el_input.children[0];
-            //console.log ("el_img", el_img)
-            if (!!el_img){
+            // update icon
 
-                let imgsrc = imgsrc_stat00;
-                let title = "";
-                if (status_sum >= 8) { //STATUS_08_LOCKED = 8
-                    imgsrc = imgsrc_stat05;
-                    title = title_stat05
-                } else {
-                    //STATUS_02_START_CONFIRMED
-                    //STATUS_04_END_CONFIRMED
-                    const start_confirmed = status_found_in_statussum(2, status_sum);
-                    const end_confirmed = status_found_in_statussum(4, status_sum);
+            let imgsrc = imgsrc_stat00;
+            let title = "";
+            let icon_class = "stat_0_0"
+            if (!status_sum ) { //STATUS_00_NONE = 0
+                icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
+                title = loc.This_isan_added_shift
+            } else if (status_sum >= 8) { //STATUS_08_LOCKED = 8
+                icon_class = (has_changed) ? "stat_1_5" : "stat_0_5"
+                title = loc.This_shift_is_locked;
+            } else {
+                //STATUS_02_START_CONFIRMED
+                //STATUS_04_END_CONFIRMED
+                const start_confirmed = status_found_in_statussum(2, status_sum);
+                const end_confirmed = status_found_in_statussum(4, status_sum);
 
-                    //console.log("start_confirmed: ", start_confirmed)
-                    //console.log("end_confirmed: ", end_confirmed)
-
-                    if (start_confirmed) {
-                        if (end_confirmed) {
-                            imgsrc = imgsrc_stat04;
-                            title = title_stat04
-                        } else {
-                            imgsrc = imgsrc_stat02
-                            title = title_stat02;
-                        }
+                if (start_confirmed) {
+                    if (end_confirmed) {
+                        icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
+                        title = loc.Start_and_endtime_confirmed;
                     } else {
-                        if (end_confirmed) {
-                            imgsrc = imgsrc_stat03;
-                            title = title_stat03
-                        } else if (status_sum%2 !== 0) {// % is remainder operator
-                            imgsrc = imgsrc_stat01 //STATUS_01_CREATED
-                            title = title_stat01;
-                        }
+                        //STATUS_02_START_CONFIRMED
+                        icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
+                        title = loc.Starttime_confirmed;
+                    }
+                } else {
+                    if (end_confirmed) {
+                        //STATUS_04_END_CONFIRMED
+                        icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
+                        title = loc.Endtime_confirmed
+                    } else if (status_sum%2 !== 0) {// % is remainder operator
+                        icon_class = (has_changed) ? "stat_1_1" : "stat_0_1" //STATUS_01_CREATED
+                        title = loc.This_isa_planned_shift;
                     }
                 }
-                el_img.setAttribute("src", imgsrc);
-                el_input.setAttribute("title", title);
             }
+            if(has_changed){
+                title += "\n" + loc.Modified_by + modified_by + "\n" + loc.on + modified_date_formatted
+            }
+            el_input.classList.add(icon_class)
+            el_input.setAttribute("title", title);
+
         }
     }  // function format_status_element
+
+
+//=========  format_datetime_from_datetimeJS ================ PR2020-07-22
+    function format_datetime_from_datetimeJS(loc, datetimeJS) {
+        //console.log( "===== format_datetime_from_datetimeJS  ========= ");
+        //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
+        //  format: wo 16.30 u or Sat, 12:00 pm
+        "use strict";
+        // this is only for duration format:
+        // let hide_value = (offset == null) || (blank_when_zero && offset === 0);
+        let date_formatted = "" , time_formatted = "";
+        if(datetimeJS){
+            const isEN = (loc.user_lang === "en");
+            const isAmPm = (loc.timeformat === "AmPm");
+
+            const year = datetimeJS.getFullYear();
+            const date = datetimeJS.getDate();
+
+            const weekday_index = (datetimeJS.getDay()) ? datetimeJS.getDay() : 7 // JS sunday = 0, iso sunday = 7
+            const weekday_str = loc.weekdays_abbrev[weekday_index];
+            const month_str = loc.months_abbrev[ (1 + datetimeJS.getMonth()) ];
+
+            // midnight, begin of day = 00:00 am
+            // noon = 12:00 am
+            // midnight, end of day = 12:00 pmm
+            let is_pm = false;
+            const hours = datetimeJS.getHours();
+            if(isAmPm && hours > 12) {
+                hours -= 12
+                is_pm = true;
+            }
+            const hour_str = ("0" + hours).slice(-2);
+            const minute_str = ("0" + datetimeJS.getMinutes()).slice(-2);
+            const ampm_str = (isAmPm) ?  ( (is_pm) ? " pm" : " am" ) : "";
+
+            if (isEN) {
+                time_formatted = [weekday_str + ",", month_str + date + ",", year, hour_str + ":" + minute_str].join(' ');
+                if(ampm_str) { time_formatted += ampm_str};
+            } else {
+                time_formatted = [weekday_str, date, month_str, year, hour_str + "." + minute_str, "u"].join(' ');
+            }
+        }
+        return time_formatted
+    }  // format_datetime_from_datetimeJS
 
 
 //=========  ShowOkRow  ================ PR2020-05-26
@@ -1761,18 +1823,25 @@
         }, 2000);
     }
 
-//=========  ShowOkElement  ================ PR2019-11-27
+//=========  ShowOkElement  ================ PR2019-11-27 PR2020-07-23
     function ShowOkElement(el_input, ok_class, cur_class) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
+
+        console.log("ShowOkElement");
+        console.log("ok_class", ok_class);
+        console.log("cur_class", cur_class);
         if(cur_class) {el_input.classList.remove(cur_class)};
+        if(!ok_class) {ok_class = "border_bg_valid"};
         el_input.classList.add(ok_class);
+        console.log("el_input tagName", el_input.tagName);
+        console.log("el_input classList", el_input.classList);
         setTimeout(function (){
             el_input.classList.remove(ok_class);
             if(cur_class) {el_input.classList.add(cur_class)};
         }, 2000);
     }
 
-//=========  ShowOkElement  ================ PR2020-04-26 PR2020-07-15
+//=========  ShowClassWithTimeout  ================ PR2020-04-26 PR2020-07-15
     function ShowClassWithTimeout(el, className, timeout) {
         // show class, remove it after timeout milliseconds
         if(!timeout) { timeout = 2000};

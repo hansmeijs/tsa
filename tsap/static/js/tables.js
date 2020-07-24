@@ -12,7 +12,7 @@
                             HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
                             filter_ppk, filter_show_inactive, filter_include_inactive,
                             filter_include_absence, filter_istemplate, addall_to_list_txt,
-                            bc_color_notselected, bc_color_selected,
+                            bc_color_default, bc_color_selected, bc_color_hover,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                             header_txt, title_header_btn, title_row_btn) {
         //console.log("===== t_Fill_SelectTable ===== ", tblName);
@@ -29,7 +29,7 @@
        // select table has button when HandleSelectFilterButton has value
         if(!!tblHead){
             t_CreateSelectHeader(tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
-                            bc_color_notselected, bc_color_selected,
+                            bc_color_default, bc_color_selected,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                             header_txt, title_header_btn);
         }
@@ -44,7 +44,7 @@
             let selectRow = t_CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
                                         filter_ppk, filter_include_inactive, filter_include_absence, filter_istemplate, row_count,
-                                        bc_color_notselected, bc_color_selected,
+                                        bc_color_default, bc_color_selected, bc_color_hover,
                                         imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                         title_row_btn, is_selected_row);
             if(is_selected_row){ tblRow_selected = selectRow }
@@ -56,7 +56,7 @@
         if(!!addall_to_list_txt && row_count.count > 1) {
 // add '<All customers> at beginning of list when there are more than 1 rows
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                const bc_color_all_items = (selected_pk === 0) ?  bc_color_selected : bc_color_notselected;
+                const bc_color_all_items = (selected_pk === 0) ?  bc_color_selected : bc_color_default;
     //--------- insert tblBody_select row
                 let tblRow = tblBody_select.insertRow(0);
                 tblRow.setAttribute("id", "sel_" + tblName + "_addall");
@@ -89,7 +89,7 @@
 
 //========= t_CreateSelectHeader  ============= PR2019-12-21
     function t_CreateSelectHeader(tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
-                                bc_color_notselected, bc_color_selected,
+                                bc_color_default, bc_color_selected,
                                 imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                 header_txt, title_header_btn) {
         //console.log(" === t_CreateSelectHeader === ")
@@ -126,7 +126,7 @@
         if (has_header_btn){
             const is_header = true, is_delete = false;
             t_CreateSelectButton(tblName, tblRow, is_header, is_delete, HandleSelectFilterButton,
-                            bc_color_notselected, bc_color_selected,
+                            bc_color_default, bc_color_selected,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                             title_header_btn)
         }
@@ -148,11 +148,11 @@
     function t_CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
                                 filter_ppk, filter_include_inactive, filter_include_absence, filter_istemplate, row_count,
-                                bc_color_notselected, bc_color_selected,
+                                bc_color_default, bc_color_selected, bc_color_hover,
                                 imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                 title_row_btn, is_selected_row) {
-        console.log(" === t_CreateSelectRow in tables.js === ")
-        console.log("item_dict = ", item_dict)
+        //console.log(" === t_CreateSelectRow === ")
+        //console.log("item_dict = ", item_dict)
         is_selected_row = false;
 // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -180,11 +180,11 @@
                             (filter_include_absence != null && !filter_include_absence && is_absence === true )||
                             (filter_istemplate != null && filter_istemplate !== is_template);
 
-            console.log("filter_ppk_str = ", filter_ppk_str, "ppk_str = ", ppk_str)
+            //console.log("filter_ppk_str = ", filter_ppk_str, "ppk_str = ", ppk_str)
             //console.log("filter_include_inactive = ", filter_include_inactive, "is_inactive = ", is_inactive)
             //console.log("filter_include_absence = ", filter_include_absence, "is_absence = ", is_absence)
-            console.log("filter_istemplate = ", filter_istemplate, "is_template = ", is_template)
-            console.log("skip_row = ", skip_row)
+            //console.log("filter_istemplate = ", filter_istemplate, "is_template = ", is_template)
+            //console.log("skip_row = ", skip_row)
 
             if (!skip_row){
     //--------- insert tblBody_select row
@@ -201,22 +201,22 @@
                 if(!!is_inactive) {tblRow.setAttribute("data-inactive", is_inactive)};
 
                 if (!!pk_int && pk_int === selected_pk){
+                    tblRow.classList.remove(bc_color_default);
                     tblRow.classList.add(bc_color_selected);
                     is_selected_row = true;
                 } else {
-                    tblRow.classList.add(bc_color_notselected);
+                    tblRow.classList.remove(bc_color_selected);
+                    tblRow.classList.add(bc_color_default);
                 }
         //- add hover to select row
-                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
-                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(bc_color_hover)});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(bc_color_hover)});
 
         // --- add first td to tblRow.
-                // index -1 results in that the new cell will be inserted at the last position.
                 let td = tblRow.insertCell(-1);
-                // el_a.innerText and el_a.setAttribute("data-value") are added in UpdateSelectRow
                 let el_a = document.createElement("div");
                     el_a.setAttribute("data-field", "code");
-                    //el_a.setAttribute("data-value", code_value);
+                    el_a.classList.add("pointer_show")
                     td.appendChild(el_a);
                 td.classList.add("px-2")
 
@@ -233,7 +233,7 @@
                 if (has_row_button) {
                     const is_header = false;
                     t_CreateSelectButton(tblName, tblRow, is_header, has_delete_btn, HandleSelectRowButton,
-                                        bc_color_notselected, bc_color_selected,
+                                        bc_color_default, bc_color_selected,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                         title_row_btn);
                 }  // if (show_button) {
@@ -244,7 +244,7 @@
 
 //=========  t_CreateSelectButton  ================ PR2019-11-16
     function t_CreateSelectButton(tblName, tblRow, is_header, is_delete, HandleSelectButton,
-                                bc_color_notselected, bc_color_selected,
+                                bc_color_default, bc_color_selected,
                                 imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                 title_btn){
         //console.log(" === t_CreateSelectButton === ")
@@ -285,8 +285,7 @@
 
 //========= t_UpdateSelectRow  ============= PR2019-10-20 PR2020-05-21
     function t_UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_default, imgsrc_black) {
-        //console.log("t_UpdateSelectRow in tables.js");
-        //console.log("selectRow:", selectRow);
+        console.log("t_UpdateSelectRow in tables.js");
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
@@ -315,31 +314,40 @@
                     let el_input = selectRow.cells[0].children[0]
                     el_input.innerText = code_value;
                     selectRow.setAttribute("data-value", code_value);
+                    console.log("selectRow:", selectRow);
 
     // --- add active img to second td in table
-                    const inactive_dict = get_dict_value_by_key(update_dict, "inactive")
-                    if(!isEmpty(inactive_dict)){
-                        const inactive_value = get_dict_value_by_key(inactive_dict, "value", false);
-                        selectRow.setAttribute("data-inactive", inactive_value);
-                        let selectRow_cell = selectRow.cells[1];
-                        if(!!selectRow_cell){
-                            let el_inactive = selectRow_cell.children[0]
-                            if(!!el_inactive){
-                                format_inactive_element (el_inactive, inactive_dict, imgsrc_black, imgsrc_default)
-            // make el_inactive green for 2 seconds
-                                if("updated" in inactive_dict){
-                                    el_inactive.classList.add("border_bg_valid");
-                                    setTimeout(function (){
-                                        el_inactive.classList.remove("border_bg_valid");
-                                        // let row disappear when inactive and not filter_show_inactive
-                                        if(!filter_show_inactive && inactive_value){
-                                            selectRow.classList.add(cls_hide)
-                                        }
-                                    }, 2000);
-                                }  //  if("updated" in inactive_dict)
-                            }  // if(!!el_inactive)
-                        }  // if(!!selectRow_cell)
-                    }  // if(!isEmpty(inactive_dict))
+                    const is_inactive = get_dict_value(update_dict,["inactive", "value"], false);
+                    const is_updated = get_dict_value(update_dict, ["inactive", "updated"], false);
+                    selectRow.setAttribute("data-inactive", is_inactive);
+
+                    console.log("is_inactive:", is_inactive);
+                    console.log("is_updated:", is_updated);
+                    let td_01 = selectRow.cells[1];
+                    if(td_01){
+                        let el_inactive = td_01.children[0]
+                        if(el_inactive){
+                            let el_img = el_inactive.children[0];
+                            if (el_img){
+                                const imgsrc = (is_inactive) ? imgsrc_black : imgsrc_default;
+                                el_img.setAttribute("src", imgsrc);
+                            }
+                            // if is_updated: make el_inactive green for 2 seconds
+                            if(is_updated){
+                    console.log("ShowOkElement:");
+                                ShowOkElement(el_inactive, "border_bg_valid", "tsa_bc_lightlightgrey")
+                                }
+                            // if is_inactive=true and not filter_show_inactive:
+                            // hide after 2 seconds when updated, hide immediately otherwise
+                            if(!filter_show_inactive && is_inactive ){
+                                if (!is_updated) {
+                                    selectRow.classList.add(cls_hide)
+                                } else {
+                                    setTimeout(function (){selectRow.classList.add(cls_hide)}, 2000);
+                                }
+                            }
+                        }  // if(!!el_inactive)
+                    }  // if(!!selectRow_cell)
                 }  //  if(!!is_deleted)
             } else {
     // in added row there is no selectRow
@@ -1140,7 +1148,7 @@
         }
     }
 
-//=========  AppendIcon  ================ PR2019-08-27
+//=========  IconChange  ================ PR2019-08-27
     function IconChange(el, img_src ) {
         if (!!el) {
             // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
@@ -1392,8 +1400,8 @@
 
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        //console.log( "===== t_Filter_SelectRows  ========= ");
-        //console.log( "filter_text: <" + filter_text + ">");
+        console.log( "===== t_Filter_SelectRows  ========= ");
+        console.log( "filter_text: <" + filter_text + ">");
         //console.log( "has_ppk_filter: " + has_ppk_filter);
         //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
 
@@ -1476,7 +1484,7 @@
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
                 tblRow = tblBody.rows[i]
-                show_row = f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, !!has_ppk_filter, selected_ppk)
+                show_row = f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
                 if (show_row) {
                     tblRow.classList.remove(cls_hide)
                 } else {
@@ -1902,7 +1910,7 @@
 
 //========= t_FillOptionsAbscat  ====================================
     function t_FillOptionsAbscat(el_select, data_map, select_txt, select_none_txt, selected_pk) {
-       console.log( "=== t_FillOptionsAbscat  ");
+        //console.log( "=== t_FillOptionsAbscat  ");
 
 // ---  fill options of select box
         let option_text = "";

@@ -210,58 +210,56 @@
     width: 18px;
     height: 18px;
 }
-.tw_360 {
-    width: 360px;
+/* SPRITES */
+
+
+.stat_0_0, .stat_0_1, .stat_0_2, .stat_0_3, .stat_0_4, .stat_0_5, .stat_0_6,
+.stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6 {
+    background-image: url('/static/img/status.png');
+    background-size: 140px 40px;
+    background-repeat: no-repeat;
+    height: 20px;
+    width: 20px;
+    /*border: none;*/
 }
-.tw_300 {
-    width: 300px;
-}
-.tw_270 {
-    width: 270px;
-}
-.tw_240 {
-    width: 240px;
-}
-.tw_220 {
-    width: 220px;
-}
-.tw_200 {
-    width: 200px;
-}
-.tw_180 {
-    width: 180px;
-}
-.tw_150 {
-    width: 150px;
-}
-.tw_120 {
-    width: 120px;
-}
-.tw_110 {
-    width: 110px;
-}
-.tw_100 {
-    width: 100px;
-}
-.tw_090 {
-    width: 90px;
-}
-.tw_hours {
-    padding: 2px;
-    width: 60px;
-    }
-.tw_075 {
-    width: 75px;
-}
-.tw_060 {
-    width: 60px;
-}
-.tw_032 {
-    width: 32px;
-}
-.tw_016 {
-    width: 16px;
-}
+.stat_0_0 { background-position: -0px -0px;}
+.stat_0_1 { background-position: -20px -0px;}
+.stat_0_2 { background-position: -40px -0px;}
+.stat_0_3 { background-position: -60px -0px;}
+.stat_0_4 { background-position: -80px -0px;}
+.stat_0_5 { background-position: -100px -0px;}
+.stat_0_6 { background-position: -120px -0px;}
+.stat_1_0 { background-position: -0px -20px;}
+.stat_1_1 { background-position: -20px -20px;}
+.stat_1_2 { background-position: -40px -20px;}
+.stat_1_3 { background-position: -60px -20px;}
+.stat_1_4 { background-position: -80px -20px;}
+.stat_1_5 { background-position: -100px -20px;}
+.stat_1_6 { background-position: -120px -20px;}
+
+.pt_02px { padding-top: 2px; }
+/* END OF SPRITES */
+
+.tw_360 { width: 360px; }
+.tw_300 { width: 300px; }
+.tw_270 { width: 270px; }
+.tw_240 { width: 240px; }
+.tw_220 { width: 220px; }
+.tw_200 { width: 200px; }
+.tw_180 { width: 180px; }
+.tw_150 { width: 150px; }
+.tw_120 { width: 120px; }
+.tw_110 { width: 110px; }
+.tw_100 { width: 100px; }
+.tw_090 { width: 90px; }
+.tw_075 { width: 75px; }
+.tw_060 { width: 60px; }
+.tw_032 { width: 32px; }
+.tw_020 { width: 20px; }
+.tw_016 { width: 16px; }
+
+.tw_hours { padding: 2px; width: 60px; }
+
 .tbl_border {
     border: 1px solid #808080; /* grijs; */
 }
@@ -310,25 +308,24 @@
      object-position: 0 -234px;
 }
 
-
-.tr_hover {
-   /* background-color: #7e98b5; /*lgreyish lightblue PR2019-01-05*/
-   /* background-color: #2d4e7780; */
-   /* background: #2d4e7705; /* as #2d4e7780, but  25% opaque */
-   background-color: #e0e0e0; /* licht grijs; tsa_tr_selected*/
-    /* background-color: #808080; /* donker grijs*/
-   /*color: #ffffff;*/
+.tr_hover .tr_hover_yellow {
     color: #000000;
     -moz-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);
     -webkit-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */  /* Firefox 3.5 - 3.6 */
     /* box-shadow: [horizontal offset] [vertical offset] [blur radius] [optional spread radius] [color]; */
     box-shadow:         3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
 }
+.tr_hover {
+   background-color: #e0e0e0 !important; /* licht grijs; tsa_tr_selected*/
+}
+.tr_hover_yellow {
+   background: #fbedba !important; /* tsa_bc_yellow_light lighter shade of tsa yellow */
+}
 
 .tr_highlighted {
     /* background-color:   #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
     /* background:  #2d4e77cc;*/
-    background-color: #808080;
+    background-color: #808080 ;
     color: #ffffff;
     font-weight: bold;
         -moz-transition: background 0.25s ease-in-out;

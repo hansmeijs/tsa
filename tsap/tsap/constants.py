@@ -354,7 +354,7 @@ FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'tim
                   'pricecode_id', 'additioncode_id', 'taxcode_id', 'invoicecode_id', 'workminutesperday', 'entryrate' )
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
-                         'datepayment', 'dateexpired', 'expired', 'note', 'locked')
+                         'datepayment', 'dateexpired', 'expired', 'note', 'locked', 'modifiedat')
 
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
@@ -367,21 +367,25 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'inactive', 'locked')
 
-FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
+FIELDS_ORDERHOUR = ('id', 'order', 'customerlog', 'orderlog',
+                    'schemeitem', 'rosterdate', 'cat',
                     'isabsence', 'isrestshift', 'issplitshift', 'isbillable', 'nobill',
-                    'shift', 'invoicedate', 'lockedinvoice', 'hasnote', 'status', 'locked')
+                    'shift', 'invoicecode', 'invoicedate', 'lockedinvoice',
+                    'status', 'hasnote', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-                   'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'paydateitem', 'lockedpaydate', 'nopay',
+                   'rosterdate', 'cat', 'isreplacement', 'datepart',
+                   'paydate', 'paydatecode', 'lockedpaydate', 'nopay', 'haschanged',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                    'offsetstart', 'offsetend', 'excelstart', 'excelend',
-                   'wagecode', 'wagerate', 'wagefactor', 'wage',
+                   'functioncode', 'wagecode', 'wagefactorcode', 'wagerate', 'wagefactor', 'wage',
+                   'pricecode', 'additioncode', 'taxcode',
                    'pricerate', 'additionrate', 'additionisamount', 'taxrate', 'amount', 'addition', 'tax',
+                   'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked',
+                   'order', 'shift', 'confirmstart', 'confirmend')
                     # fields: order, shift, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status
                    # 'issplitshift'
-                   'order', 'shift', 'confirmstart', 'confirmend',
-                   'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
@@ -395,11 +399,10 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'bil
 
 FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
 
-FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
-                   'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
+FIELDS_EMPLOYEE = ('id', 'company', 'code', 'namelast', 'namefirst', 'datefirst', 'datelast',
+                    'email', 'telephone', 'identifier', 'payrollcode',
                    'address', 'zipcode', 'city', 'country',
-                   #TODO deprecate workdays
-                   'workhoursperweek', 'workminutesperday', 'workdays', 'leavedays',
+                   'workhoursperweek', 'workminutesperday', 'leavedays',
                    'functioncode', 'wagecode', 'paydatecode',
                    'pricecode', 'additioncode', 'inactive', 'locked')
 

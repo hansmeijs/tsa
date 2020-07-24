@@ -154,9 +154,9 @@ h4 h5 {
 }
 
 .border_bg_valid {
-    border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
-    border-radius: .25rem;
-    background-color: #d7f4de; /*#ade8bb;*/
+    border: 1px solid  #4cbd67 !important;  /*  #28a745; is green like in django is-valid */
+    border-radius: .25rem  !important;
+    background-color: #d7f4de !important; /*#ade8bb;*/
 }
 .border_bg_transparent {
     border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */

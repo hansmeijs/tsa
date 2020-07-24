@@ -348,7 +348,6 @@ sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT,
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_price_list(filter_dict, request):  # PR2020-03-02
-    # create list of shifts of this order PR2019-08-08
 
     price_list = []
     if request.user.company:
@@ -622,18 +621,18 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                         prc_instance = None
                         if field == 'billable':
                             logger.debug('billable in upload_dict')
-                            # value can be 0, 1 or 2
+# - save new_billable in instance
+                            # value can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
+                            # if new_billable = 0: get value of parent, store as negative value in update_dict
                             new_billable = f.get_dict_value(upload_dict, ('billable', 'value'), 0)
                             instance.billable = new_billable
                             instance.save(request=request)
+
                             logger.debug('new_billable: ' + str(new_billable) + ' type: ' + str(type(new_billable)))
-                            # if new_billable = 0: get value of parent, store as negative value in update_dict
+# - if new_billable = 0: get value of parent, store as negative value in update_dict
                             if not new_billable:
                                 parent_billable = None
-                                logger.debug('======= new_billable' + str(new_billable))
                                 if not new_billable:
-                                    logger.debug('======= not new_billable' + str(new_billable))
-                                    logger.debug('table' + str(table))
                                     if table == 'shft':
                                         scheme = instance.scheme
                                         parent_billable = scheme.billable
@@ -650,6 +649,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                                                     company = customer.company
                                                     parent_billable = company.billable
                                                     logger.debug('cuscompanytomer parent_billable' + str(parent_billable))
+
                                     if table == 'schm':
                                         order = instance.order
                                         parent_billable = order.billable
@@ -672,6 +672,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                                     new_billable = parent_billable * -1
                             update_dict['billable'] = {'value': new_billable, 'updated': True}
                             logger.debug('update_dict' + str(update_dict))
+# TODO recalc billing hours of non-billinglocked emplhour records
 
                         elif field in ('pricecode', 'additioncode', 'taxcode'):
                             is_create = f.get_dict_value(upload_dict, (field, 'create'), False)
@@ -742,24 +743,27 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                         remove_all = field_dict.get('remove_all', False)
                         if remove_all:
                             reset_value = '0' if field == 'billable' else 'NULL'
-                            field_name =  'billable' if field == 'billable' else field + '_id'
+                            field_name = 'billable' if field == 'billable' else field + '_id'
                             reset_patfield_billable_in_subtables(table, field_name, reset_value, customer_pk, order_pk, scheme_pk, request)
 
-# - update priceciodeid, pricerate etc in emplhour records
-                        update_patcode_in_emplhour(table, field, instance, prc_instance, request)
+# - update isbillable in orderhiur records and billingduratio in emplhour records
+                        update_isbillable_and_billingduration_in_emplhour(request)
+
+# - update pricecodeid, pricerate etc in emplhour records
+                        if field in ('pricecode', 'additioncode', 'taxcode'):
+                            update_patcode_in_emplhour(table, field, instance, prc_instance, request)
 
                         if must_update_pricecodelist:
                             update_wrap['pricecode_list'] = create_pricecode_list(rosterdate, request=request)
 
 # - update pricerate in all emplhour records that are not orderhour.lockedinvoice
 
-
                     update_wrap['update_dict'] = update_dict
 
                     price_list = create_price_list({}, request)
 
                     if price_list:
-                        update_wrap['update_list'] = price_list
+                        update_wrap['price_list'] = price_list
 
         # 9. return update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -829,9 +833,11 @@ def reset_patfield_billable_in_subtables(table, fieldname, reset_value, customer
         })
 
 
-
 def update_patcode_in_emplhour(table, field, instance, new_pat_code, request):
-    #logger.debug(' --- update_patcode_in_emplhour --- ') # PR2020-07-05
+    logger.debug(' --- update_patcode_in_emplhour --- ') # PR2020-07-05
+    logger.debug('table: ' + str(table)) # PR2020-07-05
+    logger.debug('field: ' + str(field)) # PR2020-07-05
+    logger.debug('new_pat_code: ' + str(new_pat_code)) # PR2020-07-05
     # - update  pricerate and amount and tax in table emplhour
 
     crit = Q(orderhour__order__customer__company=request.user.company) & \
@@ -863,7 +869,9 @@ def update_patcode_in_emplhour(table, field, instance, new_pat_code, request):
         if table in ('shft', 'schm', 'ordr', 'cust') and new_pat_code is None:
             if request.user.company:
                 # company has no linked field, use pricecode_id etc instead
+                # except for billable
                 pat_code_id = getattr(request.user.company, field + '_id')
+                logger.debug('pat_code_id: ' + str(pat_code_id))
                 if pat_code_id:
                     new_pat_code = m.Pricecode.objects.get_or_none(id=pat_code_id)
 
@@ -918,3 +926,104 @@ def get_pricecode_data(pricecode_id, date_first, request):
         pricecode_data = [None, None, None, None, None]
     return pricecode_data
 
+
+def update_isbillable_and_billingduration_in_emplhour(request):
+    logger.debug(' --- update_billable_and_billinghours_in_emplhour --- ') # PR2020-07-23
+
+# - update field billable in orderhour records that are not locked
+    sql_schemeitem = """
+        SELECT 
+            si.id AS si_id,
+            CASE WHEN c.isabsence OR sh.isrestshift THEN FALSE ELSE
+                CASE WHEN sh.billable = 0 OR sh.billable IS NULL THEN
+                    CASE WHEN s.billable = 0 OR s.billable IS NULL THEN
+                        CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
+                            CASE WHEN c.billable = 0 OR c.billable IS NULL THEN 
+                                CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
+                            ELSE 
+                                CASE WHEN c.billable = 2 THEN TRUE ELSE FALSE END
+                            END 
+                        ELSE 
+                            CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
+                        END
+                    ELSE 
+                        CASE WHEN s.billable = 2 THEN TRUE ELSE FALSE END
+                    END 
+                ELSE 
+                    CASE WHEN sh.billable = 2 THEN TRUE ELSE FALSE END
+                END 
+            END AS sh_isbill
+
+            FROM companies_schemeitem AS si 
+            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
+            INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id) 
+            INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            INNER JOIN companies_company AS comp ON (comp.id = c.company_id) 
+
+            WHERE (c.company_id = %(compid)s)
+            """
+    sql_orderhour = """ 
+        UPDATE companies_orderhour AS oh
+        SET isbillable = si_sub.sh_isbill
+        FROM  ( """ + sql_schemeitem + """  ) AS si_sub
+        WHERE (oh.schemeitem_id = si_sub.si_id) AND (NOT oh.lockedinvoice)
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_orderhour, {
+            'compid': request.user.company_id
+        })
+
+# - update field billingduration in emplhour records that are not locked
+    sql_oh_sub = """
+        SELECT 
+            oh.id,
+            oh.isbillable
+            
+            FROM companies_orderhour AS oh 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE (c.company_id = %(compid)s) AND (NOT oh.lockedinvoice)
+            """
+    #            addition = CASE WHEN eh.additionisamount
+     #                  THEN additionrate
+     #                  ELSE ROUND( (addition_rate / 10000) * ROUND( eh.pricerate *
+     #                       (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 ) )  )
+
+    sql_emplhour = """ 
+        UPDATE companies_emplhour AS eh
+        SET billingduration = CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END,
+            amount =  ROUND( COALESCE(eh.pricerate, 0)
+                             * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
+                             / 60 ),
+            addition = CASE WHEN eh.additionisamount
+                       THEN additionrate
+                       ELSE
+                       ROUND( (additionrate / 10000) 
+                               * ROUND( COALESCE(eh.pricerate, 0)
+                                        * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
+                                        / 60 ) )
+                       END,
+                       
+            tax = ROUND( (eh.taxrate / 10000) * (
+                            ROUND( COALESCE(eh.pricerate, 0)
+                             * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
+                             / 60 ) 
+                            + 
+                            CASE WHEN eh.additionisamount THEN additionrate ELSE
+                           ROUND( (additionrate / 10000) 
+                                   * ROUND( COALESCE(eh.pricerate, 0)
+                                            * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
+                                            / 60 ) ) END
+                            ) )   
+          
+        FROM  ( """ + sql_oh_sub + """  ) AS oh_sub
+        WHERE (eh.orderhour_id = oh_sub.id)
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_emplhour, {
+            'compid': request.user.company_id
+        })
+
+
+        # TODO recalculate amount, addition, tax
