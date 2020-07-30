@@ -93,7 +93,7 @@ idx_r_os_arr = 50
 idx_r_oe_arr = 51
 idx_r_o_seq_arr = 52
 
-idx_isreplacement = 53  # ispare_isreplacement = 52 # for testing only
+idx_isreplacement = 53
 
 idx_tm_ovr = 54
 idx_tm_prc_id = 55
@@ -173,7 +173,7 @@ sql_schemeitem_sub00 = """
     SELECT si.id AS si_id, 
         si.team_id AS t_id, 
         si.shift_id AS sh_id, 
-        COALESCE(sh.code,'') AS sh_code,
+        sh.code AS sh_code,
         si.isabsence AS si_abs,
         CASE WHEN sh.id IS NULL THEN FALSE ELSE sh.isrestshift END AS sh_rest,
         si.inactive AS si_inactive,
@@ -521,6 +521,9 @@ sql_employee_with_aggr_sub07 = """
 # this sql is used to fill rosterdate
 # PR2020-06-21 debug: dont filter on inactive abscat,
 # otherqwise employees with inactive abscat will be skipped. It took me a long time to figure this out
+
+# PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
+# caused bij idx_e_code = None. Coalesce added in query for idx_tm_rd, idx_c_code, idx_o_code, idx_e_code)
 sql_teammember_sub08 = """
     SELECT 
         tm.id AS tm_id,
@@ -531,7 +534,7 @@ sql_teammember_sub08 = """
         o.id AS o_id,
         COALESCE(o.code,'') AS o_code,
         c.id AS c_id, 
-        COALESCE(c.code,'') AS c_code, 
+        COALESCE(c.code,'') AS c_code,
         c.company_id AS comp_id, 
 
         e_sub.e_id AS e_id,
@@ -548,19 +551,11 @@ sql_teammember_sub08 = """
 
         CASE WHEN c.isabsence THEN FALSE ELSE
             CASE WHEN si_sub.sh_bill = 0 OR si_sub.sh_bill IS NULL THEN
-                CASE WHEN s.billable = 0 OR s.billable IS NULL THEN
-                    CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
-                        CASE WHEN c.billable = 0 OR c.billable IS NULL THEN 
-                            CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
-                        ELSE 
-                            CASE WHEN c.billable = 2 THEN TRUE ELSE FALSE END
-                        END 
-                    ELSE 
-                        CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
-                    END
+                CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
+                    CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
                 ELSE 
-                    CASE WHEN s.billable = 2 THEN TRUE ELSE FALSE END
-                END 
+                    CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
+                END
             ELSE 
                 CASE WHEN si_sub.sh_bill = 2 THEN TRUE ELSE FALSE END
             END 
@@ -608,20 +603,16 @@ sql_teammember_sub08 = """
         r_sub.sh_oe_arr AS r_oe_arr,
         r_sub.o_seq_arr AS r_o_seq_arr, 
 
-        NULL AS spare_isreplacement,
+        FALSE AS isreplacement,
 
         tm.override AS tm_ovr,
         tm.pricecode_id AS tm_prc_id,
         r_sub.e_prc_id AS r_prc_id,
         e_sub.e_prc_id,
         CASE WHEN si_sub.sh_prc_id IS NULL THEN 
-            CASE WHEN s.pricecode_id IS NULL THEN 
-                CASE WHEN o.pricecode_id IS NULL THEN 
-                    CASE WHEN c.pricecode_id IS NULL THEN 
-                        comp.pricecode_id 
-                    ELSE c.pricecode_id END
-                ELSE o.pricecode_id END
-            ELSE s.pricecode_id END
+            CASE WHEN o.pricecode_id IS NULL THEN 
+                comp.pricecode_id 
+            ELSE o.pricecode_id END
         ELSE si_sub.sh_prc_id END
         AS sh_prc_id,
 
@@ -629,24 +620,16 @@ sql_teammember_sub08 = """
         r_sub.e_adc_id AS r_adc_id,
         e_sub.e_adc_id,
         CASE WHEN si_sub.sh_adc_id IS NULL THEN 
-            CASE WHEN s.additioncode_id IS NULL THEN 
-                CASE WHEN o.additioncode_id IS NULL THEN 
-                    CASE WHEN c.additioncode_id IS NULL THEN 
-                        comp.additioncode_id 
-                    ELSE c.additioncode_id END
-                ELSE o.additioncode_id END
-            ELSE s.additioncode_id END
+            CASE WHEN o.additioncode_id IS NULL THEN 
+                comp.additioncode_id 
+            ELSE o.additioncode_id END
         ELSE si_sub.sh_adc_id END
         AS sh_adc_id,
 
         CASE WHEN si_sub.sh_txc_id IS NULL THEN 
-            CASE WHEN s.taxcode_id IS NULL THEN 
-                CASE WHEN o.taxcode_id IS NULL THEN 
-                    CASE WHEN c.taxcode_id IS NULL THEN 
-                        comp.taxcode_id 
-                    ELSE c.taxcode_id END
-                ELSE o.taxcode_id END
-            ELSE s.taxcode_id END
+            CASE WHEN o.taxcode_id IS NULL THEN 
+                comp.taxcode_id 
+            ELSE o.taxcode_id END
         ELSE si_sub.sh_txc_id END
         AS sh_txc_id,
 
@@ -700,7 +683,7 @@ sql_teammember_sub08 = """
 class FillRosterdateView(UpdateView):  # PR2019-05-26
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= FillRosterdateView ============= ')
+        logger.debug(' ============= FillRosterdateView ============= ')
 
         update_dict = {}
         if request.user is not None and request.user.company is not None:
@@ -716,25 +699,34 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
             if 'upload' in request.POST:
                 upload_dict = json.loads(request.POST['upload'])
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict: {'rosterdate_check': {'mode': 'check_create'}}
                 # upload_dict: {'mode': 'create', 'rosterdate': '2019-12-20', 'count': 0, 'confirmed': 0}
                 mode = upload_dict.get('mode')
                 rosterdate_iso = upload_dict.get('rosterdate')
                 rosterdate_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_iso)
-                # ug('rosterdate_dte: ' + str(rosterdate_dte))
+                # logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
 
                 update_list = []
                 logfile = []
                 return_dict = {}
-                if mode == 'create':
 
+# ----- rosterdate_check
+                # upload_dict: {'rosterdate_check': {'mode': 'check_create'}}
+                if mode in ['check_create', 'check_delete']:
+
+                    update_dict['rosterdate_check'] = pld.get_rosterdate_check(upload_dict, request)
+                    logger.debug('update_dict[rosterdate_check]: ' + str(update_dict['rosterdate_check']))
+
+                elif mode == 'create':
+# ----- rosterdate create
                     # add new emplhours, confirmed existing emplhours will be skipped
                     return_dict, logfile = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
 
                     return_dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request)
 
                 elif mode == 'delete':
-
+# ----- rosterdate delete
                     # RemoveRosterdate
                     return_dict = RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request)
 
@@ -751,7 +743,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 roster_period_dict = pld.period_get_and_save('roster_period', period_dict,
                                                              comp_timezone, timeformat, interval, user_lang, request)
 
-                emplhour_list = pld.create_emplhour_list(period_dict=roster_period_dict,
+                emplhour_list, emplhours_rows = pld.create_emplhour_list(period_dict=roster_period_dict,
                                                          comp_timezone=comp_timezone,
                                                          timeformat=timeformat,
                                                          user_lang=user_lang,
@@ -759,6 +751,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                 update_dict['emplhour_list'] = emplhour_list
+                update_dict['emplhours_rows'] = emplhours_rows
 
                 # debug: also update table in window when list is empty, Was: if list:
                 # update_dict['emplhour_list'] = list
@@ -973,11 +966,6 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
                            lastof_month, comp_timezone, request):  # PR2020-01-5
     #logger.debug(' ============= add_orderhour_emplhour ============= ')
-    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-    #logger.debug('is_saturday: ' + str(is_saturday))
-    #logger.debug('is_sunday: ' + str(is_sunday))
-    #logger.debug('is_publicholiday: ' + str(is_publicholiday))
-    #logger.debug('lastof_month: ' + str(lastof_month))
 
     # mode 'i' = inactive
     # mode 'a' = isabsence
@@ -989,7 +977,33 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     is_absence = (mode == 'a')
     is_restshift = (mode == 'r')
 
-    # calc_timestart_time_end_from_offset:
+# get info from order
+    # get order_pk from row, not from order instance PR2020-07-25
+    # order = m.Order.objects.get_or_none(id=row[idx_o_id], customer__company=request.user.company)
+    order_pk = row[idx_o_id]
+# get schemeitem
+    # get schemeitem_pk from row, not from schemeitem instance PR2020-07-25
+    # schemeitem = m.Schemeitem.objects.get_or_none(id=row[idx_si_id], scheme__order=order)
+    schemeitem_pk = row[idx_si_id]
+
+    # get billable info from shift, scheme, order, customer, company
+    is_billable = (row[idx_sh_isbill] and not is_absence and not is_restshift)
+
+# - get teammember
+    # get teammember_pk from row, not from teammember instance PR2020-07-24
+    # was: teammember = m.Teammember.objects.get_or_none(id=row[idx_tm_id], team__scheme__order=order)
+    teammember_pk = row[idx_tm_id]
+
+# - get employee info
+    # NOTE: employee can be different from teammember.employee (when replacement employee)
+    # NOTE: employee info in row is replaced by replacement employee info in function calculate_add_row_to_dict
+    # get employee info from row, not from employee instance PR2020-07-24
+    #   Was: employee = m.Employee.objects.get_or_none(id=row[idx_e_id], company=request.user.company)
+    employee_pk = row[idx_e_id]
+    # row[idx_isreplacement] from sql is always False, gets is value in calculate_add_row_to_dict
+    is_replacement = row[idx_isreplacement]
+
+# - calc_timestart_time_end_from_offset:
     # - calculates timestart, timeend from shift offset and shift rosterdate
     # - calculates timeduration, only when both start- and endtime have value.
     # - otherwise saved value of timedurationis used (shift '6:00 hours')
@@ -1009,10 +1023,12 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         comp_timezone=comp_timezone
     )
     # set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
+    # PR2020-07-24 request Guido: also set time_duration = 0when employee = None
     if (is_saturday and row[idx_o_s_nosat]) or \
                 (is_sunday and row[idx_o_s_nosun]) or \
                 (is_publicholiday and row[idx_o_s_noph]) or \
-                (is_restshift):
+                (is_restshift) or \
+                (employee_pk is None):
         time_duration = 0
         #logger.debug('no hours: ')
 
@@ -1020,29 +1036,6 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     date_part = 0
     if timestart and timeend:
         date_part = f.calc_datepart(row_offsetstart, row_offsetend)
-
-    # get info from order
-    order = m.Order.objects.get_or_none(id=row[idx_o_id], customer__company=request.user.company)
-
-    # get schemeitem
-    schemeitem = m.Schemeitem.objects.get_or_none(id=row[idx_si_id], scheme__order=order)
-
-    # get billable info from shift, scheme, order, customer, company
-    is_billable = (row[idx_sh_isbill] and not is_absence and not is_restshift)
-    shift_code = row[idx_sh_code]
-
-    # get teammember
-    #logger.debug('teammember: ' + str(teammember))
-    teammember = m.Teammember.objects.get_or_none(id=row[idx_tm_id], team__scheme__order=order)
-
-    # get employee
-    # Note: employee can be different from teammember.employee (when replacement employee)
-
-    # >>> NOTE: employee info in row is replaced by replacement employee info in function calculate_add_row_to_dict
-
-    #logger.debug('teammember: ' + str(teammember))
-    employee = m.Employee.objects.get_or_none(id=row[idx_e_id], company=request.user.company)
-    is_replacement = True if row[idx_isreplacement] is True else False
 
     # 1. check if emplhours from this schemeitem/teammmeber/rosterdate already exist
     # (happens when FillRosterdate for this rosterdate is previously used)
@@ -1061,29 +1054,41 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     if row[idx_tm_id] is not None and row[idx_si_id] is not None:
         linked_emplhours_exist = m.Emplhour.objects.filter(
             rosterdate=rosterdate_dte,
-            teammemberid=teammember.id,
-            schemeitemid=schemeitem.id,
-            orderhour__order=order).exists()
+            teammemberid=teammember_pk,
+            schemeitemid=schemeitem_pk,
+            orderhour__order_id=order_pk).exists()
 
     # skip if there are already emplhours with the same rosterdate, teammemberid, schemeitemid and order
     if not linked_emplhours_exist:
-        # 3. create new orderhour
-        orderhour = m.Orderhour(
-            order=schemeitem.scheme.order,
-            schemeitem=schemeitem,
-            rosterdate=rosterdate_dte,
-            status=c.STATUS_01_CREATED
-        )
-
         # TODO get invoicedate from order settings, make it end of this month for now
+        # TODO pricecode etc
+        price_code, addition_code, tax_code = None, None, None
+        price_rate, addition_rate, tax_rate = 0, None, None
         invoice_date = lastof_month
 
-        # 4. add values to new record
-        orderhour.invoicedate = invoice_date
-        orderhour.isbillable = is_billable
-        orderhour.isabsence = is_absence
-        orderhour.isrestshift = is_restshift
-        orderhour.shift = shift_code
+# 3. create new orderhour
+        orderhour = m.Orderhour(
+            order_id=order_pk,
+            schemeitem_id=schemeitem_pk,
+            rosterdate=rosterdate_dte,
+            invoicedate=invoice_date,
+            isbillable=is_billable,
+            isabsence=is_absence,
+            isrestshift=is_restshift,
+            customercode=row[idx_c_code],
+            ordercode=row[idx_o_code],
+            shiftcode=row[idx_sh_code],
+
+            pricecode=price_code,
+            additioncode = addition_code,
+            taxcode=tax_code,
+            
+            pricerate=price_rate,
+            additionrate=addition_rate,
+            taxrate=tax_rate,
+
+            status=c.STATUS_01_CREATED
+        )
         orderhour.save(request=request)
 
         # 4. create new emplhour
@@ -1091,9 +1096,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         emplhour_is_added = add_emplhour(
             row=row,
             orderhour=orderhour,
-            schemeitem=schemeitem,
-            teammember=teammember,
-            employee=employee,
+            employee_pk=employee_pk,
             is_replacement=is_replacement,
             shift_wagefactor=None,
             timestart=timestart,
@@ -1119,7 +1122,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     return emplhour_is_added, linked_emplhours_exist, count_duration
 
 
-def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
+def add_emplhour(row, orderhour, employee_pk, is_replacement,
                  shift_wagefactor,
                  timestart, timeend, break_duration, time_duration,
                  offset_start, offset_end, date_part, lastof_month, comp_timezone, request):
@@ -1131,7 +1134,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
 
     emplhour_is_added = False
 
-    if orderhour and schemeitem and teammember:
+    if orderhour and row[idx_si_id] and row[idx_tm_id]:
         # skip try for debugging, for now
         if True:
             # try:
@@ -1173,7 +1176,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                         prc_idx = idx_e_prc_id
             pricecode_pk = row[prc_idx]
             #logger.debug('pricecode_pk: ' + str(pricecode_pk))
-            price_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, orderhour.rosterdate)
+            price_rate = f.get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, orderhour.rosterdate)
             #logger.debug('price_rate: ' + str(price_rate))
 
             adc_idx = idx_sh_adc_id
@@ -1190,11 +1193,11 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                         adc_idx = idx_e_adc_id
             pricecode_pk = row[adc_idx]
             #logger.debug('pricecode_pk: ' + str(pricecode_pk))
-            addition_rate, additionisamount = f.get_pricerate_from_pricecodeitem('additioncode', pricecode_pk, orderhour.rosterdate)
+            addition_rate = f.get_pricerate_from_pricecodeitem('additioncode', pricecode_pk, orderhour.rosterdate)
             #logger.debug('addition_rate: ' + str(addition_rate))
 
             # search of first available taxrate is part of query
-            tax_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem('taxcode', row[idx_sh_txc_id], orderhour.rosterdate)
+            tax_rate = f.get_pricerate_from_pricecodeitem('taxcode', row[idx_sh_txc_id], orderhour.rosterdate)
 
             #logger.debug('taxnrate_index: ' + str(row[idx_sh_txc_id]))
             #logger.debug('tax_rate: ' + str(tax_rate))
@@ -1221,13 +1224,13 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             billing_duration = time_duration
 
             amount, addition, tax = f.calc_amount_addition_tax_rounded(billing_duration, orderhour.isabsence, orderhour.isrestshift,
-                                                                       price_rate, addition_rate, additionisamount, tax_rate)
+                                                                       price_rate, addition_rate, tax_rate)
 
             # add pay_date PR2020-06-18
             # note: pay_date must be updated in table Paydatecode before filling rosterdate
             # IMPORTANT: dont forget to change paydate in emplhour when changing employee
 
-            # Note: employee info in row contains info from replacemenet employee when is_replacement
+            # Note: employee info in row contains info from replacement employee when is_replacement
             paydatecode_id = row[idx_e_pdc_id]
             pay_date = row[idx_e_pdc_dte]
             if paydatecode_id is None:
@@ -1245,6 +1248,9 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
                 rosterdate=orderhour.rosterdate,
+                exceldate=excel_date,
+                employee_id=row[idx_e_id],
+                employeecode=row[idx_e_code],
 
                 paydate=pay_date,
                 paydatecode_id=paydatecode_id,
@@ -1271,22 +1277,20 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 wagefactor=wagefactor,
                 wage=wage,
 
-                pricerate=price_rate,
-                additionrate=addition_rate,
-                taxrate=tax_rate,
                 amount=amount,
                 addition=addition,
                 tax=tax,
+
                 overlap=overlap,
-                schemeitemid=schemeitem.id,
-                teammemberid=teammember.id,
+                schemeitemid=row[idx_si_id],
+                teammemberid=row[idx_tm_id],
                 status=c.STATUS_01_CREATED
             )
 
             #logger.debug('new_emplhour: ' + str(new_emplhour))
             #logger.debug('employee: ' + str(employee))
-            if employee:
-                new_emplhour.employee = employee
+            #if employee_pk:
+                #new_emplhour.employee_id = employee_pk
                 # new_emplhour.wagecode = employee.wagecode
                 # new_emplhour.wagerate = employee.wagerate
 
@@ -1376,18 +1380,23 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
     #  - this company
     #  - this rosterdate
     #  - eh_status less than confirmed_start
+    #  - not eh_locked, not eh_lockedpaydate
     #  - oh_status less than locked
+    #  - not oh_locked, not oh_lockedinvoice
+    # not in use:  AND (NOT eh.locked) , AND (NOT oh.locked)
     newcursor.execute(""" 
                 DELETE FROM companies_emplhour AS eh
                 WHERE (eh.rosterdate = %(rd)s OR eh.rosterdate IS NULL) 
                 AND (eh.status < %(eh_status)s) 
+                AND (NOT eh.lockedpaydate)
                 AND orderhour_id IN (
                     SELECT oh.id AS oh_id FROM companies_orderhour AS oh
                     INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
                     INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
                     WHERE (c.company_id = %(cid)s) 
-                    AND (oh.status < %(oh_status)s) 
                     AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL)
+                    AND (oh.status < %(oh_status)s) 
+                    AND (NOT oh.lockedpaydate)
                 )
                 """, {
         'cid': request.user.company_id,
@@ -1490,6 +1499,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                 emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
                 if emplhours:
                     for emplhour in emplhours:
+                        emplhour_pk = emplhour.pk
                         delete_emplhour = False
                         # also delete emplhour when emplhour or orderhour has no rosterdate
                         if not emplhour.rosterdate or not orderhour.rosterdate:
@@ -1510,6 +1520,10 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                         # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
                         if delete_emplhour:
                             emplhour.delete(request=request)
+
+                            # also delete history of this emplhour
+                            m.Emplhourlog.objects.filter(emplhour_id=emplhour_pk).delete()
+
                             count_deleted += 1
 
                             # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
@@ -2053,7 +2067,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
     if row[idx_si_mod] == 'i':
         logfile.append('--- this is an inactive shift')
         logfile.append('--> inactive shift is skipped')
-    # >>>>> SHIFT IS ABSENCE
+# >>>>> SHIFT IS ABSENCE
     elif row[idx_si_mod] == 'a':
         logfile.append('--- this is absence')
         if skip_absence_and_restshifts:
@@ -3515,7 +3529,7 @@ sql_customer_calendar_team_sub11 = """
         tm_sub.r_oe_arr2 AS r_oe_arr,
         NULL AS r_o_seq_arr, 
 
-        NULL AS spare_isreplacement
+        FALSE AS idx_isreplacement
 
     FROM companies_team AS t 
     INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 

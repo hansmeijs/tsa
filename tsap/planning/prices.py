@@ -15,10 +15,12 @@ from timeit import default_timer as timer
 
 from accounts.models import Usersetting
 from companies import models as m
+from customers import dicts as cust_dicts
 
 from tsap.settings import TIME_ZONE
 from tsap import constants as c
 from tsap import functions as f
+from planning import dicts as pld
 
 import operator
 import json
@@ -46,49 +48,33 @@ sub_inv = 'SELECT id, note FROM companies_pricecode AS sub_inv WHERE sub_inv.isi
 # only tables timecode, teammember and shift have a field 'wagefactorcode'
 sub_wfc = 'SELECT id, rate FROM companies_wagecode AS sub_wfc WHERE sub_wfc.iswagefactor'
 
-sub_shift = """SELECT sh.id AS shft_id, sh.scheme_id, 
+sub_shift = """SELECT sh.id AS shft_id, 
+                s.id AS schm_id, 
+                s.code AS schm_code,
+                s.order_id AS s_order_id,
                 sh.code AS shft_code,
                 sh.billable AS shft_billable,
                 
                 sh.pricecode_id AS shft_pricecode_id,   
                 sh.additioncode_id AS shft_additioncode_id,        
                 sh.taxcode_id AS shft_taxcode_id,
+                
                 sh.wagefactorcode_id AS shft_wagefactorcode_id
 
                 FROM companies_shift AS sh
+                INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id)
 
-                WHERE (sh.id = %(shftid)s OR %(shftid)s IS NULL)
-                AND (sh.isrestshift = FALSE)
+                WHERE (sh.isrestshift = FALSE)
                 AND (sh.istemplate = FALSE)
        """
-sub_scheme = """SELECT s.id AS schm_id, s.order_id, 
-                s.code AS schm_code,
-                s.billable AS schm_billable,
 
-                s.pricecode_id AS schm_pricecode_id, 
-                s.additioncode_id AS schm_additioncode_id,                
-                s.taxcode_id AS schm_taxcode_id,
-
-                sub_shft.shft_id,
-                sub_shft.shft_code,
-                sub_shft.shft_billable,
-    
-                sub_shft.shft_pricecode_id, 
-                sub_shft.shft_additioncode_id, 
-                sub_shft.shft_taxcode_id,
-                sub_shft.shft_wagefactorcode_id
+sub_order = """SELECT o.id AS ordr_id, 
+                c.company_id AS company_id,
+                c.id AS cust_id,
+                COALESCE(c.code, '') AS cust_code,
+                COALESCE(o.code, '') AS ordr_code,
+                CONCAT(c.code, ' - ', o.code) AS cust_ordr_code,
                 
-                FROM companies_scheme AS s
-                LEFT JOIN ( """ + sub_shift + """ ) AS sub_shft ON (sub_shft.scheme_id = s.id) 
-
-                WHERE (s.id = %(schmid)s OR %(schmid)s IS NULL)
-                AND (s.isabsence = FALSE)
-                AND (s.istemplate = FALSE)
-                AND (s.inactive = FALSE)
-       """
-
-sub_order = """SELECT o.id AS ordr_id, o.customer_id,
-                o.code AS ordr_code,
                 o.billable AS ordr_billable,
  
                 o.pricecode_id AS ordr_pricecode_id, 
@@ -96,255 +82,123 @@ sub_order = """SELECT o.id AS ordr_id, o.customer_id,
                 o.taxcode_id AS ordr_taxcode_id,
                 o.invoicecode_id AS ordr_invoicecode_id, 
                 
-                sub_schm.schm_id,
-                sub_schm.schm_code,
-                sub_schm.schm_billable,
+                sub_shft.schm_id,
+                sub_shft.schm_code,
+  
+                sub_shft.shft_id,
+                sub_shft.shft_code,
+                sub_shft.shft_billable,
                 
-                sub_schm.schm_pricecode_id, 
-                sub_schm.schm_additioncode_id, 
-                sub_schm.schm_taxcode_id,
-                    
-                sub_schm.shft_id,
-                sub_schm.shft_code,
-                sub_schm.shft_billable,
-                
-                sub_schm.shft_pricecode_id, 
-                sub_schm.shft_additioncode_id, 
-                sub_schm.shft_taxcode_id,
-                sub_schm.shft_wagefactorcode_id
+                sub_shft.shft_pricecode_id, 
+                sub_shft.shft_additioncode_id, 
+                sub_shft.shft_taxcode_id,
+                sub_shft.shft_wagefactorcode_id
 
                 FROM companies_order AS o  
-                LEFT JOIN ( """ + sub_scheme + """ ) AS sub_schm ON (sub_schm.order_id = o.id)
+                INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+                LEFT JOIN ( """ + sub_shift + """ ) AS sub_shft ON (o.id = sub_shft.s_order_id)
 
-                WHERE (o.id = %(ordrid)s OR %(ordrid)s IS NULL)
-                AND (o.isabsence = FALSE)
+                WHERE (o.isabsence = FALSE)
                 AND (o.istemplate = FALSE)
                 AND (o.inactive = FALSE)
            """
-sub_customer = """SELECT c.id AS cust_id, c.company_id, c.isabsence, c.istemplate,
-                c.code AS cust_code,
-                c.billable AS cust_billable,
-
-                c.pricecode_id AS cust_pricecode_id, 
-                c.additioncode_id AS cust_additioncode_id, 
-                c.taxcode_id AS cust_taxcode_id,
-                c.invoicecode_id AS cust_invoicecode_id, 
-      
-                sub_ordr.ordr_id,
-                sub_ordr.ordr_code,
-                sub_ordr.ordr_billable,
-
-                sub_ordr.ordr_pricecode_id, 
-                sub_ordr.ordr_additioncode_id, 
-                sub_ordr.ordr_taxcode_id,
-                sub_ordr.ordr_invoicecode_id,                                    
-
-                sub_ordr.schm_id,
-                sub_ordr.schm_code,
-                sub_ordr.schm_billable,
-                
-                sub_ordr.schm_pricecode_id, 
-                sub_ordr.schm_additioncode_id, 
-                sub_ordr.schm_taxcode_id,
-                
-                sub_ordr.shft_id,
-                sub_ordr.shft_code,
-                sub_ordr.shft_billable,
-
-                sub_ordr.shft_pricecode_id, 
-                sub_ordr.shft_additioncode_id, 
-                sub_ordr.shft_taxcode_id,
-                sub_ordr.shft_wagefactorcode_id
-
-                FROM companies_customer AS c        
-                LEFT JOIN ( """ + sub_order + """ ) AS sub_ordr ON (sub_ordr.customer_id = c.id)
-
-                WHERE (c.id = %(custid)s OR %(custid)s IS NULL)
-                AND (c.isabsence = FALSE)
-                AND (c.istemplate = FALSE)
-                AND (c.inactive = FALSE)
-       """
 
 sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT, 
-                      sub_cust.cust_id::TEXT, '_'::TEXT, 
-                      sub_cust.ordr_id::TEXT, '_'::TEXT, 
-                      sub_cust.schm_id::TEXT, '_'::TEXT, 
-                      sub_cust.shft_id::TEXT) AS map_id,
+                      COALESCE(sub_ordr.ordr_id, 0)::TEXT, '_'::TEXT, 
+                      COALESCE(sub_ordr.shft_id, 0)::TEXT) AS map_id,
                       
                 comp.id AS comp_id,  
-                COALESCE(comp.code,'-') AS comp_code,
+                sub_ordr.ordr_id,
                 
                 COALESCE(comp.billable, 0) AS comp_billable,
                 comp.pricecode_id AS comp_pricecode_id, 
                 comp.additioncode_id AS comp_additioncode_id, 
                 comp.taxcode_id AS comp_taxcode_id,
                 comp.invoicecode_id AS comp_invoicecode_id,
-                 
-                sub_cust.cust_id, 
-                COALESCE(sub_cust.cust_code,'-') AS cust_code,
-                CASE WHEN sub_cust.cust_billable = 0 OR sub_cust.cust_billable IS NULL THEN 
-                    CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
-                    ELSE comp.billable * -1   END
-                ELSE sub_cust.cust_billable END 
-                AS cust_billable,
-                CASE WHEN sub_cust.cust_pricecode_id IS NULL THEN 
-                    CASE WHEN comp.pricecode_id IS NULL THEN NULL
-                    ELSE comp.pricecode_id * -1  END
-                ELSE sub_cust.cust_pricecode_id END 
-                AS cust_pricecode_id,
-                CASE WHEN sub_cust.cust_additioncode_id IS NULL THEN 
-                    CASE WHEN comp.additioncode_id IS NULL THEN NULL
-                    ELSE comp.additioncode_id * -1  END
-                ELSE sub_cust.cust_additioncode_id END 
-                AS cust_additioncode_id,
-                CASE WHEN sub_cust.cust_taxcode_id IS NULL THEN 
-                    CASE WHEN comp.taxcode_id IS NULL THEN NULL
-                    ELSE comp.taxcode_id * -1  END
-                ELSE sub_cust.cust_taxcode_id END 
-                AS cust_taxcode_id,       
-                CASE WHEN sub_cust.cust_invoicecode_id IS NULL THEN 
-                    CASE WHEN comp.invoicecode_id IS NULL THEN NULL
-                    ELSE comp.invoicecode_id * -1  END
-                ELSE sub_cust.cust_invoicecode_id END 
-                AS cust_invoicecode_id,  
+                comp.id AS comp_id,
+                COALESCE(comp.code,'-') AS comp_code,
+                sub_ordr.cust_id,
+                sub_ordr.cust_code,
+                sub_ordr.ordr_code,
+                sub_ordr.cust_ordr_code,
                 
-                sub_cust.ordr_id,
-                COALESCE(sub_cust.ordr_code,'-') AS ordr_code,
-                CASE WHEN sub_cust.ordr_billable = 0 OR sub_cust.ordr_billable IS NULL THEN
-                    CASE WHEN sub_cust.cust_billable = 0 OR sub_cust.cust_billable IS NULL THEN 
+                sub_ordr.schm_id,
+                sub_ordr.schm_code,
+
+                CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN
+                    CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
+                    ELSE comp.billable * -1  END
+                ELSE sub_ordr.ordr_billable END 
+                AS ordr_billable,
+                
+                CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
+                    CASE WHEN comp.pricecode_id IS NULL THEN NULL
+                    ELSE comp.pricecode_id * -1 END
+                ELSE sub_ordr.ordr_pricecode_id END 
+                AS ordr_pricecode_id,
+                
+                CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN
+                    CASE WHEN comp.additioncode_id IS NULL THEN NULL
+                    ELSE comp.additioncode_id * -1 END
+                ELSE sub_ordr.ordr_additioncode_id END 
+                AS ordr_additioncode_id,  
+                         
+                CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN
+                    CASE WHEN comp.taxcode_id IS NULL THEN NULL
+                    ELSE comp.taxcode_id * -1 END
+                ELSE sub_ordr.ordr_taxcode_id END 
+                AS ordr_taxcode_id,   
+                        
+                CASE WHEN sub_ordr.ordr_invoicecode_id IS NULL THEN
+                    CASE WHEN comp.invoicecode_id IS NULL THEN NULL
+                    ELSE comp.invoicecode_id * -1 END
+                ELSE sub_ordr.ordr_invoicecode_id END 
+                AS ordr_invoicecode_id,           
+                
+                sub_ordr.shft_id,
+                COALESCE(sub_ordr.shft_code,'-') AS shft_code,
+                CASE WHEN sub_ordr.shft_billable = 0 OR sub_ordr.shft_billable IS NULL THEN
+                    CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN
                         CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
                         ELSE comp.billable * -1  END
-                    ELSE sub_cust.cust_billable * -1  END 
-                ELSE sub_cust.ordr_billable END 
-                AS ordr_billable,
-                CASE WHEN sub_cust.ordr_pricecode_id IS NULL THEN
-                    CASE WHEN sub_cust.cust_pricecode_id IS NULL THEN 
+                    ELSE sub_ordr.ordr_billable * -1 END
+                ELSE sub_ordr.shft_billable END 
+                AS shft_billable,
+                
+                CASE WHEN sub_ordr.shft_pricecode_id IS NULL THEN
+                    CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
                         CASE WHEN comp.pricecode_id IS NULL THEN NULL
                         ELSE comp.pricecode_id * -1 END
-                    ELSE sub_cust.cust_pricecode_id * -1  END 
-                ELSE sub_cust.ordr_pricecode_id END 
-                AS ordr_pricecode_id,
-                CASE WHEN sub_cust.ordr_additioncode_id IS NULL THEN
-                    CASE WHEN sub_cust.cust_additioncode_id IS NULL THEN 
+                    ELSE sub_ordr.ordr_pricecode_id * -1 END
+                ELSE sub_ordr.shft_pricecode_id END 
+                AS shft_pricecode_id,
+                
+                CASE WHEN sub_ordr.shft_additioncode_id IS NULL THEN
+                    CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN
                         CASE WHEN comp.additioncode_id IS NULL THEN NULL
                         ELSE comp.additioncode_id * -1 END
-                    ELSE sub_cust.cust_additioncode_id * -1  END 
-                ELSE sub_cust.ordr_additioncode_id END 
-                AS ordr_additioncode_id,           
-                CASE WHEN sub_cust.ordr_taxcode_id IS NULL THEN
-                    CASE WHEN sub_cust.cust_taxcode_id IS NULL THEN 
+                    ELSE sub_ordr.ordr_additioncode_id * -1 END
+                ELSE sub_ordr.shft_additioncode_id END 
+                AS shft_additioncode_id,
+                
+                CASE WHEN sub_ordr.shft_taxcode_id IS NULL THEN
+                    CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN
                         CASE WHEN comp.taxcode_id IS NULL THEN NULL
                         ELSE comp.taxcode_id * -1 END
-                    ELSE sub_cust.cust_taxcode_id * -1  END 
-                ELSE sub_cust.ordr_taxcode_id END 
-                AS ordr_taxcode_id,           
-                CASE WHEN sub_cust.ordr_invoicecode_id IS NULL THEN
-                    CASE WHEN sub_cust.cust_invoicecode_id IS NULL THEN 
-                        CASE WHEN comp.invoicecode_id IS NULL THEN NULL
-                        ELSE comp.invoicecode_id * -1 END
-                    ELSE sub_cust.cust_invoicecode_id * -1  END 
-                ELSE sub_cust.ordr_invoicecode_id END 
-                AS ordr_invoicecode_id,           
-
-                sub_cust.schm_id,
-                COALESCE(sub_cust.schm_code,'-') AS schm_code,
-                CASE WHEN sub_cust.schm_billable = 0 OR sub_cust.schm_billable IS NULL THEN
-                    CASE WHEN sub_cust.ordr_billable = 0 OR sub_cust.ordr_billable IS NULL THEN
-                        CASE WHEN sub_cust.cust_billable = 0 OR sub_cust.cust_billable IS NULL THEN 
-                            CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
-                            ELSE comp.billable * -1  END
-                        ELSE sub_cust.cust_billable * -1  END 
-                    ELSE sub_cust.ordr_billable * -1 END
-                ELSE sub_cust.schm_billable END 
-                AS schm_billable,
-                CASE WHEN sub_cust.schm_pricecode_id IS NULL THEN
-                    CASE WHEN sub_cust.ordr_pricecode_id IS NULL THEN
-                        CASE WHEN sub_cust.cust_pricecode_id IS NULL THEN 
-                            CASE WHEN comp.pricecode_id IS NULL THEN NULL
-                            ELSE comp.pricecode_id * -1 END
-                        ELSE sub_cust.cust_pricecode_id * -1  END 
-                    ELSE sub_cust.ordr_pricecode_id * -1 END
-                ELSE sub_cust.schm_pricecode_id END 
-                AS schm_pricecode_id,
-                CASE WHEN sub_cust.schm_additioncode_id IS NULL THEN
-                    CASE WHEN sub_cust.ordr_additioncode_id IS NULL THEN
-                        CASE WHEN sub_cust.cust_additioncode_id IS NULL THEN 
-                            CASE WHEN comp.additioncode_id IS NULL THEN NULL
-                            ELSE comp.additioncode_id * -1 END
-                        ELSE sub_cust.cust_additioncode_id * -1  END 
-                    ELSE sub_cust.ordr_additioncode_id * -1 END
-                ELSE sub_cust.schm_additioncode_id END 
-                AS schm_additioncode_id,
-                CASE WHEN sub_cust.schm_taxcode_id IS NULL THEN
-                    CASE WHEN sub_cust.ordr_taxcode_id IS NULL THEN
-                        CASE WHEN sub_cust.cust_taxcode_id IS NULL THEN 
-                            CASE WHEN comp.taxcode_id IS NULL THEN NULL
-                            ELSE comp.taxcode_id * -1 END
-                        ELSE sub_cust.cust_taxcode_id * -1  END 
-                    ELSE sub_cust.ordr_taxcode_id * -1 END
-                ELSE sub_cust.schm_taxcode_id END 
-                AS schm_taxcode_id,
-                
-                sub_cust.shft_id,
-                COALESCE(sub_cust.shft_code,'-') AS shft_code,
-                CASE WHEN sub_cust.shft_billable = 0 OR sub_cust.shft_billable IS NULL THEN
-                    CASE WHEN sub_cust.schm_billable = 0 OR sub_cust.schm_billable IS NULL THEN
-                        CASE WHEN sub_cust.ordr_billable = 0 OR sub_cust.ordr_billable IS NULL THEN
-                            CASE WHEN sub_cust.cust_billable = 0 OR sub_cust.cust_billable IS NULL THEN 
-                                CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
-                                ELSE comp.billable * -1  END
-                            ELSE sub_cust.cust_billable * -1  END 
-                        ELSE sub_cust.ordr_billable * -1 END
-                    ELSE sub_cust.schm_billable * -1 END 
-                ELSE sub_cust.shft_billable END 
-                AS shft_billable,
-                CASE WHEN sub_cust.shft_pricecode_id IS NULL THEN
-                    CASE WHEN sub_cust.schm_pricecode_id IS NULL THEN
-                        CASE WHEN sub_cust.ordr_pricecode_id IS NULL THEN
-                            CASE WHEN sub_cust.cust_pricecode_id IS NULL THEN 
-                                CASE WHEN comp.pricecode_id IS NULL THEN NULL
-                                ELSE comp.pricecode_id * -1 END
-                            ELSE sub_cust.cust_pricecode_id * -1  END 
-                        ELSE sub_cust.ordr_pricecode_id * -1 END
-                    ELSE sub_cust.schm_pricecode_id * -1 END 
-                ELSE sub_cust.shft_pricecode_id END 
-                AS shft_pricecode_id,
-                CASE WHEN sub_cust.shft_additioncode_id IS NULL THEN
-                    CASE WHEN sub_cust.schm_additioncode_id IS NULL THEN
-                        CASE WHEN sub_cust.ordr_additioncode_id IS NULL THEN
-                            CASE WHEN sub_cust.cust_additioncode_id IS NULL THEN 
-                                CASE WHEN comp.additioncode_id IS NULL THEN NULL
-                                ELSE comp.additioncode_id * -1 END
-                            ELSE sub_cust.cust_additioncode_id * -1  END 
-                        ELSE sub_cust.ordr_additioncode_id * -1 END
-                    ELSE sub_cust.schm_additioncode_id * -1 END 
-                ELSE sub_cust.shft_additioncode_id END 
-                AS shft_additioncode_id,
-                CASE WHEN sub_cust.shft_taxcode_id IS NULL THEN
-                    CASE WHEN sub_cust.schm_taxcode_id IS NULL THEN
-                        CASE WHEN sub_cust.ordr_taxcode_id IS NULL THEN
-                            CASE WHEN sub_cust.cust_taxcode_id IS NULL THEN 
-                                CASE WHEN comp.taxcode_id IS NULL THEN NULL
-                                ELSE comp.taxcode_id * -1 END
-                            ELSE sub_cust.cust_taxcode_id * -1  END 
-                        ELSE sub_cust.ordr_taxcode_id * -1 END
-                    ELSE sub_cust.schm_taxcode_id * -1 END 
-                ELSE sub_cust.shft_taxcode_id END 
+                    ELSE sub_ordr.ordr_taxcode_id * -1 END
+                ELSE sub_ordr.shft_taxcode_id END 
                 AS shft_taxcode_id,
-                sub_cust.shft_wagefactorcode_id
+                
+                sub_ordr.shft_wagefactorcode_id
                 
                 FROM companies_company AS comp 
-         
-                LEFT JOIN ( """ + sub_customer + """ ) AS sub_cust ON (sub_cust.company_id = comp.id)
-
+                LEFT JOIN ( """ + sub_order + """ ) AS sub_ordr ON (sub_ordr.company_id = comp.id)
+     
                 WHERE (comp.id = %(cid)s) 
                 ORDER BY 
-                LOWER(COALESCE(sub_cust.cust_code,'-')), sub_cust.cust_id, 
-                LOWER(COALESCE(sub_cust.ordr_code,'-')), sub_cust.ordr_id, 
-                LOWER(COALESCE(sub_cust.schm_code,'-')), sub_cust.schm_id, 
-                LOWER(COALESCE(sub_cust.shft_code,'-')), sub_cust.shft_id
+                LOWER(COALESCE(sub_ordr.ordr_code,'-')), sub_ordr.ordr_id, 
+                LOWER(COALESCE(sub_ordr.shft_code,'-')), sub_ordr.shft_id
        """
-
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_price_list(filter_dict, request):  # PR2020-03-02
@@ -353,24 +207,22 @@ def create_price_list(filter_dict, request):  # PR2020-03-02
     if request.user.company:
         logger.debug(' ============= create_price_list ============= ')
         logger.debug('filter_dict:  ' + str(filter_dict))
+        rosterdate = filter_dict.get('rosterdate')
+        rosterdate = rosterdate if rosterdate else None
 
+        """
         employee_pk = filter_dict.get('employee_pk')
         customer_pk = filter_dict.get('customer_pk')
         order_pk = filter_dict.get('order_pk')
         scheme_pk = filter_dict.get('scheme_pk')
         shift_pk = filter_dict.get('shift_pk')
-        rosterdate = filter_dict.get('rosterdate')
         employee_pk = employee_pk if employee_pk else None
         customer_pk = customer_pk if customer_pk else None
         order_pk = order_pk if order_pk else None
         scheme_pk = scheme_pk if scheme_pk else None
         shift_pk = shift_pk if shift_pk else None
-
+        """
         company_id = request.user.company.id
-
-        # logger.debug(emplhours.query)
-        # from django.db import connection
-        # logger.debug(connection.queries)
 
         cursor = connection.cursor()
 
@@ -379,11 +231,6 @@ def create_price_list(filter_dict, request):  # PR2020-03-02
         # Subtotals are shown on change of id, might be messed up with different records with the same name when only ordered by name
         cursor.execute(sub_company,
                        {'cid': company_id,
-                        'emplid': employee_pk,
-                        'custid': customer_pk,
-                        'ordrid': order_pk,
-                        'schmid': scheme_pk,
-                        'shftid': shift_pk,
                         'rd': rosterdate
                         })
 
@@ -579,16 +426,13 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
-                eplh_update_list = []
 
-                # 6. get iddict variables
-                price_list = []
                 field = f.get_dict_value(upload_dict, ('id', 'field'))
                 field_dict = upload_dict.get(field)
                 if field_dict:
                     table = f.get_dict_value(upload_dict, ('id', 'table'))
                     pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
-                    ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
+                    # ppk_int not in use, filter on company instead. Was: ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
                     map_id = f.get_dict_value(upload_dict, ('id', 'map_id'))
                     row_id = f.get_dict_value(upload_dict, ('id', 'row_id'))
                     # TODO rosterdate is not in use yet, will be used in pricecode_list
@@ -596,90 +440,63 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 
                     update_dict = {'id': {'table': table, 'row_id': row_id, 'map_id': map_id}}
 
-                    instance, customer_pk, order_pk, scheme_pk = None, None, None, None
+                    instance, order_pk, shift_pk = None, None, None
                     if table == 'comp':
                         instance = request.user.company
-                    elif table == 'cust':
-                        instance = m.Customer.objects.get_or_none(id=pk_int, company=request.user.company)
-                        if instance:
-                            customer_pk = instance.pk
                     elif table == 'ordr':
-                        instance = m.Order.objects.get_or_none(id=pk_int, customer_id=ppk_int)
+                        instance = m.Order.objects.get_or_none(id=pk_int, customer__company=request.user.company)
                         if instance:
                             order_pk = instance.pk
-                    elif table == 'schm':
-                        instance = m.Scheme.objects\
-                            .get_or_none(id=pk_int, order_id=ppk_int)
-                        if instance:
-                            scheme_pk = instance.pk
                     elif table == 'shft':
-                        instance = m.Shift.objects.get_or_none(id=pk_int, scheme_id=ppk_int)
+                        instance = m.Shift.objects.get_or_none(id=pk_int, scheme__order__customer__company=request.user.company)
+                        if instance:
+                            shift_pk = instance.pk
                     logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
 
-                    must_update_pricecodelist = False
                     if instance:
-                        prc_instance = None
+                        must_update_isbillable_and_recalc_baat = False
+                        must_update_pat_code_and_recalc_baat = False
+                        must_update_pricecodelist = False
+                        must_update_billing_list = False
+                        prc_instance_pk = None
+
                         if field == 'billable':
-                            logger.debug('billable in upload_dict')
 # - save new_billable in instance
                             # value can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
-                            # if new_billable = 0: get value of parent, store as negative value in update_dict
                             new_billable = f.get_dict_value(upload_dict, ('billable', 'value'), 0)
-                            instance.billable = new_billable
-                            instance.save(request=request)
-
-                            logger.debug('new_billable: ' + str(new_billable) + ' type: ' + str(type(new_billable)))
+                            if new_billable != instance.billable:
+                                instance.billable = new_billable
+                                instance.save(request=request)
+                                must_update_isbillable_and_recalc_baat = True
 # - if new_billable = 0: get value of parent, store as negative value in update_dict
-                            if not new_billable:
-                                parent_billable = None
                                 if not new_billable:
+                                    parent_billable = None
+                                    order = None
+    # - if shift: check for order.billable
                                     if table == 'shft':
                                         scheme = instance.scheme
-                                        parent_billable = scheme.billable
-                                        logger.debug('scheme parent_billable' + str(parent_billable))
-                                        if not parent_billable:
+                                        if scheme:
                                             order = scheme.order
                                             parent_billable = order.billable
-                                            logger.debug('order parent_billable' + str(parent_billable))
-                                            if not parent_billable:
-                                                customer = order.customer
-                                                parent_billable = customer.billable
-                                                logger.debug('customer parent_billable' + str(parent_billable))
-                                                if not parent_billable:
-                                                    company = customer.company
-                                                    parent_billable = company.billable
-                                                    logger.debug('cuscompanytomer parent_billable' + str(parent_billable))
-
-                                    if table == 'schm':
-                                        order = instance.order
-                                        parent_billable = order.billable
-                                        if not parent_billable:
-                                            customer = order.customer
-                                            parent_billable = customer.billable
-                                            if not parent_billable:
-                                                company = customer.company
-                                                parent_billable = company.billable
-                                    if table == 'ordr':
-                                        customer = instance.customer
-                                        parent_billable = customer.billable
-                                        if not parent_billable:
+                                    else:
+                                        order = instance
+    # - if not parent_billable: check for company.billable
+                                    if not parent_billable and order:
+                                        customer = order.customer
+                                        if customer:
                                             company = customer.company
                                             parent_billable = company.billable
-                                    if table == 'cust':
-                                            company = instance.company
-                                            parent_billable = company.billable
-                                if parent_billable:
-                                    new_billable = parent_billable * -1
-                            update_dict['billable'] = {'value': new_billable, 'updated': True}
-                            logger.debug('update_dict' + str(update_dict))
-# TODO recalc billing hours of non-billinglocked emplhour records
+    # - if parent_billable: put in update_dict
+                                    if parent_billable:
+                                        new_billable = parent_billable * -1
+                                update_dict['billable'] = {'value': new_billable, 'updated': True}
 
                         elif field in ('pricecode', 'additioncode', 'taxcode'):
                             is_create = f.get_dict_value(upload_dict, (field, 'create'), False)
                             is_update = f.get_dict_value(upload_dict, (field, 'update'), False)
                             pc_id = f.get_dict_value(upload_dict, (field, 'pc_id'))
                             pricecode_note = f.get_dict_value(upload_dict, (field, 'note'))
-                            # TODO give date_first value
+# TODO give date_first value
                             date_first = f.get_date_from_ISO('2000-01-01')  # was f.get_today_dateobj()
 
                             logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
@@ -687,40 +504,48 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                             logger.debug('field: ' + str(field) )
                             logger.debug('pc_id: ' + str(pc_id) + ' type: ' + str(type(pc_id)))
                             logger.debug('pricecode_note: ' + str(pricecode_note))
+
                             if is_create:
                                 price_rate = f.get_dict_value(upload_dict, (field, 'pricerate'))
                                 logger.debug('price_rate' + str(price_rate))
                                #  date_first = f.get_dict_value(upload_dict, (field, 'datefirst'))
-                                pricerate_note = f.get_dict_value(upload_dict, (field, 'note'))
                                 pc_id = create_pricecode(
-                                    field, price_rate, pricerate_note, date_first, request)
+                                    field, price_rate, pricecode_note, date_first, request)
 
                                 logger.debug('.........pc_id' + str(pc_id))
                                 must_update_pricecodelist = True
 
                             prc_instance = None
-                            if pc_id:
-                                if field == 'pricecode':
-                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isprice=True,
-                                                                                company=request.user.company)
-                                elif field == 'additioncode':
-                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isaddition=True,
-                                                                                company=request.user.company)
-                                elif field == 'taxcode':
-                                    prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, istaxcode=True,
-                                                                                company=request.user.company)
+                            saved_prc_pk = None # don't use instance.pricecode because company has no related field pricecode
+                            if field == 'pricecode':
+                                prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isprice=True,
+                                                                            company=request.user.company)
+                                saved_prc_pk = instance.pricecode_id
+                            elif field == 'additioncode':
+                                prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, isaddition=True,
+                                                                            company=request.user.company)
+                                saved_prc_pk = instance.additioncode_id
+                            elif field == 'taxcode':
+                                prc_instance = m.Pricecode.objects.get_or_none(id=pc_id, istaxcode=True,
+                                                                            company=request.user.company)
+                                saved_prc_pk = instance.taxcode_id
+
                             prc_instance_pk = None
                             if prc_instance:
                                 prc_instance_pk = prc_instance.pk
+
+                            if prc_instance_pk != saved_prc_pk:
+                                logger.debug('prc_instance_pk: ' + str(prc_instance_pk))
 # - save prc_instance
-                            # because company.pricecode_pk has no foreign field relationship:
-                            # must use prc_instance_pk instead of prc_instance
-                            fieldname = field + '_id'
-                            setattr(instance, fieldname, prc_instance_pk)
-                            instance.save(request=request)
+                                # because company.pricecode_pk has no foreign field relationship:
+                                # must use prc_instance_pk instead of prc_instance
+                                fieldname = field + '_id'
+                                setattr(instance, fieldname, prc_instance_pk)
+                                instance.save(request=request)
+                                logger.debug('instance.saved: ' + str(instance))
 
-                            update_dict[field + '_updated'] = True
-
+                                update_dict[field + '_updated'] = True
+                                must_update_pat_code_and_recalc_baat = True
 
 # UpdateTableRow dict has format: = {table_NIU: "cust", map_id_NIU: "3_694_1420_1658_670", pk_int_NIU: 694,
                             #         code: "MCB", billable: {value: 2}
@@ -730,31 +555,51 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                 #         // pricecode: {pk: 67, pricerate: 4500, datefirst: "2020-03-08", note: "new", updated: true}
 
 # when pricecodeitem haschanged: pricecode_list must be updated first, before
-                            # get rate from pricecodeitem
-                            # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
-                            pricecode_data = get_pricecode_data(prc_instance_pk, date_first, request)
-                            update_dict[field] = {'pk': pricecode_data[0],
-                                                  'pricerate': pricecode_data[2],
-                                                  'datefirst': pricecode_data[3],
-                                                  'note': pricecode_data[4],
-                                                  'updated': pricecode_data}
+                                # get rate from pricecodeitem
+                                # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
+                                pricecode_data = get_pricecode_data(prc_instance_pk, date_first, request)
+                                update_dict[field] = {'pk': pricecode_data[0],
+                                                      'pricerate': pricecode_data[2],
+                                                      'datefirst': pricecode_data[3],
+                                                      'note': pricecode_data[4],
+                                                      'updated': pricecode_data}
 
 # - if remove_all: remove all pricecode / billable from lower level tables
                         remove_all = field_dict.get('remove_all', False)
                         if remove_all:
                             reset_value = '0' if field == 'billable' else 'NULL'
                             field_name = 'billable' if field == 'billable' else field + '_id'
-                            reset_patfield_billable_in_subtables(table, field_name, reset_value, customer_pk, order_pk, scheme_pk, request)
+                            reset_patfield_billable_in_subtables(table, field_name, reset_value, order_pk, request)
+                            must_update_billing_list = True
 
 # - update isbillable in orderhiur records and billingduratio in emplhour records
-                        update_isbillable_and_billingduration_in_emplhour(request)
-
+                        if must_update_isbillable_and_recalc_baat:
+                            update_isbillable_and_recalc_baat(order_pk, shift_pk, request)
+                            must_update_billing_list = True
+                        if must_update_pat_code_and_recalc_baat:
+                            update_pat_code_and_recalc_baat(field, prc_instance_pk, shift_pk, order_pk, request)
+                            must_update_billing_list = True
 # - update pricecodeid, pricerate etc in emplhour records
-                        if field in ('pricecode', 'additioncode', 'taxcode'):
-                            update_patcode_in_emplhour(table, field, instance, prc_instance, request)
+                        #if field in ('pricecode', 'additioncode', 'taxcode'):
+                        #    update_patcode_in_orderhour(table, field, instance, prc_instance, request)
 
                         if must_update_pricecodelist:
                             update_wrap['pricecode_list'] = create_pricecode_list(rosterdate, request=request)
+
+                        if must_update_billing_list:
+                            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+                            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+                            interval = request.user.company.interval if request.user.company.interval else 15
+                            # retrieve saved period
+                            period_dict = pld.period_get_and_save(
+                                'review_period', None, comp_timezone, timeformat, interval, user_lang, request)
+                            update_wrap['billing_agg_list'] = \
+                                cust_dicts.create_billing_agg_list(period_dict, request)
+                            update_wrap['billing_rosterdate_list'] = \
+                                cust_dicts.create_billing_rosterdate_list(period_dict, request)
+                            update_wrap['billing_detail_list'] = \
+                                cust_dicts.create_billing_detail_list(period_dict, request)
 
 # - update pricerate in all emplhour records that are not orderhour.lockedinvoice
 
@@ -769,50 +614,25 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
-def reset_patfield_billable_in_subtables(table, fieldname, reset_value, customer_pk, order_pk, scheme_pk, request):
-    logger.debug(' --- reset_patfield_billable_in_subtables --- ') # PR2020-07-05
-    # - reset fieldname in table customer, onlywhen table = 'comp'
-    if table == 'comp':
-        sql = """UPDATE companies_customer AS c
-                      SET """ + fieldname + """ = """ + reset_value + """
-                      WHERE ( c.company_id = %(compid)s )"""
-        newcursor = connection.cursor()
-        newcursor.execute(sql, {
-            'compid': request.user.company_id
-        })
+def reset_patfield_billable_in_subtables(table, fieldname, reset_value, order_pk, request):
+    #logger.debug(' --- reset_patfield_billable_in_subtables --- ')
+    # function resets billable / pricecode / additioncode / taxcode in child rows of table order / shift # PR2020-07-05
 # - reset fieldname in table order, when table = 'comp', 'cust'
-    if table in ('comp', 'cust'):
+    if table == 'comp':
         sql = """UPDATE companies_order AS o
                     SET """ + fieldname + """ = """ + reset_value + """
                     WHERE o.customer_id IN( 
                             SELECT c.id 
                             FROM companies_customer AS c 
                             WHERE c.company_id = %(compid)s 
-                            AND ( c.id = %(cid)s OR %(cid)s IS NULL ) )"""
+                            )
+              """
         newcursor = connection.cursor()
         newcursor.execute(sql, {
-            'compid': request.user.company_id,
-            'cid': customer_pk
+            'compid': request.user.company_id
         })
-# - reset fieldname in table scheme, when table = 'comp', 'cust', 'ordr'
-    if table in ('comp', 'cust', 'ordr'):
-        sql = """UPDATE companies_scheme AS s
-                    SET """ + fieldname + """ = """ + reset_value + """
-                    WHERE s.order_id IN( 
-                            SELECT o.id 
-                            FROM companies_order AS o
-                            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-                            WHERE c.company_id = %(compid)s 
-                            AND ( c.id = %(cid)s OR %(cid)s IS NULL )
-                            AND ( o.id = %(oid)s OR %(oid)s IS NULL ) )"""
-        newcursor = connection.cursor()
-        newcursor.execute(sql, {
-            'compid': request.user.company_id,
-            'cid': customer_pk,
-            'oid': order_pk
-        })
-    # - reset fieldname in table shift, when table = 'comp', 'cust', 'ordr', 'schm'
-    if table in ('comp', 'cust', 'ordr', 'schm'):
+# - reset fieldname in table shift, when table = 'comp' or 'ordr'
+    if table in ('comp', 'ordr'):
         sql = """UPDATE companies_shift AS sh
                     SET """ + fieldname + """ = """ + reset_value + """
                     WHERE sh.scheme_id IN( 
@@ -821,134 +641,118 @@ def reset_patfield_billable_in_subtables(table, fieldname, reset_value, customer
                             INNER JOIN companies_order AS o ON (o.id = s.order_id) 
                             INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
                             WHERE c.company_id = %(compid)s 
-                            AND ( c.id = %(cid)s OR %(cid)s IS NULL )
                             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-                            AND ( s.id = %(sid)s OR %(sid)s IS NULL ) )"""
+                            )
+              """
         newcursor = connection.cursor()
         newcursor.execute(sql, {
             'compid': request.user.company_id,
-            'cid': customer_pk,
-            'oid': order_pk,
-            'sid': scheme_pk
+            'oid': order_pk
         })
 
 
-def update_patcode_in_emplhour(table, field, instance, new_pat_code, request):
-    logger.debug(' --- update_patcode_in_emplhour --- ') # PR2020-07-05
+def update_patcode_in_orderhour(table, field, instance, new_pat_code, request):
+    logger.debug(' --- update_patcode_in_orderhour --- ') # PR2020-07-05
     logger.debug('table: ' + str(table)) # PR2020-07-05
     logger.debug('field: ' + str(field)) # PR2020-07-05
     logger.debug('new_pat_code: ' + str(new_pat_code)) # PR2020-07-05
-    # - update  pricerate and amount and tax in table emplhour
+    # - update  pricerate and amount and tax in table orderhour
 
-    crit = Q(orderhour__order__customer__company=request.user.company) & \
-           Q(orderhour__order__locked=False)
-    if table == 'cust':
-        crit.add(  Q(orderhour__order__customer=instance), crit.connector)
-    elif table == 'ordr':
-        crit.add(  Q(orderhour__order=instance), crit.connector)
-    elif table == 'schm':
-        crit.add(  Q(orderhour__schemeitem__scheme=instance), crit.connector)
+    crit = Q(order__customer__company=request.user.company) & \
+           Q(lockedinvoice=False) & \
+           Q(locked=False)
+    if table == 'ordr':
+        crit.add(Q(order=instance), crit.connector)
     elif table == 'shft':
-            crit.add(  Q(orderhour__schemeitem__shift=instance), crit.connector)
-    emplhours = m.Emplhour.objects.filter(crit)
+            crit.add( Q(schemeitem__shift=instance), crit.connector)
+    orderhours = m.Orderhour.objects.filter(crit)
 
-    for emplhour in emplhours:
+    for orderhour in orderhours:
 # get pricecode, get pricecode from higher level if None
         if table == 'shft' and new_pat_code is None:
-            scheme = emplhour.orderhour.schemeitem.scheme
-            if scheme:
-                new_pat_code = getattr(scheme, field)
-        if table in ('shft', 'schm') and new_pat_code is None:
-            order = emplhour.orderhour.order
+            order = orderhour.order
             if order:
-                new_pat_code =  getattr(order, field)
-        if table in ('shft', 'schm', 'ordr') and new_pat_code is None:
-            customer = emplhour.orderhour.order.customer
-            if customer:
-                new_pat_code = getattr(customer, field)
-        if table in ('shft', 'schm', 'ordr', 'cust') and new_pat_code is None:
+                new_pat_code = getattr(order, field)
+        if table in ('shft', 'ordr') and new_pat_code is None:
             if request.user.company:
                 # company has no linked field, use pricecode_id etc instead
                 # except for billable
                 pat_code_id = getattr(request.user.company, field + '_id')
-                logger.debug('pat_code_id: ' + str(pat_code_id))
                 if pat_code_id:
                     new_pat_code = m.Pricecode.objects.get_or_none(id=pat_code_id)
 
-        new_pat_code_pk = new_pat_code.pk if new_pat_code.pk else None
-        billing_duration = emplhour.billingduration
-        is_absence = emplhour.orderhour.order.isabsence
-        is_restshift = emplhour.orderhour.isrestshift
-        price_rate = emplhour.pricerate
-        addition_rate = emplhour.additionrate
-        addition_is_amount = emplhour.additionisamount
-        tax_rate = emplhour.taxrate
+        new_pat_code_pk = new_pat_code.pk if new_pat_code else None
+        is_absence = orderhour.order.isabsence
+        is_restshift = orderhour.isrestshift
+        price_rate = orderhour.pricerate
+        addition_rate = orderhour.additionrate
+        tax_rate = orderhour.taxrate
 
         if field == 'pricecode':
-            price_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
-                field, new_pat_code_pk, emplhour.rosterdate)
-            emplhour.pricerate = price_rate
+            price_rate = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, orderhour.rosterdate)
+            orderhour.pricerate = price_rate
         elif field == 'additioncode':
-            addition_rate, addition_is_amount = f.get_pricerate_from_pricecodeitem(
-                field, new_pat_code_pk, emplhour.rosterdate)
-            emplhour.additionrate =  addition_rate
-            emplhour.additionisamount = addition_is_amount
+            addition_rate = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, orderhour.rosterdate)
+            orderhour.additionrate = addition_rate
         elif field == 'taxcode':
-            tax_rate, additionisamountNIU = f.get_pricerate_from_pricecodeitem(
-                field, new_pat_code_pk, emplhour.rosterdate)
-            emplhour.taxrate = tax_rate
+            tax_rate = f.get_pricerate_from_pricecodeitem(
+                field, new_pat_code_pk, orderhour.rosterdate)
+            orderhour.taxrate = tax_rate
 
-        amount, addition, tax = f.calc_amount_addition_tax_rounded(
-            billing_duration, is_absence, is_restshift, price_rate, addition_rate, addition_is_amount, tax_rate)
+        # do not update modifiedby and modifiedat fields: save without (request=request)
+        orderhour.save()
+# update amount, addition, tax in emplhour records of this orderhour
+        emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
+        for emplhour in emplhours:
+            amount, addition, tax = f.calc_amount_addition_tax_rounded(
+                emplhour.billingduration, is_absence, is_restshift, price_rate, addition_rate, tax_rate)
+            emplhour.amount = amount
+            emplhour.addition = addition
+            emplhour.tax = tax
+        # do not update modifiedby and modifiedat fields: save without (request=request)
+            emplhour.save()
+# --- end update_patcode_in_orderhour ---
 
-        emplhour.amount = amount
-        emplhour.addition = addition
-        emplhour.tax = tax
-        emplhour.save(request=request)
-# --- end ofupdate_patcode_in_emplhour ---
 
 def get_pricecode_data(pricecode_id, date_first, request):
-    logger.debug(' --- pricecode_data --- ') # PR2020-03-08
+    #logger.debug(' --- pricecode_data --- ') # PR2020-03-08
     # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
-    sql_pricecodeitem = """
-        SELECT pc.id, pci.id, pci.pricerate, pci.datefirst, pc.note  
+    sql_pricecode_rate_by_refdate_with_LIMIT1 = """
+        SELECT pc.id AS pc_id, pci.id AS pci_id, pci.pricerate, pci.datefirst, pc.note  
         FROM companies_pricecodeitem AS pci
         INNER JOIN companies_pricecode AS pc ON (pc.id = pci.pricecode_id) 
         WHERE (pc.company_id = %(cid)s) AND (pci.pricecode_id = %(pcid)s)
-        AND ((pci.datefirst <= CAST(%(rd)s AS DATE)) OR (pci.datefirst IS NULL) OR (CAST(%(rd)s AS DATE) IS NULL))
+        AND ( pc.id = %(pcid)s OR %(pcid)s IS NULL )
+        AND ((pci.datefirst <= CAST(%(rd)s AS DATE)) OR (pci.datefirst IS NULL) OR (%(rd)s IS NULL))
         ORDER BY pci.datefirst DESC NULLS LAST
         LIMIT 1
     """
     cursor = connection.cursor()
-    cursor.execute(sql_pricecodeitem, {'pcid': pricecode_id, 'rd': date_first, 'cid': request.user.company_id})
+    cursor.execute(sql_pricecode_rate_by_refdate_with_LIMIT1, {'pcid': pricecode_id, 'rd': date_first, 'cid': request.user.company_id})
     pricecode_data = cursor.fetchone()
     if pricecode_data is None:
         pricecode_data = [None, None, None, None, None]
     return pricecode_data
 
 
-def update_isbillable_and_billingduration_in_emplhour(request):
-    logger.debug(' --- update_billable_and_billinghours_in_emplhour --- ') # PR2020-07-23
+def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
+    logger.debug(' --- update_isbillable_and_recalc_baat --- ') # PR2020-07-23
+    logger.debug('orderhour_pk: ' + str(order_pk))
+    logger.debug('shift_pk: ' + str(shift_pk))
 
-# - update field billable in orderhour records that are not locked
+# - update field isbillable in orderhour records that are not locked
     sql_schemeitem = """
         SELECT 
             si.id AS si_id,
             CASE WHEN c.isabsence OR sh.isrestshift THEN FALSE ELSE
                 CASE WHEN sh.billable = 0 OR sh.billable IS NULL THEN
-                    CASE WHEN s.billable = 0 OR s.billable IS NULL THEN
-                        CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
-                            CASE WHEN c.billable = 0 OR c.billable IS NULL THEN 
-                                CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
-                            ELSE 
-                                CASE WHEN c.billable = 2 THEN TRUE ELSE FALSE END
-                            END 
-                        ELSE 
-                            CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
-                        END
+                    CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
+                        CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
                     ELSE 
-                        CASE WHEN s.billable = 2 THEN TRUE ELSE FALSE END
-                    END 
+                        CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
+                    END
                 ELSE 
                     CASE WHEN sh.billable = 2 THEN TRUE ELSE FALSE END
                 END 
@@ -962,68 +766,258 @@ def update_isbillable_and_billingduration_in_emplhour(request):
             INNER JOIN companies_company AS comp ON (comp.id = c.company_id) 
 
             WHERE (c.company_id = %(compid)s)
+            AND (o.id = %(o_id)s OR %(o_id)s IS NULL)
+            AND (sh.id = %(sh_id)s OR %(sh_id)s IS NULL)
             """
     sql_orderhour = """ 
         UPDATE companies_orderhour AS oh
         SET isbillable = si_sub.sh_isbill
         FROM  ( """ + sql_schemeitem + """  ) AS si_sub
         WHERE (oh.schemeitem_id = si_sub.si_id) AND (NOT oh.lockedinvoice)
+        RETURNING oh.id;
     """
     with connection.cursor() as cursor:
         cursor.execute(sql_orderhour, {
-            'compid': request.user.company_id
+            'compid': request.user.company_id,
+            'o_id': order_pk,
+            'sh_id': shift_pk,
         })
+        rows = cursor.fetchall()
+        # rows[(10192,), (10183,), (10082,), (10185,), (10184,)]
+        logger.debug('...................................')
+        logger.debug('rows' + str(rows))
+        logger.debug('...................................')
 
 # - update field billingduration in emplhour records that are not locked
-    sql_oh_sub = """
+    recalc_baat(None, order_pk, shift_pk, request)
+
+# ---  end of update_isbillable_and_recalc_baat
+
+
+def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
+    logger.debug(' --- recalc_baat --- ') # PR2020-07-29
+    logger.debug('orderhour_pk: ' + str(orderhour_pk))
+    logger.debug('shift_pk: ' + str(shift_pk))
+
+# - update field billingduration in emplhour records that are not locked
+    sql_oh_sub1 = """
         SELECT 
             oh.id,
-            oh.isbillable
-            
+            oh.isbillable,
+            COALESCE(oh.pricerate, 0) AS oh_pricerate,
+            COALESCE(oh.additionrate, 0) AS oh_additionrate,
+            COALESCE(oh.taxrate, 0) AS oh_taxrate
+
             FROM companies_orderhour AS oh 
             INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            WHERE (c.company_id = %(compid)s) AND (NOT oh.lockedinvoice)
             """
-    #            addition = CASE WHEN eh.additionisamount
-     #                  THEN additionrate
-     #                  ELSE ROUND( (addition_rate / 10000) * ROUND( eh.pricerate *
-     #                       (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 ) )  )
-
+    if orderhour_pk:
+        sql_oh_sub2 = """
+                WHERE (c.company_id = %(compid)s) 
+                AND (NOT oh.lockedinvoice)
+                AND (oh.id = %(oh_id)s)
+                """
+    elif shift_pk:
+        sql_oh_sub2 = """
+                INNER JOIN companies_schemeitem AS si ON (si.id = oh.schemeitem_id) 
+                WHERE (c.company_id = %(compid)s) 
+                AND (NOT oh.lockedinvoice)
+                AND (si.shift_id = %(sh_id)s)
+                """
+    elif order_pk:
+        sql_oh_sub2 = """
+                WHERE (c.company_id = %(compid)s) 
+                AND (NOT oh.lockedinvoice)
+                AND (o.id = %(o_id)s)
+                """
+    else:
+        sql_oh_sub2 = """
+                WHERE (c.company_id = %(compid)s) 
+                AND (NOT oh.lockedinvoice)
+                """
+    sql_amount = 'ROUND(oh_sub.oh_pricerate * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 )'
+    sql_addition = ' ROUND ( oh_sub.oh_additionrate * ' + sql_amount + ' / 10000 )'
+    sqltax = ' ROUND ( oh_sub.oh_taxrate * (' + sql_amount + ' + ' + sql_addition + ') / 10000 )'
     sql_emplhour = """ 
         UPDATE companies_emplhour AS eh
         SET billingduration = CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END,
-            amount =  ROUND( COALESCE(eh.pricerate, 0)
-                             * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
-                             / 60 ),
-            addition = CASE WHEN eh.additionisamount
-                       THEN additionrate
-                       ELSE
-                       ROUND( (additionrate / 10000) 
-                               * ROUND( COALESCE(eh.pricerate, 0)
-                                        * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
-                                        / 60 ) )
-                       END,
-                       
-            tax = ROUND( (eh.taxrate / 10000) * (
-                            ROUND( COALESCE(eh.pricerate, 0)
-                             * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
-                             / 60 ) 
-                            + 
-                            CASE WHEN eh.additionisamount THEN additionrate ELSE
-                           ROUND( (additionrate / 10000) 
-                                   * ROUND( COALESCE(eh.pricerate, 0)
-                                            * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
-                                            / 60 ) ) END
-                            ) )   
-          
+            amount =  """ + sql_amount + """,
+            addition = """ + sql_addition + """,
+            tax = """ + sqltax +  """
+        FROM  ( """ + sql_oh_sub1 + sql_oh_sub2 + """ ) AS oh_sub
+        WHERE (eh.orderhour_id = oh_sub.id)
+        RETURNING eh.employeecode, eh.billingduration, eh.amount, eh.addition, eh.tax;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_emplhour, {
+            'compid': request.user.company_id,
+            'o_id': order_pk,
+            'sh_id': shift_pk,
+            'oh_id': orderhour_pk
+        })
+        rows = f.dictfetchall(cursor)
+        logger.debug('...................................')
+        for dictrow in rows:
+            logger.debug('...................................')
+            logger.debug('sql_emplhour row' + str(dictrow))
+        logger.debug('...................................')
+# ---  end of recalc_baat
+
+
+def update_pat_code_and_recalc_baat(pat_field, pricecode_pk, shift_pk, order_pk, request):
+    logger.debug(' --- update_pat_code_and_recalc_baat --- ') # PR2020-07-29
+
+    logger.debug('pricecode_pk: ' + str(pricecode_pk))
+
+    sql_sh_sub = """
+        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
+        
+        FROM companies_pricecode AS pc 
+        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
+        
+        INNER JOIN companies_shift AS sh ON (pc.id = sh.""" + pat_field + """_id) 
+        INNER JOIN companies_schemeitem AS si ON (sh.id = si.shift_id) 
+        INNER JOIN companies_orderhour AS oh ON (si.id = oh.schemeitem_id) 
+        
+        WHERE ( pc.company_id = %(compid)s )
+        AND ( NOT oh.lockedinvoice )
+        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
+        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
+    """
+
+    sql_o_sub = """
+        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
+        
+        FROM companies_pricecode AS pc 
+        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
+        
+        INNER JOIN companies_order AS o ON (pc.id = o.""" + pat_field + """_id) 
+        INNER JOIN companies_orderhour AS oh ON (o.id = oh.order_id) 
+        
+        WHERE ( pc.company_id = %(compid)s )
+        AND ( NOT oh.lockedinvoice )
+        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
+        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
+    """
+    sql_comp_sub = """
+        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
+        
+        FROM companies_pricecode AS pc 
+        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
+        
+        INNER JOIN companies_company AS comp ON (pc.id = comp.""" + pat_field + """_id) 
+        INNER JOIN companies_customer AS c ON (comp.id = c.company_id) 
+        INNER JOIN companies_order AS o ON (c.id = o.customer_id) 
+        INNER JOIN companies_orderhour AS oh ON (o.id = oh.order_id) 
+        
+        WHERE ( comp.id = %(compid)s )
+        AND ( NOT oh.lockedinvoice )
+        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
+        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
+    """
+    sql_pricecode_rate_by_refdate = """
+        SELECT 
+        oh.id AS oh_id, 
+        
+        CASE WHEN sh_pc.pc_id IS NOT NULL THEN sh_pc.pc_id ELSE
+        CASE WHEN o_pc.pc_id IS NOT NULL THEN o_pc.pc_id  ELSE 
+        comp_pc.pc_id END 
+        END AS pc_id,
+
+        COALESCE(
+            CASE WHEN sh_pc.pc_id IS NOT NULL THEN sh_pc.pricerate ELSE
+            CASE WHEN o_pc.pc_id IS NOT NULL THEN o_pc.pricerate ELSE 
+            comp_pc.pricerate END END, 0
+        ) AS pci_pricerate
+
+        FROM companies_orderhour AS oh
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+        INNER JOIN companies_company AS comp ON (comp.id = c.company_id)
+        
+        LEFT JOIN ( """ + sql_sh_sub + """ ) AS sh_pc ON (sh_pc.oh_id = oh.id) 
+        LEFT JOIN ( """ + sql_o_sub + """ ) AS o_pc ON (o_pc.oh_id = oh.id) 
+        LEFT JOIN ( """ + sql_comp_sub + """ ) AS comp_pc ON (comp_pc.oh_id = oh.id) 
+
+        WHERE ( c.company_id = %(compid)s )
+        AND ( NOT oh.lockedinvoice )
+        """
+
+    rate_field = None
+    if pat_field == 'pricecode':
+        rate_field = 'pricerate'
+    elif pat_field == 'additioncode':
+        rate_field = 'additionrate'
+    elif pat_field == 'taxcode':
+        rate_field = 'taxrate'
+
+    sql_update_orderhour = """ 
+        UPDATE companies_orderhour AS oh
+        SET """ + pat_field + """_id = pci_sub.pc_id,
+            """ + rate_field + """ = pci_sub.pci_pricerate
+        FROM  ( """ + sql_pricecode_rate_by_refdate + """  ) AS pci_sub
+        WHERE (oh.id = pci_sub.oh_id)
+        RETURNING id, shiftcode, pricerate;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_update_orderhour, {
+            'compid': request.user.company_id,
+            'o_id': order_pk,
+            'sh_id': shift_pk,
+        })
+        rows = f.dictfetchall(cursor)
+        logger.debug('...................................')
+        for dictrow in rows:
+            logger.debug('sql_pricecode_rate_by_refdate' + str(dictrow))
+        logger.debug('...................................')
+
+# - update field billingduration in emplhour records that are not locked
+    recalc_baat(None, None, None, request)
+# ---  end of update_pat_rate_in_orderhour
+
+def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, request):
+    logger.debug(' --- update_amount_addition_tax_in_emplhour --- ')  # PR2020-07-27
+    # - update field billable, amount, addition, tax in all orderhour records that are not locked
+
+    # - update field billingduration in emplhour records that are not locked
+    sql_oh_sub = """
+        SELECT 
+            oh.id,
+            oh.isbillable,
+            COALESCE(oh.pricerate, 0) AS oh_pricerate,
+            COALESCE(oh.additionrate / 10000, 0) AS oh_additionrate,
+            COALESCE(oh.taxrate / 10000, 0) AS oh_taxrate
+
+            FROM companies_orderhour AS oh 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            
+            WHERE (c.company_id = %(compid)s) AND (NOT oh.lockedinvoice)
+            AND ( oh.pricecode_id = %(pcid)s OR %(pcid)s IS NULL ) 
+            AND ( oh.additioncode_id = %(addid)s OR %(addid)s IS NULL ) 
+            AND ( oh.taxcode_id = %(taxid)s OR %(taxid)s IS NULL ) 
+            """
+    sql_billdur = """ CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END """
+    sql_amount = """ ROUND(oh_sub.oh_pricerate
+                    * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
+                    / 60 )  """
+    sql_addition = """ ROUND( oh_sub.oh_additionrate * """ + sql_amount + """ ) """
+    sql_tax = """ ROUND( oh_sub.oh_taxrate * ( """ + sql_amount + """  + """ + sql_addition + """  ) ) """
+
+    sql_emplhour = """ 
+        UPDATE companies_emplhour AS eh
+        SET billingduration = """ + sql_billdur + """,
+            amount =  """ + sql_amount + """,
+            addition = """ + sql_addition + """,
+            tax = """ + sql_tax + """
         FROM  ( """ + sql_oh_sub + """  ) AS oh_sub
         WHERE (eh.orderhour_id = oh_sub.id)
     """
     with connection.cursor() as cursor:
         cursor.execute(sql_emplhour, {
-            'compid': request.user.company_id
+            'compid': request.user.company_id,
+            'pcid': pricecode_pk,
+            'addid': additioncode_pk,
+            'taxid': taxcode_pk
         })
-
-
-        # TODO recalculate amount, addition, tax

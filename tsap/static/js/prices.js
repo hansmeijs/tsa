@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let order_map = new Map();
 
     let price_list = [];
-
     let price_map = new Map();
     let pricecode_map = new Map();
 
@@ -278,100 +277,39 @@ document.addEventListener('DOMContentLoaded', function() {
         //'shft_id', 'shft_code', 'shft_billable', 'shft_pricecode_id', 'shft_price',
         //'shft_additioncode_id', 'shft_addition', 'shft_taxcode_id', 'shft_tax'}
 
-selected_btn = "customer"
-        const rptName = selected_btn
+        const rptName = "customer"
 // --- reset tblBody_items
         tblBody_items.innerText = null;
-
 // --- get  item_list
         let oh_id_curr = 0, eh_id_curr = 0;  // not in use yet, for clicking on detail row en open modal with details
-        let empl_id_prev = null, empl_id_curr = null, empl_code_curr = null;
-        let cust_id_prev = null, cust_id_curr = null, cust_code_curr = null;
         let ord_id_prev = null, ord_id_curr = null, ord_code_curr = null;
-        let scheme_id_prev = null, scheme_id_curr = null, scheme_code_curr = null;
         let shift_id_prev = null, shift_id_curr = null, shift_code_curr = null;
-
 // create TABLE HEADER
         CreateTblHeader(rptName);
-
 // create GRAND TOTAL
         CreateGrandTotal(rptName, price_list[0]);
-
         const len = price_list.length;
         if (!!len) {
     // --- loop through price_list
             for (let i = 0; i < len; i++) {
                 const row_list = price_list[i];
-                if (selected_btn === "customer"){
-
-// ============  CUSTOMER  =========================
-                    cust_id_curr = row_list.cust_id;
-                    cust_code_curr = row_list.cust_code;
+// ============  ORDER  =========================
                     ord_id_curr = row_list.ordr_id;
                     ord_code_curr = row_list.ordr_code;
-                    scheme_id_curr = row_list.schm_id;
-                    scheme_code_curr = row_list.schm_code;
+
                     shift_id_curr = row_list.shft_id;
                     shift_code_curr = row_list.shft_code;
-
-    // create CUSTOMER subtotal row when id changes, then reset subotal
-                    if(cust_id_curr !== cust_id_prev){
-                        cust_id_prev = cust_id_curr
-                        ord_id_prev = null;
-                        scheme_id_prev = null;
-                        shift_id_prev = null;
-                        CreateCustomerTotal(rptName, "customer",  row_list);
-                    }
-    // create ORDER subsubtotal row when ord_id changes, then reset subotal
+// create ORDER subsubtotal row when ord_id changes, then reset subotal
                     // use prev variables for subtotals, prev variables are updated after comparison with current value
                     if(ord_id_curr !== ord_id_prev){
                         ord_id_prev = ord_id_curr;
-                        scheme_id_prev = null;
                         shift_id_prev = null;
                         CreateOrderTotal(rptName, row_list)
                     }
-    // create SCHEME subsubtotal row when ord_id changes, then reset subotal
-                    // use prev variables for subtotals, prev variables are updated after comparison with current value
-                    if(scheme_id_curr !== scheme_id_prev){
-                        scheme_id_prev = scheme_id_curr;
-                        shift_id_prev = null;
-                        CreateSchemeTotal(rptName, row_list)
-                    }
-
     // --- create DETAIL row
                     CreateDetailRow(rptName, row_list)
-                } else if (selected_btn === "employee"){
-
-    // ============ EMPLOYEE  =========================
-                    let employee_id = null, employee_code = null
-
-                    empl_id_curr = row_list.employee_id;
-                    empl_code_curr = row_list.e_code;
-                    cust_id_curr = row_list.cust_id;
-                    cust_code_curr = row_list.cust_code;
-                    ord_id_curr = row_list.ord_id;
-                    ord_code_curr = row_list.ord_code;
-
-                    //dte_format = format_date_iso (dte_id_curr, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
-
-    // create EMPLOYEE subtotal row when id changes, then reset subotal
-                    if(empl_id_curr !== empl_id_prev){
-                        CreateEmployeeTotal(rptName, eh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, empl_code_curr);
-                    }
-    // create DATE subtotal row when id changes or when order_id changes,, then reset subotal
-                    //if(dte_id_curr !== dte_id_prev){
-                    //    CreateShiftTotal(rptName, row_list)
-                    //}
-    // --- create DETAIL row
-                    CreateDetailRow(rptName, row_list)
-    // --- update prev variables
-                    empl_id_prev= empl_id_curr;
-
-                }  // if (rptName ==="employee")
             }  // for (let i = len - 1; i >= 0; i--)
-
         }  // if (!!len)
-
     }  // FillTableRows
 
 //=========  CreateGrandTotal  === PR2020-02-23
@@ -401,50 +339,6 @@ selected_btn = "customer"
         UpdateTableRow(tblRow, display_dict);
     }
 
-//=========  CreateEmployeeTotal  === PR2020-02-23
-    function CreateEmployeeTotal(rptName, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, code) {
-
-        const tblName = "empl"
-        const pk_int = row_list.empl_id;
-        const map_id = row_list.map_id;
-        let display_dict = {table: tblName,
-                            map_id: row_list.map_id,
-                            pk_int: pk_int,
-                            code: row_list.empl_code,
-                            billable: {value: row_list.empl_billable},
-                            pricecode: row_list.empl_pricecode,
-                            addition: row_list.empl_addition,
-                            tax: null,
-                            invoicecode: null,
-                            wagefactor: row_list.empl_wagefactor
-                            }
-        let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int)
-        UpdateTableRow(tblRow, display_dict)
-    }
-
-//=========  CreateCustomerTotal  === PR2020-02-22
-    function CreateCustomerTotal(rptName, fldName, row_list) {
-        //console.log(" === CreateCustomerTotal === ", rptName)
-        const tblName = "cust"
-        const pk_int = row_list.cust_id;
-        const map_id = row_list.map_id;
-        // skip when customer does not exist (may happen because of left join in query)
-        if(!!pk_int){
-            let display_dict = {table: tblName,
-                                map_id: row_list.map_id,
-                                pk_int: pk_int,
-                                code: row_list.cust_code,
-                                billable: {value: row_list.cust_billable},
-                                pricecode_id: row_list.cust_pricecode_id,
-                                additioncode_id: row_list.cust_additioncode_id,
-                                taxcode_id: row_list.cust_taxcode_id,
-                                invoicecode_id: row_list.cust_invoicecode_id,
-                                }
-            let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int)
-            UpdateTableRow(tblRow, display_dict)
-        };
-    }
-
 //=========  CreateOrderTotal  === PR2020-02-23
     function CreateOrderTotal(rptName, row_list) {
         //console.log(" === CreateOrderTotal === ", rptName)
@@ -465,29 +359,6 @@ selected_btn = "customer"
                                 invoicecode_id: row_list.ordr_invoicecode_id
                                 }
             let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int, p1pk_int)
-            UpdateTableRow(tblRow, display_dict)
-        };
-    }
-
-//=========  CreateSchemeTotal  === PR2020-03-02
-    function CreateSchemeTotal(rptName, row_list) {
-        const tblName = "schm";
-        const pk_int = row_list.schm_id;
-        const p1pk_int = row_list.ordr_id;
-        const p2pk_int = row_list.cust_id;
-        const map_id = row_list.map_id;
-        // skip when scheme does not exist (may happen because of left join in query)
-        if(!!pk_int){
-            let display_dict = {table: tblName,
-                                map_id: row_list.map_id,
-                                pk_int: pk_int,
-                                code: row_list.schm_code,
-                                billable: {value: row_list.schm_billable},
-                                pricecode_id: row_list.schm_pricecode_id,
-                                additioncode_id: row_list.schm_additioncode_id,
-                                taxcode_id: row_list.schm_taxcode_id
-                                }
-            let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int, p1pk_int, p2pk_int)
             UpdateTableRow(tblRow, display_dict)
         };
     }
@@ -662,8 +533,7 @@ selected_btn = "customer"
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, dict){
-        //console.log(" ---- UpdateTableRow ---- ");
-        //console.log("dict", dict);
+        console.log(" ---- UpdateTableRow ---- ");
         // UpdateTableRow dict = {table_NIU: "cust", map_id_NIU: "3_694_1420_1658_670", pk_int_NIU: 694,
         //  code: "MCB", billable: {value: 2}
         //  pricecode_id: -64, additioncode_id: -62, taxcode_id: 61, invoicecode_id_NIU: null
@@ -725,6 +595,7 @@ selected_btn = "customer"
                             let pricerate_display = "", datefirst_display = "";
                             if (!!pat_id) {
                                 const map_dict = pricecode_map.get(pat_id);
+
                                 const is_percentage = ([3, 4].indexOf(i) > -1) ? true : false;
                                 // show_zero = true necessary to show difference between 0 and null
                                 pricerate_display = format_pricerate (loc.user_lang, map_dict.pci_pricerate, is_percentage, true)  // show_zero = true
@@ -1867,7 +1738,7 @@ selected_btn = "customer"
         //MSB_Save()
     }  // MSB_Select_billable
 
-    //========= MSB_Fill_SelectTable  ============= PR2020-03-08
+//========= MSB_Fill_SelectTable  ============= PR2020-03-08
     function MSB_Fill_SelectTable (billable){
         console.log("===== MSB_Fill_SelectTable ===== ", billable);
 //--- reset tblBody

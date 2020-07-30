@@ -655,9 +655,6 @@ def create_order_pricerate_list(company, user_lang):
             if value:
                 item_dict[field] = {'value': value}
 
-            is_override, is_billable = f.get_billable_scheme(scheme)
-            item_dict['billable'] = {'override': is_override, 'billable': is_billable}
-
             field = 'priceratejson'
             field_dict = {}
             f.get_fielddict_pricerate(
@@ -733,13 +730,22 @@ def create_billing_agg_list(period_dict, request):
 
     sql_billing = """
         SELECT o.id AS o_id, 
-        COALESCE(c.code,'-') AS c_code,
-        COALESCE(o.code,'-') AS o_code,
+        COALESCE(oh.customercode,'-') AS c_code,
+        COALESCE(oh.ordercode,'-') AS o_code,
         
-        SUM(eh.timeduration) AS eh_timedur, 
         SUM(eh.plannedduration) AS eh_plandur,
-        SUM(eh.billingduration) AS eh_bildur,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(eh.timeduration) AS eh_timedur, 
+        SUM(eh.billingduration) AS eh_billdur,
+
+        ARRAY_AGG(DISTINCT oh.pricerate ORDER BY oh.pricerate) AS oh_prrate,
+        ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_addrate,
+        ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate,
+        
+        SUM(eh.amount) AS eh_amount_sum,
+        SUM(eh.addition) AS eh_add_sum,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
+        SUM(eh.tax) AS eh_tax_sum,
+
         SUM(oh.isbillable::int) AS is_billable,
         SUM((NOT oh.isbillable)::int) AS not_billable,
         SUM(oh.nobill::int) AS is_nobill,
@@ -756,9 +762,10 @@ def create_billing_agg_list(period_dict, request):
         AND ( o.id = %(oid)s OR %(oid)s IS NULL )
         AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
         AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
-        GROUP BY o.id, c.code, o.code
-        ORDER BY LOWER(c.code), LOWER(o.code)
+        GROUP BY o.id, oh.customercode, oh.ordercode
+        ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode)
         """
+
     newcursor = connection.cursor()
     newcursor.execute(sql_billing, {
         'compid': request.user.company_id,
@@ -794,16 +801,27 @@ def create_billing_rosterdate_list(period_dict, request):
     #logger.debug('period_datelast:  ' + str(period_datelast))
     #logger.debug('order_pk:  ' + str(order_pk))
 
+#         COALESCE(c.code,'-') AS c_code,
+    #         COALESCE(o.code,'-') AS o_code,
     sql_billing = """
         SELECT o.id AS o_id, 
-        COALESCE(c.code,'-') AS c_code,
-        COALESCE(o.code,'-') AS o_code,
+
+        CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
         oh.rosterdate AS oh_rosterdate,
         
-        SUM(eh.timeduration) AS eh_timedur, 
         SUM(eh.plannedduration) AS eh_plandur,
-        SUM(eh.billingduration) AS eh_bildur,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(eh.timeduration) AS eh_timedur, 
+        SUM(eh.billingduration) AS eh_billdur,
+        
+        ARRAY_AGG(DISTINCT oh.pricerate ORDER BY oh.pricerate) AS oh_prrate,
+        ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_addrate,
+        ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate,
+        
+        SUM(eh.amount) AS eh_amount_sum,
+        SUM(eh.addition) AS eh_add_sum,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
+        SUM(eh.tax) AS eh_tax_sum,
+
         SUM(oh.isbillable::int) AS is_billable,
         SUM((NOT oh.isbillable)::int) AS not_billable,
         SUM(oh.nobill::int) AS is_nobill,
@@ -821,8 +839,8 @@ def create_billing_rosterdate_list(period_dict, request):
         AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
         AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
 
-        GROUP BY o.id, c.code, o.code, oh.rosterdate
-        ORDER BY LOWER(c.code), LOWER(o.code), oh.rosterdate
+        GROUP BY o.id, oh.customercode, oh.ordercode, oh.rosterdate
+        ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate
         """
     #             AND NOT o.isabsence AND NOT oh.isrestshift
     #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
@@ -866,20 +884,30 @@ def create_billing_detail_list(period_dict, request):
 
     sql_billing = """
         SELECT oh.id AS oh_id, o.id AS o_id, 
-        COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,
+        COALESCE(STRING_AGG(DISTINCT eh.employeecode, '; '),'---') AS e_code,
         oh.rosterdate AS oh_rosterdate,
-        oh.shift AS oh_shift,
+
+        CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
+        oh.shiftcode AS oh_shiftcode,
+        SUM(eh.plannedduration) AS eh_plandur, 
         SUM(eh.timeduration) AS eh_timedur, 
-        SUM(eh.plannedduration) AS eh_plandur,
-        SUM(eh.billingduration) AS eh_bildur,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_amount,
+        SUM(eh.billingduration) AS eh_billdur,
+         
+        oh.pricerate AS oh_prrate,
+        oh.additionrate AS oh_addrate,
+        oh.taxrate AS oh_taxrate,
+        
+        SUM(eh.amount) AS eh_amount_sum,
+        SUM(eh.addition) AS eh_add_sum,
+        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
+        SUM(eh.tax) AS eh_tax_sum,
+        
         SUM(oh.isbillable::int) AS is_billable,
         SUM((NOT oh.isbillable)::int) AS not_billable,
         SUM(oh.nobill::int) AS is_nobill,
         SUM((NOT oh.nobill)::int) AS not_nobill
 
         FROM companies_emplhour AS eh
-        LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
         INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
         INNER JOIN companies_order AS o ON (o.id = oh.order_id)
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
@@ -891,8 +919,8 @@ def create_billing_detail_list(period_dict, request):
         AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
         AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
 
-        GROUP BY oh.id, o.id, oh.rosterdate, oh.shift
-        ORDER BY oh.rosterdate, LOWER(oh.shift)
+        GROUP BY oh.id, o.id, c.id, oh.rosterdate, oh.shiftcode, oh.pricerate, oh.additionrate, oh.taxrate
+        ORDER BY oh.rosterdate, LOWER(oh.shiftcode)
         """
     #             AND NOT o.isabsence AND NOT oh.isrestshift
     #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )

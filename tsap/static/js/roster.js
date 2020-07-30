@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_sidebar_select_showall = document.getElementById("id_SBR_select_showall");
             el_sidebar_select_showall.addEventListener("click", function() {Sidebar_SelectAbsenceRestshift("showall")}, false );
             add_hover(el_sidebar_select_showall);
+
 // ---  MOD PERIOD ------------------------------------
         const el_mod_period_datefirst = document.getElementById("id_mod_period_datefirst");
             el_mod_period_datefirst.addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false );
@@ -200,12 +201,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_confirm_btn_cancel = document.getElementById("id_confirm_btn_cancel")
 
 // ---  MOD ROSTERDATE ------------------------------------
+        let el_MRD_loader = document.getElementById("id_mod_rosterdate_loader");
         let el_MRD_rosterdate_input = document.getElementById("id_mod_rosterdate_input")
             el_MRD_rosterdate_input.addEventListener("change", function() {ModRosterdateEdit()}, false)
         let el_MRD_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
-            el_MRD_btn_ok.addEventListener("click", function() {ModRosterdateSave("ok")}, false)
-        let el_MRD_btn_another = document.getElementById("id_mod_rosterdate_btn_another")
-            el_MRD_btn_another.addEventListener("click", function() {ModRosterdateSave("another")}, false)
+            el_MRD_btn_ok.addEventListener("click", function() {ModRosterdateSave()}, false)
         let el_MRD_btn_logfile = document.getElementById("id_mod_rosterdate_btn_logfile")
             el_MRD_btn_logfile.addEventListener("click", function() {ModRosterdateLogfile()}, false)
         let el_MRD_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let is_replacement = false
 
         // show loader, except when no_loader
-        add_or_remove_class(el_loader, cls_visible_hide, no_loader )
+        add_or_remove_class(el_loader, cls_visible_hide, no_loader)
 
         // show loader in MRE
         if (is_replacement) {
@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(response)
 
                 // hide loader
-                //el_loader.classList.add(cls_visible_hide)
+                el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
 
                 if ("locale_dict" in response) {
@@ -443,10 +443,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("quicksave" in response) {
                     is_quicksave = get_dict_value(response, ["quicksave", "value"], false);
                 }
-
-                if ("rosterdate_check" in response) {
-                    ModRosterdateChecked(response["rosterdate_check"]);
-                };
 
                 if (fill_table) {
                     CreateTblHeader();
@@ -780,7 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             //console.log("fieldname: ", fieldname)
                             //console.log("field_dict: ", field_dict)
                             const is_updated = get_dict_value(field_dict, ["updated"], false);
-                            const is_locked = get_dict_value(field_dict, ["locked"], false);
+                            let is_locked = get_dict_value(field_dict, ["locked"], false);
                             const is_confirmed = get_dict_value(field_dict, ["confirmed"], false);
                             const msg_err = null;
                             if(msg_err){
@@ -813,10 +809,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (is_restshift) {el_input.title = loc.This_isa_restshift}
 
                             } else if (fieldname === "employee") {
-                                // disable field employee when this is restshift, also when is absence
-                                if (is_restshift) { field_dict["locked"] = true }
-                                const key_str = "code";
-                                format_text_element (el_input, key_str, el_msg, field_dict, false, [-220, 60], title_overlap);
+                                let value = get_dict_value_by_key (field_dict, "code");
+                                // add * in front of name when is_replacement
+                                let is_replacement = get_dict_value_by_key (field_dict, "isreplacement", false);
+                                if(is_replacement) {value = "*" + value}
+                                // put any character in field, to show pointer
+                                el_input.value = (value) ? value : "---";
+                                // disable field employee when is_locked, also when is_restshift or is_absence
                                 el_input.disabled = (is_locked || is_restshift || is_absence);
                                 // hover doesn't show when el is disabled PR2020-07-22
                                 add_or_remove_class (el_input, "pointer_show", !is_locked && !is_restshift && !is_absence)
@@ -844,9 +843,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 add_or_remove_class (el_input, "pointer_show", !is_locked)
 
                             } else if (["confirmstart", "confirmend"].indexOf( fieldname ) > -1){
-                                format_confirmation_element (loc, el_input, fieldname, field_dict,
-                                    imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
-                                    "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due" )
+                                // el_img does not exist, update status column instead PR2020-07-26
+                                //format_confirmation_element (loc, el_input, fieldname, field_dict,
+                                //    imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
+                                //    "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due" )
 
                             } else if (["status"].indexOf(fieldname ) > -1){
                                 format_status_element (loc, el_input, field_dict)
@@ -2034,7 +2034,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModalStatusOpen (el_input) {
        console.log("===  ModalStatusOpen  =====") ;
 
-
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
 // get fldName from el_input
@@ -2042,7 +2041,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // get status from field status, not from confirm start/end
         let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
         const status_sum = get_dict_value(emplhour_dict, ["status", "value"])
-        console.log("status_sum", status_sum, typeof status_sum)
 
         let btn_save_text = loc.Confirm;
         let time_label = "Time:"
@@ -2058,16 +2056,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const allow_lock_status = (status_sum < 16)  // STATUS_16_QUESTION = 16
         const status_locked = status_found_in_statussum(8, status_sum)
         const field_is_confirmed = get_dict_value(emplhour_dict, [fldName, "value"], false)
+        const child_el = el_input.children[0];
+
 
         const time_fldName = (fldName === "confirmstart") ? "timestart" : "timeend"
         const time_fielddict = get_dict_value(emplhour_dict, [time_fldName])
         const timefield_is_locked = ("locked" in time_fielddict)
-        const has_overlap = ("overlap" in time_fielddict)
+
+        const col_index = (time_fldName === "timestart") ? 5 : 7;
+        const time_el = tr_selected.cells[col_index].children[0]
+        const has_overlap = (time_el.classList.contains("border_bg_invalid"));
+        console.log("has_overlap", has_overlap)
+        console.log("time_el", time_el)
+
+        //const has_overlap = ("overlap" in time_fielddict)
         const has_no_employee = (!get_dict_value(emplhour_dict, ["employee", "pk"]))
         const has_no_order = (!get_dict_value(emplhour_dict, ["orderhour", "ppk"]))
-
-        console.log("allow_lock_status", allow_lock_status)
-        console.log("status_locked", status_locked)
 
         mod_upload_dict = {id: emplhour_dict.id,
                             fieldname: fldName,
@@ -2119,6 +2123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+        console.log("allow_open", allow_open)
 
         if (allow_open) {
 // put values in el_body
@@ -2154,6 +2159,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 msg01_text = loc.You_must_first_select + loc.an_order + loc.select_before_confirm_shift;
             } else if(has_no_employee && !is_field_status){
                 msg01_text = loc.You_must_first_select + loc.an_employee + loc.select_before_confirm_shift;
+            } else if(has_overlap && !is_field_status){
+                msg01_text = loc.You_cannot_confirm_overlapping_shift;
             } else if(!time_display && !is_field_status){
                 msg01_text = loc.You_must_first_enter +
                              ( (time_fldName === "timestart") ? loc.a_starttime : loc.an_endtime ) +
@@ -2925,9 +2932,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 success: function (response) {
                     console.log("response");
                     console.log(response);
-                    //if ("update_list" in response) {
-                    //    UpdateFromResponse(response["update_list"]);
-                    //};
                     if ("update_list" in response) {
                         const tblName = "emplhour";
                         const update_list = response["update_list"]
@@ -2939,6 +2943,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         refresh_datamap(emplhour_list, emplhour_map)
                         //emplhour_totals = calc_roster_totals(emplhour_list, loc);
                         FillTableRows();
+                    };
+
+                    if ("rosterdate_check" in response) {
+                        ModRosterdateChecked(response["rosterdate_check"]);
                     };
                     if ("rosterdate" in response) {
                         ModRosterdateFinished(response["rosterdate"]);
@@ -2960,6 +2968,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         // hide logfile button when when there is no logfile
                         add_or_remove_class (el_MRD_btn_logfile, cls_hide, true)
                     };
+
+
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -2975,7 +2985,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponseNEW  ================ PR2019-10-14
     function UpdateFromResponseNEW(tblName, update_list) {
-       //console.log(" --- UpdateFromResponseNEW  ---", tblName);
+       console.log(" --- UpdateFromResponseNEW  ---", tblName);
        //console.log("---------------- update_list: ", update_list);
 
         const len = update_list.length;
@@ -3039,8 +3049,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponse  ================ PR2019-10-13
     function UpdateFromResponse(tblName, tr_changed, item_dict) {
-       //console.log(" --- UpdateFromResponse  ---");
-       //console.log(item_dict);
+        console.log(" --- UpdateFromResponse  ---");
+        console.log(item_dict);
 
         if (!!item_dict) {
             UpdateTableRow(tblName, tr_changed, item_dict)
@@ -3078,30 +3088,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++++++ MOD ROSTERDATE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  ModRosterdateOpen  ================ PR2020-01-21
-    function ModRosterdateOpen(mode) {
-       //console.log(" -----  ModRosterdateOpen   ----", mode)
-        //console.log("rosterdate_dict", rosterdate_dict)
+//=========  ModRosterdateOpen  ================ PR2020-01-21 PR2020-07-26
+    function ModRosterdateOpen(crud_mode) {
+        console.log(" -----  ModRosterdateOpen   ----", crud_mode)
 
-        const is_delete = (mode === "delete")
+        const is_delete = (crud_mode === "delete")
 
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
+// show loader in modal
+        el_MRD_loader.classList.remove(cls_hide)
 
 // reset mod_upload_dict
         mod_upload_dict = {};
 
 // --- check if rosterdate has emplhour records and confirmed records
-        const datalist_request = {"rosterdate_check": {"mode": mode}};
-        DatalistDownload(datalist_request);
+        const upload_dict = {"mode":  ( (is_delete) ? "check_delete" : "check_create" )};
+        console.log("upload_dict", upload_dict);
+        UploadChanges(upload_dict, url_emplhour_fill_rosterdate);
         // returns function ModRosterdateChecked
 
-// set header
-       //console.log("loc", loc)
+// set header and input label
         const hdr_text = (is_delete) ? loc.rosterdate_hdr_delete : loc.rosterdate_hdr_create
         document.getElementById("id_mod_rosterdate_header").innerText = hdr_text;
-
-// set value of input label
         document.getElementById("id_mod_rosterdate_label").innerText = loc.Rosterdate + ": "
 
 // set value of el_MRD_rosterdate_input blank, set readOnly = true
@@ -3109,10 +3116,10 @@ document.addEventListener('DOMContentLoaded', function() {
         el_MRD_rosterdate_input.readOnly = true;
 
 // Set focus to el_mod_employee_input
-        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        //Timeout function necessary, otherwise focus wont work
         setTimeout(function (){
             el_MRD_rosterdate_input.focus()
-        }, 500);
+        }, 50);
 
 // set info textboxes
         const info01_txt = loc.rosterdate_checking + "..."
@@ -3140,15 +3147,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateEdit  ++++++++++++++++++++++++++++++ PR2019-11-12
     function ModRosterdateEdit() {
-       //console.log("=== ModRosterdateEdit =========");
-        //console.log("mod_upload_dict: ", mod_upload_dict);
+        console.log("=== ModRosterdateEdit =========");
+        console.log("mod_upload_dict", mod_upload_dict);
         // called when date input changed
 
 // reset mod_upload_dict, keep 'mode'
         const mode = get_dict_value(mod_upload_dict, ["mode"])
-        const is_delete = (mode === "delete")
+        const is_delete = (mode === "check_delete")
         mod_upload_dict = {"mode": mode}
-        //console.log("vv mod_upload_dict: ", mod_upload_dict);
+        console.log("mode", mode);
 
 // get value from input element
         const new_value = el_MRD_rosterdate_input.value;
@@ -3159,8 +3166,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_rosterdate_label").innerText = label_txt
 
 // --- check if new rosterdate has emplhour records and confirmed records
-        const datalist_request = {"rosterdate_check": {"mode": mode, "rosterdate": new_value}}
-        DatalistDownload(datalist_request);
+        const upload_dict = {mode: mode,
+                             rosterdate: new_value
+                             };
+        UploadChanges(upload_dict, url_emplhour_fill_rosterdate);
         // returns function ModRosterdateChecked
 
 // set info textboxes
@@ -3186,42 +3195,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // ModRosterdateEdit
 
-// +++++++++  ModRosterdateSave  ++++++++++++++++++++++++++++++ PR2019-11-14
+// +++++++++  ModRosterdateSave  ++++++++++++++++++++++++++++++ PR2019-11-14 PR2020-07-26
     function ModRosterdateSave() {
-       //console.log("=== ModRosterdateSave =========");
-        //console.log("mod_upload_dict", mod_upload_dict);
+        console.log("=== ModRosterdateSave =========");
         const mode = get_dict_value(mod_upload_dict, ["mode"])
+        console.log("mod_upload_dict", mod_upload_dict);
+        console.log("mode", mode);
 
 // delete logfile when clicked on save button
         log_list = [];
         log_file_name = "";
 
-        const is_delete = (mode === "delete")
+        const is_delete = (mode === "check_delete")
         const is_another =  get_dict_value(mod_upload_dict, ["another"], false)
+        let upload_dict = {};
+// --- check another rosterdate when mod_upload_dict.another=true
         if (is_another) {
             mod_upload_dict.another = false;
             // --- check if rosterdate has emplhour records and confirmed records
-            const datalist_request = {"rosterdate_check": {"mode": mode}};
-            DatalistDownload(datalist_request);
-        // returns function ModRosterdateChecked
+            upload_dict = {mode: mode};
         } else {
-
-        // mod_upload_dict: {mode: "create", rosterdate: "2019-12-20", confirmed: 0, count: 0}
-// TODO check. i dont think use of emplhour_dict is orrect, needs roster_period
-    // make input field readonly
-            el_MRD_rosterdate_input.readOnly = true;
-
-    // show loader
-            document.getElementById("id_mod_rosterdate_loader").classList.remove(cls_hide);
-
     // set info textboxes
             const info_txt = (is_delete) ? loc.rosterdate_deleting : loc.rosterdate_adding;
             document.getElementById("id_mod_rosterdate_info_01").innerText = info_txt + "...";
             document.getElementById("id_mod_rosterdate_info_02").innerText = null;
             document.getElementById("id_mod_rosterdate_info_03").innerText = null;
-
-    // set buttons
-            el_MRD_btn_ok.disabled = true;
 
             let emplhour_dict = {
                 employee_pk: (!!selected_period.employee_pk) ? selected_period.employee_pk : null,
@@ -3230,127 +3228,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_empty_shifts: true,
                 orderby_rosterdate_customer: true
             };
-            mod_upload_dict["emplhour"] = emplhour_dict;
-
-    // Upload Changes:
-           UploadChanges(mod_upload_dict, url_emplhour_fill_rosterdate);
-        } // if (is_another) {
+            upload_dict = { mode: ( is_delete ? "delete" : "create" ),
+                              rosterdate: mod_upload_dict.rosterdate,
+                              emplhour: emplhour_dict
+                            };
+        }
+// ---  make input field readonly, disable ok btn
+        el_MRD_rosterdate_input.readOnly = true;
+        el_MRD_btn_ok.disabled = true;
+// ---  show loader
+        el_MRD_loader.classList.remove(cls_hide);
+// ---  Upload Changes:
+        UploadChanges(upload_dict, url_emplhour_fill_rosterdate);
     }  // function ModRosterdateSave
 
-// +++++++++  ModRosterdateChecked  ++++++++++++++++++++++++++++++ PR2019-11-13
+// +++++++++  ModRosterdateChecked  ++++++++++++++++++++++++++++++ PR2019-11-13 PR2020-07-26
     function ModRosterdateChecked(response_dict) {
-       //console.log("=== ModRosterdateChecked =========" );
-        //console.log("response_dict:", response_dict );
+        console.log("=== ModRosterdateChecked =========" );
+        console.log("response_dict:", response_dict );
         // response_dict: {mode: "last", value: "2019-12-19", count: 10, confirmed: 0}
-
-        // when create: count is always > 0, otherwise this function is not called
-        // hide loader in modal form
 
 // add 'checked' to mod_upload_dict, so left button will know it must cancel
         mod_upload_dict = response_dict
 
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
-
-// remove input field readonly
-        el_MRD_rosterdate_input.value = get_dict_value(response_dict, ["rosterdate"]);
-        el_MRD_rosterdate_input.readOnly = false;
-
-// change button color
-        const mode = get_dict_value(response_dict,["mode"])
-        el_MRD_btn_ok.classList.remove("btn-secondary")
-        if (mode === "delete") {
-            el_MRD_btn_ok.classList.add("btn-outline-danger");
-        } else {
-            el_MRD_btn_ok.classList.add("btn-primary");
-        }
-        //el_MRD_btn_ok.disabled = false;
-
-
-// set info textboxes
-        ModRosterdate_SetLabelAndInfoboxes(response_dict)
-
-    }  // function ModRosterdateChecked
-
-// +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
-    function ModRosterdateFinished(response_dict) {
-       //console.log("=== ModRosterdateFinished =========" );
-       //console.log("response_dict", response_dict );
-        // rosterdate: {rosterdate: {…}, logfile:
-        // response_dict = {mode: "delete", msg_01: "16 diensten zijn gewist."}
-        // response_dict = {mode: "create", msg_02: "14 diensten zijn aangemaakt.",
-        //                  msg_03: "2 afwezigheid of rustdiensten zijn aangemaakt.",
-        //                  logfile: (130) [" ======= Logfile creating roster of: 2020-03-30 ======= ", ...]
-        //                  rosterdate: {row_count: 16, rosterdate: "2020-03-30"}
-        const mode = get_dict_value(response_dict,["mode"])
-        const is_delete = (mode === "delete")
-       //console.log("mode", mode );
-       //console.log("is_delete", is_delete );
-        const msg_01_txt = get_dict_value(response_dict,["msg_01"])
-        const msg_02_txt = get_dict_value(response_dict, ["msg_02"])
-        const msg_03_txt = get_dict_value(response_dict, ["msg_03"])
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
-
-// check for overlap
-        const datalist_request = {overlap: {get: true}, roster_period: selected_period};
-        DatalistDownload(datalist_request, true); // true = no_loader
-
-    // set info textboxes
-        const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
-
-        document.getElementById("id_mod_rosterdate_info_01").innerText = msg_01_txt;
-        document.getElementById("id_mod_rosterdate_info_02").innerText = msg_02_txt;
-        document.getElementById("id_mod_rosterdate_info_03").innerText = msg_03_txt;
-
-    // put 'another' on ok button, put 'Close' on cancel button
-        if (is_delete) {
-            el_MRD_btn_ok.innerText = loc.TXT_Delete_another_roster;
-            el_MRD_btn_ok.classList.remove("btn-outline-danger");
-        } else {
-            el_MRD_btn_ok.innerText = loc.TXT_Create_another_roster;
-            el_MRD_btn_ok.classList.remove("btn-primary");
-        }
-        el_MRD_btn_ok.disabled = false;
-        el_MRD_btn_ok.classList.add("btn-secondary")
-
-        // make 'another' button grey, not red
-        // "btn-outline-danger" : "btn-primary"
-
-        //el_MRD_btn_ok.classList.remove("btn-outline-danger")
-        //el_MRD_btn_ok.classList.add("btn-secondary")
-        el_MRD_btn_cancel.innerText = loc.Close;
-
-        mod_upload_dict = {another: true, mode: mode}
-
-    }  // function ModRosterdateFinished
-
-//=========  ModRosterdate_SetLabelAndInfoboxes  ================ PR2019-11-13
-    function ModRosterdate_SetLabelAndInfoboxes(response_dict) {
-       //console.log(" -----  ModRosterdate_SetLabelAndInfoboxes   ----")
-
-// set info textboxes
         const mode = get_dict_value(response_dict, ["mode"]);
-        const is_delete = (mode === "delete");
+        const is_delete = (mode === "check_delete");
 
         const rosterdate_iso = get_dict_value(response_dict, ["rosterdate"]);
         const count = get_dict_value(response_dict, ["count"], 0);
         const confirmed = get_dict_value(response_dict, ["confirmed"], false);
         const no_emplhours =  get_dict_value(response_dict, ["no_emplhours"], false);
-
         const confirmed_only = (count === confirmed);
 
         let text_list = ["", "", "", ""];
         let hide_ok_btn = false, ok_txt = loc.OK, cancel_txt = loc.Cancel;
-        // set value of input label
+// ---  set value of input label
         text_list[0] = loc.Rosterdate + ": " +
             format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
-
-        // hide rosterdate input when is-delete and no emplhours
+// ---  hide rosterdate input when is-delete and no emplhours
         const hide_input_rosterdate = (is_delete && no_emplhours)
-       //console.log("is_delete: ", is_delete)
-       //console.log("no_emplhours: ", no_emplhours)
-       //console.log("hide_input_rosterdate: ", hide_input_rosterdate)
         add_or_remove_class(document.getElementById("id_mod_rosterdate_input_div"), cls_hide, hide_input_rosterdate )
 
         if (no_emplhours){
@@ -3362,7 +3278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ok_txt = loc.Create;
             }
         } else if(!count){
-            // This rosterdate has no shifts
+// ---  This rosterdate has no shifts
             text_list[1] = loc.rosterdate_count_none;
             if (is_delete) {
                 hide_ok_btn = true;
@@ -3371,7 +3287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ok_txt = loc.Create;
             }
         } else {
-    // This rosterdate has [count] shifts
+// ---  This rosterdate has [count] shifts
             text_list[1] = loc.rosterdate_count
             text_list[1] += ((count === 1) ? loc.one : count.toString()) + " ";
             text_list[1] += ((count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
@@ -3403,7 +3319,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // [confirmed] of them are confirmed shifts.
                     text_list[1] += ", " + confirmed.toString() + " " + loc.rosterdate_confirmed_multiple;
                 }
-    // 'Shifts that are not confirmed will be replaced/deleted, confirmed shifts will be skipped.')
+// ---  'Shifts that are not confirmed will be replaced/deleted, confirmed shifts will be skipped.')
                 text_list[2] = loc.rosterdate_skip01 +
                                ((is_delete) ? loc.deleted : loc.replaced) +
                                loc.rosterdate_skip02;
@@ -3412,19 +3328,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancel_txt = loc.No_cancel;
             }
         }  // if(!count)
-
         document.getElementById("id_mod_rosterdate_label").innerText = text_list[0];
         document.getElementById("id_mod_rosterdate_info_01").innerText = text_list[1];
         document.getElementById("id_mod_rosterdate_info_02").innerText = text_list[2];
         document.getElementById("id_mod_rosterdate_info_03").innerText = text_list[3];
 
-// set buttons
+// hide loader in modal form
+        el_MRD_loader.classList.add(cls_hide)
+
+// remove input field readonly
+        el_MRD_rosterdate_input.value = get_dict_value(response_dict, ["rosterdate"]);
+        el_MRD_rosterdate_input.readOnly = false;
+
+// ---  set button text, hide / disable OK btn, change button color
+        el_MRD_btn_ok.classList.remove("btn-secondary")
+        if (mode === "check_delete") {
+            el_MRD_btn_ok.classList.add("btn-outline-danger");
+        } else {
+            el_MRD_btn_ok.classList.add("btn-primary");
+        }
         el_MRD_btn_ok.innerText = ok_txt;
         el_MRD_btn_ok.disabled = false;
         add_or_remove_class (el_MRD_btn_ok, cls_hide, hide_ok_btn) // args: el, classname, is_add
-
         el_MRD_btn_cancel.innerText = cancel_txt;
-    } // ModRosterdate_SetLabelAndInfoboxes
+
+    }  // function ModRosterdateChecked
+
+// +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
+    function ModRosterdateFinished(response_dict) {
+        console.log("=== ModRosterdateFinished =========" );
+        console.log("response_dict", response_dict );
+        // rosterdate: {rosterdate: {…}, logfile:
+        // response_dict = {mode: "delete", msg_01: "16 diensten zijn gewist."}
+        // response_dict = {mode: "create", msg_02: "14 diensten zijn aangemaakt.",
+        //                  msg_03: "2 afwezigheid of rustdiensten zijn aangemaakt.",
+        //                  logfile: (130) [" ======= Logfile creating roster of: 2020-03-30 ======= ", ...]
+        //                  rosterdate: {row_count: 16, rosterdate: "2020-03-30"}
+        const mode = get_dict_value(response_dict,["mode"])
+        const is_delete = (mode === "delete")
+
+// ---  reset mod_upload_dict
+        mod_upload_dict = {another: true,
+                           mode: ( (is_delete) ? "check_delete" : "check_create" )
+                          }
+// ---  hide loader
+        el_MRD_loader.classList.add(cls_hide)
+// ---  check for overlap
+        const datalist_request = {overlap: {get: true}, roster_period: selected_period};
+        DatalistDownload(datalist_request, true); // true = no_loader
+
+// ---  set info textboxes
+        //const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
+        document.getElementById("id_mod_rosterdate_info_01").innerText = get_dict_value(response_dict,["msg_01"]);
+        document.getElementById("id_mod_rosterdate_info_02").innerText = get_dict_value(response_dict, ["msg_02"]);
+        document.getElementById("id_mod_rosterdate_info_03").innerText = get_dict_value(response_dict, ["msg_03"]);
+
+// ---  put 'another' on ok button, put 'Close' on cancel button
+        if (is_delete) {
+            el_MRD_btn_ok.innerText = loc.TXT_Delete_another_roster;
+            el_MRD_btn_ok.classList.remove("btn-outline-danger");
+        } else {
+            el_MRD_btn_ok.innerText = loc.TXT_Create_another_roster;
+            el_MRD_btn_ok.classList.remove("btn-primary");
+        }
+        el_MRD_btn_ok.disabled = false;
+        el_MRD_btn_ok.classList.add("btn-secondary")
+        el_MRD_btn_cancel.innerText = loc.Close;
+    }  // function ModRosterdateFinished
 
 //=========  ModRosterdateLogfile  ================ PR2020-03-30
     function ModRosterdateLogfile () {
@@ -3590,7 +3560,8 @@ document.addEventListener('DOMContentLoaded', function() {
             mod_upload_dict.customer.pk = get_dict_value(emplhour_dict, ["customer", "pk"])
             mod_upload_dict.customer.code = get_dict_value(emplhour_dict, ["customer", "code"])
             mod_upload_dict.order.pk = get_dict_value(emplhour_dict, ["order", "pk"])
-            mod_upload_dict.order.code = get_dict_value(emplhour_dict, ["order", "code"])
+            mod_upload_dict.order.code = get_dict_value(emplhour_dict, ["customer", "code"], "") +
+                                            " - " + get_dict_value(emplhour_dict, ["order", "code"], "");
         }
 // ---  reset el_MRO_input fields
         el_MRO_input_date.value = rosterdate;
@@ -3726,10 +3697,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_FillSelectTable  ================ PR2020-02-29
     function MRO_MRE_MSS_FillSelectTable(pgeName, tblName, selected_pk) {
-       console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
-       console.log( "pgeName: ", pgeName);
-       console.log( "tblName: ", tblName);
-       console.log( "selected_pk: ", selected_pk, typeof selected_pk);
+       //console.log( "===== MRO_MRE_MSS_FillSelectTable ========= ");
+       //console.log( "pgeName: ", pgeName);
+      // console.log( "tblName: ", tblName);
+       //console.log( "selected_pk: ", selected_pk, typeof selected_pk);
 
         let data_map = new Map();
         let data_dict = {};
@@ -3740,7 +3711,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(pgeName === "MSS"){
 // ---  hide loader
             const el_loader = document.getElementById("id_MSS_loader");
-            add_or_remove_class(el_loader, cls_hide, true);
+            el_loader.classList.add(cls_visible_hide);
+
             const order_dict = mod_upload_dict.emplh_shift_dict;
             const shift_dict = get_dict_value(order_dict, [mod_upload_dict.order_pk]);
             const employee_dict = get_dict_value(shift_dict, [mod_upload_dict.shift_code]);
@@ -3761,7 +3733,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 data_map = employee_map;
             };
         }
-       //console.log("data_map", data_map)
+        //console.log("data_map", data_map)
 
         if(tblName === "order") {
             select_header_text = loc.Select_order + ":";
@@ -3778,6 +3750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             caption_none = loc.No_employees;
         };
+        //console.log("filter_pk", filter_pk)
 
         let tableBody = document.getElementById("id_" + pgeName + "_tblbody_select");
         tableBody.innerText = null;
@@ -3887,10 +3860,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if(tblName === "shift") {
             const order_pk_int = get_dict_value(item_dict, ["id", "order_pk"])
            //console.log("item_dict", item_dict)
-           //console.log("order_pk_int", order_pk_int)
+            //console.log("order_pk_int", order_pk_int, typeof order_pk_int)
+            //console.log("mod_upload_dict.order.pk", mod_upload_dict.order.pk, typeof mod_upload_dict.order.pk)
            //console.log("mod_upload_dict.order.pk", mod_upload_dict.order.pk)
             // PR2020-06-11 debug: no matches because mod_upload_dict.order.pk was str, not number.
-            add_to_list = (!!mod_upload_dict.order.pk && order_pk_int === mod_upload_dict.order.pk);
+            const dict_order_pk_int = (Number(mod_upload_dict.order.pk)) ? Number(mod_upload_dict.order.pk) : null
+            add_to_list = (!!dict_order_pk_int && order_pk_int === dict_order_pk_int);
+            //console.log("add_to_list", add_to_list, typeof add_to_list)
         } else if(tblName === "employee") {
             const skip_selected_pk = (!!selected_pk &&  pk_int === selected_pk)
             add_to_list = (!is_inactive && within_range && !skip_selected_pk);
@@ -3928,10 +3904,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_SelecttableClicked  ================ PR2020-01-09
     function MRO_MRE_MSS_SelecttableClicked(pgeName, tblName, tblRow) {
-        console.log( "===== MRO_MRE_MSS_SelecttableClicked ========= ");
-        console.log( "tblName:", tblName);
-        console.log( "pgeName:", pgeName);
-        console.log( "tblRow:", tblRow);
+        //console.log( "===== MRO_MRE_MSS_SelecttableClicked ========= ");
+        //console.log( "tblName:", tblName);
+        //console.log( "pgeName:", pgeName);
+        //console.log( "tblRow:", tblRow);
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -3941,7 +3917,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.classList.add(cls_selected)
 // ---  get pk from id of select_tblRow
             // when clicked on shift table, pk = shift_code, therefore dont use get_attr_from_el_int
-            const pk_str = get_attr_from_el(tblRow, "data-pk")
+            let pk_str = get_attr_from_el(tblRow, "data-pk")
             const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
             const code_value = get_attr_from_el(tblRow, "data-value", "")
             if(pgeName === "MSS" && tblName === "employee"){
@@ -3968,13 +3944,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_MSS_SelecttableUpdateAfterSelect  ================ PR2020-04-12
     function MRO_MRE_MSS_SelecttableUpdateAfterSelect(pgeName, tblName, pk_int, ppk_int, code_value) {
-        console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
+        //console.log( "===== MRO_MRE_MSS_SelecttableUpdateAfterSelect ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
         // called when clicked on Selecttable and at Keyup of InputElement
         // called by MRO_MRE_MSS_SelecttableClicked and MRO_InputElementKeyup
-        console.log( "tblName:", tblName);
-        console.log( "pk_int:", pk_int, typeof pk_int);
-        console.log( "code_value:", code_value);
+        //console.log( "tblName:", tblName);
+        //console.log( "pk_int:", pk_int, typeof pk_int);
+        //console.log( "code_value:", code_value);
         if(pk_int) {
             if (pgeName === "MSS") {
                 mod_upload_dict.skip_focus_event = true;
@@ -4609,7 +4585,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MRE_abscat_changed  ====================================
     function MRE_abscat_changed() {
-        el_MRE_input_employee.focus()
+        if (mod_upload_dict.isabsence){
+            el_MRE_btn_save.focus()
+        } else {
+            el_MRE_input_employee.focus()
+        }
     }  // MRE_abscat_changed
 
 //=========  MRO_MRE_TimepickerOpen  ================ PR2019-10-12

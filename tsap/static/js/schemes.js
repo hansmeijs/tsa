@@ -343,8 +343,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- Datalist Download
         // TODO set show_absence = false
         //show_absence = null is for testing, show_absence must be false in production
-        const show_absence_FOR_TESTING_ONLY = null;
-        //const show_absence_FOR_TESTING_ONLY = false;
+        //const show_absence_FOR_TESTING_ONLY = null;
+        const show_absence_FOR_TESTING_ONLY = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}},

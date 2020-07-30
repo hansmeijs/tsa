@@ -1974,24 +1974,22 @@ def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
 
 def get_billable_from_order_shift(order, shift):
     # used in EmplhourUploadView.create_orderhour_emplhour  when shift is added in rosterpage   # PR2020-04-24
-    #  billable = 0 = no override, 1= override NotBillable, , 2= override Billable
+    #  billable = 0 = no override, 1= override NotBillable, 2 = override Billable
     # first checkshift and scheme (if there is any), skip restshift
     # if billable = 0 (no override) check order, customer, company (skip absence)
+
     billable = 0
     if order and not order.customer.isabsence:
         if shift and not shift.isrestshift:
             if shift.billable:
                 billable = shift.billable
-            elif shift.scheme.billable:
-                billable = shift.scheme.billable
         if not billable:
             if order.billable:
                 billable = order.billable
-            elif order.customer.billable:
-                billable = order.customer.billable
             elif order.customer.company.billable:
                 billable = order.customer.company.billable
     is_billable = (billable == 2)
+
     return is_billable
 
 def get_billable_order(order):
@@ -2013,29 +2011,6 @@ def get_billable_order(order):
             is_billable = (value == 2)
     return is_override, is_billable
 
-
-def get_billable_scheme(scheme):
-    # PR2019-10-10
-    # value 0 = no override, 1= override NotBillable, 2= override Billable
-
-    field = 'billable'
-    is_billable = False
-    is_override = False
-
-    if scheme:
-        value = getattr(scheme, field, 0)
-        is_override = (value > 0)
-        if is_override:
-            is_billable = (value == 2)
-        else:
-            value = getattr(scheme.order, field, 0)
-            if value > 0: # is_override when value > 0
-                is_billable = (value == 2)
-            else:
-                # get default company_billable, has no value 'is_override'
-                value = getattr(scheme.order.customer.company, field, 0)
-                is_billable = (value == 2)
-    return is_override, is_billable
 
 def get_billable_shift(shift):
     # PR2019-10-10
@@ -2179,14 +2154,12 @@ def get_rate_from_value(value):
     return rate, msg_err
 
 
-def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9 PR20202-07-04
+def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9 PR20202-07-26
     # logger.debug(' ============= get_pricecodeitem ============= ')
     # logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
-    # additionisamount is only used in addition
     pricerate = 0
-    additionisamount = False
     if pricecode_pk:
-        sql_01 = """SELECT pci.pricerate, pci.additionisamount FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s) 
+        sql_01 = """SELECT pci.pricerate FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s) 
         AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL)  
         """
         sqlfilter = 'AND (FALSE)'
@@ -2211,8 +2184,7 @@ def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020
         if row:
             if row[0]:
                 pricerate = row[0]
-                additionisamount = row[1]
-    return pricerate, additionisamount
+    return pricerate
 
 
 def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
@@ -2257,24 +2229,16 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     return pricerate
 
 
-def get_pat_code_cascade(table, field, pat_code, orderhour, request):
+def get_pat_code_cascade(table, field, orderhour, request):
     logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05
-    # - get pricerate and amount and tax, seacrh higher levels when None
-    pat_code_cascade = pat_code
+    # - get pat_code, seacrh higher levels when None
+    pat_code_cascade = None
     if orderhour:
-        if table == 'shift' and pat_code_cascade is None and orderhour.schemeitem:
-            scheme = orderhour.schemeitem.scheme
-            if scheme:
-                pat_code_cascade = getattr(scheme, field)
-        if table in ('shift','scheme') and pat_code_cascade is None:
+        if table == 'shift':
             order = orderhour.order
             if order:
                 pat_code_cascade = getattr(order, field)
-        if table in ('shift','scheme', 'order') and pat_code_cascade is None and orderhour.order:
-            customer = orderhour.order.customer
-            if customer:
-                pat_code_cascade = getattr(customer, field)
-        if table in ('shift', 'scheme', 'order', 'customer') and pat_code_cascade is None:
+        if table in ('shift', 'order') and pat_code_cascade is None:
             if request.user.company:
                 # company has no linked field, use pricecode_id etc instead
                 pat_code_id = getattr(request.user.company, field + '_id')
@@ -2375,8 +2339,8 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 # -- end of save_pricerate_to_dict
 
 def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
-                             price_rate, addition_rate, additionisamount, tax_rate):  # PR2020-04-28 PR2020-07-04
-    logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
+                             price_rate, addition_rate, tax_rate):  # PR2020-04-28 PR2020-07-04  PR2020-07-26
+    #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     # when billable has changed billing_duration is changed outside this function
     # you must run this function after changing billing_duration PR2020-07-23
     amount, addition, tax = 0, 0, 0
@@ -2389,16 +2353,19 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
         #logger.debug('addition_rate: ' + str(addition_rate))
         #logger.debug('tax_rate: ' + str(tax_rate))
         if billing_duration:
+            if addition_rate is None:
+                addition_rate = 0
+            if tax_rate is None:
+                tax_rate = 0
             amount_not_rounded = (billing_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
             # use math.floor instead of int(), to get correct results when amount is negative
             # math.floor() returns the largest integer less than or equal to a given number.
             # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
             amount = math.floor(0.5 + amount_not_rounded)  # This rounds to an integer
-            if additionisamount:
-                addition = addition_rate  # additionrate is fixed amount
-            else:
-                addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
-                addition = math.floor(0.5 + addition_not_rounded)  # This rounds to an integer
+
+            addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
+            addition = math.floor(0.5 + addition_not_rounded)  # This rounds to an integer
+
             tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
             tax = math.floor(0.5 + tax_not_rounded) # This rounds to an integer
 
@@ -2471,6 +2438,56 @@ def dictfetchone(cursor):
 #        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
 #                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL)
 #                            """)
+
+def update_shiftcode_in_orderhours():
+    # Once-only function to put shift.code of all companies in orderhour.shiftcode PR2020-07-25
+    sql_si_sub = """
+        SELECT si.id AS si_id, sh.code AS sh_code
+            FROM companies_schemeitem AS si 
+            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
+        """
+    sql_orderhour = """
+        UPDATE companies_orderhour AS oh
+        SET shiftcode = si_sub.sh_code
+        FROM (""" + sql_si_sub + """) AS si_sub
+        WHERE oh.schemeitem_id = si_sub.si_id
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_orderhour)
+
+
+def update_customercode_ordercode_in_orderhours():
+    # Once-only function to put customer.code and order.code of all companies in orderhour PR2020-07-25
+    sql_order_sub = """
+        SELECT o.id AS o_id, o.code AS o_code, c.code AS c_code
+            FROM companies_order AS o 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        """
+    sql_orderhour = """
+        UPDATE companies_orderhour AS oh
+        SET customercode = o_sub.c_code, ordercode = o_sub.o_code
+        FROM (""" + sql_order_sub + """) AS o_sub
+        WHERE oh.order_id = o_sub.o_id
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_orderhour)
+
+
+def update_employeecode_in_orderhours():
+    # Once-only function to put employee.code of all companies in orderhour PR2020-07-25
+    sql_employee_sub = """
+        SELECT e.id AS e_id, e.code AS e_code
+            FROM companies_employee AS e  
+        """
+    sql_emplhour = """
+        UPDATE companies_emplhour AS eh
+        SET employeecode = e_sub.e_code
+        FROM (""" + sql_employee_sub + """) AS e_sub
+        WHERE eh.employee_id = e_sub.e_id
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_emplhour)
+
 
 ###############################################################
 # FORMAT ELEMENTS

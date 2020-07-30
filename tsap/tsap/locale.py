@@ -666,7 +666,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
         dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
 
-
         # mod select billable
         dict['Fixed_billing_hours'] = TXT_Fixed_billing_hours
         dict['info_billable'] = _('Changes in worked hours will be passed on to the invoice.')
@@ -835,6 +834,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['select_before_confirm_shift'] = pgettext_lazy('You must first select', ', before you can confirm a shift.')
         dict['enter_before_confirm_shift'] = pgettext_lazy('You must first enter', ', before you can confirm a shift.')
 
+        dict['You_cannot_confirm_overlapping_shift'] = _('You cannot confirm an overlapping shift.')
+
         dict['a_starttime'] = TXT_a_starttime
         dict['an_endtime'] = TXT_an_endtime
 
@@ -903,7 +904,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
             ('other', TXT_customperiod)
         )
 
-
         dict['All_employees'] = TXT_All_employees
 
         dict['Rosterdate'] = TXT_Rosterdate
@@ -940,6 +940,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Overview_hours_per_employee'] = _("Overview of worked hours per employee")
         dict['Overview_hours_per_customer'] = _("Overview of worked hours per customer")
 
+        dict['Overview_billing_hours'] = _("Overview billing hours")
+
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
         dict['Billing_hours'] = TXT_Billing_hours
@@ -947,6 +949,47 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Planned_hours_2lines'] = TXT_Planned_hours_2lines
         dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
         dict['Billing_hours_2lines'] = TXT_Billing_hours_2lines
+
+
+        dict['Price'] = _('Price')
+        dict['Prices'] = _('Prices')
+        dict['Select_hourly_rate'] = _('Select hourly rate')
+        dict['Select_price'] = _('Select price')
+
+        dict['Select_addition'] = _('Select addition')
+        dict['Select_tax'] = _('Select tax rate')
+
+        dict['Delete_also_lowers_levels'] = _('Delete, also the lowers levels')
+        # submenu
+        dict['Expand_all'] = _('Expand all')
+        dict['Collaps_all'] = _('Collaps all')
+        dict['Show_report'] = TXT_Show_report
+        dict['Download_report'] = TXT_Download_report
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
+
+        dict['Billable'] = TXT_Billable
+
+        # sidebar
+        dict['All_employees'] = TXT_All_employees
+
+        # mod select price
+        dict['Select_hourly_rate_or_enter_new'] = _('Select an hourly rate in the list or enter a new rate')
+        dict['Select_addition_or_enter_new'] = _('Select an addition in the list or enter a new addition')
+        dict['Select_tax_or_enter_new'] = _('Select a tax rate in the list or enter a new rate')
+
+        dict['Remove_hourly_rate'] = _('or remove the current hourly rate')
+        dict['Remove_addition'] = _('or remove the current addition')
+        dict['Remove_tax'] = _('or remove the current tax rate')
+
+        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
+        dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
+
+        # mod select billable
+        dict['Fixed_billing_hours'] = TXT_Fixed_billing_hours
+        dict['info_billable'] = _('Changes in worked hours will be passed on to the invoice.')
+        dict['info_not_billable'] = _('Changes in worked hours will not be passed on to the invoice.')
+        dict['info_remove_billable'] = _('The setting of a higher level will be used.')
+
 
     return dict
 

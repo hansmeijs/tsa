@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_align: ["l", "l", "l", "l", "l", "r", "r"]},
             payroll_agg: { tbl_col_count: 8,
                         field_caption: ["", "Employee", "Working_days", "Contract_hours", "Planned_hours", "Absence", "Difference", ""],
-                        field_names: ["", "text", "number", "duration", "duration", "duration", "duration", ""],
+                        field_names: ["", "text", "amount", "duration", "duration", "duration", "duration", ""],
                         field_tags: ["div", "div", "div", "div", "div", "div", "div", "div"],
                         field_width: ["016","180", "120", "120","120", "120", "120", "032"],
                         field_align: ["c", "l", "c", "r", "r", "r", "r", "c"]},
@@ -5839,7 +5839,7 @@ console.log( "reset mod_dict: ");
         console.log( "===== HandlePayrollFilter  ========= ");
         console.log( "col_index ", col_index, "el_key ", el_key);
 
-        const skip_filter = t_PayrollFilter(el, col_index, el_key, filter_dict);
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
         if ( !skip_filter) {FillPayrollRows()};
     }  // HandlePayrollFilter
 

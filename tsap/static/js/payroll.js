@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const caption = (loc[key]) ? loc[key] : key;
             payroll_header_row.push(caption)
 
-            const fldName = field_settings[tblName].field_names[j];
+            const field_name = field_settings[tblName].field_names[j];
             const class_width = "tw_" + field_settings[tblName].field_width[j] ;
             const class_align = "ta_" + field_settings[tblName].field_align[j];
 
@@ -1119,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', function() {
             th = document.createElement("th");
                 const el_input = document.createElement("input");
                     el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, j, event.which)});
-                    el_input.setAttribute("data-field", fldName);
+                    el_input.setAttribute("data-field", field_name);
                     el_input.setAttribute("autocomplete", "off");
                     el_input.setAttribute("ondragstart", "return false;");
                     el_input.setAttribute("ondrop", "return false;");
@@ -2144,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= HandlePayrollFilter  ====================================
     function HandlePayrollFilter(el, col_index, el_key) {
        console.log( "===== HandlePayrollFilter  ========= ");
-        const skip_filter = t_PayrollFilter(el, col_index, el_key, filter_dict);
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
         if ( !skip_filter) {
             if(selected_btn === "payrolltabular"){
                 FillPayrollTabularRows();
@@ -2152,7 +2152,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 FillPayrollRows();
             }
         };
-
     }  // HandlePayrollFilter
 
 //========= HandleFilterChecked  ==================================== PR2020-06-26
@@ -2811,9 +2810,9 @@ document.addEventListener('DOMContentLoaded', function() {
         mod_dict.paydate_caption = null;
 // ---  filter payrollperiod rows
         if (el_MSP_tblbody.rows.length){
-            const filter_dict = t_Filter_SelectRows(el_MSP_tblbody, new_filter);
+            const filterdict = t_Filter_SelectRows(el_MSP_tblbody, new_filter);
 // +++  if filter results have only one payrollperiod: select this payrollperiod
-            const selected_rowid = get_dict_value(filter_dict, ["selected_rowid"])
+            const selected_rowid = get_dict_value(filterdict, ["selected_rowid"])
             if (selected_rowid) {
                 const tblRow = document.getElementById(selected_rowid);
                 // ---  highlight clicked row

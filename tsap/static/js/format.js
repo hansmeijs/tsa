@@ -1424,7 +1424,7 @@
             display_text = "0"
         }  // if (!!value_int)
 
-        if (!!display_text && is_percentage) { display_text += " %" }
+        if (!!display_text && is_percentage) { display_text += "%" }
 
         return display_text
     }  // format_pricerate
@@ -1502,18 +1502,21 @@
 
 //========= display_planning_period  ======== PR2020-01-21
     function display_planning_period(selected_planning_period, loc, skip_prefix) {
-        //console.log( "===== display_planning_period  ========= ");
+        console.log( "===== display_planning_period  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
         const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
 
-        let period_txt = (!skip_prefix) ? loc.Period + ": " : "";
-        if (period_tag !== "other"){
-            for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
-                if(loc.period_select_list[i][0] === period_tag ){
-                    period_txt = loc.period_select_list[i][1] + ": "
-                    break;
+        let period_txt = "";
+        if(!skip_prefix){
+            period_txt = loc.Period + ": ";
+            if (period_tag !== "other"){
+                for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
+                    if(loc.period_select_list[i][0] === period_tag ){
+                        period_txt = loc.period_select_list[i][1] + ": "
+                        break;
+                    }
                 }
             }
         }
@@ -1651,8 +1654,10 @@
     function format_confirmation_element (loc, el_input, fieldname, field_dict,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
+        // el_img does not exist, update status column instead PR2020-07-26
+
          "use strict";
-        //console.log("==== format_confirmation_element  ====", fieldname, field_dict)
+            //console.log("==== format_confirmation_element  ====")
         // TODO add check overdue again
         //  imgsrc_questionmark, imgsrc_warning,
         // "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due"
@@ -1660,9 +1665,7 @@
             const is_confirmed = get_dict_value(field_dict, ["value"], false)
             const is_locked = get_dict_value(field_dict, ["locked"], false)
             add_or_remove_class (el_input, "pointer_show", !is_locked)
-
             let el_img = el_input.children[0];
-            //console.log ("el_img", el_img)
             if (!!el_img){
                 let imgsrc = imgsrc_stat00;
                 if (fieldname === "confirmstart"){
@@ -1679,79 +1682,59 @@
 
 //========= format_status_element  ======== PR2019-09-18 PR2020-07-21
     function format_status_element (loc, el_input, field_dict,
-        imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
-        ) {
+        imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05) {
 
-        //console.log("==== format_confirmation_element  ====", fieldname, field_dict)
+        //console.log("==== format_status_element  ====")
+        //console.log("field_dict", field_dict)
         "use strict";
 
-        // inactive: {value: true}
-        //console.log("+++++++++ format_status_element")
-        //console.log(field_dict)
-        //console.log(el_input)
-        const title_stat00 = "";
-        const title_stat01 = loc.This_isa_planned_shift;
-        const title_stat02 = loc.Starttime_confirmed;
         const title_stat03 = loc.Endtime_confirmed;
         const title_stat04 = loc.Start_and_endtime_confirmed;
         const title_stat05 = loc.This_shift_is_locked;
         let modified_date_formatted = '-', modified_by = '-';
-        if(!!el_input){
-            let status_sum = 0;
-            let has_changed = false;
-            if(!isEmpty(field_dict)){
-                status_sum = Number(get_dict_value(field_dict, ["value"]));
-                has_changed = Number(get_dict_value(field_dict, ["haschanged"], false));
-                const modified_date_iso = get_dict_value(field_dict, ["modified_date"]);
-                const modified_dateJS =  parse_dateJS_from_dateISO(modified_date_iso);
-                modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
-                modified_by = get_dict_value(field_dict, ["modified_by"],'-');
-            }
-            //console.log("status_sum: ", status_sum)
-            el_input.setAttribute("data-value", status_sum);
-            el_input.setAttribute("data-haschanged", has_changed);
+        if(el_input){
+            const status_sum = Number(get_dict_value(field_dict, ["value"]));
+            const has_changed = Number(get_dict_value(field_dict, ["haschanged"], false));
+            const modified_date_iso = get_dict_value(field_dict, ["modified_date"]);
+            const modified_dateJS =  parse_dateJS_from_dateISO(modified_date_iso);
+            const modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
+            const modified_by = get_dict_value(field_dict, ["modified_by"],'-');
 
-            // update icon
+            const tblRow = get_tablerow_selected(el_input)
+            tblRow.setAttribute("data-value", status_sum);
+            tblRow.setAttribute("data-haschanged", has_changed);
 
             let imgsrc = imgsrc_stat00;
             let title = "";
             let icon_class = "stat_0_0"
             if (!status_sum ) { //STATUS_00_NONE = 0
                 icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
-                title = loc.This_isan_added_shift
-            } else if (status_sum >= 8) { //STATUS_08_LOCKED = 8
+                title = loc.This_isan_added_shift;
+            } else if (status_sum === 1) { //STATUS_01_CREATED = 1
+                icon_class = (has_changed) ? "stat_1_1" : "stat_0_1"
+                title = loc.This_isa_planned_shift;
+            } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED
+                icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
+                title = loc.Starttime_confirmed
+            } else if ([4,5].indexOf(status_sum) > -1) { //STATUS_04_END_CONFIRMED
+                icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
+                title = loc.Endtime_confirmed
+            } else if ([6,7].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED + STATUS_04_END_CONFIRMED
+                icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
+                title = loc.Start_and_endtime_confirmed;
+            } else { //STATUS_08_LOCKED = 8
                 icon_class = (has_changed) ? "stat_1_5" : "stat_0_5"
                 title = loc.This_shift_is_locked;
-            } else {
-                //STATUS_02_START_CONFIRMED
-                //STATUS_04_END_CONFIRMED
-                const start_confirmed = status_found_in_statussum(2, status_sum);
-                const end_confirmed = status_found_in_statussum(4, status_sum);
-
-                if (start_confirmed) {
-                    if (end_confirmed) {
-                        icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
-                        title = loc.Start_and_endtime_confirmed;
-                    } else {
-                        //STATUS_02_START_CONFIRMED
-                        icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
-                        title = loc.Starttime_confirmed;
-                    }
-                } else {
-                    if (end_confirmed) {
-                        //STATUS_04_END_CONFIRMED
-                        icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
-                        title = loc.Endtime_confirmed
-                    } else if (status_sum%2 !== 0) {// % is remainder operator
-                        icon_class = (has_changed) ? "stat_1_1" : "stat_0_1" //STATUS_01_CREATED
-                        title = loc.This_isa_planned_shift;
-                    }
-                }
             }
             if(has_changed){
                 title += "\n" + loc.Modified_by + modified_by + "\n" + loc.on + modified_date_formatted
             }
-            el_input.classList.add(icon_class)
+            // foirst remove all classes from el_input
+            let classList = el_input.classList;
+            while (classList.length > 0) {
+                classList.remove(classList.item(0));
+            }
+            el_input.classList.add("pointer_show", icon_class)
             el_input.setAttribute("title", title);
 
         }
@@ -1826,15 +1809,10 @@
 //=========  ShowOkElement  ================ PR2019-11-27 PR2020-07-23
     function ShowOkElement(el_input, ok_class, cur_class) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
-
-        console.log("ShowOkElement");
-        console.log("ok_class", ok_class);
-        console.log("cur_class", cur_class);
+        //console.log("ShowOkElement");
         if(cur_class) {el_input.classList.remove(cur_class)};
         if(!ok_class) {ok_class = "border_bg_valid"};
         el_input.classList.add(ok_class);
-        console.log("el_input tagName", el_input.tagName);
-        console.log("el_input classList", el_input.classList);
         setTimeout(function (){
             el_input.classList.remove(ok_class);
             if(cur_class) {el_input.classList.add(cur_class)};

@@ -367,21 +367,25 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'inactive', 'locked')
 
-FIELDS_ORDERHOUR = ('id', 'order', 'customerlog', 'orderlog',
-                    'schemeitem', 'rosterdate', 'cat',
+FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem',
+                    'customercode', 'ordercode', 'shiftcode',
+                    'rosterdate', 'cat',
                     'isabsence', 'isrestshift', 'issplitshift', 'isbillable', 'nobill',
-                    'shift', 'invoicecode', 'invoicedate', 'lockedinvoice',
+                    'invoicecode', 'invoicedate', 'lockedinvoice',
+                    'pricecode', 'additioncode', 'taxcode',
                     'status', 'hasnote', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-                   'rosterdate', 'cat', 'isreplacement', 'datepart',
-                   'paydate', 'paydatecode', 'lockedpaydate', 'nopay', 'haschanged',
+FIELDS_EMPLHOUR = ('id', 'orderhour',
+                    'rosterdate', 'exceldate',
+                   'employee', 'employeecode',
+                   'cat', 'isreplacement', 'datepart',
+                   'paydate', 'paydatecode', 'lockedpaydate', 'nopay',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                    'offsetstart', 'offsetend', 'excelstart', 'excelend',
                    'functioncode', 'wagecode', 'wagefactorcode', 'wagerate', 'wagefactor', 'wage',
-                   'pricecode', 'additioncode', 'taxcode',
-                   'pricerate', 'additionrate', 'additionisamount', 'taxrate', 'amount', 'addition', 'tax',
-                   'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked',
+                   'amount', 'addition', 'tax',
+                   'status', 'haschanged','overlap',
+                   'schemeitemid', 'teammemberid', 'locked',
                    'order', 'shift', 'confirmstart', 'confirmend')
                     # fields: order, shift, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status

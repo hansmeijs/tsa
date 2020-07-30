@@ -106,11 +106,10 @@
     <div id="id_menubar">
         {% if user.is_authenticated %}
             <a id="id_hdr_empl" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
-            <a id="id_hdr_payroll" href="{% url 'payroll_url' %}">{% trans 'Payroll' %}</a>
             <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers and orders' %}</a>
             <a id="id_hdr_schm" href="{% url 'schemes_url' %}">{% trans 'Planning' %}</a>
             <a id="id_hdr_rost" href="{% url 'roster_url' %}">{% trans 'Roster' %}</a>
-            <a id="id_hdr_prices" href="{% url 'prices_url' %}">{% trans 'Prices' %}</a>
+            <a id="id_hdr_payroll" href="{% url 'payroll_url' %}">{% trans 'Payroll' %}</a>
             <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Billing' %}</a>
             {% if user.is_role_system_and_perm_admin %}
                 <a id="id_hdr_comp" href="{% url 'company_url' %}">{% trans 'Company' %}</a>

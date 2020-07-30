@@ -358,19 +358,20 @@
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
 
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
-//========= t_PayrollFilter  ======================== PR2020-07-12
-    function t_PayrollFilter(el, col_index, el_key, filter_dict) {
-        console.log( "===== t_PayrollFilter  ========= ");
+//========= t_SetExtendedFilterDict  ======================== PR2020-07-12
+    function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
+        console.log( "===== t_SetExtendedFilterDict  ========= ");
         console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
         const fldName = get_attr_from_el(el, "data-field")
+        console.log( "fldName ", fldName);
         const col_count = tblRow.cells.length
         let skip_filter = false;
 // --- reset filter row when clicked on 'Escape'
         if (el_key === 27) {
-            filter_dict = {}
+            filter_dict = {};
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(el){ el.value = null};
@@ -396,7 +397,7 @@
                     filter_value = filter_text;
                 } else {
                     // lt and gt sign must be followed by number. Skip filter when only lt or gt sign is eneterd
-                    if (["number", "duration"].indexOf(fldName) > -1 &&
+                    if (["amount", "duration"].indexOf(fldName) > -1 &&
                         [">", ">=", "<", "<="].indexOf(filter_text) > -1 ) {
                        skip_filter = true;
                     }
@@ -417,9 +418,13 @@
                                          (["lt", "gt"].indexOf(mode) > -1) ? filter_text.slice(1) : filter_text;
                         filter_value = 0;
                         console.log( "filter_str ", filter_str);
-                        if (fldName === "number") {
+                        console.log( "fldName ", fldName);
+                        const value_number = Number(filter_str.replace(/\,/g,"."));
+
+                        if (fldName === "amount") {
                             // replace comma's with dots, check if value = numeric, convert to minutes
-                            const value_number = Number(filter_str.replace(/\,/g,"."));
+0
+                            if (value_number) { filter_value = 100 * value_number};
                         console.log( "value_number ", value_number);
                             filter_value = (value_number) ? value_number : null;
                         } else if (fldName === "duration") {
@@ -433,7 +438,6 @@
                                 }
                             } else {
                         // replace comma's with dots, check if value = numeric, convert to minutes
-                                const value_number = Number(filter_str.replace(/\,/g,"."));
                                 if (value_number) { filter_value = 60 * value_number};
                             }
                         } else {
@@ -441,13 +445,13 @@
                         }
                     }
                 }; // other
-                if ( !skip_filter) { filter_dict[col_index] = [mode, filter_value, fldName] };
-                console.log( "skip_filter ", skip_filter);
-                console.log( "filter_dict ", filter_dict);
+                if (!skip_filter) {
+                    filter_dict[col_index] = [mode, filter_value, fldName]
+                };
             }
         }
         return skip_filter;
-    }  // t_PayrollFilter
+    }  // t_SetExtendedFilterDict
 
 //========= t_ShowPayrollRow  ==================================== PR2020-07-12
     function t_ShowPayrollRow(filter_row, filter_dict, col_count) {

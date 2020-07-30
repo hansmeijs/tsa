@@ -124,7 +124,7 @@ class Company(TsaBaseModel):
     timeformat = CharField(max_length=4, choices=c.TIMEFORMAT_CHOICES, default=c.TIMEFORMAT_24h)
 
     cat = PositiveSmallIntegerField(default=0)
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
+    billable = SmallIntegerField(default=0)  # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
 
     # cannot use Foreignkey, because Pricecode has field company_id
     pricecode_id = IntegerField(null=True)
@@ -183,14 +183,12 @@ class Pricecodeitem(TsaBaseModel):
     # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
     code = None
     name = None
-    datelast = None
     inactive = None
     locked = None
 
     isprice = BooleanField(default=False)
     isaddition = BooleanField(default=False)  # additionrate = /10.000 unitless additionrate 10.000 = 100%, or amount 10.000 = $100.00
     istaxcode = BooleanField(default=False)  # taxrate = /10.000 unitless taxrate 600 = 6%
-    additionisamount = BooleanField(default=False)
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) EUR 100 = 10.000
 
@@ -220,11 +218,6 @@ class Customer(TsaBaseModel):
 
     interval = PositiveSmallIntegerField(default=0) # not in use yet
 
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
-
-    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
@@ -267,7 +260,7 @@ class Order(TsaBaseModel):
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
+    billable = SmallIntegerField(default=0)   # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
     sequence = IntegerField(null=True) # only used in abscat PR2020-06-11 contains value of 'Priority'
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -423,12 +416,7 @@ class Wagecodeitem(TsaBaseModel):
     # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
     code = None
     name = None
-    datelast = None
     locked = None
-
-    #TODO: add inactive, remove iswage, iswagefactor
-    #iswage = BooleanField(default=False)
-    #iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
 
     wagerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
 
@@ -503,7 +491,6 @@ class Scheme(TsaBaseModel):
     istemplate = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)  # default cycle is one week, min="1" max="28"
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
     excludecompanyholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
@@ -514,10 +501,6 @@ class Scheme(TsaBaseModel):
     nohoursonsunday = BooleanField(default=False)
     # nohoursonweekend = BooleanField(default=False)  # deprecated
     nohoursonpublicholiday = BooleanField(default=False)
-
-    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -544,7 +527,7 @@ class Shift(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)
     isrestshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
+    billable = SmallIntegerField(default=0)  # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
@@ -782,12 +765,13 @@ class Orderhour(TsaBaseModel):
 
     order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT)
 
-    customerlog = ForeignKey(Customerlog, related_name='+', on_delete=SET_NULL, null=True)
-    orderlog = ForeignKey(Orderlog, related_name='+', on_delete=SET_NULL, null=True)
-
     # check if schemeitem is necessary, I dont think so PR2020-02-15
     # yes it is, to retrieve shift.isbillable when adding orderhour from roster page
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
+    # TODO: replace by shift, but first on server the field shift Charfield must be renamed to shiftcode
+    customercode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    ordercode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    shiftcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
@@ -798,11 +782,18 @@ class Orderhour(TsaBaseModel):
     isbillable = BooleanField(default=False)  # isbillable: worked hours will be billed when true, planned hours otherwise
     nobill = BooleanField(default=False)    # nobill: billed hours will be zero
     # TODO add nobill to pricepage
-    shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicedate = DateField(db_index=True, null=True)
     lockedinvoice = BooleanField(default=False)
+
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+
+    pricerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    additionrate = IntegerField(null=True)  # additionrate = /10.000 unitless (10.000 = 100%)
+    taxrate = IntegerField(null=True)  # taxrate = /10.000 unitless taxrate 600 = 6%
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     hasnote = BooleanField(default=False)
@@ -826,10 +817,13 @@ class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=CASCADE)
-    employee = ForeignKey(Employee, related_name='emplhours', on_delete=SET_NULL, null=True)
-    employeelog = ForeignKey(Employeelog, related_name='+', on_delete=SET_NULL, null=True)
 
     rosterdate = DateField(db_index=True)
+    exceldate = IntegerField(null=True)
+
+    employee = ForeignKey(Employee, related_name='emplhours', on_delete=SET_NULL, null=True)
+    employeecode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+
     cat = PositiveSmallIntegerField(default=0)
     isreplacement = BooleanField(default=False)
     datepart = PositiveSmallIntegerField(default=0) # 1=night, 2 = morning, 3 = afternoon, 4 = evening, 0 = undefined
@@ -838,7 +832,6 @@ class Emplhour(TsaBaseModel):
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
     lockedpaydate = BooleanField(default=False)
     nopay = BooleanField(default=False)    # nopay: wage will be zero
-    haschanged  = BooleanField(default=False)
 
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
@@ -859,19 +852,14 @@ class Emplhour(TsaBaseModel):
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
-    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-
-    pricerate = IntegerField(null=True)  # /100 unit is currency (US$, EUR, ANG)
-    additionrate = IntegerField(default=0)  # additionrate = /10.000 unitless (10.000 = 100%) or fixed amount: 10.000 = $100
-    additionisamount = BooleanField(default=False)
-    taxrate = IntegerField(default=0)  # taxrate = /10.000 unitless taxrate 600 = 6%
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     addition = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     tax = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
+    note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+
     status = PositiveSmallIntegerField(db_index=True, default=0)
+    haschanged  = BooleanField(default=False)  # haschanged will show an orange diamond on the roster page
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
@@ -907,15 +895,23 @@ class Emplhour(TsaBaseModel):
         return True if status_int > 1 else False
 
 
+
 class Emplhourlog(TsaBaseModel):
     objects = TsaManager()
 
-    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=CASCADE)
+    emplhour_id = IntegerField(db_index=True)
 
     rosterdate = DateField()
+
     order = ForeignKey(Order, related_name='+', on_delete=SET_NULL, null=True)
     employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
-    shift = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
+
+    customercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    ordercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    shiftcode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    employeecode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+
     timestart = DateTimeField(null=True)
     timeend = DateTimeField(null=True)
     breakduration = IntegerField(default=0)
@@ -924,10 +920,10 @@ class Emplhourlog(TsaBaseModel):
     billingduration = IntegerField(default=0)
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
-    excelstart = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
-    excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
+
 
     status = PositiveSmallIntegerField(default=0)
+    deleted = BooleanField(default=False)
 
     class Meta:
         ordering = ['-modifiedat']

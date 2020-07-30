@@ -15,7 +15,7 @@
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
         <div class="sidebar_header">
-            <h3 id="id_sidebar_header" class="pointer_show p-1">{% trans 'Review' %}</h3>
+            <h3 class="p-1">{% trans 'Billing' %}</h3>
         </div>
         <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
@@ -58,6 +58,10 @@
         {% include 'includes/modselectorder.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  ===================-->
         {% include 'includes/modselectemployee.html' %}
+<!-- =================== MODAL SELECT PRICE  ===================-->
+        {% include 'includes/modselectprice.html' %}
+<!-- =================== MODAL BILLABLE  ===================-->
+        {% include 'includes/modselectbillable.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="containerXX">
 
@@ -66,7 +70,7 @@
             <!-- content_header -->
                 <div class="content_header ">
                 <!-- header_text -->
-                    <div class="content_subheader_left ml-4">
+                    <div class="content_subheader_left mx-4">
                         <h5 id="id_hdr_text"></h5>
                     </div>
             <!-- loader -->
@@ -79,17 +83,22 @@
             <!-- end content_header -->
                 <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button data-btn="billing" class="btn btn-secondary ">{% trans 'Billing overview' %}</button>
+                    <button data-btn="btn_billing_overview" class="btn btn-secondary ">{% trans 'Billing overview' %}</button>
+                    <button data-btn="btn_billing_all" class="btn btn-secondary ">{% trans 'Billing details' %}</button>
+                    <button data-btn="btn_prices" class="btn btn-secondary ">{% trans 'Price list' %}</button>
+                    <button data-btn="btn_pricelist" class="btn btn-secondary ">{% trans 'Hourly rates' %}</button>
+                    <button data-btn="btn_additionlist" class="btn btn-secondary ">{% trans 'Addition list' %}</button>
+                    <button data-btn="btn_taxlist" class="btn btn-secondary ">{% trans 'Tax list' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
             </div>
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-            <div class="content_body mx-2">
+            <div class="content_body ml-4 mr-0">
 
 <!-- =================== DATA TABLE  =================== -->
-                <table id="id_tbl_items" class="table tsa_tbl mx-2X my-1">
+                <table class="table tsa_tbl">
                     <thead id="id_thead_datatable"></thead>
                     <tbody id="id_tbody_datatable"></tbody>
                 </table>
@@ -102,6 +111,8 @@
 
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-settings_upload_url="{% url 'settings_upload_url' %}"
+            data-datalist_prices_upload_url="{% url 'prices_upload_url' %}"
 
             data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
@@ -114,10 +125,14 @@
             data-imgsrc_stat03="{% static 'img/stat03.png' %}"
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
             data-imgsrc_stat05="{% static 'img/stat05.png' %}"
+
             data-imgsrc_bill00="{% static 'img/bill00.png' %}"
+            data-imgsrc_bill00_lightgrey="{% static 'img/bill00_lightgrey.png' %}"
+            data-imgsrc_bill00_lightlightgrey="{% static 'img/bill00_lightlightgrey.png' %}"
             data-imgsrc_bill01="{% static 'img/bill01.png' %}"
             data-imgsrc_bill01_lightgrey="{% static 'img/bill01_lightgrey.png' %}"
             data-imgsrc_bill01_lightlightgrey="{% static 'img/bill01_lightlightgrey.png' %}"
+            data-imgsrc_bill02="{% static 'img/bill02.png' %}"
             data-imgsrc_bill03="{% static 'img/bill03.png' %}"
         >
         </div>

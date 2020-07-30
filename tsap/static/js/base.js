@@ -777,7 +777,7 @@
 
 //=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
     function get_dateJS_from_dateISO_vanilla(date_iso) {
-        console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
+        //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
         let date_JS = null;
         if (!!date_iso){
             let arr_int = get_array_from_ISOstring(date_iso);
@@ -1293,12 +1293,13 @@
 
 
 //========= b_get_excel_cell_index  ====================================
-    function b_get_excel_cell_index (col_index, row_index){  // PR2020-06-13
-
+    function b_get_excel_cell_index (col_index, row_index){
+        // function calculates excel cell_index 'BD44' from row and column index // PR2020-06-13
+        // this one works thru column 'ZZ'
         if(!col_index){col_index = 0};
         if(!row_index){row_index = 0};
 
-        const integer = Math.floor(col_index/26);
+        const integer = Math.floor(col_index / 26);
         const remainder = col_index - integer * 26;
 
         const first_letter = (integer) ? String.fromCharCode(65 + integer -1 ) : "";

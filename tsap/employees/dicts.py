@@ -649,8 +649,8 @@ def create_teammember_dict_from_model(teammember, update_dict):
 
 
 def create_absence_list(filter_dict, request):
-    logger.debug(' ----- create_absence_list  -----  ')
-    logger.debug('filter_dict: ' + str(filter_dict) )
+    #logger.debug(' ----- create_absence_list  -----  ')
+    #logger.debug('filter_dict: ' + str(filter_dict) )
     # create list of all absence teammembers PR2020-06-30
 
     company_pk = request.user.company_id
