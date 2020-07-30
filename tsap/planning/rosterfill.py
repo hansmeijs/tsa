@@ -1396,7 +1396,7 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
                     WHERE (c.company_id = %(cid)s) 
                     AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL)
                     AND (oh.status < %(oh_status)s) 
-                    AND (NOT oh.lockedpaydate)
+                    AND (NOT oh.lockedinvoice)
                 )
                 """, {
         'cid': request.user.company_id,
