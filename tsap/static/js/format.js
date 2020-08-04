@@ -2,39 +2,190 @@
 // ++++++++++++  FORMAT +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
-
 // +++++++++++++++++ FORMAT DATE AND TIME WITH JS VANILLA ++++++++++++++++++++++++++ PR2020-04-10
+
+//========= function format_date_elementMOMENT  ======== PR2019-07-02
+    function format_date_elementMOMENT (el_input, el_msg, field_dict, month_list, weekday_list,
+                                    user_lang, comp_timezone, hide_weekday, hide_year) {
+        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
+        //console.log(" --- format_date_elementMOMENT --- ");
+        //console.log("field_dict: ", field_dict);
+
+        if(!!el_input && !!field_dict){
+        // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
+        // debug: shows 'invalid date' whem updated = true and value = null
+
+            const data_value = get_dict_value_by_key (field_dict, "value");
+            const updated = get_dict_value_by_key (field_dict, "updated", false);
+            const msg_err = get_dict_value_by_key (field_dict, "error");
+
+            const mindate = get_dict_value_by_key (field_dict, "mindate");
+            const maxdate = get_dict_value_by_key (field_dict, "maxdate");
+            const rosterdate = get_dict_value_by_key (field_dict, "rosterdate");
+
+            const offset = get_dict_value_by_key (field_dict, "offset");
+            const minoffset = get_dict_value_by_key (field_dict, "minoffset");
+            const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
+
+            let wdmy = "", wdm = "", dmy = "", dm = "";
+            if(!!data_value) {
+                const datetime_local = moment.tz(data_value, comp_timezone);
+                const this_year = datetime_local.year();
+                const this_month_iso = datetime_local.month() + 1;
+                const this_date = datetime_local.date();
+                const this_weekday_iso = datetime_local.isoWeekday();
+
+                let  month_str = "",  weekday_str = "";
+                if (!!weekday_list){weekday_str = weekday_list[this_weekday_iso]};
+                if (!!month_list){month_str = month_list[this_month_iso]};
+
+                let comma_space = " ";
+
+                if(user_lang === "en") {
+                    comma_space = ", "
+                    dm =  month_str + " " + this_date;
+                } else {
+                    comma_space = " "
+                    dm =  this_date + " " + month_str;
+                }
+                dmy = dm + comma_space + this_year;
+                wdm = weekday_str + comma_space  + dm;
+                wdmy = weekday_str + comma_space + dmy;
+            }  //  if(!!data_value)
+
+            let display_value = "", display_title = "";
+            if (hide_year) {
+                if (hide_weekday){display_value = dm} else {display_value = wdm}
+                display_title = wdmy
+            } else {
+                if (hide_weekday){display_value = dmy} else {display_value = wdmy}
+            }
+            //console.log("display_value", display_value, typeof display_value)
+            //console.log("display_title", display_title, typeof display_title)
+
+            if(!!msg_err){
+               ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value, data_value, display_title)
+            } else if(updated){
+                ShowOkElement(el_input, "border_bg_valid");
+            }
+
+            if(!!display_value){el_input.value = display_value} else {el_input.value = null}
+
+            if(!!display_title){
+                el_input.setAttribute("title", display_title)
+            } else {
+                el_input.removeAttribute("title")
+            };
+            if(!!data_value){
+                el_input.setAttribute("data-value", data_value)
+            } else {
+                el_input.removeAttribute("data-value");
+            };
+            if(!!mindate){
+                el_input.setAttribute("data-mindate", mindate)
+            } else {
+                el_input.removeAttribute("data-mindate")
+            };
+            if(!!maxdate){
+                el_input.setAttribute("data-maxdate", maxdate)
+            } else {
+                el_input.removeAttribute("data-maxdate")
+            };
+
+            if(!!offset){
+                el_input.setAttribute("data-offset", offset)
+            } else {
+                el_input.removeAttribute("data-offset")
+            };
+             if(!!minoffset){
+                el_input.setAttribute("data-minoffset", minoffset)
+            } else {
+                el_input.removeAttribute("data-minoffset")
+            };
+            if(!!maxoffset){
+                el_input.setAttribute("data-maxoffset", maxoffset)
+            } else {
+                el_input.removeAttribute("data-maxoffset")
+            };
+        };  // if(!!el_input)
+    }  // format_date_elementMOMENT
+
+//========= format_date with vanilla js  ======== PR2020-07-31
+    function format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long) {
+        let date_formatted = null;
+        if (date_iso){
+            const date_JS = get_dateJS_from_dateISO(date_iso);
+            date_formatted = format_dateJS_vanilla(loc, date_JS, hide_weekday, hide_year, is_months_long, is_weekdays_long)
+        }
+        return date_formatted;
+    }
+
+//========= format_date with vanilla js  ======== PR2019-10-12 PR2020-07-31
+    function format_dateJS_vanilla (loc, date_JS, hide_weekday, hide_year, is_months_long, is_weekdays_long) {
+        //console.log(" ----- format_dateJS_vanilla", date_JS);
+        let display_value = "";
+        if(date_JS) {
+            const is_en = (loc.user_lang === "en");
+            const comma_space = (is_en) ? ", " : " ";
+
+            const month_list = (is_months_long) ? loc.months_long : loc.months_abbrev;
+            const month_index =  date_JS.getMonth();
+            const month_str = (!!month_list) ? month_list[month_index + 1] : "";
+            const date_str = date_JS.getDate().toString();
+
+            if(is_en){
+                display_value = month_str + " " + date_str;
+            } else {
+                display_value = date_str + " " + month_str;
+            }
+
+            if (!hide_year) {
+                const year_str = date_JS.getFullYear().toString();
+                display_value += comma_space + year_str;
+            };
+
+            if (!hide_weekday) {
+                // index 0 is index 7 in weekday_list
+                const weekday_list = (is_weekdays_long) ? loc.weekdays_long : loc.weekdays_abbrev;
+                const weekday_index = (date_JS.getDay()) ? date_JS.getDay() : 7;
+                const weekday_str = (weekday_list) ? weekday_list[weekday_index] : "";
+                display_value = weekday_str + comma_space  + display_value;
+            };
+        }  // if(!!date_JS)
+        return display_value
+    }  // function format_dateJS_vanilla
+
 
 //=========  format_date_from_dateJS_vanilla ================ PR2019-12-04
     function format_date_from_dateJS_vanilla(date_JS, weekday_list, month_list, user_lang, skip_weekday, skip_year) {
         //console.log( "===== format_date_from_dateJS_vanilla  ========= ");
         let display_arr = ["", ""];
 
-        if(!!date_JS){
+        if(date_JS){
             let weekday_index = date_JS.getDay();
             if (!weekday_index) {weekday_index = 7};
             const weekday_str = weekday_list[weekday_index];
             display_arr[0] = weekday_str
 
             let display_str = "";
-            if (!!date_JS){
-                const isEN = (user_lang === "en")
-                const comma_space = (isEN)  ? ", " :  " "
-                const month_int = date_JS.getMonth() + 1
-                const date_str = date_JS.getDate().toString();
-                if(!skip_weekday){
-                    display_str = weekday_str + comma_space;
-                }
-                if(isEN) {
-                    display_str += month_list[month_int] + " " + date_str;
-                } else {
-                    display_str += date_str + " " + month_list[month_int];
-                }
-                if(!skip_year){
-                    const year_str = date_JS.getFullYear().toString();
-                    display_str += comma_space + year_str;
-                }
+
+            const isEN = (user_lang === "en")
+            const comma_space = (isEN)  ? ", " :  " "
+            const month_int = date_JS.getMonth() + 1
+            const date_str = date_JS.getDate().toString();
+            if(!skip_weekday){
+                display_str = weekday_str + comma_space;
             }
+            if(isEN) {
+                display_str += month_list[month_int] + " " + date_str;
+            } else {
+                display_str += date_str + " " + month_list[month_int];
+            }
+            if(!skip_year){
+                const year_str = date_JS.getFullYear().toString();
+                display_str += comma_space + year_str;
+            }
+
             display_arr[1] = display_str
         }  //  if(!!date_JS)
 
@@ -116,34 +267,6 @@
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
-//========= format_datelong_from_datetimelocal  ========== PR2019-06-27
-    function XXXformat_datelong_from_datetimelocal(datetime_local) {
-// NOT IN USE
-        // PR2019-07-01 was:
-            //const this_date = datetime_local.date();   //Sunday = 0
-            //const this_month_index = 1 + datetime_local.month();   //January = 0
-            //const this_month = month_list[this_month_index];
-            //const this_year = datetime_local.year();   //January = 0
-            //const weekday_index = datetime_local.day();   //Sunday = 0
-            //const weekday = weekday_list[weekday_index];
-
-        // debug: datetime_local must be Moment, not datetime
-        "use strict";
-        let date_str = "";
-        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
-        if (!!datetime_local){
-            if(moment.locale() === "en") {
-                //date_str = weekday + " " + this_month + " " + this_date + ", " + this_year
-                date_str = datetime_local.format("dddd, MMMM D, YYYY")
-            } else {
-                //date_str = weekday + " " + this_date + " " + this_month + " " + this_year
-                date_str = datetime_local.format("dddd D MMMM YYYY")
-            }
-        }
-        return date_str;
-    }
-
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
     function format_datemediumXXX(dtl, weekday_list, month_list, skip_weekday, skip_year) {
     // PR2020-04-10 probably not in use
@@ -202,18 +325,19 @@
         //console.log( "extend_text: ", extend_text);
 
             if(period_tag === "other"){
-                const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
-                const rosterdatelast = get_dict_value_by_key(period_dict, "rosterdatelast");
-                if(rosterdatefirst === rosterdatelast) {
-                    period_text =  format_date_iso (rosterdatefirst, months_abbrev, weekdays_abbrev, false, false, user_lang);
+                const datefirst_iso = get_dict_value_by_key(period_dict, "rosterdatefirst");
+                const datelast_iso = get_dict_value_by_key(period_dict, "rosterdatelast");
+                if(datefirst_iso === datelast_iso) {
+                    period_text = format_dateISO_vanilla (loc, datefirst_iso, false, false) + " - ";
                 } else {
-                    const datelast_formatted = format_date_iso (rosterdatelast, months_abbrev, weekdays_abbrev, true, false, user_lang)
-                    if (rosterdatefirst.slice(0,8) === rosterdatelast.slice(0,8)) { //  slice(0,8) = 2019-11-17'
+                    const datelast_formatted = format_dateISO_vanilla (loc, datelast_iso, true, false) + " - ";
+
+                    if (datefirst_iso.slice(0,8) === datelast_iso.slice(0,8)) { //  slice(0,8) = 2019-11-17'
                         // same month: show '13 - 14 nov
-                        const day_first = Number(rosterdatefirst.slice(8)).toString()
+                        const day_first = Number(datefirst_iso.slice(8)).toString()
                         period_text = day_first + " - " + datelast_formatted
                     } else {
-                        const datefirst_formatted = format_date_iso (rosterdatefirst, months_abbrev, weekdays_abbrev, true, true, user_lang)
+                        const datefirst_formatted = format_dateISO_vanilla (loc, datefirst_iso, true, true) + " - ";
                         period_text = datefirst_formatted + " - " + datelast_formatted
                     }
                 }
@@ -235,10 +359,9 @@
 
     }; // function get_period_text
 
-
 //========= f_get_periodtext_sidebar  ==================================== PR 2020-03-13 PR2020-07-11
     function f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso) {
-        //console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
+        console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
         let period_text = "";
         let prefix = ""; //  loc.Period + ": ";
         if (datefirst_iso && !datelast_iso) {
@@ -249,31 +372,35 @@
             prefix += loc.Select_period + "...";
         };
 
-        if(!!datefirst_iso) {
-            if(!!datelast_iso) {
-                const datelast_formatted = format_date_iso (datelast_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
+        if(datefirst_iso) {
+            if(datelast_iso) {
+            format_dateISO_vanilla
+                const datelast_formatted = format_dateISO_vanilla(loc, datelast_iso, true, false)
+
                 const is_same_date = (datefirst_iso === datelast_iso);
                 const is_same_year = (datefirst_iso.slice(0,4) === datelast_iso.slice(0,4));
                 const is_same_year_and_month = (datefirst_iso.slice(0,7) === datelast_iso.slice(0,7));
                 let datefirst_formatted = "";
                 if (is_same_date) {
-                // display: '20 feb 2020'
+                    // display: '20 feb 2020'
                 } else if (is_same_year_and_month) {
-                // display: '20 - 28 feb 2020'
+                    // display: '20 - 28 feb 2020'
                     datefirst_formatted = Number(datefirst_iso.slice(8)).toString() + " - "
                 } else if (is_same_year) {
-                // display: '20 jan - 28 feb 2020'
-                    datefirst_formatted = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, true, loc.user_lang) + " - "
+                    // display: '20 jan - 28 feb 2020'
+                    datefirst_formatted = format_dateISO_vanilla (loc, datefirst_iso, true, true) + " - ";
                 } else {
-                    // format_date_iso (date_iso, loc.months_abbrev, loc.weekdays_abbrev, hide_weekday, hide_year, loc.user_lang)
-                    datefirst_formatted = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang) + " - "
+                    // display: '20 jan 2019 - 28 feb 2020'
+                    datefirst_formatted = format_dateISO_vanilla (loc, datefirst_iso, true, false) + " - ";
                 }
+
                 period_text = datefirst_formatted + datelast_formatted
             }  else {
-                period_text = format_date_iso (datefirst_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
+                // display: '20 jan 2019
+                period_text = format_dateISO_vanilla (loc, datefirst_iso, true, false) + " - ";
             }
-        } else if(!!datelast_iso) {
-                period_text = format_date_iso (datelast_iso, loc.months_abbrev, loc.weekdays_abbrev, true, false, loc.user_lang)
+        } else if(datelast_iso) {
+                period_text = format_dateISO_vanilla(loc, datelast_iso, true, false)
         }
         period_text = prefix + " " + period_text;
 
@@ -320,15 +447,14 @@
         return period_str;
     }
 
-
 //========= format_period  ========== PR2019-07-09
-    function format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang) {
+    function format_period(loc, datefirst_ISO, datelast_ISO) {
         const hide_weekday = true, hide_year = false;
         const datefirst_JS = get_dateJS_from_dateISO (datefirst_ISO);
-        const datefirst_formatted = format_date_vanillaJS (datefirst_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+        const datefirst_formatted = format_dateJS_vanilla (loc, datefirst_JS, hide_weekday, hide_year);
 
         const datelast_JS = get_dateJS_from_dateISO (datelast_ISO);
-        const datelast_formatted = format_date_vanillaJS (datelast_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+        const datelast_formatted = format_dateJS_vanilla (loc, datelast_JS, hide_weekday, hide_year);
 
         let formatted_period = "";
         if (!!datefirst_formatted || !!datelast_formatted ) {
@@ -346,9 +472,6 @@
         }
         return formatted_period
     }  // format_period
-
-
-
 
 //========= format_time  ========== PR2019-06-27
     function format_time(datetime_local, timeformat, display24) {
@@ -386,6 +509,7 @@
         }  // if (!!datetime_local){
         return time_formatted
     }
+
 // NOT IN USE
 //========= format_offset_time  ========== PR2019-09-14
     function format_offset_time(datetime_local, timeformat, user_lang, display24) {
@@ -593,175 +717,6 @@
         }
     }  // format_price_element
 
-
-//========= function format_date_elementMOMENT  ======== PR2019-07-02
-    function format_date_elementMOMENT (el_input, el_msg, field_dict, month_list, weekday_list,
-                                    user_lang, comp_timezone, hide_weekday, hide_year) {
-        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
-        //console.log(" --- format_date_elementMOMENT --- ");
-        //console.log("field_dict: ", field_dict);
-
-        if(!!el_input && !!field_dict){
-        // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
-        // debug: shows 'invalid date' whem updated = true and value = null
-
-            const data_value = get_dict_value_by_key (field_dict, "value");
-            const updated = get_dict_value_by_key (field_dict, "updated", false);
-            const msg_err = get_dict_value_by_key (field_dict, "error");
-
-            const mindate = get_dict_value_by_key (field_dict, "mindate");
-            const maxdate = get_dict_value_by_key (field_dict, "maxdate");
-            const rosterdate = get_dict_value_by_key (field_dict, "rosterdate");
-
-            const offset = get_dict_value_by_key (field_dict, "offset");
-            const minoffset = get_dict_value_by_key (field_dict, "minoffset");
-            const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
-
-            let wdmy = "", wdm = "", dmy = "", dm = "";
-            if(!!data_value) {
-                const datetime_local = moment.tz(data_value, comp_timezone);
-                const this_year = datetime_local.year();
-                const this_month_iso = datetime_local.month() + 1;
-                const this_date = datetime_local.date();
-                const this_weekday_iso = datetime_local.isoWeekday();
-
-                let  month_str = "",  weekday_str = "";
-                if (!!weekday_list){weekday_str = weekday_list[this_weekday_iso]};
-                if (!!month_list){month_str = month_list[this_month_iso]};
-
-                let comma_space = " ";
-
-                if(user_lang === "en") {
-                    comma_space = ", "
-                    dm =  month_str + " " + this_date;
-                } else {
-                    comma_space = " "
-                    dm =  this_date + " " + month_str;
-                }
-                dmy = dm + comma_space + this_year;
-                wdm = weekday_str + comma_space  + dm;
-                wdmy = weekday_str + comma_space + dmy;
-            }  //  if(!!data_value)
-
-            let display_value = "", display_title = "";
-            if (hide_year) {
-                if (hide_weekday){display_value = dm} else {display_value = wdm}
-                display_title = wdmy
-            } else {
-                if (hide_weekday){display_value = dmy} else {display_value = wdmy}
-            }
-            //console.log("display_value", display_value, typeof display_value)
-            //console.log("display_title", display_title, typeof display_title)
-
-            if(!!msg_err){
-               ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value, data_value, display_title)
-            } else if(updated){
-                ShowOkElement(el_input, "border_bg_valid");
-            }
-
-            if(!!display_value){el_input.value = display_value} else {el_input.value = null}
-
-            if(!!display_title){
-                el_input.setAttribute("title", display_title)
-            } else {
-                el_input.removeAttribute("title")
-            };
-            if(!!data_value){
-                el_input.setAttribute("data-value", data_value)
-            } else {
-                el_input.removeAttribute("data-value");
-            };
-            if(!!mindate){
-                el_input.setAttribute("data-mindate", mindate)
-            } else {
-                el_input.removeAttribute("data-mindate")
-            };
-            if(!!maxdate){
-                el_input.setAttribute("data-maxdate", maxdate)
-            } else {
-                el_input.removeAttribute("data-maxdate")
-            };
-
-            if(!!offset){
-                el_input.setAttribute("data-offset", offset)
-            } else {
-                el_input.removeAttribute("data-offset")
-            };
-             if(!!minoffset){
-                el_input.setAttribute("data-minoffset", minoffset)
-            } else {
-                el_input.removeAttribute("data-minoffset")
-            };
-            if(!!maxoffset){
-                el_input.setAttribute("data-maxoffset", maxoffset)
-            } else {
-                el_input.removeAttribute("data-maxoffset")
-            };
-        };  // if(!!el_input)
-    }  // format_date_elementMOMENT
-
-    function format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
-        //console.log(" ----- format_date_iso", date_iso);
-
-        let display_value = "";
-        if(!!date_iso) {
-            let arr = date_iso.split("-");
-            if (arr.length === 3) {
-                let dte = moment(date_iso);
-                //console.log ("dte: ", dte.format(), typeof dte)
-                const this_weekday_iso = dte.isoWeekday();
-                //console.log ("isoWeekday: ", this_weekday_iso)
-
-                // use moment to get isoWeekday
-                const this_year = parseInt(arr[0]);
-                const this_month_iso =  parseInt(arr[1]);
-                const this_date = parseInt(arr[2]);
-                //console.log ("this_year: ", this_year)
-
-                let month_str = "",  weekday_str = "";
-                if (!!weekday_list){weekday_str = weekday_list[this_weekday_iso]};
-                if (!!month_list){month_str = month_list[this_month_iso]};
-
-                let comma_space = " ";
-                if(user_lang === "en") {
-                    comma_space = ", "
-                    display_value =  month_str + " " + this_date;
-                } else {
-                    comma_space = " "
-                    display_value =  this_date + " " + month_str;
-                }
-                if (!hide_year) {display_value += comma_space + this_year};
-                if (!hide_weekday) {display_value = weekday_str + comma_space  + display_value;};
-                //console.log ("display_value: ", display_value)
-            }  // if (arr.length === 2) {
-        }  // if(!!date_iso)
-        return display_value
-    }  // function format_date_iso
-
-//========= format_date without moment.js  ======== PR2019-10-12
-    function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
-        //console.log(" ----- format_date_vanillaJS", date_JS);
-        let display_value = "";
-        if(!!date_JS) {
-            const year_str = date_JS.getFullYear().toString();
-            const month_index =  date_JS.getMonth();
-            const date_str = date_JS.getDate().toString();
-            const weekday_index = (date_JS.getDay()) ? date_JS.getDay() : 7;  // index 0 is index 7 in weekday_list
-            //console.log(" ----- weekday_index", weekday_index);
-
-            const weekday_str = (!!weekday_list) ? weekday_list[weekday_index] : "";
-            const month_str = (!!month_list) ? month_list[month_index + 1] : "";
-
-            //console.log(" ----- weekday_str", weekday_str);
-            const is_en = (user_lang === "en");
-            const comma_space = (is_en) ? ", " : " ";
-            display_value = (is_en) ? month_str + " " + date_str :  date_str + " " + month_str;
-
-            if (!hide_year) {display_value += comma_space + year_str};
-            if (!hide_weekday) {display_value = weekday_str + comma_space  + display_value;};
-        }  // if(!!date_JS)
-        return display_value
-    }  // function format_date_iso
 
 //oooooooooooooooooooooooooooooooo
 
@@ -1520,7 +1475,7 @@
                 }
             }
         }
-        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang)
+        period_txt += format_period(loc, datefirst_ISO, datelast_ISO)
 
         let display_text = "";
         if (!!period_txt) {
@@ -1729,17 +1684,19 @@
             if(has_changed){
                 title += "\n" + loc.Modified_by + modified_by + "\n" + loc.on + modified_date_formatted
             }
-            // foirst remove all classes from el_input
+
+            // first remove all classes from el_input, put pointer_show back later
             let classList = el_input.classList;
+            const contains_pointer_show = classList.contains("pointer_show");
             while (classList.length > 0) {
                 classList.remove(classList.item(0));
             }
-            el_input.classList.add("pointer_show", icon_class)
+            if(contains_pointer_show) {el_input.classList.add("pointer_show")};
+            el_input.classList.add(icon_class)
             el_input.setAttribute("title", title);
 
         }
     }  // function format_status_element
-
 
 //=========  format_datetime_from_datetimeJS ================ PR2020-07-22
     function format_datetime_from_datetimeJS(loc, datetimeJS) {
@@ -1783,7 +1740,6 @@
         }
         return time_formatted
     }  // format_datetime_from_datetimeJS
-
 
 //=========  ShowOkRow  ================ PR2020-05-26
     function ShowErrorRow(tblRow, cls_selected ) {

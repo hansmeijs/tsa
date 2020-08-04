@@ -287,7 +287,8 @@
         </div>
 
     {% else %}
-        <div class="alert alert-danger">{% trans 'Error' %}</div>
-        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
     {% endif %}
 {% endblock %}

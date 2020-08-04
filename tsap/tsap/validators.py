@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.db.models.functions import Upper, Lower
 
 from django.utils.translation import ugettext_lazy as _
+from django.core.validators import validate_email
 
 from accounts import models as am
 from companies import models as m
@@ -12,53 +13,91 @@ import logging
 logger = logging.getLogger(__name__)  # __name__ tsap.validators
 
 
-# === validate_unique_username ===================================== PR2020-03-31
-def validate_unique_username(value, cur_user_id=None):
-    logger.debug ('validate_unique_username', value)
-    # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
+# === validate_unique_username ===================================== PR2020-03-31 PR2020-08-02
+def validate_unique_username(username, companyprefix, cur_user_id=None):
+    #logger.debug ('=== validate_unique_username ====')
+    #logger.debug ('username: <' + str(username) + '>')
+    #logger.debug ('companyprefix: <' + str(companyprefix) + '>')
+    # __iexact looks for the exact string, but case-insensitive. If username is None, it is interpreted as an SQL NULL
+
     msg_err = None
-    if not value:
+    if not username:
         msg_err = _('Username cannot be blank.')
-    elif len(value) > c.CODE_MAX_LENGTH:
-        msg_err = _('Username must have %(fld)s characters or less.') % {'fld': c.CODE_MAX_LENGTH}
+    elif len(username) > c.USERNAME_SLICED_MAX_LENGTH:
+        msg_err = _('Username must have %(fld)s characters or fewer.') % {'fld': c.USERNAME_SLICED_MAX_LENGTH}
     else:
+        prefixed_username = companyprefix + username
+        logger.debug ('prefixed_username: ' + str(prefixed_username))
+        logger.debug ('cur_user_id: ' + str(cur_user_id))
         if cur_user_id:
-            value_exists = am.User.objects.filter(username__iexact=value).exclude(pk=cur_user_id).exists()
+            user = am.User.objects.filter(username__iexact=prefixed_username).exclude(pk=cur_user_id).first()
         else:
-            value_exists = am.User.objects.filter(username__iexact=value).exists()
-            logger.debug ('validate_unique_username', value_exists)
+            user = am.User.objects.filter(username__iexact=prefixed_username).first()
+        logger.debug ('user: ' + str(user))
+        if user:
+            msg_err = str(_("This username already exists. "))
+            if not user.is_active:
+                msg_err += str(_("The user is inactive."))
 
-            users = am.User.objects.all()
-            for user in users:
-                logger.debug ('user', user.username)
+    return msg_err
 
 
-        if value_exists:
-            msg_err = _("Username '%(fld)s' already exists.") % {'fld': value}
+# === validate_unique_useremail ========= PR2020-08-02
+def validate_email_address(email_address):
+    msg_err = None
+    if email_address:
+        try:
+            validate_email(email_address)
+        except :
+            msg_err = _("This email address is not valid.")
+    else:
+        msg_err = _('The email address cannot be blank.')
     return msg_err
 
 
 # === validate_unique_useremail ===================================== PR2020-03-31
-def validate_unique_useremail(value, cur_user_id=None):
+def validate_unique_useremail(value, company=None, cur_user_id=None):
     logger.debug ('validate_unique_useremail', value)
+    logger.debug ('cur_user_id', cur_user_id)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
     msg_err = None
     if not value:
-        msg_err = _('Email address cannot be blank.')
+        msg_err = _('The email address cannot be blank.')
     else:
-        if cur_user_id:
-            value_exists = am.User.objects.filter(email__iexact=value).exclude(pk=cur_user_id).exists()
+        if company is None:
+            # when called by signup form: there is no company, don't check for duplicate email address
+            pass
         else:
-            value_exists = am.User.objects.filter(email__iexact=value).exists()
-        if value_exists:
-            msg_err = _("There is already a user with email address '%(fld)s'.") % {'fld': value}
+            if cur_user_id:
+                user = am.User.objects.filter(company=company, email__iexact=value).exclude(pk=cur_user_id).first()
+            else:
+                user = am.User.objects.filter(company=company, email__iexact=value).first()
+
+            logger.debug('user', user)
+            if user:
+                username = user.username_sliced
+                msg_err = str(_("This email address is already in use by '%(usr)s'. ") % {'usr': username})
+                if not user.is_active:
+                    msg_err += str(_("This user is inactive."))
     return msg_err
+
+
+# === validate_unique_username ========= PR2020-08-02
+def validate_notblank_maxlength(value, max_length, caption):
+    #logger.debug ('=== validate_notblank_maxlength ====')
+    msg_err = None
+    if not value:
+        msg_err = _('%(caption)s cannot be blank.') % {'caption': caption}
+    elif len(value) > max_length:
+        msg_err = _("%(caption)s '%(val)s' is too long, maximum %(max)s characters.") % {'caption': caption, 'val': value, 'max': max_length}
+    return msg_err
+
 
 def validate_customer(field, value, company, this_pk = None):
     # validate if customer code_already_exists already exists in this company PR2019-03-04
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('cust_code_exists: ' + str(value) + ' ' + str(company) + ' ' + str(this_pk))
+    #logger.debug('cust_code_exists: ' + str(value) + ' ' + str(company) + ' ' + str(this_pk))
 
     msg_dont_add = None
     if not value:
@@ -81,7 +120,7 @@ def validate_customer(field, value, company, this_pk = None):
     return msg_dont_add
 
 def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
-    logger.debug ('validate_unique_company_code', value)
+    #logger.debug ('validate_unique_company_code', value)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
     # skip companies that are not activated PR2020-04-02
     msg_err = None
@@ -98,7 +137,7 @@ def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  #
 
 
 def validate_unique_company_name(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
-    logger.debug ('validate_unique_company_name', value)
+    #logger.debug ('validate_unique_company_name', value)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
     msg_err = None
     if not value:
@@ -125,7 +164,7 @@ class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
             self.instance_id = None
 
     def __call__(self, value):
-        logger.debug ('validate_unique_code', value)
+        #logger.debug ('validate_unique_code', value)
         # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
         if self.model is None:
             raise ValidationError(_('Error: Model is None.'))
@@ -203,7 +242,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
     # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    #logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     # filter is_absence is only used in table 'order' PR2020-06-14
     msg_err = None
     if not parent:
@@ -215,12 +254,12 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             max_len = c.NAME_MAX_LENGTH
         else:
             max_len = c.CODE_MAX_LENGTH
-        logger.debug('max_len: ' + str(max_len))
+        #logger.debug('max_len: ' + str(max_len))
 
         length = 0
         if new_value:
             length = len(new_value)
-        logger.debug('length: ' + str(length))
+        #logger.debug('length: ' + str(length))
 
         blank_not_allowed = False
         fld = ''
@@ -233,7 +272,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
         elif field == 'identifier':
             fld = _('Id')
 
-        logger.debug('length: ' + str(length))
+        #logger.debug('length: ' + str(length))
 
         if blank_not_allowed and length == 0:
             msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
@@ -271,8 +310,8 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
-            logger.debug('validate_code_name_identifier')
-            logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
+            #logger.debug('validate_code_name_identifier')
+            #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
             is_inactive = False
@@ -303,7 +342,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
             # TODO msg not working yet
-            logger.debug('instance: ' + str(instance))
+            #logger.debug('instance: ' + str(instance))
             if instance:
                 exists = True
                 is_inactive = getattr(instance, 'inactive', False)
@@ -313,7 +352,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 else:
                     msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
 
-    logger.debug('msg_err: ' + str(msg_err))
+    #logger.debug('msg_err: ' + str(msg_err))
     if msg_err:
         if update_dict:
             if field not in update_dict:
@@ -328,7 +367,7 @@ def validate_namelast_namefirst(namelast, namefirst, company, update_field, upda
     # validate if employee already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    logger.debug(' --- validate_namelast_namefirst --- ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(this_pk))
+    #logger.debug(' --- validate_namelast_namefirst --- ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(this_pk))
 
     msg_err_namelast = None
     msg_err_namefirst = None
@@ -389,9 +428,9 @@ def employee_email_exists(email, company, this_pk = None):
     if not company:
         msg_dont_add = _("No company.")
     elif not email:
-        msg_dont_add = _("Email address cannot be blank.")
+        msg_dont_add = _("The email address cannot be blank.")
     elif len(email) > c.NAME_MAX_LENGTH:
-        msg_dont_add = _('Email address is too long. ') + str(c.CODE_MAX_LENGTH) + _(' characters or fewer.')
+        msg_dont_add = _('The email address is too long.') + str(c.CODE_MAX_LENGTH) + _(' characters or fewer.')
     else:
         if this_pk:
             email_exists = m.Employee.objects.filter(email__iexact=email,

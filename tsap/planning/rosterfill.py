@@ -686,7 +686,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
         logger.debug(' ============= FillRosterdateView ============= ')
 
         update_dict = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
             # - reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2171,8 +2171,8 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 
                                 row[idx_isreplacement] = True
                                 # replace employee_id and -code by replacement_id and -code
-                                row[idx_e_id] =  '*' + row[idx_rpl_id]
-                                row[idx_e_code] = row[idx_rpl_code]
+                                row[idx_e_id] = row[idx_rpl_id]
+                                row[idx_e_code] = '*' + row[idx_rpl_code]
                                 row[idx_e_nl] = None
                                 row[idx_e_nf] = None
 

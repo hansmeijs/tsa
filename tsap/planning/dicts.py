@@ -1679,7 +1679,14 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                    'user_lang': user_lang,
                    'period_tag': period_tag,
                    'period_workingdays': period_workingdays,
-                   'period_workingdays_incl_ph': period_workingdays_incl_ph
+                   'period_workingdays_incl_ph': period_workingdays_incl_ph,
+                   'cur_user_pk': request.user.pk,
+                   'cur_perm_employee': request.user.is_perm_employee,
+                   'cur_perm_planner': request.user.is_perm_planner,
+                   'cur_perm_supervisor': request.user.is_perm_supervisor,
+                   'cur_perm_hrman': request.user.is_perm_hrman,
+                   'cur_perm_accman': request.user.is_perm_accman,
+                   'cur_perm_sysadmin': request.user.is_perm_sysadmin,
                    }
     if customer_pk:
         update_dict['customer_pk'] = customer_pk

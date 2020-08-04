@@ -1381,11 +1381,12 @@
         let newValue = '';
         if (!!value) {
             newValue = value.replace(/ /g, "_"); // g modifier replaces all occurances
-            newValue = newValue.replace(/"/g, "_"); // replace " with _
-            newValue = newValue.replace(/'/g, "_"); // replace ' with _
-            newValue = newValue.replace(/\./g,"_"); // replace . with _
-            newValue = newValue.replace(/\//g, "_"); // replace / with _
-            newValue = newValue.replace(/\\/g, "_"); // replace \ with _
+            newValue = newValue.replace(/"/g, "_"); // replace double quote with _
+            newValue = newValue.replace(/'/g, "_"); // replace single quote with _
+            newValue = newValue.replace(/\./g,"_"); // replace dot with _
+            newValue = newValue.replace(/\,/g,"_"); // replace comma with _
+            newValue = newValue.replace(/\//g, "_"); // replace slash with _
+            newValue = newValue.replace(/\\/g, "_"); // replace backslash with _
         }
         return newValue;
     }
@@ -1858,21 +1859,24 @@
         }
     } // t_CreateTblModSelectPeriod
 
-//========= t_Sidebar_DisplayPeriod  ======================== PR2020-07-11
+//========= t_Sidebar_DisplayPeriod  ======================== PR2020-07-31
     function t_Sidebar_DisplayPeriod(loc, selected_period) {
-        //console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
-
+        console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
+        let period_text = null;
         if (!isEmpty(selected_period)){
             const period_tag = get_dict_value(selected_period, ["period_tag"]);
             const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
 
-            let period_text = null, default_text = null, extend_text = null;
+        console.log( "loc.period_select_list: " , loc.period_select_list);
+            let default_text = null, extend_text = null;
             for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
                 item = loc.period_select_list[i];  // item = ('today', TXT_today)
                 if (item[0] === period_tag){ period_text = item[1] }
                 if (item[0] === 'today'){ default_text = item[1] }
             }
             if(!period_text){period_text = default_text}
+        console.log( "period_text: " , period_text);
+        console.log( "loc.period_extension: " , loc.period_extension);
             if(loc.period_extension){
                let extend_default_text = null
                 for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
@@ -1890,9 +1894,9 @@
             if(!!extend_offset){
                 period_text += " +- " + extend_text;
             }
-            // put period_textx in sidebar el_sidebar_select_period
-            document.getElementById("id_SBR_select_period").value = period_text;
-        }  // if (!isEmpty(selected_period))
+        }
+        console.log( "period_text: " , period_text);
+        return period_text
     }; // t_Sidebar_DisplayPeriod
 
 //========= t_FillOptionsPeriodExtension  ====================================

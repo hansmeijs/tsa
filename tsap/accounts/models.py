@@ -8,15 +8,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from django.contrib.postgres.fields import JSONField
 
-from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, \
-    CHOICES_ROLE, CHOICES_ROLE_DICT, IS_ACTIVE_DICT, \
-    ROLE_00_EMPLOYEE, ROLE_01_COMPANY, ROLE_02_SYSTEM, \
-    PERMIT_CHOICES, PERMIT_DICT, PERMIT_00_NONE, PERMIT_01_READ, PERMIT_02_EMPLOYEE, PERMIT_04_CONTROL, \
-    PERMIT_08_PLAN, PERMIT_16_AUDIT, PERMIT_32_ADMIN
 from tsap import authentication as auth
+from tsap import constants as c
+from tsap.settings import AUTH_USER_MODEL
 from companies.models import Company
 from companies.models import Employee
-from tsap.settings import AUTH_USER_MODEL
 
 import json
 import logging
@@ -41,10 +37,10 @@ class User(AbstractUser):
     objects = CustomUserManager()
 
     username = CharField(
-        max_length=USERNAME_MAX_LENGTH,
+        max_length=c.USERNAME_MAX_LENGTH,
         unique=True,
         # help_text=_('Required. {} characters or fewer. Letters, digits and @/./+/-/_ only.'.format(c.USERNAME_MAX_LENGTH)),
-        help_text=_('Required, %(len)s characters or fewer. Letters, digits and @/./+/-/_ only.') % {'len': USERNAME_SLICED_MAX_LENGTH},
+        help_text=_('Required, %(len)s characters or fewer. Letters, digits and @/./+/-/_ only.') % {'len': c.USERNAME_SLICED_MAX_LENGTH},
         validators=[
             RegexValidator(r'^[\w.@+-]+$',
             _('Enter a valid username. '
@@ -70,7 +66,7 @@ class User(AbstractUser):
     role = PositiveSmallIntegerField(
         default=0,
         # choises must be tuple or list, dictionary gives error: 'int' object is not iterable
-        choices=CHOICES_ROLE
+        choices=c.CHOICES_ROLE
     )
     permits = PositiveSmallIntegerField(default=0)
 
@@ -122,7 +118,6 @@ class User(AbstractUser):
         # PR2019-03-13 Show username 'Hans' instead of '000001Hans'
         return self.username[6:]
 
-
     @property
     def role_str(self):
         # PR2018-05-31 NB: self.role = False when None or value = 0
@@ -132,14 +127,13 @@ class User(AbstractUser):
         #    _role_str = _('Inspection')
         #elif self.role == c.ROLE_02_SYSTEM:
         #    _role_str = _('System')
-        _role_str = CHOICES_ROLE_DICT.get(self.role,'')
+        _role_str = c.CHOICES_ROLE_DICT.get(self.role,'')
         return _role_str
-
 
     @property
     def permits_str(self):
         # PR2018-05-26 permits_str displays list of permits un UserListForm, e.g.: 'Schooladmin, Authorize, Write'
-        permits_all_dict = PERMIT_DICT
+        permits_all_dict = c.PERMIT_DICT
         permits_str = ''
         if self.permits_tuple is not None:
             #logger.debug('class User(AbstractUser): permits_tuple: ' + str(self.permits_tuple))
@@ -163,6 +157,25 @@ class User(AbstractUser):
         #logger.debug('class User(AbstractUser): permits_str: ' + str(permits_str))
         return permits_str
 
+
+    @property
+    def permits_list(self):
+        # PR2020-08-01 permits_list converts self.permits into list,
+        # e.g.: permits=15 will be converted to permits_list= [1,2,4,8]
+        permits_int = self.permits
+        permits_list = []
+        if permits_int is not None:
+            if permits_int != 0:
+                # max value of permits is 127 when start_value = 6
+                for i in range(6, -1, -1): # range(start_value, end_value, step), end_value is not included!
+                    power = 2 ** i
+                    if permits_int >= power:
+                        permits_int = permits_int - power
+                        permits_list.insert(0, power) # list.insert(0,value) adds at the beginning of the list
+        if not permits_list:
+            permits_list = [0]
+        return permits_list
+
     @property
     def permits_tuple(self):
         # PR2018-05-27 permits_tuple converts self.permits into tuple,
@@ -184,7 +197,7 @@ class User(AbstractUser):
     def permits_str_tuple(self): # 2018-12-23
         permits_list = []
         for permit_int in self.permits_tuple:
-            permit_str = PERMIT_DICT.get(permit_int, '')
+            permit_str = c.PERMIT_DICT.get(permit_int, '')
             if permit_str:
                 permits_list.append(permit_str)
         return tuple(permits_list)
@@ -202,16 +215,16 @@ class User(AbstractUser):
         # permit_choices: ((1, 'Read'), (2, 'Write'), (4, 'Authorize'), (8, 'Admin'))
 
         if self.role is not None:  # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-            choices = PERMIT_CHOICES
+            choices = c.PERMIT_CHOICES
         else:
             # get permit 'None'
-            choices = [(PERMIT_00_NONE, _('None'),),]
+            choices = [(c.PERMIT_00_NONE, _('None'),),]
         return tuple(choices)
 
 
     @property
     def is_active_str(self): # PR108-08-09
-        return str(IS_ACTIVE_DICT.get(int(self.is_active)))
+        return str(c.IS_ACTIVE_DICT.get(int(self.is_active)))
 
     #@property
     #def is_active_choices(self): # PR108-06-22
@@ -223,7 +236,7 @@ class User(AbstractUser):
         has_role = False
         if self.is_authenticated:
             if self.role is not None: # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-                if self.role == ROLE_02_SYSTEM:
+                if self.role == c.ROLE_02_SYSTEM:
                     has_role = True
         return has_role
 
@@ -232,7 +245,7 @@ class User(AbstractUser):
         has_role = False
         if self.is_authenticated:
             if self.role is not None: # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-                if self.role == ROLE_01_COMPANY:
+                if self.role == c.ROLE_01_COMPANY:
                     has_role = True
         return has_role
 
@@ -241,57 +254,71 @@ class User(AbstractUser):
         has_role = False
         if self.is_authenticated:
             if self.role is not None: # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-                if self.role == ROLE_00_EMPLOYEE:
+                if self.role == c.ROLE_00_EMPLOYEE:
                     has_role = True
         return has_role
 
     @property
-    def is_role_company_and_perm_admin(self):
+    def is_role_company_and_perm_sysadmin(self):
         has_permit = False
         if self.is_authenticated:
             if self.role is not None: # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-                if self.role == ROLE_01_COMPANY:
-                    if self.is_perm_admin:
+                if self.role == c.ROLE_01_COMPANY:
+                    if self.is_perm_sysadmin:
                         has_permit = True
         return has_permit
 
 
     @property
-    def is_role_system_and_perm_admin(self):
+    def is_role_system_and_perm_sysadmin(self):
         has_permit = False
         if self.is_authenticated:
             if self.role is not None: # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-                if self.role == ROLE_02_SYSTEM:
-                    if self.is_perm_admin:
+                if self.role == c.ROLE_02_SYSTEM:
+                    if self.is_perm_sysadmin:
                         has_permit = True
         return has_permit
 
     @property
-    def is_perm_control(self):
+    def is_perm_employee(self):
         has_permit = False
         if self.is_authenticated:
-            has_permit = PERMIT_04_CONTROL in self.permits_tuple
+            has_permit = c.PERMIT_02_EMPLOYEE in self.permits_tuple
         return has_permit
 
     @property
-    def is_perm_plan(self):
+    def is_perm_supervisor(self):
         has_permit = False
         if self.is_authenticated:
-            has_permit = PERMIT_08_PLAN in self.permits_tuple
+            has_permit = c.PERMIT_04_SUPERVISOR in self.permits_tuple
         return has_permit
 
     @property
-    def is_perm_audit(self):
+    def is_perm_planner(self):
         has_permit = False
         if self.is_authenticated:
-            has_permit = PERMIT_16_AUDIT in self.permits_tuple
+            has_permit = c.PERMIT_08_PLANNER in self.permits_tuple
         return has_permit
 
     @property
-    def is_perm_admin(self):
+    def is_perm_hrman(self):
         has_permit = False
         if self.is_authenticated:
-            has_permit = PERMIT_32_ADMIN in self.permits_tuple
+            has_permit = c.PERMIT_16_HRM in self.permits_tuple
+        return has_permit
+
+    @property
+    def is_perm_accman(self):
+        has_permit = False
+        if self.is_authenticated:
+            has_permit = c.PERMIT_32_ACCMAN in self.permits_tuple
+        return has_permit
+
+    @property
+    def is_perm_sysadmin(self):
+        has_permit = False
+        if self.is_authenticated:
+            has_permit = c.PERMIT_64_SYSADMIN in self.permits_tuple
         return has_permit
 
     """
@@ -299,10 +326,10 @@ class User(AbstractUser):
     def may_add_or_edit_users(self):
         # PR2018-05-30  user may add user if:
         # role system: if perm admin
-        # role insp:   if perm_admin and country not None
-        # role school: if perm_admin and country not None and schooldefault not None
+        # role insp:   if perm_sysadmin and country not None
+        # role school: if perm_sysadmin and country not None and schooldefault not None
         _has_permit = False
-        if self.is_perm_admin:
+        if self.is_perm_sysadmin:
             if self.is_role_system:
                 _has_permit = True
             elif self.is_role_insp:
@@ -336,7 +363,7 @@ class Usersetting(Model):
     objects = CustomUserManager()
 
     user = ForeignKey(User, related_name='usr_settings', on_delete=CASCADE)
-    key = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
+    key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer

@@ -151,9 +151,9 @@ document.addEventListener('DOMContentLoaded', function() {
              if (event.key === "Escape") {ResetFilterRows()}
         });
 // ---  side bar - select period
-        let el_flt_period = document.getElementById("id_SBR_select_period");
-        el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
-        add_hover(el_flt_period);
+        let el_sbr_select_period = document.getElementById("id_SBR_select_period");
+        el_sbr_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
+        add_hover(el_sbr_select_period);
 // ---  side bar - select employee
         let el_sidebar_select_employee = document.getElementById("id_SBR_select_employee");
             el_sidebar_select_employee.addEventListener("click", function() {ModSelectEmployee_Open()}, false );
@@ -278,11 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  save button in ModConfirm
         document.getElementById("id_confirm_btn_save").addEventListener("click", function() {ModConfirmSave()});
 
-// ---  Popup date
-        let el_popup_date_container = document.getElementById("id_popup_date_container");
-        let el_popup_date = document.getElementById("id_popup_date")
-             el_popup_date.addEventListener("change", function() {HandlePopupDateSave(el_popup_date);}, false )
-
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
@@ -295,27 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
                 DeselectHighlightedRows(tr_selected);
             }
-    // close el_popup_date_container
-                // event.currentTarget is the element to which the event handler has been attached (which is #document)
-            // event.target identifies the element on which the event occurred.
-            let close_popup = true
-            //console.log( "document clicked")
-            // don't close popup_dhm when clicked on row cell with class input_popup_date
-            if (event.target.classList.contains("input_popup_date")) {
-                //console.log( "event.target.classList.contains input_popup_date", event.target)
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_date_container.contains(event.target)){
-                //console.log( "el_popup_date_container contains event.target")
-                if(!event.target.classList.contains("popup_close")){
-                    // console.log( "event.target does not contain popup_close")
-                    close_popup = false
-                }
-            }
-            //console.log( "close_popup", close_popup)
-            if (close_popup) {
-                el_popup_date_container.classList.add(cls_hide)
-            };
+
         }, false);  // document.addEventListener('click',
 
 //>>>>>>>>>>>>>>> MOD TIMEPICKER >>>>>>>>>>>>>>>>>>> PR2020-04-13
@@ -377,6 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(response)
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
+
+                console.log("loc", loc)
                     CreateSubmenu()
                     t_CreateTblModSelectPeriod(loc, ModPeriodSelectPeriod);
                     label_list = [loc.Company, loc.Employee, loc.Planning + " " + loc.of, loc.Print_date];
@@ -392,8 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("planning_period" in response){
                     selected_planning_period = get_dict_value(response, ["planning_period"]);
-                    // el_SBR_select_period is updated in t_Sidebar_DisplayPeriod
-                    t_Sidebar_DisplayPeriod(loc, selected_planning_period);
+                    el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_planning_period);
                 }
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value(response, ["calendar_period"]);
@@ -1653,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("date_iso: ", get_dict_value(item_dict, ["scheme", fldName]));
                         const date_iso = get_dict_value(item_dict, ["scheme", fldName]);
                         const date_JS = get_dateJS_from_dateISO(date_iso);
-                        el_input.innerText = format_date_vanillaJS (date_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false);
+                        el_input.innerText = format_dateJS_vanilla (loc, date_JS, true, false);
                     } else if (fldName === "timeduration"){
                         const time_duration = get_dict_value(item_dict, ["shift", fldName]);
                         el_input.innerText = display_duration (time_duration, loc.user_lang);
@@ -1677,7 +1653,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         //            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
                         const date_iso = get_dict_value(field_dict, ["value"]);
                         const date_JS = get_dateJS_from_dateISO(date_iso);
-                        const display = format_date_vanillaJS (date_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, hide_weekday, hide_year);
+                        const display = format_dateJS_vanilla (loc, date_JS, hide_weekday, hide_year);
                         el_input.value = display;
 
                     } else if (fldName === "rosterdate"){
@@ -2161,177 +2137,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };  // UploadChanges
 
 //###########################################################################
-// +++++++++++++++++ POPUP ++++++++++++++++++++++++++++++++++++++++++++++++++
-//========= HandlePopupDateOpen  ====================================
-    function HandlePopupDateOpen(el_input) {
-        console.log("===  HandlePopupDateOpen  =====") ;
-        console.log("el_input", el_input) ;
-
-        let el_popup_date = document.getElementById("id_popup_date")
-
-// ---  reset textbox 'date'
-        el_popup_date.value = null
-
-//--- get pk etc from el_input, pk from selected_employee_pk when formmode
-        let pk_str, tblName, map_id, data_mode;
-        if (selected_btn === "form"){
-            pk_str = selected_employee_pk.toString();
-            tblName = "employee";
-            map_id = tblName + pk_str;
-        } else {
-            const tblRow = get_tablerow_selected(el_input)
-            pk_str = get_attr_from_el(tblRow, "data-pk");
-            tblName = get_attr_from_el(tblRow, "data-table") ;
-            data_mode = get_attr_from_el(tblRow, "data-mode") ;
-            map_id = get_map_id(tblName, pk_str)
-
-            console.log("pk_str", pk_str, "tblName", tblName, "map_id", map_id, "data_mode: ", data_mode) ;
-        }
-
-        if (!!map_id) {
-//--- get item_dict from  employee_map
-            const data_map = (tblName === "employee") ? employee_map : teammember_map
-            const item_dict = get_mapdict_from_datamap_by_id(data_map, map_id)
-            console.log( item_dict);
-
-// get values from el_input
-            const data_field = get_attr_from_el(el_input, "data-field");
-            const data_value = get_attr_from_el(el_input, "data-value");
-            const data_mindate = get_attr_from_el(el_input, "data-mindate");
-            const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
-
-    // put values in id_popup_date
-            el_popup_date.setAttribute("data-pk", pk_str);
-            el_popup_date.setAttribute("data-field", data_field);
-            el_popup_date.setAttribute("data-value", data_value);
-            el_popup_date.setAttribute("data-table", tblName);
-            el_popup_date.setAttribute("data-mode", data_mode);
-
-            if (!!data_mindate) {el_popup_date.setAttribute("min", data_mindate);
-            } else {el_popup_date.removeAttribute("min")}
-            if (!!data_maxdate) {el_popup_date.setAttribute("max", data_maxdate);
-            } else {el_popup_date.removeAttribute("max")}
-
-            if (!!data_value){el_popup_date.value = data_value};
-
-    // ---  position popup under el_input
-            let popRect = el_popup_date_container.getBoundingClientRect();
-            let inpRect = el_input.getBoundingClientRect();
-            const offset = [-240,-32 ]  // x = -240 because of sidebar, y = -32 because of menubar
-            const pop_width = 0; // to center popup under input box
-            const correction_left = offset[0] - pop_width/2 ;
-            const correction_top =  offset[1];
-            let topPos = inpRect.top + inpRect.height + correction_top;
-            let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
-            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-            el_popup_date_container.setAttribute("style", msgAttr)
-
-    // ---  show el_popup
-            el_popup_date_container.classList.remove(cls_hide);
-        }  // if (!!tr_selected){
-    }; // function HandlePopupDateOpen
-
-//=========  HandlePopupDateSave  ================ PR2019-04-14
-    function HandlePopupDateSave() {
-        console.log("===  function HandlePopupDateSave =========");
-        console.log(el_popup_date);
-// ---  get pk_str and fldName from el_popup
-        const pk_str = el_popup_date.getAttribute("data-pk");
-        const fldName = el_popup_date.getAttribute("data-field");
-        const data_value = el_popup_date.getAttribute("data-value");
-        const tblName = el_popup_date.getAttribute("data-table");
-        const data_mode = el_popup_date.getAttribute("data-mode");
-
-        console.log("tblName: ", tblName);
-        console.log("fldName: ", fldName);
-        console.log("data_value: ", data_value);
-        console.log("data_mode: ", data_mode);
-
-// ---  get item_dict from employee_map
-        const data_map = (tblName === "employee") ? employee_map :
-                         (tblName === "teammember") ? teammember_map : null
-        const item_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str);
-        const pk_int = get_pk_from_dict(item_dict)
-        const ppk_int = get_ppk_from_dict(item_dict)
-
-        el_popup_date_container.classList.add(cls_hide);
-
-        if(!!pk_int && !! ppk_int){
-            let id_dict = {pk: pk_int, ppk: ppk_int, table: tblName} //  , mode: data_mode}
-            if(data_mode === "absence") {id_dict["isabsence"] = true}
-
-            const new_value = el_popup_date.value
-            if (new_value !== data_value) {
-                // key "update" triggers update in server, "updated" shows green OK in inputfield,
-                let field_dict = {update: true}
-                if(!!new_value){field_dict["value"] = new_value};
-                let upload_dict = {id: id_dict}
-                upload_dict[fldName] = field_dict;
-
-// put new value in inputbox before new value is back from server
-                const map_id = get_map_id(tblName, pk_str);
-                console.log("map_id", map_id);
-                let tr_changed = document.getElementById(map_id);
-                // in form view there is no tr_changed
-                let el_input = null;
-                if(tr_changed) {
-                    el_input = tr_changed.querySelector("[data-field=" + fldName + "]");
-                } else if (fldName === "datefirst"){
-                    //el_input = document.getElementById("id_form_datefirst")
-                } else if (fldName === "datelast"){
-                    //el_input = document.getElementById("id_form_datelast")
-                }
-
-                // --- lookup input field with name: fldName
-                        //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fldName) + "]");
-                        // CSS.escape not supported by IE, Chrome and Safari,
-                        // CSS.escape is not necessary, there are no special characters in fldName
-                if (!!el_input){
-                    console.log("el_input", el_input);
-                    const hide_weekday = true, hide_year = false;
-                    format_date_elementMOMENT (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
-                                        loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
-                }
-
-                const url_str = (["employee", "form"].indexOf(selected_btn) > -1) ?
-                                url_employee_upload : url_teammember_upload;
-                const parameters = {"upload": JSON.stringify (upload_dict)}
-                console.log("url_str: ", url_str);
-                console.log ("upload_dict", upload_dict);
-
-                let response;
-                $.ajax({
-                    type: "POST",
-                    url: url_str,
-                    data: parameters,
-                    dataType:'json',
-                    success: function (response) {
-                        console.log ("response", response);
-                        if ("update_list" in response) {
-                            for (let i = 0, len = response["update_list"].length; i < len; i++) {
-                                const update_dict = response["update_list"][i];
-                                UpdateFromResponse(update_dict);
-                            }
-                        }
-                        if ("teammember_update" in response) {
-                            UpdateTeammemberFromResponse(response["teammember_update"]);
-                        }
-
-                    },
-                    error: function (xhr, msg) {
-                        console.log(msg + '\n' + xhr.responseText);
-                        alert(msg + '\n' + xhr.responseText);
-                    }
-                });
-            }  // if (new_dhm_str !== old_dhm_str)
-
-            setTimeout(function() {
-                el_popup_date_container.classList.add(cls_hide);
-            }, 2000);
-
-
-        }  // if(!!pk_str && !! parent_pk)
-    }  // HandlePopupDateSave
+// +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //=========  ModShiftTimepickerOpen  ================ PR2019-10-12
     function ModShiftTimepickerOpen(el_input) {
@@ -2392,7 +2198,6 @@ if(pgeName === "absence"){
         const show_btn_delete = true;
         let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
                         show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete,
-                        weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                         url_settings_upload: url_settings_upload,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
@@ -2400,7 +2205,7 @@ if(pgeName === "absence"){
 
         console.log("tp_dict: ", tp_dict);
         console.log("st_dict: ", st_dict);
-        ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict)
+        ModTimepickerOpen(loc, el_input, ModTimepickerChanged, tp_dict, st_dict)
 
     };  // ModShiftTimepickerOpen
 
@@ -2559,7 +2364,7 @@ if(pgeName === "absence"){
                 }  // if(!!loc.period_select_list){
             }
             //console.log( "========== period_txt: ", period_txt);
-            period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang)
+            period_txt += format_period(loc, datefirst_ISO, datelast_ISO)
             //console.log( "+++++++++++++++ period_txt: ", period_txt);
 
             if (!!period_txt) {
@@ -3324,7 +3129,6 @@ if(pgeName === "absence"){
 // ---  show modal
         $("#id_mod_form_employee").modal({backdrop: true});
     }  // MFE_Open
-
 
 //=========  MFE_save  ================  PR2020-06-06
     function MFE_save(crud_mode) {
@@ -5571,8 +5375,7 @@ console.log( "reset mod_dict: ");
         for (let i = 0, item; item = planning_short_list[i]; i++) {
             const employee_code = (item.employee_code) ? item.employee_code : "";
             const cust_ord_code = item.customer_code + " - " + item.order_code
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item.rosterdate),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(item.rosterdate), false, true);
             const planned_hours = (!item.isabsence && !item.isrestshift) ? item.timeduration : 0
             const absence_hours = (item.isabsence) ? item.timeduration : 0
             const planned_hours_formatted = format_total_duration (planned_hours, loc.user_lang);
@@ -5849,7 +5652,7 @@ console.log( "reset mod_dict: ");
         console.log(" === ExportToExcel ===")
 // ---  create file Name and worksheet Name
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
             let filename = (selected_btn === "planning") ? loc.Planning : loc.Planning;
             if (is_payroll_detail_mode) { filename += " " + selected_employee_code }
             filename += " " + today_str +  ".xlsx";
@@ -5881,7 +5684,7 @@ console.log( "reset mod_dict: ");
         //const period_value = display_planning_period (selected_period, loc);
         //ws["A3"] = {v: period_value, t: "s"};
         const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
         ws["A3"] = {v: today_str, t: "s"};
 // period row
         const planning_period = get_dict_value(selected_planning_period, ["dates_display_short"]);

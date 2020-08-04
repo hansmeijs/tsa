@@ -13,6 +13,7 @@ from datetime import date, time, datetime, timedelta
 from timeit import default_timer as timer
 
 from accounts.models import Usersetting
+from accounts import dicts as ad
 from companies.views import LazyEncoder
 from customers import dicts as cust_dicts
 
@@ -47,7 +48,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
         #logger.debug(' ')
-        #logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
+        logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
         #logger.debug('request.POST' + str(request.POST))
 
         starttime = timer()
@@ -61,9 +62,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # f.update_workminutesperday()
                     # update_company_workminutesperday is one time only, to be removed after update PR2020-06-29
                     #f.update_company_workminutesperday()
-                    f.update_shiftcode_in_orderhours()
-                    f.update_customercode_ordercode_in_orderhours()
-                    f.update_employeecode_in_orderhours()
+                    #f.update_shiftcode_in_orderhours()
+                    #f.update_customercode_ordercode_in_orderhours()
+                    #f.update_employeecode_in_orderhours()
+                    f.update_sysadmin_in_user()
+                    f.system_updates()
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -74,7 +77,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     interval = request.user.company.interval if request.user.company.interval else 15
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
-                    #logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
+                    logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
 
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
@@ -119,10 +122,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('submenu')
                     if request_item:
                         submenu_dict = {}
-                        if request.user.is_role_system_and_perm_admin:
-                            submenu_dict['user_is_role_system_and_perm_admin'] = True
-                        if request.user.is_role_company_and_perm_admin:
-                            submenu_dict['user_is_role_company_and_perm_admin'] = True
+                        if request.user.is_role_system_and_perm_sysadmin:
+                            submenu_dict['user_is_role_system_and_perm_sysadmin'] = True
+                        if request.user.is_role_company_and_perm_sysadmin:
+                            submenu_dict['user_is_role_company_and_perm_sysadmin'] = True
                         if submenu_dict:
                             datalists['submenu_dict'] = submenu_dict
 # ----- company
@@ -241,7 +244,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['pricecode_list'] = p.create_pricecode_list(rosterdate, request=request)
 
 # ----- 'planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'
-                    for key in ('planning_period', 'calendar_period', 'roster_period', 'payroll_period', 'review_period'):
+                    for key in ('planning_period', 'calendar_period', 'roster_period',
+                                'payroll_period', 'review_period', 'user_period'):
                         request_item = datalist_request.get(key)
                         # also get planning_period_dict at startup of page  when btn = 'planning'
                         # also get calendar_period_dict at startup of page when btn = 'calendar'
@@ -385,6 +389,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # rosterdate_check: {rosterdate: "2019-11-14"}
                         # rosterdate_check: {mode: "delete"}
                         datalists['rosterdate_check'] = d.get_rosterdate_check(request_item, request)
+
+# - user_list
+                    request_item = datalist_request.get('user_list')
+                    if request_item:
+                        datalists['user_list'] = ad.create_user_list(request)
 
 # 9. return datalists
         # PR2020-05-23 debug: datalists = {} gives parse error.
@@ -746,93 +755,6 @@ def download_customer_planning(table_dict, planning_period_dict, datalists, save
         user_lang=user_lang,
         request=request)
     datalists['customer_planning_list'] = dict_list
-
-
-# === PricesView ===================================== PR2019-05-26
-@method_decorator([login_required], name='dispatch')
-class PricesView(View):
-
-    def get(self, request):
-        param = {}
-        #logger.debug(' ============= RosterView ============= ')
-        if request.user.company is not None:
-            # datefirst = None
-            # datelast = None
-            # crit = (Q(orderhour__order__customer__company=request.user.company) | Q(employee__company=request.user.company))
-            # if datefirst:
-            #     crit.add(Q(rosterdate__gte=datefirst), crit.connector)
-            # if datelast:
-            #     crit.add(Q(rosterdate__lte=datelast), crit.connector)
-            #emplhours = m.Emplhour.objects.filter(crit)
-            # emplhours = m.Emplhour.objects.all()
-
-            # for emplhour in emplhours:
-            #     string = str(emplhour.id)
-            #     if emplhour.rosterdate:
-            #          string += ' - rosterdate: ' + str(emplhour.rosterdate)
-            #      if emplhour.orderhour:
-            #         string += ' - order: ' + str(emplhour.orderhour.order.code)
-
-            # b. get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-
-    # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-
-    # get weekdays translated
-            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
-
-    # get months translated
-            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[lang])
-
-            # get interval
-            interval = 1
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-            # get timeformat
-            timeformat = 'AmPm'
-            if request.user.company.timeformat:
-                timeformat = request.user.company.timeformat
-            if not timeformat in c.TIMEFORMATS:
-                timeformat = '24h'
-
-            # get quicksave from Usersetting
-            quicksave = 0
-            quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
-            if quicksave_str:
-                quicksave = int(quicksave_str)
-
-            # get_current = False
-            # period_dict = d.get_period_dict_and_save(request, get_current)
-            # period_json = json.dumps(period_dict)
-
-
-            # TODO change to today in period_dict  today =  get_today(request)
-
-            # --- get today
-            today_dict = {'value': str(date.today()),
-                          'wdm': f.get_date_WDM_from_dte(date.today(), user_lang),
-                          'wdmy': f.format_WDMY_from_dte(date.today(), user_lang),
-                          'dmy': f.format_DMY_from_dte(date.today(), user_lang),
-                          'offset': f.get_weekdaylist_for_DHM(date.today(), user_lang)}
-            today_json = json.dumps(today_dict)
-
-            param = get_headerbar_param(request, {
-                'lang': user_lang,
-                'timezone': comp_timezone,
-                'timeformat': timeformat,
-                'interval': interval,
-                'weekdays': weekdays_json,
-                'months': months_json,
-                'today': today_json,
-                'quicksave': quicksave
-            })
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'prices.html', param)
 
 
 # === RosterView ===================================== PR2019-05-26

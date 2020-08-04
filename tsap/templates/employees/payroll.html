@@ -3,6 +3,7 @@
 {% load static %}
 
 {% block title %}{% trans 'Payroll' %}{% endblock %}
+
 {% block script %}
     <script src="{% static 'js/payroll.js' %}"></script>
 {% endblock %}
@@ -43,7 +44,8 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    {% if user.is_authenticated %}
+    <div class="tsa_margin_top_48 mx-4">
+    {% if user.is_authenticated and user.is_perm_hrman %}
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL MESSAGE  =================== -->
@@ -70,49 +72,48 @@
         <div class="containerXX ">
 
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_48 mx-4">
-    <!-- class content_header -->
-                <div class="content_header">
-         <!-- header_text -->
-                    <div class="content_subheader_left mx-4">
-                        <h5 id="id_hdr_text"></h5>
-                    </div>
-         <!-- loader -->
-                    <div class="content_header_middle">
-                        <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
+<!-- class content_header -->
+            <div class="content_header pt-4">
+     <!-- header_text -->
+                <div class="content_subheader_left mx-4">
+                    <h5 id="id_hdr_text"></h5>
+                </div>
+     <!-- loader -->
+                <div class="content_header_middle">
+                    <div id="id_loader" class="image_container visibility_hide">
+                        <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                     </div>
                 </div>
-    <!-- end class content_header -->
-    <!-- BUTTON GROUP -->
-                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Roster overview' %}</button>
-                    <button data-btn="payrolltabular" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
-                    <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
-                    <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
-                    <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
-                    <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>
-                    <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
-                </div>
-    <!-- end BUTTON GROUP -->
             </div>
+<!-- end class content_header -->
+<!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                <button data-btn="payrollperiod" class="btn btn-secondary ">{% trans 'Roster overview' %}</button>
+                <button data-btn="payrolltabular" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
+                <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
+                <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
+                <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
+                <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>
+                <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
+            </div>
+    <!-- end BUTTON GROUP -->
+
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-            <div class="content_body ml-4 mr-0">
+            <div class="content_body ml-2 mr-0">
                 <div class="modal_containerXX">
 <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payrollperiod tab_payrolltabular tab_order display_hide">
-                         <table class="table tsa_tbl">
-                            <thead id="id_tblHead_datatable"></thead>
-                            <tbody id="id_tblBody_datatable"></tbody>
-                            <tfoot id="id_tblFoot_datatable"></tfoot>
-                        </table>
-                    </div>
+                <div class="tab_show tab_payrollperiod tab_payrolltabular tab_order display_hide">
+                     <table class="table tsa_tbl">
+                        <thead id="id_tblHead_datatable"></thead>
+                        <tbody id="id_tblBody_datatable"></tbody>
+                        <tfoot id="id_tblFoot_datatable"></tfoot>
+                    </table>
                 </div>
+
             </div>
-            <div class="content_header ml-4 mr-0 tab_show tab_paydatecode tab_functioncode tab_wagefactor display_hide">
+            <div class="content_header ml-2 mr-0 tab_show tab_paydatecode tab_functioncode tab_wagefactor display_hide">
                  <div class="tsa_flex_2 m-0">
                      <table class="table tsa_tbl">
                         <thead id="id_tblHead_paydatecode"></thead>
@@ -155,7 +156,10 @@
         </div>
 
     {% else %}
-        <div class="alert alert-danger">{% trans 'Error' %}</div>
-        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
     {% endif %}
+
+    </div>
 {% endblock %}

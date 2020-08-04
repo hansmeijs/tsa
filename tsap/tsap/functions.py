@@ -893,17 +893,6 @@ def detect_dateformat(dict_list, field_list):
 
     return format_str
 
-# NOT IN USE
-def get_date_str_from_dateint(date_int):  # PR2019-03-08
-    # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use this basedate)
-    dte_str = ''
-    if date_int:
-        return_date = c.BASE_DATE + timedelta(days=date_int)
-        year_str = str(return_date.strftime("%Y"))
-        month_str = str(return_date.strftime("%m")) # %m is zero-padded
-        day_str = str(return_date.strftime("%d"))  # %d is zero-padded
-        dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
-    return dte_str
 
 def get_date_yyyymmdd(dte):
     # Function return date 'yyyy-mm-dd' PR2019-03-27
@@ -2230,7 +2219,7 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
 
 
 def get_pat_code_cascade(table, field, orderhour, request):
-    logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05
+    #logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05
     # - get pat_code, seacrh higher levels when None
     pat_code_cascade = None
     if orderhour:
@@ -2394,23 +2383,86 @@ def dictfetchone(cursor):
         pass
     return return_dict
 
-# NOT IN USE any more
-# PR20202-06-21
-#def update_workminutesperday():
-#    with connection.cursor() as cursor:
-##        cursor.execute("""UPDATE companies_employee AS e SET
- #                           workminutesperday = CASE WHEN e.workhoursperweek = 0 OR e.workdays = 0
- #                                               THEN 0
- #                                               ELSE 1440 * e.workhoursperweek / e.workdays
-    #                                               END
-#
-#                           """)
+def system_updates():
+    # these are once-only updates in tables. Data will be changed / moved after changing fields in tables
+    # after uploading the new version the function can be removed
 
-# PR20202-06-29
-#def update_company_workminutesperday():
-    #    with connection.cursor() as cursor:
-    #        cursor.execute("""UPDATE companies_company SET workminutesperday = 480
-    #                            WHERE workminutesperday = 0 OR workminutesperday IS NULL
+    # update_isabsence_istemplate()
+    # update_workminutesperday()  # PR20202-06-21
+    # update_company_workminutesperday() # PR20202-06-29
+    # update_paydateitems PR2020-06-26
+    # update_shiftcode_in_orderhours() PR2020-07-25
+    # update_customercode_ordercode_in_orderhours() PR2020-07-25
+    # update_employeecode_in_orderhours() PR2020-07-25
+    update_sysadmin_in_user()  # PR2020-07-30
+
+
+def update_sysadmin_in_user():
+    # Once-only function to add sysadmin permit to admin users PR2020-07-30
+    #logger.debug('........update_sysadmin_in_user..........')
+
+    sql_accounts_user = """
+        UPDATE accounts_user AS au
+        SET permits = au.permits + 64
+        WHERE au.permits >= 32 AND au.permits < 64
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_accounts_user)
+# NOT IN USE any more
+
+#def update_employeecode_in_orderhours():
+#    # Once-only function to put employee.code of all companies in orderhour PR2020-07-25
+#    sql_employee_sub = """
+#        SELECT e.id AS e_id, e.code AS e_code
+#            FROM companies_employee AS e
+#        """
+#    sql_emplhour = """
+#        UPDATE companies_emplhour AS eh
+#        SET employeecode = e_sub.e_code
+#        FROM (""" + sql_employee_sub + """) AS e_sub
+#        WHERE eh.employee_id = e_sub.e_id
+#    """
+#    with connection.cursor() as cursor:
+#        cursor.execute(sql_emplhour)#
+
+#def update_customercode_ordercode_in_orderhours():
+#    # Once-only function to put customer.code and order.code of all companies in orderhour PR2020-07-25
+#    sql_order_sub = """
+#        SELECT o.id AS o_id, o.code AS o_code, c.code AS c_code
+#            FROM companies_order AS o
+#            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+#        """
+#    sql_orderhour = """
+#        UPDATE companies_orderhour AS oh
+#        SET customercode = o_sub.c_code, ordercode = o_sub.o_code
+#        FROM (""" + sql_order_sub + """) AS o_sub
+#        WHERE oh.order_id = o_sub.o_id
+#    """
+#    with connection.cursor() as cursor:
+#        cursor.execute(sql_orderhour)
+
+#def update_shiftcode_in_orderhours():
+#    # Once-only function to put shift.code of all companies in orderhour.shiftcode PR2020-07-25
+#    sql_si_sub = """
+#        SELECT si.id AS si_id, sh.code AS sh_code
+##            FROM companies_schemeitem AS si
+#            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id)
+#        """
+#    sql_orderhour = """
+#        UPDATE companies_orderhour AS oh
+#        SET shiftcode = si_sub.sh_code
+#        FROM (""" + sql_si_sub + """) AS si_sub
+#        WHERE oh.schemeitem_id = si_sub.si_id
+#    """
+#    with connection.cursor() as cursor:
+#        cursor.execute(sql_orderhour)
+
+# PR2020-06-26 not in use any more
+#def update_paydateitems():
+#    # function puts value of paydate in field datelast
+#    with connection.cursor() as cursor:
+#        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
+#                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL)
 #                            """)
 
 #def update_isabsence_istemplateXX():
@@ -2431,63 +2483,23 @@ def dictfetchone(cursor):
     #    cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
 #    cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
 
-# PR20202-06-26 not in use any more
-#def update_paydateitems():
-#    # function puts value of paydate in field datelast
-#    with connection.cursor() as cursor:
-#        cursor.execute("""UPDATE companies_paydateitem AS pdi SET datelast = pdi.paydate
-#                            WHERE (pdi.datelast IS NULL) AND (pdi.paydate IS NOT NULL)
+
+#def update_company_workminutesperday(): # PR20202-06-29
+    #    with connection.cursor() as cursor:
+    #        cursor.execute("""UPDATE companies_company SET workminutesperday = 480
+    #                            WHERE workminutesperday = 0 OR workminutesperday IS NULL
 #                            """)
 
-def update_shiftcode_in_orderhours():
-    # Once-only function to put shift.code of all companies in orderhour.shiftcode PR2020-07-25
-    sql_si_sub = """
-        SELECT si.id AS si_id, sh.code AS sh_code
-            FROM companies_schemeitem AS si 
-            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
-        """
-    sql_orderhour = """
-        UPDATE companies_orderhour AS oh
-        SET shiftcode = si_sub.sh_code
-        FROM (""" + sql_si_sub + """) AS si_sub
-        WHERE oh.schemeitem_id = si_sub.si_id
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql_orderhour)
 
-
-def update_customercode_ordercode_in_orderhours():
-    # Once-only function to put customer.code and order.code of all companies in orderhour PR2020-07-25
-    sql_order_sub = """
-        SELECT o.id AS o_id, o.code AS o_code, c.code AS c_code
-            FROM companies_order AS o 
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        """
-    sql_orderhour = """
-        UPDATE companies_orderhour AS oh
-        SET customercode = o_sub.c_code, ordercode = o_sub.o_code
-        FROM (""" + sql_order_sub + """) AS o_sub
-        WHERE oh.order_id = o_sub.o_id
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql_orderhour)
-
-
-def update_employeecode_in_orderhours():
-    # Once-only function to put employee.code of all companies in orderhour PR2020-07-25
-    sql_employee_sub = """
-        SELECT e.id AS e_id, e.code AS e_code
-            FROM companies_employee AS e  
-        """
-    sql_emplhour = """
-        UPDATE companies_emplhour AS eh
-        SET employeecode = e_sub.e_code
-        FROM (""" + sql_employee_sub + """) AS e_sub
-        WHERE eh.employee_id = e_sub.e_id
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql_emplhour)
-
+#def update_workminutesperday(): # PR20202-06-21
+#    with connection.cursor() as cursor:
+##        cursor.execute("""UPDATE companies_employee AS e SET
+ #                           workminutesperday = CASE WHEN e.workhoursperweek = 0 OR e.workdays = 0
+ #                                               THEN 0
+ #                                               ELSE 1440 * e.workhoursperweek / e.workdays
+    #                                               END
+#
+#                           """)
 
 ###############################################################
 # FORMAT ELEMENTS

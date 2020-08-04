@@ -63,7 +63,7 @@
 
 // --- create variables
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
             let pos = {left: setting.margin_left,
                        top: setting.margin_top,
                        today: today_str,
@@ -224,7 +224,7 @@
             
 // --- create variables
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
             let pos = {left: setting.margin_left,
                        top: setting.margin_top,
                        today: today_str,
@@ -383,7 +383,7 @@
 
 // --- create variables
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
             let pos = {left: setting.margin_left,
                        top: setting.margin_top,
                        today: today_str,
@@ -522,7 +522,7 @@
             const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
 
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
 
 // --- create variables
             let this_rosterdate_iso = null
@@ -569,9 +569,9 @@
                 const this_customer_pk = row.cust_id;
                 const this_order_pk = row.ordr_id;
                 const this_rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
-                const rosterdate_formatted_long = format_date_iso (this_rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, loc.user_lang);
-                const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
-                // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
+                const rosterdate_formatted_long = format_dateISO_vanilla (loc, this_rosterdate_iso, false, false, true, true);
+                const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
+
                 const this_employee_code = get_dict_value(row, ["e_code"], "")
                 const this_customer_code = get_dict_value(row, ["cust_code"], "")
                 const this_order_code = get_dict_value(row, ["ordr_code"], "")
@@ -692,7 +692,7 @@
         let doc = new jsPDF("landscape","mm","A4");
 
         const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
         let pos = {left: setting.margin_left,
                    top: setting.margin_top,
                    today: today_str,
@@ -808,12 +808,7 @@
 //======================== get employee info
             const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
             const employee_code_list = get_dict_value(item_dict, ["employee", "code"], "");
-            const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, false, loc.user_lang);
-
-            //console.log("............................item_dict: ", item_dict)
-            //console.log("shift_code: ", shift_code)
-            //console.log("employee_code_list: ", employee_code_list)
-            //console.log("rosterdate_formatted: ", rosterdate_formatted)
+            const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, false, false, false);
 
             let display_time = null;
             const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
@@ -885,7 +880,7 @@
         //console.log("selected_period", selected_period)
 
         const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
 
         const rpt_tabs = [0, 30, 40, 160, 185, 195];
         const rpthdr_labelsOLD = [loc.Employee, loc.Company, loc.Planning + " " + loc.of, loc.Print_date];
@@ -1036,25 +1031,15 @@
             const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
             const order_code = get_dict_value(item_dict, ["order", "code"], "");
             const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-            const rosterdate_formatted = format_date_iso (this_rosterdate_iso,
-                                        loc.months_abbrev, loc.weekdays_abbrev, false, false, loc.user_lang);
-
-    //console.log("shift_code: ", shift_code)
-    //console.log("order_code: ", order_code)
-    //console.log("customer_code: ", customer_code)
-    //console.log("rosterdate_formatted: ", rosterdate_formatted)
+            const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
 
             //let display_time = null;
             const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
             const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
             const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);
-    //console.log("offset_start: ", offset_start)
-    //console.log("offset_end: ", offset_end)
-    //console.log("time_duration: ", time_duration)
 
             const skip_prefix_suffix = true;
             const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
-    //console.log("display_time: ", display_time)
 
             if(!!time_duration) {this_duration_sum += time_duration};
 
@@ -1576,7 +1561,7 @@
         if(!isEmpty(period_dict)){
             const datefirst_ISO = get_dict_value(period_dict, ["period_datefirst"]);
             const datelast_ISO = get_dict_value(period_dict, ["period_datelast"]);
-            period_formatted = format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang)
+            period_formatted = format_period(loc, datefirst_ISO, datelast_ISO)
         }
         return period_formatted;
 
@@ -1806,7 +1791,8 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
 // ---  lookup rosterdate_dict in order_dict, create if not found
                     const rosterdate_key = "date_" + rosterdate_iso;
                     if(!(rosterdate_key in order_dict)) {
-                        const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                        const rosterdate_formatted_long = format_dateISO_vanilla (loc, this_rosterdate_iso, false, false, true, false);
+
                         order_dict[rosterdate_key] = {total: [rosterdate_iso, rosterdate_formatted_long,
                                 company_pk, customer_pk, order_pk, employee_pk, orderhour_pk, rosterdate_iso,
                                 0, 0, 0, 0, 0, 0, 0, 0, 0]};
@@ -1923,7 +1909,7 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
         // lookup emplhour_dict in order_dict, create if not found
                     const ehoh_key = "ehoh_" + ehoh_pk.toString()
                     if(!(ehoh_key in order_dict)) {
-                        const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                        const rosterdate_formatted_long = format_dateISO_vanilla (loc, this_rosterdate_iso, false, false, true, false);
                         order_dict[ehoh_key] = {total: [rosterdate_iso, rosterdate_formatted_long,
                                 company_pk, customer_pk, order_pk, employee_pk, ehoh_pk, rosterdate_iso
                                 ]}
@@ -2008,7 +1994,7 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
                 if(!!rosterdate_iso && !!customer_pk && !!order_pk && !!emplhour_pk) {
 // ---  lookup rosterdate_iso in subtotals, create if not found
                     if(!(rosterdate_iso in subtotals)) {
-                        const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                        const rosterdate_formatted_long = format_dateISO_vanilla (loc, rosterdate_iso, false, false, true, false);
                         // default zero's are necessary because of '+='. In detail row they are not needed
                         subtotals[rosterdate_iso] = {total: [rosterdate_iso, rosterdate_formatted_long, 0, 0, 0, 0]}
                     }

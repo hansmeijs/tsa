@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     selected_employee_pk = get_dict_value(selected_period, ["employee_pk"], 0)
                     selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)
                     selected_order_pk = get_dict_value(selected_period, ["order_pk"], 0)
-                    t_Sidebar_DisplayPeriod(loc, selected_period)
+                    el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period);
                 }
 
                 if ("customer_list" in response) {refresh_datamap(response["customer_list"], customer_map)}
@@ -740,8 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             pricerate_display = format_pricerate (loc.user_lang, map_dict.pci_pricerate, is_percentage, true)  // show_zero = true
                             //if (!!map_dict.pc_note) {pricerate_display += " " + map_dict.pc_note}
 
-                            datefirst_display = format_date_vanillaJS (map_dict.shft_pricerate_df,
-                                        loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false);
+                            datefirst_display = format_dateJS_vanilla (loc, map_dict.shft_pricerate_df, true, false);
                         }
                         el.innerText = (!!pricerate_display) ? pricerate_display : null;
                         el.title = (!!datefirst_display) ? datefirst_display : "";
@@ -1236,8 +1235,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.addEventListener("click", function() {MSP_SelectPrice(tblRow, event.target)}, false);
         //--------- add title
                     if (!!datefirst_JS){
-                        tblRow.title = loc.As_of_abbrev.toLowerCase() + " " +
-                                        format_date_vanillaJS (datefirst_JS, loc.months_abbrev, null, loc.user_lang, true, false)
+                        tblRow.title = loc.As_of_abbrev.toLowerCase() + " " + format_dateJS_vanilla (loc, datefirst_JS, true, false)
                     }
         //--------- add td's
                     for (let i = 0, td, el; i < 2; i++) {
@@ -1408,8 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         let pricerate_display = format_pricerate (loc.user_lang, pci_pricerate, is_percentage, true)  // show_zero = true
                         // if (!!pc_note) {pricerate_display += " " + pc_note}
                         const datefirst_JS = get_dateJS_from_dateISO (pci_datefirst)
-                        const datefirst_display = format_date_vanillaJS (datefirst_JS,
-                                    loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false);
+                        const datefirst_display = format_dateJS_vanilla (loc, datefirst_JS, true, false);
                         el.innerText = (!!pricerate_display) ? pricerate_display : null;
                         el.title = (!!datefirst_display) ? datefirst_display : "";
 
@@ -1455,8 +1452,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderhour_pk = (item.oh_id) ? item.oh_id : null;
 
             const rosterdate_iso = item.oh_rosterdate;
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(rosterdate_iso),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(rosterdate_iso), false, true);
             const rosterdate_excel = get_Exceldate_from_date(rosterdate_iso)
 
             const all_billable = (item.is_billable && !item.not_billable) ? 1:
@@ -1555,8 +1551,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderhour_pk = (item.oh_id) ? item.oh_id : null;
 
             const rosterdate_iso = item.oh_rosterdate;
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(rosterdate_iso),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(rosterdate_iso), false, true);
             const rosterdate_excel = get_Exceldate_from_date(rosterdate_iso)
 
             const all_billable = (item.is_billable && !item.not_billable) ? 1:
@@ -1656,8 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderhour_pk = (item.oh_id) ? item.oh_id : null;
 
             const rosterdate_iso = item.oh_rosterdate;
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(rosterdate_iso),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(rosterdate_iso), false, true);
             const rosterdate_excel = get_Exceldate_from_date(rosterdate_iso)
 
             const all_billable = (item.is_billable && !item.not_billable) ? 1:
@@ -1881,8 +1875,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 customer_code = get_dict_value(map_dict, ["customer", "code"], "");
             }
             if (billing_level === 2 && selected_rosterdate_iso) {
-                    rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(selected_rosterdate_iso),
-                            loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+                    rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(selected_rosterdate_iso), false, true);
             }
             th = document.createElement("th");
 // --- add div to th, margin not working with th
@@ -2069,7 +2062,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(is_billing_detail_mod_mode){
             is_billing_detail_mod_mode = false;
         } else {
-            EmptyFilterRow(tblHead_datatable)
+            b_EmptyFilterRow(tblHead_datatable)
             //Filter_TableRows(tblBody_datatable)
 
             if (billing_level){
@@ -2717,7 +2710,7 @@ function HandleExpand(mode){
 
         /* File Name */
         const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
 
         let wb = XLSX.utils.book_new()
         let ws_name = loc.Review;
@@ -2761,8 +2754,8 @@ function HandleExpand(mode){
         }
 // rosterdate row - not when btn_billing_all
         if (selected_btn === "btn_billing_overview" && billing_level === 2) {
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(selected_rosterdate_iso),
-                    loc.months_long, loc.weekdays_long, loc.user_lang, false, false);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(selected_rosterdate_iso),
+                    false, false, true, true); // months_long = true, weekdays_long = true
             ws["A7"] = {v: loc.Rosterdate + ":", t: "s"};
             ws["B7"] = {v: rosterdate_formatted, t: "s"};
         }

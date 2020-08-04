@@ -123,9 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // === EVENT HANDLERS ===
 
 // ---  side bar - select period
-        let el_sidebar_select_period = document.getElementById("id_SBR_select_period");
-        el_sidebar_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
-        add_hover(el_sidebar_select_period);
+        let el_sbr_select_period = document.getElementById("id_SBR_select_period");
+        el_sbr_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
+        add_hover(el_sbr_select_period);
 // ---  side bar - select order
         let el_sidebar_select_order = document.getElementById("id_SBR_select_order");
             el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
@@ -367,8 +367,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
 
+                let call_DisplayCustomerOrder = false;
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
+                }
+                if ("roster_period" in response) {
+                    selected_period = response["roster_period"];
+                    el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period);
+                    const header_period_text = get_dict_value(selected_period, ["period_display"], "")
+                    document.getElementById("id_hdr_period").innerText = header_period_text
+
+                    const sel_isabsence = get_dict_value(selected_period, ["isabsence"]) //  can have value null, false or true
+                    const sel_value_absence = (!!sel_isabsence) ? "2" : (sel_isabsence === false) ? "1" : "0";
+                    el_sidebar_select_absence.value = sel_value_absence;
+
+                    const sel_isrestshift = get_dict_value(selected_period, ["isrestshift"]) //  can have value null, false or true
+                    const sel_value_restshift = (!!sel_isrestshift) ? "2" : (sel_isrestshift === false) ? "1" : "0";
+                    el_sidebar_select_restshift.value = sel_value_restshift;
+
+                    call_DisplayCustomerOrder = true;
+                }
+                if ("locale_dict" in response) {
+                    // CreateSubmenu needs loc and selected_period, but may only be called once
                     CreateSubmenu()
                     t_CreateTblModSelectPeriod(loc, ModPeriodSelect, true);  // true = add_period_extend
                     Sidebar_FillOptionsAbsenceRestshift();
@@ -376,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("company_dict" in response) {
                     company_dict = response["company_dict"];
                 }
-                let call_DisplayCustomerOrder = false;
                 if ("employee_list" in response) {
                     refresh_datamap(response["employee_list"], employee_map)
                     call_DisplayCustomerOrder = true;
@@ -392,24 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("shift_list" in response) {
                     refresh_datamap(response["shift_list"], shift_map)
                 }
-                if ("roster_period" in response) {
-                    selected_period = response["roster_period"];
-                    // el_SBR_select_period is updated in t_Sidebar_DisplayPeriod
-                    t_Sidebar_DisplayPeriod(loc, selected_period);
-                    const header_period_text = get_dict_value(selected_period, ["period_display"], "")
-                    document.getElementById("id_hdr_period").innerText = header_period_text
 
-                    const sel_isabsence = get_dict_value(selected_period, ["isabsence"]) //  can have value null, false or true
-                    const sel_value_absence = (!!sel_isabsence) ? "2" : (sel_isabsence === false) ? "1" : "0";
-                    el_sidebar_select_absence.value = sel_value_absence;
-
-                    const sel_isrestshift = get_dict_value(selected_period, ["isrestshift"]) //  can have value null, false or true
-                    const sel_value_restshift = (!!sel_isrestshift) ? "2" : (sel_isrestshift === false) ? "1" : "0";
-                    el_sidebar_select_restshift.value = sel_value_restshift;
-
-                    call_DisplayCustomerOrder = true;
-
-                }
                 if (call_DisplayCustomerOrder) {
                     Sidebar_DisplayCustomerOrder();
                     Sidebar_DisplayEmployee()
@@ -483,13 +485,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let headerrow = [loc.Date, loc.Customer, loc.Order, loc.Employee, loc.Shift,
                          loc.Start_time, loc.End_time, loc.Break, loc.Working_hours, loc.Status]
 
-        AddSubmenuButton(el_submenu, loc.Add_shift, function() {MRO_Open(selected_emplhour_pk)}, []);
-        AddSubmenuButton(el_submenu, loc.Delete_shift, function() {DeleteShift_ConfirmOpen()}, ["mx-2"]);
+        if (selected_period.cur_perm_supervisor){
+            AddSubmenuButton(el_submenu, loc.Add_shift, function() {MRO_Open(selected_emplhour_pk)}, []);
+            AddSubmenuButton(el_submenu, loc.Delete_shift, function() {DeleteShift_ConfirmOpen()}, ["mx-2"]);
+        }
         AddSubmenuButton(el_submenu, loc.Show_roster, function() {PrintReport("preview")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Download_roster, function() {PrintReport("download")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"]);
-        AddSubmenuButton(el_submenu, loc.Create_roster, function() {ModRosterdateOpen("create")}, ["mx-2"]);
-        AddSubmenuButton(el_submenu, loc.Delete_roster, function() {ModRosterdateOpen("delete")}, ["mx-2"]);
+        if (selected_period.cur_perm_planner){
+            AddSubmenuButton(el_submenu, loc.Create_roster, function() {ModRosterdateOpen("create")}, ["mx-2"]);
+            AddSubmenuButton(el_submenu, loc.Delete_roster, function() {ModRosterdateOpen("delete")}, ["mx-2"]);
+        }
 
         el_submenu.classList.remove(cls_hide);
 
@@ -542,10 +548,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 //????????????????????????????????????????????????????????
 ///////////////////////////////
-
-
-
-
 
 
 //========= FillTableRows  ====================================
@@ -670,40 +672,38 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- create element with tag from field_tags
             let el = document.createElement(tagName);
             el.setAttribute("data-field", fldName);
-// --- add img , not in new_item, first column not in teammembers
+// --- add img, not in new_item, first column not in teammembers
             if ([4, 6, 10].indexOf( j ) > -1){
-                el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
-                add_hover(el)
-                el.classList.add("pointer_show");
-                el.classList.add("stat_0_0")
+                if(selected_period.cur_perm_supervisor){
+                    el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
+                    add_hover(el)
+                    el.classList.add("pointer_show");
+                    el.classList.add("stat_0_0")
+                };
             } else {
 // --- add input element to td.
                 el.setAttribute("type", "text");
                 el.classList.add("input_text"); // makes background transparent
 // --- add EventListener to td
-                if ([0, 2].indexOf( j ) > -1){
+                if(selected_period.cur_perm_supervisor){
+                    if ([0, 2].indexOf( j ) > -1){
+                        el.disabled = true;
+                    } else if ([1, 3].indexOf( j ) > -1){
+                        el.addEventListener("click", function() {MRE_Open(el)}, false )
+                        add_hover(el)
+                    } else if ([5, 7, 8, 9].indexOf( j ) > -1){
+                        el.addEventListener("click", function() {MRO_MRE_TimepickerOpen(el, "tblRow")}, false)
+                        add_hover(el)
+                    };
+                } else {
                     el.disabled = true;
-                } else if (j === 1){
-                    el.addEventListener("click", function() {MRE_Open(el)}, false )
-                    add_hover(el)
-                } else if (j === 3){
-                    el.addEventListener("click", function() {MRE_Open(el)}, false )
-                    add_hover(el)
-                } else if ([5, 7, 8, 9].indexOf( j ) > -1){
-                    //el.setAttribute("tabindex", "0");
-                    el.addEventListener("click", function() {MRO_MRE_TimepickerOpen(el, "tblRow")}, false)
-                    add_hover(el)
-                };
-
-// --- add other classes to td
-
+                }
 // --- add width and text_align
                 el.classList.add(class_width, class_align);
     // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
                 el.setAttribute("ondrop", "return false;");
-
             }  //if (j === 0)
             td.appendChild(el);
         }  // for (let j = 0; j < 8; j++)
@@ -789,15 +789,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             if (fieldname === "rosterdate") {
                                 const rosterdate_iso = get_dict_value (field_dict, ["value"]);
-                                const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(rosterdate_iso),
-                                        loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+                                const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(rosterdate_iso),
+                                        false, true);
                                 el_input.value =  rosterdate_formatted
                             } else if (fieldname === "order") {
                                 el_input.value = get_dict_value (field_dict, ["display"]);
                                 // enable field when it is absence
-                                el_input.disabled = (is_locked || !is_absence);
+                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || !is_absence);
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", !is_locked && is_absence)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && is_absence)
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value (field_dict, ["code"])
                                 if(value){
@@ -816,17 +816,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // put any character in field, to show pointer
                                 el_input.value = (value) ? value : "---";
                                 // disable field employee when is_locked, also when is_restshift or is_absence
-                                el_input.disabled = (is_locked || is_restshift || is_absence);
+                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_restshift || is_absence);
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", !is_locked && !is_restshift && !is_absence)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && !is_restshift && !is_absence)
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
-                                // format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
+                                format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
                                 const display_text = get_dict_value(field_dict, ["display"]);
                                 el_input.value = display_text;
-                                el_input.disabled = (is_locked || is_confirmed);
+                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_confirmed);
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", !is_locked && !is_confirmed)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && !is_confirmed)
 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
                                 const value_int = get_dict_value(field_dict, ["value"], 0);
@@ -839,8 +839,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_input.value = display_value;
                                 //el_input.innerText = display_value;
 
-                                el_input.disabled = (is_locked || is_confirmed)
-                                add_or_remove_class (el_input, "pointer_show", !is_locked)
+                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_confirmed)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked)
 
                             } else if (["confirmstart", "confirmend"].indexOf( fieldname ) > -1){
                                 // el_img does not exist, update status column instead PR2020-07-26
@@ -3161,8 +3161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const new_value = el_MRD_rosterdate_input.value;
 
 // update value of input label
-        const label_txt = loc.Rosterdate + ": " +
-            format_date_iso (new_value, loc.months_long, loc.weekdays_long, false, false, user_lang);
+        const label_txt = loc.Rosterdate + ": " + format_dateISO_vanilla (loc, new_value, false, false, true, true);
+        // PR2020-08-04 was:  format_date_iso (new_value, loc.months_long, loc.weekdays_long, false, false, user_lang);
         document.getElementById("id_mod_rosterdate_label").innerText = label_txt
 
 // --- check if new rosterdate has emplhour records and confirmed records
@@ -3263,8 +3263,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let text_list = ["", "", "", ""];
         let hide_ok_btn = false, ok_txt = loc.OK, cancel_txt = loc.Cancel;
 // ---  set value of input label
-        text_list[0] = loc.Rosterdate + ": " +
-            format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
+        text_list[0] = loc.Rosterdate + ": " + format_dateISO_vanilla (loc, rosterdate_iso, false, false);
+        // PR2020-08-04 was: format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
+
 // ---  hide rosterdate input when is-delete and no emplhours
         const hide_input_rosterdate = (is_delete && no_emplhours)
         add_or_remove_class(document.getElementById("id_mod_rosterdate_input_div"), cls_hide, hide_input_rosterdate )
@@ -4672,7 +4673,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                (fldName === "offsetsplit") ? loc.Split_time : null
         let st_dict = { interval: interval, comp_timezone: comp_timezone, user_lang: user_lang,
                         show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered,
-                        weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                         url_settings_upload: url_settings_upload,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
@@ -4680,9 +4680,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  open ModTimepicker
         if (calledby === "tblRow") {
-            if(!is_locked && !is_confirmed){ ModTimepickerOpen(el_input, UploadTimepickerResponse, tp_dict, st_dict)}
+            if(!is_locked && !is_confirmed){ ModTimepickerOpen(loc, el_input, UploadTimepickerResponse, tp_dict, st_dict)}
         } else {
-            ModTimepickerOpen(el_input, MRE_TimepickerResponse, tp_dict, st_dict)
+            ModTimepickerOpen(loc, el_input, MRE_TimepickerResponse, tp_dict, st_dict)
         }
     };  // MRO_MRE_TimepickerOpen
 

@@ -42,9 +42,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         "use strict";
 
-        $("#id_sidebar").mCustomScrollbar({
-             theme: "minimal"
-        });
+        //$("#id_sidebar").mCustomScrollbar({
+        //     theme: "minimal"
+       // });
 
         $('#sidebarCollapse').on('click', function () {
             // open or close navbar
@@ -101,9 +101,9 @@
 
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
-        //console.log("=== UploadSettings");
-        //console.log("url_str", url_str);
-        //console.log("upload_dict", upload_dict);
+        console.log("=== UploadSettings");
+        console.log("url_str", url_str);
+        console.log("upload_dict", upload_dict);
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
             let response = "";
@@ -113,11 +113,11 @@
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
+                    console.log( "response");
+                    console.log( response);
                 },  // success: function (response) {
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                     //alert(msg + '\n' + xhr.responseText);
                 }  // error: function (xhr, msg) {
             });  // $.ajax({
@@ -135,8 +135,8 @@
     return true;
 }
 
-//========= EmptyFilterRow  ============= PR2020-06-20
-    function EmptyFilterRow(tblHead) {
+//========= b_EmptyFilterRow  ============= PR2020-06-20
+    function b_EmptyFilterRow(tblHead) {
         let filterRow = tblHead.rows[1];
         if(!!filterRow){
             for (let j = 0, el, len = filterRow.cells.length ; j < len; j++) {
@@ -459,15 +459,16 @@
             // get tblName from first item in data_list
             const table_in_dict = get_dict_value(data_list[0], ["id", "table"]);
             // tblName ovverrules table in id, necessary for absence_map
-            const table = (tblName) ? tblName : (table_in_dict) ? table_in_dict : "notable";
+            const table = (tblName) ? tblName : (table_in_dict) ? table_in_dict : "no_table";
             for (let i = 0; i < data_list_length; i++) {
                 const item_dict = data_list[i];
-                const pk_str = get_dict_value(item_dict, ["id", "pk"]);
+                let pk_str = get_dict_value(item_dict, ["id", "pk"]);
+                // for list that comes from dict_fetchall. Must have  key'id' in .For user_list PR2020-07-31
+                if(!pk_str) {pk_str = get_dict_value(item_dict, ["id"]);}
                 let map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
             }
         }
-        //return false;
     };
 
 //========= update_map_item  ================== PR2020-04-22
@@ -779,7 +780,7 @@
     function get_dateJS_from_dateISO_vanilla(date_iso) {
         //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
         let date_JS = null;
-        if (!!date_iso){
+        if (date_iso){
             let arr_int = get_array_from_ISOstring(date_iso);
             arr_int[1] = arr_int[1] -1;  // Month 4 april has index 3
             date_JS = new Date(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]);
@@ -1067,9 +1068,8 @@
     }  // get_nextmonth_lastJS_from_dateJS
 
 //========= get_today_local  ======== PR2019-07-09
-    function get_today_local(comp_timezone) {
+    function get_today_localMOMENT(comp_timezone) {
         // from: https://stackoverflow.com/questions/18448347/how-to-create-time-in-a-specific-time-zone-with-moment-js
-
         //  moment() gives 'now' in user timezone : 2019-07-09 T 20:25:16-04:00
         // this creates today in comp_timezone
         // new moment.tz(ISOstring, timezone)
@@ -1260,7 +1260,7 @@
     }
 
 //========= get_now_utc new  ========== PR2019-07-28
-    function get_now_utc(comp_timezone) {
+    function get_now_utcMOMENT(comp_timezone) {
         // lacal time is now 18.42 u Curacao time
 
         //console.log(" --- get_now_utc --- ", comp_timezone)
@@ -1548,10 +1548,10 @@
 
 //========= show_hide_selected_elements_byClass  ====  PR2020-02-19  PR2020-06-20
     function show_hide_selected_elements_byClass(container_classname, contains_classname, container_element) {
-        // ---  show / hide elements on page, bases on classnames:
+        // ---  show / hide elements on page, based on classnames:
         // <div class="tab_show tab_shift tab_team display_hide">
-        // where 'tab_show' is the class of the container. All elements with this class will be checked
-        // and 'tab_shift' and 'tab_team' are classes of the select buttons
+        // where 'tab_show' is the container_classname. All elements with this class will be checked
+        // and 'tab_shift' and 'tab_team' are classes of the select buttons ('contains_classname')
         // class 'display_hide' in html is necessary to prevent showing all elements when page opens
         if(!container_element){ container_element = document };
         let list = container_element.getElementsByClassName(container_classname);

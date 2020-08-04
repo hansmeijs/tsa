@@ -1,53 +1,91 @@
 {% extends 'base.html' %}
-{% load i18n %}
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+{% block title %}{% trans 'Users' %}{% endblock %}
+
+{% block script %}
+<script src="{% static 'js/users.js' %}"></script>
+{% endblock %}
+
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
         <div class="sidebar_header">
-            <h3>{% trans 'Users' %}</h3>
+            <h3 class="p-1">{% trans 'Users' %}</h3>
         </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
+
 {% block content %}
-  {% if user.permit_user_modify %}
+    <div class="tsa_margin_top_48 mx-4">
+    {% if user.is_authenticated and user.is_perm_sysadmin %}
+<!-- =================== MODAL CONFIRM  =================== -->
+        {% include 'includes/confirm.html' %}
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+        {% include 'includes/modselectuserfromemployee.html' %}
+<!-- =================== MODAL USER  =================== -->
+        {% include 'accounts/moduser.html' %}
 
-      <div class="tsa_margin_top_48 ml-2 mb-3">
-          <a  href="{% url 'user_add_url' %}" class="btn btn-primary">{% trans 'Add user' %}</a>
+        <div class="containerXX ">
+<!-- CONTENT HEADER - LOADER -->
+        <!-- content_header -->
+            <div class="content_header pt-4">
+            <!-- header_text -->
+                <div class="content_subheader_left mx-4">
+                    <h5 id="id_hdr_text"></h5>
+                </div>
+        <!-- loader -->
+                <div class="content_header_middle ">
+                    <div id="id_loader" class="image_container visibility_hide">
+                        <img src="{% static 'img/loader.gif' %}" class="icon_24">
+                    </div>
+                </div>
+            </div>
+        <!-- end content_header -->
+<!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                <button data-btn="btn_user_list" class="btn btn-secondary ">{% trans 'User list' %}</button>
+                <button data-btn="btn_permissions" class="btn btn-secondary ">{% trans 'Permissions' %}</button>
+            </div>
+<!-- end BUTTON GROUP -->
+<!-- END OF CONTENT HEADER -->
 
-        <table class="table table-condensed mt-2">
-          <thead class="thead-inverse">
-            <tr>
-              <th>{% trans 'Username' %}</th>
-              <th>{% trans 'Full name' %}</th>
-              <th>{% trans 'Email' %}</th>
-              <th>{% trans 'Activated' %}</th>
-              <th>{% trans 'Active' %}</th>
-              <th>{% trans 'Company' %}</th>
-              <th>{% trans 'Organization' %}</th>
-              <th>{% trans 'Permissions' %}</th>
-              <th>{% trans 'Last login' %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for usr in users.all %}
-              <tr>
-                <td><a href="{% url 'user_edit_url' usr.pk %}">{{ usr.username_sliced }}</a></td>
-                <td>{{ usr.last_name }}</td>
-                <td>{{ usr.email }}</td>
-                <td>{{ usr.activated }}</td>
-                <td>{{ usr.is_active_str }}</td>
-                <td>{{ usr.company }}</td>
-                <td>{{ usr.role_str }}</td>
-                <td>{{ usr.permits_str }}</td>
-                <td>{{ usr.last_login }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+<!-- CONTENT BODY -->
+        <div class="content_body ml-2 mr-0">
+<!-- =================== DATA TABLE  =================== -->
+            <table class="table tsa_tbl">
+                <thead id="id_tblHead_datatable"></thead>
+                <tbody id="id_tblBody_datatable"></tbody>
+                <tfoot id="id_tblFoot_datatable"></tfoot>
+            </table>
+<!-- =================== END DATA TABLE  =================== -->
+        </div>
+<!-- END OF CONTENT BODY -->
+        </div>
+        <div id="id_data"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-settings_upload_url="{% url 'settings_upload_url' %}"
+            data-users_upload_url="{% url 'users_upload_url' %}"
+            data-user_add_upload_url="{% url 'user_add_upload_url' %}"
+
+            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
+
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
+
+            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
+            data-imgsrc_chck01="{% static 'img/chck01.png' %}"
+        >
+        </div>
+
+    {% else %}
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
+    {% endif %}
     </div>
-  {% else %}
-    <div class="alert alert-danger">{{ user.message_user_modify }}</div>
-    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
-  {% endif %}
-{% endblock %}l>
+{% endblock %}

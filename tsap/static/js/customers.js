@@ -3072,7 +3072,6 @@ let planning_list = [] // for export and printing - can replace map?
                                 (fldName === "timeduration") ? loc.Working_hours : null;
         let st_dict = { interval: interval, comp_timezone: comp_timezone, user_lang: user_lang,
                         show_btn_delete: show_btn_delete,
-                        weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                         url_settings_upload: url_settings_upload,
                         text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                         txt_dateheader: txt_dateheader,
@@ -3082,7 +3081,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 
-        ModTimepickerOpen(el_input, MSO_TimepickerResponse, tp_dict, st_dict)
+        ModTimepickerOpen(loc, el_input, MSO_TimepickerResponse, tp_dict, st_dict)
 
     };  // MSO_TimepickerOpen
 

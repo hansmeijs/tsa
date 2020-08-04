@@ -42,10 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_deletered = get_attr_from_el(el_data, "data-imgsrc_deletered");
-        const imgsrc_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red")
-        const imgsrc_cross_grey = get_attr_from_el(el_data, "data-imgsrc_cross_grey")
-        const imgsrc_chck01 = get_attr_from_el(el_data, "data-imgsrc_chck01")
-        const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00")
+        const imgsrc_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red");
+        const imgsrc_cross_grey = get_attr_from_el(el_data, "data-imgsrc_cross_grey");
+        const imgsrc_chck01 = get_attr_from_el(el_data, "data-imgsrc_chck01");
+        const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
 
 // ---  id of selected employee
         const id_sel_prefix = "sel_"
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     //selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)
                     //selected_order_pk = get_dict_value(selected_period, ["order_pk"], 0)
 
-                    t_Sidebar_DisplayPeriod(loc, selected_period)
+                    el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period)
 
                     //call_DisplayCustomerOrderEmployee = true;
                 }
@@ -508,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data_button = get_attr_from_el_str(btn, "data-btn");
             add_or_remove_class(btn, cls_btn_selected, data_button === selected_btn);
         }
+
 // ---  in submenu: change caption and disable submenu items
         const el_submenu_addnew = document.getElementById("id_submenu_addnew");
         const el_submenu_delete = document.getElementById("id_submenu_delete");
@@ -837,8 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
             row_data[1] = item[3];
 // ---  add rosterdate
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(item[1]), false, true);
             td_html[2] = "<td><div class=\"ta_l\">" + rosterdate_formatted + "</div></td>";
             filter_data[2] = (rosterdate_formatted) ? rosterdate_formatted : null
             row_data[2] = rosterdate_iso;
@@ -1004,8 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // add margin first column
             td_html[0] =  "<td></td>"
 // ---  add rosterdate
-            const rosterdate_formatted = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
-                                loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, true);
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(item[1]), false, true);
             td_html[1] = "<td><div class=\"ta_l\">" + rosterdate_formatted + "</div></td>";
             filter_data[1] = (rosterdate_formatted) ? rosterdate_formatted : null
             row_data[1] = rosterdate_iso;
@@ -1689,8 +1688,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(i === 0){
                         display_value = (detail_row[0]) ? detail_row[0] : "---";
                     } else  if(i === 1){
-                        display_value = format_date_vanillaJS (get_dateJS_from_dateISO(detail_row[i]),
-                                            loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false);
+                        display_value = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(detail_row[i]), loc.user_lang, true, false);
                     } else {
                         display_value = format_total_duration (detail_row[i], loc.user_lang);
                     }
@@ -1881,10 +1879,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // index 1 contains closingdate, index 2 contains first date of period
                 if(item[1] === selected_paydateitem_iso){
                     item_found = true;
-                    paydate_caption = format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
-                                        loc.months_long, loc.weekdays_long, loc.user_lang, false, false);
-                    const fistdate_caption = format_date_vanillaJS (get_dateJS_from_dateISO(item[2]),
-                                        loc.months_long, loc.weekdays_long, loc.user_lang, false, false);
+                    paydate_caption = format_dateJS_vanilla (get_dateJS_from_dateISO(item[1]),
+                                        false, false, true, true); // months_long = true, weekdays_long = true
+                    const fistdate_caption = format_dateJS_vanilla (get_dateJS_from_dateISO(item[2]),
+                                        false, false, true, true); // months_long = true, weekdays_long = true
                     selected_paydateitem_caption = ((fistdate_caption) ? fistdate_caption : "") + " - " +
                                                    ((paydate_caption) ? paydate_caption : "")
                 break;
@@ -2325,12 +2323,12 @@ document.addEventListener('DOMContentLoaded', function() {
             is_payroll_detail_mod_mode = false;
         } else {
             if (selected_btn === "paydatecode"){
-                EmptyFilterRow(tblHead_employee);
+                b_EmptyFilterRow(tblHead_employee);
                 Filter_TableRows(tblBody_employee);
-                EmptyFilterRow(tblHead_paydatecode);
+                b_EmptyFilterRow(tblHead_paydatecode);
                 Filter_TableRows(tblBody_paydatecode);
             } else {
-                EmptyFilterRow(tblHead_datatable)
+                b_EmptyFilterRow(tblHead_datatable)
                 Filter_TableRows(tblBody_datatable)
             }
             if (selected_btn === "payrollperiod"){
@@ -2349,6 +2347,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }  // function ResetFilterRows
+
 
 
 //=========  HandleBtnAddRemoveSelected  ================ PR2020-06-18
@@ -2734,8 +2733,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const pk_int = (tblName === "payrollperiod") ? item[0] : item[1];
                     const ppk_int = (tblName === "datelast") ? item[0] : null;
                     const caption = (tblName === "payrollperiod") ? item[1] :
-                                    format_date_vanillaJS (get_dateJS_from_dateISO(item[1]),
-                                    loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, false);
+                                    format_dateJS_vanilla (loc, get_dateJS_from_dateISO(item[1]), false, false);
                     const row_id = get_map_id(tblName, pk_int)
 // --- insert tblBody_select row
                     const tblRow = tblBody_select.insertRow(-1);
@@ -3862,8 +3860,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_MEP_customer").innerText = emplhour_dict.c_code
         document.getElementById("id_MEP_order").innerText = emplhour_dict.o_code
         document.getElementById("id_MEP_shift").innerText = emplhour_dict.shift
-        document.getElementById("id_MEP_rosterdate").innerText = format_date_vanillaJS (
-                    rosterdate_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, false, false);
+        document.getElementById("id_MEP_rosterdate").innerText = format_dateJS_vanilla (loc, rosterdate_JS, false, false);
 
         const timestart = format_time_from_rosterdate_offset (loc, rosterdate_JS, emplhour_dict.offsetstart, false, true)
         document.getElementById("id_MEP_timestart").innerText = timestart
@@ -4112,7 +4109,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log(" === ExportToExcel ===")
 // ---  create file Name and worksheet Name
             const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
             let filename = (selected_btn === "payrollperiod") ? loc.Overview_rosterhours_per_abscat : loc.Overview_customer_hours;
             if (is_payroll_detail_mode) { filename += " " + selected_employee_code }
             filename += " " + selected_paydateitem_iso +  ".xlsx";
@@ -4148,7 +4145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //const period_value = display_planning_period (selected_period, loc);
         //ws["A3"] = {v: period_value, t: "s"};
         const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
         ws["A3"] = {v: today_str, t: "s"};
 
 // ---  employee row

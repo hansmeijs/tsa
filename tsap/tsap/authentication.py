@@ -9,7 +9,7 @@ def get_message(user, page_name ='None'):
     # school admin may add his own school, subjects etc. Is function, not form
     # system and insp may add schoolyear
     #         _has_permit = False
-    # self.is_role_insp_or_system_and_perm_admin is: self.is_authenticated AND (self.is_role_system OR self.is_role_insp) AND (self.is_perm_admin:
+    # self.is_role_insp_or_system_and_perm_sysadmin is: self.is_authenticated AND (self.is_role_system OR self.is_role_insp) AND (self.is_perm_sysadmin:
 
     message_no_permission = _("You don't have permission to view this page.")
 
@@ -29,7 +29,7 @@ def get_message(user, page_name ='None'):
 # === userlist: only admin can view and modify userlist
     if page_name == 'permit_user_modify':
         # only system and company admins can modify users
-        if user.is_role_system_and_perm_admin or user.is_role_company_and_perm_admin:
+        if user.is_role_system_and_perm_sysadmin or user.is_role_company_and_perm_sysadmin:
             return None
         else:
             return message_no_permission

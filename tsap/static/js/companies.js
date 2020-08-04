@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateSubmenu(item_dict) {
         console.log("===  CreateSubmenu == ");
 
-        const user_is_system_admin = get_dict_value_by_key (item_dict, "user_is_role_system_and_perm_admin", false)
-        const user_is_company_admin = get_dict_value_by_key (item_dict, "user_is_role_company_and_perm_admin", false)
+        const user_is_system_admin = get_dict_value_by_key (item_dict, "user_is_role_system_and_perm_sysadmin", false)
+        const user_is_company_admin = get_dict_value_by_key (item_dict, "user_is_role_company_and_perm_sysadmin", false)
 
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");

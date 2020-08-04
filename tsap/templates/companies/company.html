@@ -19,7 +19,7 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    {% if user.is_role_company_and_perm_admin or user.is_role_system_and_perm_admin %}
+    {% if user.is_role_company_and_perm_sysadmin or user.is_role_system_and_perm_sysadmin %}
 
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}

@@ -99,9 +99,13 @@
         </div>
 
     {% else %}
-        <div class="tsa_margin_top_48 m-5">
-            {% include 'includes/messages.html' %}
-        </div>
+        {% if not user.is_perm_employee and not user.is_perm_supervisor and not user.is_perm_planner and not user.is_perm_hrman and not user.is_perm_accman and not user.is_perm_sysadmin %}
+            <div class="tsa_margin_top_48 m-5">
+                <div class="mx-4">
+                    <div class="alert alert-danger">{% trans "You don't have permission yet to use TSA-secure." %}<br>{% trans "Ask the system administrator to grant you permissions." %}</div>
+                </div>
+            </div>
+        {% endif %}
     {% endif %}
 
 {% endblock %}

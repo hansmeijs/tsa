@@ -205,8 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (["modifiedat", "dateexpired"].indexOf(fldName) > -1 ) {
                     const hide_weekday = true, hide_year = false;
                     const date_JS = get_dateJS_from_dateISO (field_value);
-                    display_text = format_date_vanillaJS (date_JS,
-                                    loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, hide_weekday, hide_year);
+                    display_text = format_dateJS_vanilla (loc, date_JS, hide_weekday, hide_year);
                 } else if (["entries", "used", "balance"].indexOf(fldName) > -1 ) {
                     const blank_when_zero =  (fldName === "used") ? false : true;
                     display_text = format_entries (field_value, loc.user_lang, blank_when_zero)

@@ -3,9 +3,11 @@
 {% load static %}
 
 {% block title %}{% trans 'Customers' %}{% endblock %}
+
 {% block stylesheet %}
     <link rel="stylesheet" href="{% static 'css/grid.css' %}">
 {% endblock %}
+
 {% block script %}
     <script src="{% static 'js/customers.js' %}"></script>
     <script src="{% static 'js/calendar.js' %}"></script>
@@ -40,14 +42,13 @@
         <div class="tw_200 m-2">
             <h6 id="id_sidebar_showall" class=" pointer_show display_hide px-2 py-1">{% trans 'Show all' %}</h6>
         </div>
-
-
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
 
 {% block content %}
-    {% if user.is_authenticated %}
+    <div class="tsa_margin_top_48 mx-4">
+    {% if user.is_authenticated and user.is_perm_accman %}
 <!-- =================== msgbox  =================== -->
         <div class="popup display_hide">
             <span class="popuptext" id="id_msgbox"></span>
@@ -64,90 +65,88 @@
         {% include 'includes/modselectemployee.html' %}
 
 <!-- =================== CONTAINER =================== -->
-        <div class="container">
-
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_48">
-    <!-- content_header -->
-                <div class="content_header">
-         <!-- header_text -->
-                    <div class="content_subheader_left mx-2 ">
-                        <h5 id="id_hdr_text"></h5>
-                    </div>
-         <!-- loader -->
-                    <div class="content_header_middle ">
-                        <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
-                    </div>
-                </div>
-        <!-- end content_header -->
-    <!-- end class content_header -->
-    <!-- BUTTON GROUP -->
-                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button type="button" data-btn="customer" class="btn btn-secondary">{% trans 'Customer list' %}</button>
-                    <button type="button" data-btn="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
-                    <button type="button"  data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
-                    <button type="button"  data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <button type="button" data-btn="form" class="btn btn-secondary">{% trans 'Data' %}</button>
-                </div>
-    <!-- end BUTTON GROUP -->
+
+<!-- content_header -->
+        <div class="content_header">
+ <!-- header_text -->
+            <div class="content_subheader_left mx-2 ">
+                <h5 id="id_hdr_text"></h5>
             </div>
+ <!-- loader -->
+            <div class="content_header_middle ">
+                <div id="id_loader" class="image_container visibility_hide">
+                    <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                </div>
+            </div>
+        </div>
+<!-- end content_header -->
+<!-- end class content_header -->
+<!-- BUTTON GROUP -->
+        <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+            <button type="button" data-btn="customer" class="btn btn-secondary">{% trans 'Customer list' %}</button>
+            <button type="button" data-btn="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
+            <button type="button"  data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
+            <button type="button"  data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
+            <button type="button" data-btn="form" class="btn btn-secondary">{% trans 'Data' %}</button>
+        </div>
+<!-- end BUTTON GROUP -->
+
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-            <div class="content_body mx-2">
+        <div class="content_body">
 <!-- =================== POPUP DATE  =================== -->
-                 <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
-                     <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
-                 </div>
-    <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_tbl_customer" class="tab_show tab_customer display_hide">
-                     <table  class="table tsa_tbl">
-                        <thead id="id_thead_customer"></thead>
-                        <tbody id="id_tbody_customer"></tbody>
-                        <tfoot id="id_tfoot_customer"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_order" class="tab_show tab_order display_hide">
-                     <table  class="table tsa_tbl">
-                        <thead id="id_thead_order"></thead>
-                        <tbody id="id_tbody_order"></tbody>
-                        <tfoot id="id_tfoot_order"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_planning" class="content_header tab_show tab_planning display_hide">
-                    <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
-                    </div>
-                     <table class="table tsa_tbl">
-                        <thead id="id_thead_planning"></thead>
-                        <tbody id="id_tbody_planning"></tbody>
-                        <tfoot id="id_tfoot_planning"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
-                    {% include 'includes/calendar.html' %}
-                </div>
-    <!-- =================== DATA FORM  =================== -->
-                <div id="id_div_data_form" class="tab_show tab_form display_hide">
-                    <div class="form-group mx-2">
-                        <label for="id_form_code" class="mx-2 my-2">{% trans 'Short name of customer' %}:</label>
-                        <input id="id_form_code" type="text" data-field= "code"
-                            autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                        <label for="id_form_name" class="mx-2 my-2">{% trans 'Customer name' %}:</label>
-                        <input id="id_form_name" type="text" data-field= "name"
-                            autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                    </div>
-                    <div class="mx-2 my-2">
-                        <button id="id_form_btn_add" type="button" class="btn btn-outline-primary">{% trans 'Add customer' %}</button>
-                        <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
-                    </div>
-                </div>
-    <!-- =================== END DATA FORM  =================== -->
+             <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+                 <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
+             </div>
+<!-- =================== DATA TABLE  =================== -->
+            <div id="id_div_tbl_customer" class="tab_show tab_customer display_hide">
+                 <table  class="table tsa_tbl">
+                    <thead id="id_thead_customer"></thead>
+                    <tbody id="id_tbody_customer"></tbody>
+                    <tfoot id="id_tfoot_customer"></tfoot>
+                </table>
             </div>
-<!-- END CONTENT BODY -->
+            <div id="id_div_tbl_order" class="tab_show tab_order display_hide">
+                 <table  class="table tsa_tbl">
+                    <thead id="id_thead_order"></thead>
+                    <tbody id="id_tbody_order"></tbody>
+                    <tfoot id="id_tfoot_order"></tfoot>
+                </table>
+            </div>
+            <div id="id_div_tbl_planning" class="content_header tab_show tab_planning display_hide">
+                <div class="content_subheader_left mx-2">
+                    <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
+                </div>
+                 <table class="table tsa_tbl">
+                    <thead id="id_thead_planning"></thead>
+                    <tbody id="id_tbody_planning"></tbody>
+                    <tfoot id="id_tfoot_planning"></tfoot>
+                </table>
+            </div>
+            <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
+                {% include 'includes/calendar.html' %}
+            </div>
+<!-- =================== DATA FORM  =================== -->
+            <div id="id_div_data_form" class="tab_show tab_form display_hide">
+                <div class="form-group mx-2">
+                    <label for="id_form_code" class="mx-2 my-2">{% trans 'Short name of customer' %}:</label>
+                    <input id="id_form_code" type="text" data-field= "code"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                    <label for="id_form_name" class="mx-2 my-2">{% trans 'Customer name' %}:</label>
+                    <input id="id_form_name" type="text" data-field= "name"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                </div>
+                <div class="mx-2 my-2">
+                    <button id="id_form_btn_add" type="button" class="btn btn-outline-primary">{% trans 'Add customer' %}</button>
+                    <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
+                </div>
+            </div>
+<!-- =================== END DATA FORM  =================== -->
         </div>
+<!-- END CONTENT BODY -->
+
 <!-- =================== END CONTAINER =================== -->
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
@@ -175,7 +174,9 @@
         </div>
 
     {% else %}
-        <div class="alert alert-danger">{% trans 'Error' %}</div>
-        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
     {% endif %}
+    </div>
 {% endblock %}

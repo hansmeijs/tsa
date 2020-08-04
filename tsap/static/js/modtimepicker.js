@@ -7,10 +7,10 @@
     let mod_quicksave_initialized = false;
 
 //========= ModTimepickerOpen  ====================================
-    function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        //console.log("=== MODAL  ModTimepickerOpen  =====");
-        //console.log( "tp_dict: ", tp_dict);
-        //console.log( "st_dict: ", st_dict);
+    function ModTimepickerOpen(loc, el_input, ModTimepickerChanged, tp_dict, st_dict) {
+        console.log("=== MODAL  ModTimepickerOpen  =====");
+        console.log( "tp_dict: ", tp_dict);
+        console.log( "st_dict: ", st_dict);
         // tp_dict.page is not used in Timepicker. It is used when returned to page
         document.getElementById("id_mtp_modal").classList.remove("hidden");
 
@@ -24,9 +24,9 @@
         CalcMinMax(tp_dict)
 
 // ---  display cur_datetime_local in header
-        CreateHeader(tp_dict, st_dict);
+        CreateHeader(loc, tp_dict, st_dict);
 
-        document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
+        document.getElementById("id_timepicker_date").innerText = get_header_date(loc, tp_dict, st_dict)
 
         CreateFooter(tp_dict, st_dict, ModTimepickerChanged);
         CreateTimepickerHours(ModTimepickerChanged, tp_dict, st_dict);
@@ -42,7 +42,7 @@
     }; // function ModTimepickerOpen
 
 //========= CreateHeader  ====================================
-    function CreateHeader(tp_dict, st_dict) {
+    function CreateHeader(loc, tp_dict, st_dict) {
         //console.log( "--- CreateHeader  ");
 
         let el_header = document.getElementById("id_timepicker_header")
@@ -52,7 +52,7 @@
             btn_prevday.innerText = "<-"
             btn_prevday.setAttribute("type", "button")
             btn_prevday.addEventListener("click", function () {
-                SetPrevNextDay("prevday", tp_dict, st_dict)}, false)
+                SetPrevNextDay(loc, "prevday", tp_dict, st_dict)}, false)
         el_header.appendChild(btn_prevday);
 
         let lbl_header = document.createElement("a");
@@ -65,7 +65,7 @@
             btn_nextday.innerText = "->"
             btn_nextday.setAttribute("type", "button")
             btn_nextday.addEventListener("click", function () {
-                SetPrevNextDay("nextday", tp_dict, st_dict)}, false)
+                SetPrevNextDay(loc, "nextday", tp_dict, st_dict)}, false)
         el_header.appendChild(btn_nextday);
     }  // CreateHeader
 
@@ -290,7 +290,7 @@
     }  // CreateTimepickerCell
 
 //========= SetPrevNextDay  ====================================
-    function SetPrevNextDay(type_str, tp_dict, st_dict) {
+    function SetPrevNextDay(loc, type_str, tp_dict, st_dict) {
         //console.log("==== SetPrevNextDay  ===== ", type_str);
 
 // ---  make offset 0 when null
@@ -316,7 +316,7 @@
         CalcMinMax_with_newValues(tp_dict, new_day_offset, null, null)
 
 // ---  show new date, also when not in range
-        document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
+        document.getElementById("id_timepicker_date").innerText = get_header_date(loc, tp_dict, st_dict)
 
         HighlightAndDisableHours(tp_dict, "SetPrevNextDay");
         HighlightAndDisableMinutes(tp_dict)
@@ -876,6 +876,7 @@ function CalcMinMax(dict) {
         //console.log( "minoffset: ", minoffset);
         return minoffset
     }  // get_minoffset
+
 //========= get_maxoffset  ========================= PR2020-04-12
     function get_maxoffset(fldName, offset_start, offset_end, break_duration) {
         //console.log( "--- get_minmax_offset  ");
@@ -896,7 +897,7 @@ function CalcMinMax(dict) {
     }
 
 //========= get_header_date  ========================= PR2019-10-13
-    function get_header_date(tp_dict, st_dict) {
+    function get_header_date(loc, tp_dict, st_dict) {
         //console.log( "--- get_header_date  ");
         // Using vanlla JS instead of moment.js.
 
@@ -918,9 +919,7 @@ function CalcMinMax(dict) {
                     let date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
                     // add / subtract curDayOffset from date_JS
                     date_JS.setDate(date_JS.getDate() + curDayOffset);
-                    date_text = format_date_vanillaJS (date_JS,
-                                st_dict["month_list"], st_dict["weekday_list"], st_dict["user_lang"],
-                                false, false);  // hide_weekday = false, hide_year = false
+                    date_text = format_dateJS_vanilla (loc, date_JS) // hide_weekday = false, hide_year = false
                 }
             } else {
                 if (curDayOffset < 0) {
@@ -962,5 +961,3 @@ function CalcMinMax(dict) {
         const within_range = !out_of_range;
         return within_range
     }  // mtp_period_within_range
-
-

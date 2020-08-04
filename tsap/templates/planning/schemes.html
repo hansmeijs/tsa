@@ -3,9 +3,11 @@
 {% load static %}
 
 {% block title %}{% trans 'Planning' %}{% endblock %}
+
 {% block stylesheet %}
     <link rel="stylesheet" href="{% static 'css/grid.css' %}">
 {% endblock %}
+
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
     <script src="{% static 'js/modtimepicker.js' %}"></script>
@@ -42,15 +44,14 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    {% if user.is_authenticated %}
+    <div class="tsa_margin_top_48 mx-4">
+    {% if user.is_authenticated and user.is_perm_planner %}
 <!-- =================== msgbox  =================== -->
     <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
     </div>
-
 <!-- =================== MODAL SCHEME =================== -->
     {% include 'includes/modscheme.html' %}
-
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
     <div class="modal" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -135,7 +136,6 @@
             </div>
         </div>
     </div>
-
 <!-- =================== MODAL GRID TEAM  =================== -->
     {% include 'includes/modgridteam.html' %}
 <!-- =================== MODAL GRID SHIFT  =================== -->
@@ -146,20 +146,14 @@
     {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL ABSENCE  =================== -->
     {% include 'includes/modabsence.html' %}
-
 <!-- =================== CONFIRM =================== -->
     {% include 'includes/confirm.html' %}
-<!-- =================== POPUP DATE  =================== -->
-     <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
-         <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
-     </div>
 
 <!-- =================== CONTAINER =================== -->
-    <div class="containerXX">
 
     <!-- box with scheme input elements -->
     <div class="mx-4 my-1">
-        <!-- CONTENT HEADER - LOADER -->
+<!-- CONTENT HEADER - LOADER -->
         <div class="mt-5">
             <div class="content_header">
                 <div class="content_subheader_left tsa_flex_4 mx-2">
@@ -272,8 +266,7 @@
 
         </div>
     </div>
-<!-- flex_container -->
- </div>
+
     <div id="id_data"
         data-datalist_download_url="{% url 'datalist_download_url' %}"
         data-settings_upload_url="{% url 'settings_upload_url' %}"
@@ -303,7 +296,9 @@
     </div>
 
     {% else %}
-        <div class="alert alert-danger">{% trans 'Error' %}</div>
-        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
     {% endif %}
+    </div>
 {% endblock %}

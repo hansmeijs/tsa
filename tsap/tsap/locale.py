@@ -990,6 +990,43 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['info_not_billable'] = _('Changes in worked hours will not be passed on to the invoice.')
         dict['info_remove_billable'] = _('The setting of a higher level will be used.')
 
+# ====== PAGE USER ========================= PR2019-11-19
+    elif page == 'user':
+
+        dict['User_list'] = _('User list')
+        dict['Permissions'] = _('Permissions')
+        dict['User'] = _('User')
+        dict['Read_only'] = _('Read only')
+        dict['Read_only_2lines'] =  pgettext_lazy('2 lines', 'Read\nonly')
+        dict['HR_manager'] = _('HR manager')
+        dict['HR_manager_2lines'] =  pgettext_lazy('2 lines', 'HR\nmanager')
+        dict['Supervisor'] = _('Supervisor')
+        dict['Account_manager'] = _('Account manager')
+        dict['Account_manager_2lines'] =  pgettext_lazy('2 lines', 'Account\nmanager')
+        dict['System_administrator'] = _('System administrator')
+        dict['System_administrator_2lines'] = pgettext_lazy('2 lines', 'System\nadministrator')
+
+        dict['Username'] = _('Username')
+        dict['Name'] = _('Name')
+        dict['Email_address'] = TXT_Email_address
+        dict['Linked_to_employee'] = _('Linked to employee')
+        dict['Activated_at'] = _('Activated at')
+        dict['Add_user'] = _('Add user')
+        dict['Delete_user'] = _('Delete user')
+        dict['This_user'] = _('This user')
+        dict['Submit_employee_as_user'] = _('Submit employee as user')
+        dict['Submit'] = _('Submit')
+
+        dict['No_user_selected']  = _('There is no user selected.')
+        dict['Make_user_inactive'] = _('Make user inactive.')
+
+        dict['msg_user_info'] = [
+            str(_('Required, maximum %(max)s characters. Letters, digits and @/./+/-/_ only.') % {'max': c.USERNAME_SLICED_MAX_LENGTH}),
+            str(_('Required, maximum %(max)s characters.') % {'max': c.USER_LASTNAME_MAX_LENGTH}),
+            str(_('Required. It must be a valid email address.'))]
+
+        dict['Click_to_register_new_user'] = _('Click the submit button to register the new user.')
+        dict['We_will_send_an_email_to_the_new_user'] = _('We will send an email to the new user, with a link to create a password and activate the account.')
 
     return dict
 
@@ -1154,10 +1191,11 @@ TXT_Upload_employees = _('Upload employees')
 TXT_Upload_payroll_periods = _('Upload payroll periods')
 
 
+TXT_Email_address = _('Email address')
+
 TXT_Employee = _('Employee')
 TXT_Employees = _('Employees')
 TXT_This_employee = _('This employee')
-
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
 TXT_Delete_employee = _('Delete employee')
@@ -1200,7 +1238,7 @@ TXT_Absence_categories = _('Absence categories')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_absence_categories = _('No absence categories')
 TXT_Delete_abscat = _('Delete absence category')
-TXT_Make_abscat_inactive = _('Make absence category inactive')
+TXT_Make_abscat_inactive = _('Make absence category inactive.')
 TXT_Add_abscat = _('Add absence category')
 
 TXT_Add_absence = _('Add absence')
@@ -1238,10 +1276,9 @@ TXT_has_overlapping_shift = _("has overlapping shift")
 
 TXT_Shift_outside_display_period = _("Shift outside display period")
 
-
 TXT_This_payrollperiod = _('This payroll period')
 TXT_Add_payrollperiod = _('Add payroll period')
-TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
+TXT_Make_payrollperiod_inactive = _('Make payroll period inactive.')
 TXT_Delete_payrollperiod = _('Delete payroll period')
 
 TXT_Function = _("Function")
@@ -1249,21 +1286,21 @@ TXT_Functions = _("Functions")
 TXT_No_functions = _('No functions')
 TXT_This_function = _('This function')
 TXT_Add_function= _('Add function')
-TXT_Make_function_inactive = _('Make function inactive')
+TXT_Make_function_inactive = _('Make function inactive.')
 TXT_Delete_function = _('Delete function')
 
 TXT_Wage_code = _('Wage code')
 TXT_Hourly_wage = _('Hourly wage')
 TXT_This_wagecode = _('This wage code')
 TXT_Add_wagecode= _('Add wage code')
-TXT_Make_wagecode_inactive = _('Make wage code inactive')
+TXT_Make_wagecode_inactive = _('Make wage code inactive.')
 TXT_Delete_wagecode = _('Delete wage code')
 
 TXT_Wage_factor = _('Wage factor')
 TXT_Percentage = _('Percentage')
 TXT_This_wagefactor = _('This wage factor')
 TXT_Add_wagefactor= _('Add wage factor')
-TXT_Make_wagefactor_inactive = _('Make wage factor inactive')
+TXT_Make_wagefactor_inactive = _('Make wage factor inactive.')
 TXT_Delete_wagefactor = _('Delete wage factor')
 
 TXT_one = _('one')
@@ -1422,7 +1459,6 @@ TXT_Last_date = _('Last date')
 TXT_First_date_in_service = _('First date in service')
 TXT_Last_date_in_service = _('Last date in service')
 TXT_is_in_service_thru = _(' is in service thru ')
-
 
 TXT_Duration = _('Duration')
 

@@ -124,6 +124,9 @@ urlpatterns = [
         path('<int:pk>/edit', account_views.UserEditView.as_view(), name='user_edit_url'),
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
 
+        path('users_upload', account_views.UsersUploadView.as_view(), name='users_upload_url'),
+        path('user_add_upload', account_views.UserAddUploadView.as_view(), name='user_add_upload_url'),
+
         path('settings_upload', account_views.UserSettingsUploadView.as_view(), name='settings_upload_url'),
 
     ])),
@@ -179,7 +182,6 @@ urlpatterns = [
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
         path('grid_upload', planning_views.GridUploadView.as_view(), name='grid_upload_url'),
 
-        path('prices', planning_views.PricesView.as_view(), name='prices_url'),
         path('prices_upload', prices_views.PricesUploadView.as_view(), name='prices_upload_url'),
 
     ])),

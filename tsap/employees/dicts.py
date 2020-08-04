@@ -20,6 +20,8 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
     #logger.debug(' =============== create_employee_list ============= ')
 
+    company_pk = company.pk
+    logger.debug('company_pk ' + str(company_pk))
     sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
         e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
         e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,
@@ -31,15 +33,17 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
         LEFT JOIN companies_wagecode AS fc ON (fc.id = e.functioncode_id) 
         LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
  
-        WHERE e.company_id = %(compid)s
+        WHERE ( e.company_id = %(compid)s::INT )
         AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
         AND ( e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL OR %(rdf)s IS NULL )
         AND ( e.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
+        
         ORDER BY LOWER(e.code) ASC
         """
+
     newcursor = connection.cursor()
     newcursor.execute(sql_employee, {
-        'compid': company.id,
+        'compid': company_pk,
         'rdf': datefirst_iso,
         'rdl': datelast_iso,
         'inactive': inactive
@@ -48,8 +52,6 @@ def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, 
 
     employee_list = []
     for employee in employees:
-        #logger.debug('...................................')
-        #logger.debug('employee' + str(employee))
         item_dict = {}
         create_employee_dict_from_sql(employee, item_dict, user_lang)
         if item_dict:
