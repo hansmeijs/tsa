@@ -15,9 +15,9 @@
 
                 <div  id="id_mod_period_body" class="modal-body">
 
-                    <div id="id_modperiod_div_selectperiod" class="mx-2 my-4">
+                    <div id="id_modperiod_div_selectperiod" class="mx-2 mb-2">
 
-                        <h5 class="mx-2 my-1">{% trans 'Select period' %}:</h5>
+                        <!-- <h5 class="mx-2 my-1">{% trans 'Select period' %}:</h5> -->
                         <div class="modal_container">
     <!-- this div contains range select table -->
                             <div class="modal_body_left">
@@ -41,19 +41,18 @@
                                         <label for="id_mod_period_oneday" class="mb-0">{% trans 'One day only' %}</label>
                                     </span>
                                 </div>
+                                <div id="id_mod_period_div_extend" class="modal_body_left mt-5 display_hide">
+                                    <label for="id_mod_period_extend"  class="mx-2 my-1">{% trans 'Extend period with' %}:</label>
+                                    <select id="id_mod_period_extend" class="form-control"
+                                           autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                                    </select>
+                                    <div class="mx-2 my-1">
+                                        <small >{% trans 'You can add up to 24 hours to the beginning and end of the period.' %}</small>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
-                    </div>
-
-                    <div id="id_mod_period_div_extend" class="display_hide">
-                        <h6 class="mx-2 my-1">{% trans 'Extend period with' %}:</h6>
-                        <select id="id_mod_period_extend"
-                               autocomplete="off"
-                               ondragstart="return false;"
-                               ondrop="return false;"
-                               class="form-control">
-                        </select>
-                        <small class="mx-2 my-1">{% trans 'You can add up to 24 hours to the beginning and end of the period.' %}:</small>
                     </div>
                 </div>
 

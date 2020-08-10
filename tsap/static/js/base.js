@@ -38,7 +38,7 @@
     };
 }());
 
-
+/*
     document.addEventListener('DOMContentLoaded', function() {
         "use strict";
 
@@ -56,7 +56,7 @@
             $('a[aria-expanded=true]').attr('aria-expanded', 'false');
         });
     })
-
+*/
 //========= SUBMENU ==================================
 //========= SetMenubuttonActive  ====================================
     function SetMenubuttonActive(btn_clicked) {
@@ -195,35 +195,7 @@
         }
         return status_value
 }
-// NOT IN USE
-//========= get_absence_from_catsum  ============= PR2019-08-30
-    function get_XXXabsence_from_catsumXXX(cat_sum) {
-        //PR2019-10-04 checks if 512 is in catsum array 08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
-        let is_absence = false
-        if (cat_sum >= 512){
-            let i = 15;
-            // In Do While loop, condition is tested at the end of the loop so, Do While executes the statements in the code block at least once
-            do  {
-                i--;
-                // get power of 'i'
-                // power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
-                // exponentiation operator ** not working in IE11; back to Math.pow PR2019-09-11
-                // if cat_sum >= power : add power to list
-                power = Math.pow(2, i);
 
-                if (cat_sum >= power) {
-                    // unshift adds a new item to the beginning of an array:
-                    if (power === 512){
-                         is_absence = true;
-                         break
-                     }
-                    // deduct power from cat_sum, loop with remainder of cat_sum
-                    cat_sum -= power;
-                }
-            } while (cat_sum > 0 );
-        }
-        return is_absence
-    }
 // NOT IN USE
 //========= get_power_array  ============= PR2019-08-30
     function get_XXXpower_arrayXXX(value) {
@@ -416,7 +388,7 @@
     function get_mapdict_from_datamap_by_id(data_map, map_id) {
         // function looks up map_id in data_map and returns dict from map
         let map_dict;
-        if(!!data_map && !!map_id){
+        if(data_map && map_id){
             map_dict = data_map.get(map_id);
             // instead of:
             //for (const [key, data_dict] of data_map.entries()) {
@@ -453,6 +425,7 @@
 
 //========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
     function refresh_datamap(data_list, data_map, tblName) {
+        //console.log(" --- refresh_datamap ---")
         data_map.clear();
         const data_list_length = data_list.length
         if (data_list && data_list_length) {
@@ -471,6 +444,16 @@
         }
     };
 
+//========= update_map_item  ================== PR2020-08-09
+    function update_map_items(data_map, update_rows){
+        //console.log(" --- update_map_items ---")
+        // data_map must be in format '_rows' with row.mapid
+        if (update_rows) {
+            for (let i = 0, row; row = update_rows[i]; i++) {
+                data_map.set(row.mapid, row);
+            }
+        }
+    }
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
         //console.log(" --- update_map_item ---")

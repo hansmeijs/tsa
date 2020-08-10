@@ -2767,7 +2767,7 @@ function HandleExpand(mode){
         const col01_hdr = (billing_level === 2) ? loc.Employee : (billing_level === 1) ? "" : loc.Order
         headerrow = [col00_hdr, col01_hdr, loc.Planned_hours, loc.Worked_hours, "",
                             loc.Billing_hours, "", loc.Hourly_rate, loc.Amount, ""]
-        const col_count =  headerrow.length;
+        const col_count = headerrow.length;
 
         const tblName = (billing_level === 0) ? "billing_agg" :
                         (billing_level === 1) ? "billing_rosterdate" :
@@ -2823,7 +2823,9 @@ function HandleExpand(mode){
             if (billing_total_row) {
                 let cell_values = [];
                 let index_last_datarow = row_index - 2
-                if (index_last_datarow < index_first_datarow) {index_last_datarow = index_first_datarow}
+                if (index_last_datarow < index_first_datarow) {
+                    index_last_datarow = index_first_datarow
+                };
                 for (let x = 0; x < col_count; x++) {
                     const cell_index = b_get_excel_cell_index (x, row_index);
 
@@ -2845,6 +2847,7 @@ function HandleExpand(mode){
 
             const cell_index = b_get_excel_cell_index ( col_count - 1, row_index);
             ws["!ref"] = "A1:" + cell_index;
+
             // set column width
             const ws_cols = get_col_width(col_count, billing_level)
             ws['!cols'] = ws_cols;
@@ -2853,10 +2856,8 @@ function HandleExpand(mode){
     }  // FillExcelRows
 
     function get_cell_formula(x, index_first_datarow, index_last_datarow, billing_level){
-
         const cell_first = b_get_excel_cell_index (x, index_first_datarow);
         const cell_last = b_get_excel_cell_index (x, index_last_datarow);
-
         let cell_formula = null;
         if (billing_level === 2){
                 if ([4,5,6,9].indexOf(x) > -1){

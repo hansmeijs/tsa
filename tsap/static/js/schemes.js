@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MAB_input_employee.addEventListener("focus", function() {MAB_GotFocus("employee", el_MAB_input_employee)}, false )
             el_MAB_input_employee.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("employee", el_MAB_input_employee)}, 50)});
-        let el_MAB_input_abscat = document.getElementById("id_MAB_input_abscat")
+        let el_MAB_input_abscat = document.getElementById("id_MAB_input_order")
             el_MAB_input_abscat.addEventListener("focus", function() {MAB_GotFocus("order", el_MAB_input_abscat)}, false )
             el_MAB_input_employee.addEventListener("blur", function() {console.log("blur order")}, false )
             el_MAB_input_abscat.addEventListener("keyup", function(event){
@@ -3327,15 +3327,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
                 const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                (fldName === "timeduration") ? loc.Working_hours : null;
-        let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
-                        url_settings_upload: url_settings_upload,
+        let st_dict = { url_settings_upload: url_settings_upload,
                         text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
+                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered
                         };
         //console.log("st_dict", st_dict);
-        ModTimepickerOpen(loc, el_input, MGS_TimepickerResponse, tp_dict, st_dict)
+        mtp_TimepickerOpen(loc, el_input, MGS_TimepickerResponse, tp_dict, st_dict)
     };  // MGS_TimepickerOpen
 
 //========= MGS_TimepickerResponse  ============= PR2019-10-12
@@ -5529,7 +5528,10 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log( "mmmmmmmmmmmmmmmmmmmmmmmmmmel_msg.innerText", el_msg.innerText);
         el_MAB_datefirst.value = mod_dict.datefirst;
         el_MAB_datelast.value = mod_dict.datelast;
-
+// set datelast = datefirst when  datelast  < datefirst
+        if(el_MAB_datefirst.value && el_MAB_datelast.value && el_MAB_datelast.value < el_MAB_datefirst.value)  {
+            el_MAB_datelast.value = el_MAB_datefirst.value;
+        }
         cal_SetDatefirstlastMinMax(el_MAB_datefirst, el_MAB_datelast, employee_datefirst, employee_datelast);
         el_MAB_datelast.readOnly = el_MAB_oneday.checked;
     }  // MAB_UpdateDatefirstlastInputboxes
@@ -5599,16 +5601,15 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
                     const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                    (fldName === "timeduration") ? loc.Working_hours : null;
-            let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
-                            url_settings_upload: url_settings_upload,
+            let st_dict = { url_settings_upload: url_settings_upload,
                             text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                             txt_dateheader: txt_dateheader,
                             txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
+                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered
                             };
             //console.log("tp_dict", tp_dict);
             //console.log("st_dict", st_dict);
-            ModTimepickerOpen(loc, el_input, MAB_TimepickerResponse, tp_dict, st_dict)
+            mtp_TimepickerOpen(loc, el_input, MAB_TimepickerResponse, tp_dict, st_dict)
         }
     };  // MAB_TimepickerOpen
 
@@ -5639,7 +5640,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         }
       //  }
 
-        MSO_MSE_CalcMinMaxOffset(mod_dict.shift, true)
+        cal_CalcMinMaxOffset(mod_dict.shift, true)
         // TODO if is_absence: also change shift_pk in schemeitems (is only oneschemeitem: cycle = 1
         //if (is_absence && shift_has_changed ){
         //}
@@ -6263,16 +6264,15 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
                     const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                (fldName === "timeduration") ? loc.Working_hours : null
-            let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
-                            url_settings_upload: url_settings_upload,
+            let st_dict = { url_settings_upload: url_settings_upload,
                             text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                             txt_dateheader: txt_dateheader, txt_title_btndelete: loc.Remove_time,
                             txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
+                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered
                             };
             console.log("st_dict", st_dict);
 
-            ModTimepickerOpen(loc, el_input, UploadTimepickerChanged, tp_dict, st_dict)
+            mtp_TimepickerOpen(loc, el_input, UploadTimepickerChanged, tp_dict, st_dict)
 
         }  //  if(!!pk_int)
 

@@ -9,9 +9,6 @@
     <script src="{% static 'js/modtimepicker.js' %}"></script>
 {% endblock %}
 
-<!-- =================== MODAL TIMEPICKER  =================== -->
-{% include 'includes/modtimepicker.html' %}
-
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
@@ -66,17 +63,20 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
+    <div class="tsa_margin_top48_left24 mx-4">
 
     {% if user.is_authenticated %}
+    {% if user.is_perm_planner %}
 
 <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
-<!-- =================== POPUP DATE  =================== -->
+<!-- =================== POPUP DATE  ===================
          <div id="id_popup_date_container" class="popup_box display_hide">
              <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
          </div>
+-->
 <!-- =================== MODAL STATUS  =================== -->
         <div class="modal " id="id_mod_status" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-md " role="document">
@@ -154,6 +154,9 @@
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modselectperiod.html' %}
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+
 <!-- =================== MODAL ROSTERDATE  =================== -->
         {% include 'includes/modrosterdate.html' %}
 <!-- =================== MODAL ROSTER ORDER  =================== -->
@@ -291,4 +294,10 @@
             <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
         </div>
     {% endif %}
+    {% else %}
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
+        </div>
+    {% endif %}
+    </div>
 {% endblock %}

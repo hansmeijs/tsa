@@ -412,12 +412,12 @@ def create_order_dict(order, item_dict):
 # end of create_order_dict
 
 
-def create_absencecategory_list(request):
+def create_abscat_order_list(request):
     # --- create list of all active absence categories of this company PR2019-06-25
     # each absence category contains abscat_customer, abscat_order
-    order_list = []
+    abscat_order_list = []
 
-    #logger.debug(" --- create_absencecategory_list ---")
+    #logger.debug(" --- create_abscat_order_list ---")
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
     #logger.debug(" --- get_or_create_absence_customer ---")
@@ -427,9 +427,40 @@ def create_absencecategory_list(request):
     for order in orders:
         #logger.debug(" --- for order in orders ---")
         dict = create_absencecat_dict(order, request)
-        order_list.append(dict)
+        abscat_order_list.append(dict)
+    # abscat_order_rows is used in employee page,
+    #  TODin scheme page  replace abscat_order_list by abscat_order_rows
+    # Note: order_id must not have alias: 'id' is used in refresh_datamap
+    sql_abscat_orders = """ SELECT  
+        o.id, 
+        c.id AS c_id, 
+        o.code AS o_code,
+        c.code AS c_code,
+        c.company_id AS comp_id,
 
-    return order_list
+        o.identifier AS o_identifier,
+        o.nohoursonpublicholiday AS o_noph,
+        o.nohoursonsaturday AS o_nosat,
+        o.nohoursonsunday AS o_nosun,
+        o.nopay AS o_nopay,
+        o.sequence AS o_sequence,
+        o.inactive AS o_inactive
+
+        FROM companies_order AS o 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+
+        WHERE (c.company_id = %(compid)s::INT) 
+        AND (c.isabsence)
+        ORDER BY LOWER(o.code) 
+        """
+    company_pk = request.user.company_id
+    newcursor = connection.cursor()
+    newcursor.execute(sql_abscat_orders, {
+        'compid': company_pk
+    })
+    abscat_order_rows = f.dictfetchall(newcursor)
+
+    return abscat_order_list, abscat_order_rows
 
 
 def create_absencecat_dict(order, request):

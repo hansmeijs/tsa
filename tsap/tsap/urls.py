@@ -18,7 +18,7 @@ from accounts.forms import CompanyAuthenticationForm
 urlpatterns = [
 
     path('', company_views.home,  name='home'),
-    path('admin/', admin.site.urls),
+    #path('admin/', admin.site.urls),
 
     #path('login', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     #path('login', auth_views.LoginView.as_view(), name='login'),
@@ -124,8 +124,8 @@ urlpatterns = [
         path('<int:pk>/edit', account_views.UserEditView.as_view(), name='user_edit_url'),
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
 
-        path('users_upload', account_views.UsersUploadView.as_view(), name='users_upload_url'),
         path('user_add_upload', account_views.UserAddUploadView.as_view(), name='user_add_upload_url'),
+        path('users_upload', account_views.UserPermitsUploadView.as_view(), name='users_upload_url'),
 
         path('settings_upload', account_views.UserSettingsUploadView.as_view(), name='settings_upload_url'),
 
@@ -155,7 +155,8 @@ urlpatterns = [
     ])),
 
     path('employee/', include([
-        path('', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
+        path('employee', employee_views.EmployeeView.as_view(), name='employee_url'),
+        path('employees', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
         path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
 
         path('teammember_upload', employee_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),

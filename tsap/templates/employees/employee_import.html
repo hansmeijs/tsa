@@ -40,9 +40,9 @@
 {% include 'includes/confirm.html' %}
 
 <div class="containerXX">
-  {% if user.is_authenticated %}
-    {% if user.is_authenticated %}
-        <div class="ta_l tsa_margin_top_48">
+<div class="ta_l tsa_margin_top48_left24">
+  {% if not user.is_authenticated %}
+     {% if user.is_perm_hrman %}
             <h4 class="ta_l mx-4 mt-4">{% trans 'Upload employees' %}</h4>
 
             <div id="id_header_container" class="mx-4 mt-4">
@@ -253,16 +253,16 @@
                 data-settingsXX = "{{ setting }}"
             ></div>
 
-        </div>
     {% else %}
-      <form class="form-inline ml-auto">
-        <a href="{% url 'home' %}" class="btn btn-outline-secundary">{% trans "You don't have permission to view this page." %}</a>
-      </form>
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
     {% endif %}
   {% else %}
-    <form class="form-inline ml-auto">
-      <a href="{% url 'login' %}" class="btn btn-outline-secundary">{% trans 'You must be logged in to view this page' %}</a>
-    </form>
+    <div class="mx-4">
+        <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
+    </div>
   {% endif %}
+</div>
 </div>
 {% endblock %}

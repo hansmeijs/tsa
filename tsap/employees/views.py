@@ -94,6 +94,22 @@ class EmployeeListView(View):
         #return render(request, 'employees.html', param)
         return render(request, 'employees.html')
 
+
+# === Employee ===================================== PR2020-08-07
+@method_decorator([login_required], name='dispatch')
+class EmployeeView(View):
+
+    def get(self, request):
+        if request.user.company is not None:
+
+# - Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+        return render(request, 'employee.html')
+
+
 @method_decorator([login_required], name='dispatch')
 class EmployeeUploadView(UpdateView):  # PR2019-07-30
 
@@ -101,8 +117,10 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
         logger.debug(' ============= EmployeeUploadView ============= ')
 
         update_wrap = {}
+        has_permit = False
         if request.user is not None and request.user.company is not None:
-
+            has_permit = (request.user.is_perm_planner or request.user.is_perm_hrman)
+        if has_permit:
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -182,8 +200,10 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
         logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
+        has_permit = False
         if request.user is not None and request.user.company is not None:
-
+            has_permit = (request.user.is_perm_planner or request.user.is_perm_hrman)
+        if has_permit:
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -206,6 +226,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 # 4. get iddict variables
                 # mode = f.get_dict_value(upload_dict, ('id','mode'))
                 shift_option = f.get_dict_value(upload_dict, ('id','shiftoption'))
+                logger.debug('shift_option: ' + str(shift_option))
 
                 # key 'mode' is used in calendar_employee_upload etc .
                 # from customer_calendar shiftoption': 'schemeshift'
@@ -250,10 +271,11 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     update_wrap = grid_shift_upload(request, upload_dict, user_lang)
 
                 elif shift_option == 'isabsence':
-                    update_dict = absence_upload(request, upload_dict, user_lang)
+                    update_dict, absence_row = absence_upload(request, upload_dict, user_lang)
                     update_wrap['absence_update'] = update_dict
-
+                    update_wrap['absence_row'] = absence_row
                 else:
+                    # TODO change to shift_option
                     table = f.get_dict_value(upload_dict, ('id','table'), '')
                     #logger.debug('table: ' + str(table))
                     if table == 'teammember':
@@ -1232,7 +1254,10 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
     logger.debug(' --- absence_upload ---')
     logger.debug('upload_dict: ' + str(upload_dict))
 
-    update_dict = {}
+    absence_row = {}
+    update_dict = {} # tobe deprecated
+    # PR2020-08-09 new approach: updated_dict only contains update status , values are in absence_rows
+    update_status = {'updated': []}
 
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
@@ -1257,9 +1282,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             teammember = m.Teammember.objects.get_or_none(
                 id=pk_int,
                 team__scheme__order__customer__company=request.user.company)
-            logger.debug('teammember: ' + str(teammember))
-
             if teammember:
+                update_status['mapid'] = 'teammember_' + str(teammember.pk)
                 team = teammember.team
                 if team:
                     scheme = team.scheme
@@ -1272,8 +1296,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                         # delete_instance adds 'deleted' or 'error' to id_dict
                         # teammember, team, shift and schemeitem all have 'on_delete=CASCADE'
                         # therefore deleting scheme also deletes the other records
-                        deleted_ok = m.delete_instance(scheme, update_dict, request, this_text)
-                        logger.debug('deleted_ok: ' + str(deleted_ok))
+                        deleted_ok, msg_errNIU = m.delete_instance(scheme, update_dict, request, this_text)
+                        update_status['deleted'] = deleted_ok
         else:
 
 # - get absence category info from order: new_order_pk
@@ -1418,14 +1442,19 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
                 # create new teammember
                             # datefirst is saved in scheme, not in teammember
-                            teammember = m.Teammember(
-                                team=team,
-                                employee=employee,
-                                isabsence=True)
-                            teammember.save(request=request)
-                            logger.debug('teammember: ' + str(teammember))
-
-                            update_dict['id']['created'] = True
+                            try:
+                                teammember = m.Teammember(
+                                    team=team,
+                                    employee=employee,
+                                    isabsence=True)
+                                teammember.save(request=request)
+                                logger.debug('teammember: ' + str(teammember))
+                                update_dict['id']['created'] = True
+                                update_status['mapid'] = 'teammember_' + str(teammember.pk)
+                                update_status['created'] = True
+                            except:
+                                update_dict['id']['created'] = False
+                                update_status['created'] = False
 
                 # create new schemeitem
                             # create only one schemeitem
@@ -1454,6 +1483,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                     team = teammember.team
                     if team:
                         scheme= team.scheme
+                    update_status['mapid'] = 'teammember_' + str(teammember.pk)
+
                 logger.debug('teammember: ' + str(teammember))
                 logger.debug('scheme: ' + str(scheme))
 
@@ -1463,30 +1494,37 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                         if new_order != scheme.order:
                             scheme.order = new_order
                             update_dict['order']['updated'] = True
+                            update_status['updated'].append('order')
                     if is_datefirst_update:
                         if datefirst_dte != scheme.datefirst:
                             scheme.datefirst = datefirst_dte
                             update_dict['datefirst']['updated'] = True
+                            update_status['updated'].append('datefirst')
                     if is_datelast_update:
-                        if datelast_dte != scheme.datefirst:
+                        if datelast_dte != scheme.datelast:
                             scheme.datelast = datelast_dte
                             update_dict['datelast']['updated'] = True
+                            update_status['updated'].append('datelast')
                     if is_nopay_update:
                         if nopay != scheme.nopay:
                             scheme.nopay = nopay
                             update_dict['nopay']['updated'] = True
+                            update_status['updated'].append('nopay')
                     if is_nohoursonsaturday_update:
                         if nohoursonsaturday != scheme.nohoursonsaturday:
                             scheme.nohoursonsaturday = nohoursonsaturday
                             update_dict['nohoursonsaturday']['updated'] = True
+                            update_status['updated'].append('nohoursonsaturday')
                     if is_nohoursonsunday_update:
                         if nohoursonsunday != scheme.nohoursonsunday:
                             scheme.nohoursonsunday = nohoursonsunday
                             update_dict['nohoursonsunday']['updated'] = True
+                            update_status['updated'].append('nohoursonsunday')
                     if is_nohoursonpublicholiday_update:
                         if nohoursonpublicholiday != scheme.nohoursonpublicholiday:
                             scheme.nohoursonpublicholiday = nohoursonpublicholiday
                             update_dict['nohoursonpublicholiday']['updated'] = True
+                            update_status['updated'].append('nohoursonpublicholiday')
 
                     if is_order_update or is_datefirst_update or is_datelast_update or is_nopay_update or \
                             is_nohoursonsaturday_update or is_nohoursonsunday_update or is_nohoursonpublicholiday_update:
@@ -1525,15 +1563,19 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                                 if is_offsetstart_update and offset_start != shift.offsetstart:
                                     shift.offsetstart = offset_start
                                     update_dict['shift']['offsetstart'] = {'updated': True}
+                                    update_status['updated'].append('offsetstart')
                                 if is_offsetend_update and offset_end != shift.offsetend:
                                     shift.offsetend = offset_end
                                     update_dict['shift']['offsetend'] = {'updated': True}
+                                    update_status['updated'].append('offsetend')
                                 if is_breakduration_update and break_duration != shift.breakduration:
                                     shift.breakduration = break_duration
                                     update_dict['shift']['breakduration'] = {'updated': True}
+                                    update_status['updated'].append('breakduration')
                                 if is_timeduration_update and time_duration != shift.timeduration:
                                     shift.timeduration = time_duration
                                     update_dict['shift']['timeduration'] = {'updated': True}
+                                    update_status['updated'].append('timeduration')
                                 shift.save(request=request)
                                 logger.debug('updated shift: ' + str(shift))
                         else:
@@ -1572,12 +1614,16 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 # f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
             if teammember:
                 ed.create_teammember_dict_from_model(teammember, update_dict)
-
+                # PR2020-08-08 new approasch: create dict_row
+                absence_listNIU, absence_rows = ed.create_absence_list(filter_dict={}, teammember_pk=teammember.pk, request=request)
+                if absence_rows:
+                    absence_row = absence_rows[0]
 # h. remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
 
+    absence_row['status'] = update_status
 # J. return update_dict
-    return update_dict
+    return update_dict, absence_row
 
 
 def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
@@ -1823,42 +1869,25 @@ class EmployeeImportView(View):
 
     def get(self, request):
         param = {}
-
-        if request.user.company is not None:
+        has_permit = False
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
             # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
             #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
             #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
             #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
-# LOCALE #
-    # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
     # get coldef_list  and caption
             coldef_list = c.COLDEF_EMPLOYEE
             captions_dict = c.CAPTION_IMPORT
 
-            # oooooooooooooo get_mapped_coldefs_order ooooooooooooooooooooooooooooooooooooooooooooooooooo
-            # function creates dict of fieldnames of table Order
-            # and gets mapped coldefs from table Companysetting
-            # It is used in ImportOrdert to map Excel fieldnames to TSA fieldnames
-            # mapped_coldefs: {
-            #     "worksheetname": "Compleetlijst",
-            #     "no_header": 0,
-            #     "coldefs": [{"tsaKey": "idnumber", "caption": "ID nummer", "excKey": "ID"},
-            #                 {"tsapKey": "lastname", "caption": "Achternaam", "excKey": "ANAAM"}, ....]
-            #logger.debug('==============get_mapped_coldefs_order ============= ')
-
-            mapped_coldefs = {}
-
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
             stored_setting = {}
             settings_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
-            #logger.debug('settings_json: ' + str(settings_json))
             if settings_json:
                 stored_setting = json.loads(m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
-            # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
-            #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
             # don't replace keyvalue when new_setting[key] = ''
             self.has_header = True
@@ -1873,8 +1902,6 @@ class EmployeeImportView(View):
 
             if 'coldefs' in stored_setting:
                 stored_coldefs = stored_setting['coldefs']
-                #logger.debug('stored_coldefs: ' + str(stored_coldefs))
-
                 # skip if stored_coldefs does not exist
                 if stored_coldefs:
                     # loop through coldef_list
@@ -1901,10 +1928,7 @@ class EmployeeImportView(View):
 
             captions = json.dumps(captions_dict, cls=LazyEncoder)
 
-            #param = get_headerbar_param(request, {'stored_columns': coldef_list, 'captions': captions})
             param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
-
-            #logger.debug('param: ' + str(param))
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'employee_import.html', param)
@@ -1917,70 +1941,72 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
         #logger.debug(' ============= EmployeeImportUploadSetting ============= ')
         #logger.debug('request.POST' + str(request.POST) )
         companysetting_dict = {}
-        if request.user is not None :
-            if request.user.company is not None:
-                if request.POST['upload']:
-                    new_setting_json = request.POST['upload']
-                    # new_setting is in json format, no need for json.loads and json.dumps
-                    #logger.debug('new_setting_json' + str(new_setting_json))
+        has_permit = False
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
+            if request.POST['upload']:
+                new_setting_json = request.POST['upload']
+                # new_setting is in json format, no need for json.loads and json.dumps
+                #logger.debug('new_setting_json' + str(new_setting_json))
 
-                    new_setting_dict = json.loads(request.POST['upload'])
-                    #logger.debug('new_setting_dict' + str(new_setting_dict))
+                new_setting_dict = json.loads(request.POST['upload'])
+                #logger.debug('new_setting_dict' + str(new_setting_dict))
 
-                    importtable = new_setting_dict.get('importtable')
-                    #logger.debug('importtable' + str(importtable))
+                importtable = new_setting_dict.get('importtable')
+                #logger.debug('importtable' + str(importtable))
 
-                    settings_key = c.KEY_PAYDATECODE_COLDEFS if importtable == 'paydatecode' else c.KEY_EMPLOYEE_COLDEFS
-                    #logger.debug('settings_key' + str(settings_key))
+                settings_key = c.KEY_PAYDATECODE_COLDEFS if importtable == 'paydatecode' else c.KEY_EMPLOYEE_COLDEFS
+                #logger.debug('settings_key' + str(settings_key))
 
-                    new_worksheetname = ''
-                    new_has_header = True
-                    new_code_calc = ''
-                    new_coldefs = {}
-                    stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
-                    if stored_json:
-                        stored_setting = json.loads(stored_json)
-                        logger.debug('stored_setting: ' + str(stored_setting))
-                        if stored_setting:
-                            new_has_header = stored_setting.get('has_header', True)
-                            new_worksheetname = stored_setting.get('worksheetname', '')
-                            new_code_calc = stored_setting.get('codecalc', '')
-                            new_coldefs = stored_setting.get('coldefs', {})
+                new_worksheetname = ''
+                new_has_header = True
+                new_code_calc = ''
+                new_coldefs = {}
+                stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
+                if stored_json:
+                    stored_setting = json.loads(stored_json)
+                    logger.debug('stored_setting: ' + str(stored_setting))
+                    if stored_setting:
+                        new_has_header = stored_setting.get('has_header', True)
+                        new_worksheetname = stored_setting.get('worksheetname', '')
+                        new_code_calc = stored_setting.get('codecalc', '')
+                        new_coldefs = stored_setting.get('coldefs', {})
 
-                    if new_setting_json:
-                        new_setting = json.loads(new_setting_json)
-                        logger.debug('new_setting' + str(new_setting))
-                        if new_setting:
-                            if 'worksheetname' in new_setting:
-                                new_worksheetname = new_setting.get('worksheetname', '')
-                            if 'has_header' in new_setting:
-                                new_has_header = new_setting.get('has_header', True)
-                            if 'codecalc' in new_setting:
-                                new_code_calc = new_setting.get('codecalc')
-                            if 'coldefs' in new_setting:
-                                new_coldefs = new_setting.get('coldefs', {})
-                        #logger.debug('new_code_calc' + str(new_code_calc))
-                    new_setting = {'worksheetname': new_worksheetname,
-                                   'has_header': new_has_header,
-                                   'codecalc': new_code_calc,
-                                   'coldefs': new_coldefs}
-                    new_setting_json = json.dumps(new_setting)
-                    #logger.debug('new_setting' + str(new_setting))
-                    #logger.debug('---  set_jsonsettingg  ------- ')
-                    #logger.debug('new_setting_json' + str(new_setting_json))
-                    #logger.debug(new_setting_json)
-                    m.Companysetting.set_jsonsetting(settings_key, new_setting_json, request.user.company)
+                if new_setting_json:
+                    new_setting = json.loads(new_setting_json)
+                    logger.debug('new_setting' + str(new_setting))
+                    if new_setting:
+                        if 'worksheetname' in new_setting:
+                            new_worksheetname = new_setting.get('worksheetname', '')
+                        if 'has_header' in new_setting:
+                            new_has_header = new_setting.get('has_header', True)
+                        if 'codecalc' in new_setting:
+                            new_code_calc = new_setting.get('codecalc')
+                        if 'coldefs' in new_setting:
+                            new_coldefs = new_setting.get('coldefs', {})
+                    #logger.debug('new_code_calc' + str(new_code_calc))
+                new_setting = {'worksheetname': new_worksheetname,
+                               'has_header': new_has_header,
+                               'codecalc': new_code_calc,
+                               'coldefs': new_coldefs}
+                new_setting_json = json.dumps(new_setting)
+                #logger.debug('new_setting' + str(new_setting))
+                #logger.debug('---  set_jsonsettingg  ------- ')
+                #logger.debug('new_setting_json' + str(new_setting_json))
+                #logger.debug(new_setting_json)
+                m.Companysetting.set_jsonsetting(settings_key, new_setting_json, request.user.company)
 
-        # only for testing
-                    # ----- get user_lang
-                    #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-                    #tblName = 'employee'
-                    #coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
-                    #if coldefs_dict:
-                    #    companysetting_dict['coldefs'] = coldefs_dict
-                    #logger.debug('new_setting from saved ' + str(coldefs_dict))
+    # only for testing
+                # ----- get user_lang
+                #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                #tblName = 'employee'
+                #coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
+                #if coldefs_dict:
+                #    companysetting_dict['coldefs'] = coldefs_dict
+                #logger.debug('new_setting from saved ' + str(coldefs_dict))
 
-                    #m.Companysetting.set_setting(c.settings_key, new_setting_json, request.user.company)
+                #m.Companysetting.set_setting(c.settings_key, new_setting_json, request.user.company)
 
         return HttpResponse(json.dumps(companysetting_dict, cls=LazyEncoder))
 
@@ -1991,7 +2017,10 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05 PR2020-06-04
     def post(self, request, *args, **kwargs):
         logger.debug(' ========================== EmployeeImportUploadData ========================== ')
         params = {}
-        if request.user.company is not None:# - Reset language
+        has_permit = False
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
             # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -3106,7 +3135,7 @@ class PayrollView(View):
 
     def get(self, request):
         param = {}
-        if request.user.company is not None:
+        if request.user is not None and request.user.company is not None:
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             #param = get_headerbar_param(request, {'stored_columns': coldef_list, 'captions': captions})
@@ -3123,7 +3152,10 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= PayrollUploadView ============= ')
         update_wrap = {}
+        has_permit = False
         if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
 # ----- Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -3172,7 +3204,10 @@ class PayrollImportView(View):
 
     def get(self, request):
         param = {}
-        if request.user.company is not None:
+        has_permit = False
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
             coldef_list = c.COLDEF_PAYDATECODE
             captions_dict = c.CAPTION_IMPORT
 
@@ -3255,7 +3290,7 @@ def upload_abscat_order(upload_dict, user_lang, request):
                     # b. TODO check if there are schemes with this abscat:
                     # delete_employee_from_teammember(instance, request)
                     # c. delete abscat order
-                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                     if deleted_ok:
                         instance = None
         else:
@@ -3322,7 +3357,7 @@ def upload_functioncode(upload_dict, user_lang, request):
                 else:
     # - delete_instance, it adds 'deleted' or 'error' to id_dict
                     # wagecodeitems are not in use fro functioncode
-                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                     if deleted_ok:
                         instance = None
                         refresh_employeelist_needed = True
@@ -3521,7 +3556,7 @@ def upload_wagefactor(upload_dict, user_lang, request):
                 else:
     # - delete_instance, it adds 'deleted' or 'error' to id_dict
                     # wagecodeitems are not in use fro wagefactor
-                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                     if deleted_ok:
                         instance = None
         else:
@@ -3694,7 +3729,7 @@ def upload_paydatecode(upload_dict, user_lang, request):
                 else:
     # - delete_instance, it adds 'deleted' or 'error' to id_dict
                     # paydateitems are also deleted because of cascade delete
-                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                     if deleted_ok:
                         instance = None
                         refresh_employeelist_needed = True
@@ -3953,7 +3988,7 @@ def get_payroll_emplhour(upload_dict, user_lang, request):
             SELECT eh.id, eh.rosterdate, eh.isreplacement, eh.paydate, eh.lockedpaydate, eh.nopay,
                 eh.timestart, eh.timeend, eh.timeduration, eh.breakduration, eh.plannedduration, eh.billingduration,
                 eh.offsetstart, eh.offsetend, eh.wagerate, eh.wagefactor, eh.wage, eh.status, eh.overlap, eh.locked,
-                oh.shift, oh.isrestshift, o.isabsence, e.code AS e_code, c.code AS c_code, o.code AS o_code, 
+                oh.shiftcode, oh.isrestshift, o.isabsence, e.code AS e_code, c.code AS c_code, o.code AS o_code, 
                 pdc.code AS pdc_code, fc.code AS fc_code, wc.code AS wc_code, wfc.code AS wfc_code, 
                 e.datefirst AS e_datefirst, e.datelast AS e_datelast
             FROM companies_emplhour AS eh

@@ -21,7 +21,7 @@
 <!-- END SIDE BAR -->
 {% block content %}
     {% if not user.is_authenticated %}
-        <div class="container tsa_margin_top_48">
+        <div class="container tsa_margin_top48_left24">
             <div id="id_card" class="col-lg-10 col-sm-12">
                 <div class="card mt-5">
                     <div class="card-header tsa_bc_lightlightgrey">
@@ -97,7 +97,7 @@
         </div>
 
     {% else %}
-        <div class="tsa_margin_top_48 mx-5">
+        <div class="tsa_margin_top48_left24 mx-5">
             {% include 'includes/messages.html' %}
         </div>
         <div class=" m-5">

@@ -40,7 +40,7 @@
 <div class="container">
     {% if user.is_authenticated %}
         {% if user.has_permission %}
-            <div class="ta_l tsa_margin_top_48">
+            <div class="ta_l tsa_margin_top48_left24">
                 <div id="id_header_container" class="mx-4 mt-4">
                     <h4 data-btn="btn_step1">{% trans 'Step' %} 1: {% trans 'Select file' %}</h4>
                     <h4 data-btn="btn_step2" class="display_hide">{% trans 'Step' %} 2: {% trans 'Link colums' %}</h4>
@@ -185,7 +185,7 @@
                 ></div>
             </div>
         {% else %}
-        <div class="tsa_margin_top_48 mx-5">
+        <div class="tsa_margin_top48_left24 mx-5">
             {% include 'includes/messages.html' %}
         </div>
         {% endif %}

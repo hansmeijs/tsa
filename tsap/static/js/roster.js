@@ -290,11 +290,12 @@ document.addEventListener('DOMContentLoaded', function() {
           el_mtp_modal.classList.add("hidden");
         });
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
         //console.log(moment.locales())
         //moment.locale(user_lang)
 
-        // TODO        let intervalID = window.setInterval(CheckStatus, 5000);  // every 5 seconds
+        // TODO let intervalID = window.setInterval(CheckForUpdates, 10000);  // every 10 seconds
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_rost"));
@@ -433,6 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if ("overlap_dict" in response) {
+
                     UpdateOverlap(response["overlap_dict"], false); // / false  = don't skip_reset_all
                 }
                 if ("replacement_list" in response) {
@@ -451,14 +453,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     FillTableRows()
                 }
                 if (check_status) {
-
 // check for overlap
-                    const datalist_request = {overlap: {get: true}, roster_period: selected_period};
-                    DatalistDownload(datalist_request, true); // true = no_loader
+                // TODO enable
+                    // const datalist_request = {overlap: {get: true}, roster_period: selected_period};
+                    // DatalistDownload(datalist_request, true); // true = no_loader
 
-                CheckStatus()
+                    // CheckStatus()
                 }
-
             },
             error: function (xhr, msg) {
                 // hide loader
@@ -485,14 +486,14 @@ document.addEventListener('DOMContentLoaded', function() {
         let headerrow = [loc.Date, loc.Customer, loc.Order, loc.Employee, loc.Shift,
                          loc.Start_time, loc.End_time, loc.Break, loc.Working_hours, loc.Status]
 
-        if (selected_period.cur_perm_supervisor){
+        if (selected_period.requsr_perm_supervisor){
             AddSubmenuButton(el_submenu, loc.Add_shift, function() {MRO_Open(selected_emplhour_pk)}, []);
             AddSubmenuButton(el_submenu, loc.Delete_shift, function() {DeleteShift_ConfirmOpen()}, ["mx-2"]);
         }
         AddSubmenuButton(el_submenu, loc.Show_roster, function() {PrintReport("preview")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Download_roster, function() {PrintReport("download")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"]);
-        if (selected_period.cur_perm_planner){
+        if (selected_period.requsr_perm_planner){
             AddSubmenuButton(el_submenu, loc.Create_roster, function() {ModRosterdateOpen("create")}, ["mx-2"]);
             AddSubmenuButton(el_submenu, loc.Delete_roster, function() {ModRosterdateOpen("delete")}, ["mx-2"]);
         }
@@ -674,18 +675,26 @@ document.addEventListener('DOMContentLoaded', function() {
             el.setAttribute("data-field", fldName);
 // --- add img, not in new_item, first column not in teammembers
             if ([4, 6, 10].indexOf( j ) > -1){
-                if(selected_period.cur_perm_supervisor){
+                let has_perm = false;
+                if(j === 10) {
+                    // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
+                    has_perm = (selected_period.requsr_perm_supervisor || selected_period.requsr_perm_hrman)
+                } else {
+                    has_perm = (selected_period.requsr_perm_supervisor)
+                }
+                if(has_perm){
                     el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
-                    add_hover(el)
-                    el.classList.add("pointer_show");
                     el.classList.add("stat_0_0")
+                    // may open modconfirm depends if status = locked. Therefore set add_hover and pointer_show in UpdateTableRow
+                    //add_hover(el)
+                    //el.classList.add("pointer_show");
                 };
             } else {
 // --- add input element to td.
                 el.setAttribute("type", "text");
                 el.classList.add("input_text"); // makes background transparent
 // --- add EventListener to td
-                if(selected_period.cur_perm_supervisor){
+                if(selected_period.requsr_perm_supervisor){
                     if ([0, 2].indexOf( j ) > -1){
                         el.disabled = true;
                     } else if ([1, 3].indexOf( j ) > -1){
@@ -795,9 +804,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else if (fieldname === "order") {
                                 el_input.value = get_dict_value (field_dict, ["display"]);
                                 // enable field when it is absence
-                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || !is_absence);
+                                el_input.disabled = (!selected_period.requsr_perm_supervisor || is_locked || !is_absence);
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && is_absence)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.requsr_perm_supervisor && !is_locked && is_absence)
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value (field_dict, ["code"])
                                 if(value){
@@ -816,17 +825,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // put any character in field, to show pointer
                                 el_input.value = (value) ? value : "---";
                                 // disable field employee when is_locked, also when is_restshift or is_absence
-                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_restshift || is_absence);
+                                el_input.disabled = (!selected_period.requsr_perm_supervisor || is_locked || is_restshift || is_absence);
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && !is_restshift && !is_absence)
+                                add_or_remove_class (el_input, "pointer_show", selected_period.requsr_perm_supervisor && !is_locked && !is_restshift && !is_absence)
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
                                 const display_text = get_dict_value(field_dict, ["display"]);
                                 el_input.value = display_text;
-                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_confirmed);
+                                const is_disabled = (!selected_period.requsr_perm_supervisor || is_locked || is_confirmed);
+                                el_input.disabled = is_disabled;
                                 // hover doesn't show when el is disabled PR2020-07-22
-                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked && !is_confirmed)
+                                add_or_remove_class (el_input, "pointer_show", !is_disabled)
 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
                                 const value_int = get_dict_value(field_dict, ["value"], 0);
@@ -837,10 +847,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 let display_value = display_duration (value_int, user_lang);
                                 if (dst_warning) {display_value += "*"};
                                 el_input.value = display_value;
-                                //el_input.innerText = display_value;
 
-                                el_input.disabled = (!selected_period.cur_perm_supervisor || is_locked || is_confirmed)
-                                add_or_remove_class (el_input, "pointer_show", selected_period.cur_perm_supervisor && !is_locked)
+                                const is_disabled = (!selected_period.requsr_perm_supervisor || is_locked || is_confirmed || is_restshift);
+                                el_input.disabled = is_disabled;
+                                // hover doesn't show when el is disabled PR2020-07-22
+                                add_or_remove_class (el_input, "pointer_show", !is_disabled)
 
                             } else if (["confirmstart", "confirmend"].indexOf( fieldname ) > -1){
                                 // el_img does not exist, update status column instead PR2020-07-26
@@ -856,6 +867,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const data_haschanged = (has_changed) ? "1" : "0";
                                 tblRow.setAttribute("data-status", status_int)
                                 tblRow.setAttribute("data-haschanged", data_haschanged)
+
+                                // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
+                                if ( (status_int < 8 && selected_period.requsr_perm_supervisor) ||
+                                     (status_int >= 8 && selected_period.requsr_perm_hrman) ){
+                                    add_hover(el_input)
+                                    el_input.classList.add("pointer_show");
+                                }
 
                             } else if (fieldname === "overlap"){
                                 //console.log("----------fieldname", fieldname);
@@ -1276,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (el_mod_period_datelast.value) {upload_dict.period_datelast = el_mod_period_datelast.value};
         }
 // ---  upload new setting
-        let datalist_request = {roster_period: upload_dict, emplhour: true};
+        let datalist_request = {roster_period: upload_dict, emplhour: {mode: "get"}};
         DatalistDownload(datalist_request);
 // ---  update header period text
         document.getElementById("id_hdr_period").innerText = loc.Period + "..."
@@ -1374,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  upload new setting
         // when 'emplhour' exists in request it downloads emplhour_list based on filters in roster_period_dict
-        let datalist_request = {roster_period: roster_period_dict, emplhour: true};
+        let datalist_request = {roster_period: roster_period_dict, emplhour: {mode: "get"}};
         DatalistDownload(datalist_request);
     }  // Sidebar_SelectAbsenceRestshift
 
@@ -1422,10 +1440,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!mod_upload_dict.customer.pk || !!mod_upload_dict.order.pk) {
             roster_period_dict.isabsence = false;
         }
-        const datalist_request = {
-            roster_period: roster_period_dict,
-            emplhour: true
-        };
+        const datalist_request = { roster_period: roster_period_dict, emplhour: {mode: "get"}};
         DatalistDownload(datalist_request);
 // hide modal
         $("#id_modselectorder").modal("hide");
@@ -1659,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', function() {
             now: now_arr,
             employee_pk: mod_upload_dict.employee.pk
         }
-        let datalist_request = {roster_period: roster_period_dict, emplhour: true};
+        let datalist_request = {roster_period: roster_period_dict, emplhour: {mode: "get"}};
         DatalistDownload(datalist_request);
 
 // hide modal
@@ -2033,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
        console.log("===  ModalStatusOpen  =====") ;
-
+        // PERMISSIONS: only hrman can unlock shifts, supervisor can only block shifts PR2020-08-05
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
 // get fldName from el_input
@@ -2045,7 +2060,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let btn_save_text = loc.Confirm;
         let time_label = "Time:"
         let time_col_index = 0
-        let is_field_status = false;
+        let is_fldName_status = false;
 
         // STATUS_01_CREATED = 1
         // STATUS_02_START_CONFIRMED = 2
@@ -2055,9 +2070,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const allow_lock_status = (status_sum < 16)  // STATUS_16_QUESTION = 16
         const status_locked = status_found_in_statussum(8, status_sum)
+
+        const allow_unlock_status = (status_locked && selected_period.requsr_perm_hrman);
         const field_is_confirmed = get_dict_value(emplhour_dict, [fldName, "value"], false)
         const child_el = el_input.children[0];
-
 
         const time_fldName = (fldName === "confirmstart") ? "timestart" : "timeend"
         const time_fielddict = get_dict_value(emplhour_dict, [time_fldName])
@@ -2066,8 +2082,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const col_index = (time_fldName === "timestart") ? 5 : 7;
         const time_el = tr_selected.cells[col_index].children[0]
         const has_overlap = (time_el.classList.contains("border_bg_invalid"));
-        console.log("has_overlap", has_overlap)
-        console.log("time_el", time_el)
 
         //const has_overlap = ("overlap" in time_fielddict)
         const has_no_employee = (!get_dict_value(emplhour_dict, ["employee", "pk"]))
@@ -2091,7 +2105,7 @@ document.addEventListener('DOMContentLoaded', function() {
             time_label = loc.End_time + ":"
             time_col_index = 7
         } else if (fldName === "status") {
-            is_field_status = true;
+            is_fldName_status = true;
 
             if (status_locked) {  // STATUS_08_LOCKED
                 header_text = loc.Unlock + " " + loc.Shift.toLowerCase();
@@ -2104,22 +2118,28 @@ document.addEventListener('DOMContentLoaded', function() {
             time_col_index = 9
         }
 
+        console.log("requsr_perm_hrman", selected_period.requsr_perm_hrman)
+        console.log("requsr_perm_supervisor", selected_period.requsr_perm_supervisor)
+        console.log("is_fldName_status", is_fldName_status)
+        console.log("is_fldName_status", is_fldName_status)
 // don't open modal when locked and confirmstart / confirmend
         let allow_open = false;
-        if (is_field_status){
-            // status field can always be opened TODO add user permission
-            allow_open = true;
+        if (is_fldName_status){
+            // PERMITS status field can be opened by supervisor to lock, by hrman to unlock PR20202-08-05
+            allow_open = (status_locked) ? selected_period.requsr_perm_hrman : selected_period.requsr_perm_supervisor;
         } else {
-            // cannot open when time field is locked
-            if (!timefield_is_locked){
+            // PERMITS confirm field can only be opened by supervisor
+            if (selected_period.requsr_perm_supervisor){
+                // cannot open confirm field when time field is locked
+                if (!timefield_is_locked){
                 // when field is not confirmed: can only confirm when has employee and has no overlap:
-                //TODO add user permission
-                if (!field_is_confirmed && !has_overlap) {
-                    allow_open = true;
-                } else {
-                // when field is not confirmed: can undo,
-                // also when has_overlap or has_no_employee (in case not allowing confirmation has gone wrong)
-                    allow_open = true;
+                    if (!field_is_confirmed && !has_overlap) {
+                        allow_open = true;
+                    } else {
+                    // when field is not confirmed: can undo,
+                    // also when has_overlap or has_no_employee (in case not allowing confirmation has gone wrong)
+                        allow_open = true;
+                    }
                 }
             }
         }
@@ -2157,17 +2177,17 @@ document.addEventListener('DOMContentLoaded', function() {
             let msg01_text = null;
             if(has_no_order){
                 msg01_text = loc.You_must_first_select + loc.an_order + loc.select_before_confirm_shift;
-            } else if(has_no_employee && !is_field_status){
+            } else if(has_no_employee && !is_fldName_status){
                 msg01_text = loc.You_must_first_select + loc.an_employee + loc.select_before_confirm_shift;
-            } else if(has_overlap && !is_field_status){
+            } else if(has_overlap && !is_fldName_status){
                 msg01_text = loc.You_cannot_confirm_overlapping_shift;
-            } else if(!time_display && !is_field_status){
+            } else if(!time_display && !is_fldName_status){
                 msg01_text = loc.You_must_first_enter +
                              ( (time_fldName === "timestart") ? loc.a_starttime : loc.an_endtime ) +
                              loc.enter_before_confirm_shift;
             }
 
-           console.log("is_field_status", is_field_status) ;
+           console.log("is_fldName_status", is_fldName_status) ;
            console.log("allow_lock_status", allow_lock_status) ;
 
             let show_confirm_box = false;
@@ -2330,6 +2350,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 //  #############################################################################################################
+
+//=========  UpdateOverlap  === PR2020-08-06
+    function CheckForUpdates() {
+        console.log("===  CheckForUpdates == ");
+        const datalist_request = { roster_period: {get: true, now: now_arr}, emplhour: {mode: "emplhour_check"}}
+        DatalistDownload(datalist_request, true); // no_loader = true
+    }
 
 //=========  UpdateOverlap  === PR2020-05-13
     function UpdateOverlap(overlap_dict, skip_reset_all) {
@@ -2820,8 +2847,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadTimepickerResponse  ============= PR2019-10-12
     function UploadTimepickerResponse(tp_dict) {
-       //console.log("=== UploadTimepickerResponse");
-        //console.log("tp_dict", tp_dict);
+        console.log("=== UploadTimepickerResponse");
+        console.log("tp_dict", tp_dict);
         let upload_dict = {period_datefirst: selected_period.period_datefirst,
                             period_datelast: selected_period.period_datelast,
                             id: tp_dict.id};
@@ -2840,12 +2867,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!tblRow){
                     const col_index = (fldName === "timestart") ? 4 :  (fldName === "timeend") ? 6 :
                                       (fldName === "breakduration") ? 8 : 9;
-        //console.log( "col_index", col_index);
                     let tblCell = tblRow.cells[col_index].children[0];
                     if(!!tblCell) {
                         if ([4, 6].indexOf(col_index) > -1) {
-                            tblCell.value =  format_time_from_offset_JSvanilla(tp_dict.rosterdate,
-                                        tp_dict.offset, loc.timeformat, loc.user_lang, true, false, loc.weekdays_abbrev)
+                            tblCell.value = format_time_from_offset_JSvanilla( loc, tp_dict.rosterdate, tp_dict.offset,
+                                true, false, true)  // true = display24, true = only_show_weekday_when_prev_next_day, false = skip_hour_suffix
                         } else if ([8, 9].indexOf(col_index) > -1) {
                                tblCell.value = display_duration (tp_dict.offset, loc.user_lang)
                         }
@@ -4572,9 +4598,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cur_employee_ppk_int = get_attr_from_el_int(el_modemployee_body, "data-field_ppk");
                 const cur_rosterdate = get_attr_from_el(el_modemployee_body, "data-rosterdate");
 
-                const datalist_request = {"replacement": { "action": "switch", "rosterdate": cur_rosterdate,
-                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
-                        "reployee": select_value, "reployee_pk": select_pk, "reployee_ppk": select_parentpk}};
+                const datalist_request = {replacement: { action: "switch", rosterdate: cur_rosterdate,
+                        employee: cur_employee, employee_pk: cur_employee_pk_int, employee_ppk: cur_employee_ppk_int,
+                        reployee: select_value, reployee_pk: select_pk, reployee_ppk: select_parentpk}};
                 DatalistDownload(datalist_request);
             }
 // Set focus to next input field or save button
@@ -4595,13 +4621,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MRO_MRE_TimepickerOpen  ================ PR2019-10-12
     function MRO_MRE_TimepickerOpen(el_input, calledby) {
-       console.log("=== MRO_MRE_TimepickerOpen ===", calledby);
-       console.log("mod_upload_dict", mod_upload_dict);
+        console.log("=== MRO_MRE_TimepickerOpen ===", calledby);
        // called by 'tblRow' 'MRE_splittime', 'MRO_offsetstart', 'MRO_offsetend', 'MRO_timeduration'
 
 // ---  create tp_dict
         // minoffset = offsetstart + breakduration
-        let is_locked = false, is_confirmed = false, rosterdate = null, offset = null, fldName = null, shift_code = null;
+        let is_locked = false, is_confirmed = false, rosterdate = null, offset = null;
+        let is_restshift = false, fldName = null, shift_code = null;
         let offset_value = null, offset_start = null, offset_end = null, break_duration = 0, time_duration = 0;
         let show_btn_delete = true;  // offsetsplit is required
         let id_dict = {};
@@ -4611,8 +4637,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fldName = get_attr_from_el(el_input, "data-field")
             const emplh_dict = get_itemdict_from_datamap_by_tblRow(tr_selected, emplhour_map);
-        console.log("emplh_dict", emplh_dict);
                 id_dict = get_dict_value(emplh_dict, ["id"])
+                is_restshift = get_dict_value(id_dict, ["isrestshift"], false)
+
                 rosterdate = get_dict_value(emplh_dict, [fldName, "rosterdate"]);
                 is_locked = get_dict_value(emplh_dict, [fldName, "locked"], false)
                 is_confirmed = get_dict_value(emplh_dict, [fldName, "confirmed"], false)
@@ -4625,8 +4652,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 offset_end = get_dict_value(emplh_dict, ["timeend", "offset"]);
                 break_duration = get_dict_value(emplh_dict, ["breakduration", "value"], 0);
                 time_duration = get_dict_value(emplh_dict, ["timeduration", "value"], 0);
-
-
         } else {
             rosterdate = mod_upload_dict.rosterdate;
             offset_start = mod_upload_dict.shift.offsetstart;
@@ -4655,7 +4680,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const minoffset = get_minoffset(fldName, offset_start, break_duration)
         const maxoffset = get_maxoffset(fldName, offset_start, offset_end, break_duration)
 
-       console.log("fldName", fldName);
         let tp_dict = {id: id_dict,  // used in UploadTimepickerResponse
                        field: fldName,  // used in UploadTimepickerResponse
                        page: "TODO",
@@ -4671,18 +4695,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                (fldName === "timeduration") ? loc.Working_hours :
                                (fldName === "offsetsplit") ? loc.Split_time : null
-        let st_dict = { interval: interval, comp_timezone: comp_timezone, user_lang: user_lang,
-                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered,
-                        url_settings_upload: url_settings_upload,
+        let st_dict = { url_settings_upload: url_settings_upload,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
+                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered,
                        };
 
 // ---  open ModTimepicker
         if (calledby === "tblRow") {
-            if(!is_locked && !is_confirmed){ ModTimepickerOpen(loc, el_input, UploadTimepickerResponse, tp_dict, st_dict)}
+            let may_open_timepicker = false;
+            if(!is_locked && !is_confirmed){
+                // dont open break- or timeduration when restshift
+                may_open_timepicker = (["breakduration", "timeduration"].indexOf(fldName) > -1) ? !is_restshift : true;
+            }
+            if (may_open_timepicker) { mtp_TimepickerOpen(loc, el_input, UploadTimepickerResponse, tp_dict, st_dict) };
         } else {
-            ModTimepickerOpen(loc, el_input, MRE_TimepickerResponse, tp_dict, st_dict)
+            mtp_TimepickerOpen(loc, el_input, MRE_TimepickerResponse, tp_dict, st_dict)
         }
     };  // MRO_MRE_TimepickerOpen
 

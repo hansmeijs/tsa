@@ -78,8 +78,8 @@
                 td.classList.add("px-2")
                 td.classList.add("tw_200")
                 td.classList.add("tsa_bc_transparent")
-//--------- add addEventListener
 
+//--------- add addEventListener
                 tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow, event.target)}, false);
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         }
@@ -360,13 +360,13 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12
     function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
-        console.log( "===== t_SetExtendedFilterDict  ========= ");
-        console.log( "col_index ", col_index, "el_key ", el_key);
+        //console.log( "===== t_SetExtendedFilterDict  ========= ");
+        //console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
-        const fldName = get_attr_from_el(el, "data-field")
-        console.log( "fldName ", fldName);
+        const filter_tag = get_attr_from_el(el, "data-filtertag")
+
         const col_count = tblRow.cells.length
         let skip_filter = false;
 // --- reset filter row when clicked on 'Escape'
@@ -392,16 +392,16 @@
                     mode = "blanks_only";
                 } else if(filter_text === "@" || filter_text === "!"){
                     mode = "no_blanks";
-                } else if (fldName === "text") {
+                } else if (filter_tag === "text") {
                     // employee/rosterdate and order columns, no special mode on these columns
                     filter_value = filter_text;
                 } else {
                     // lt and gt sign must be followed by number. Skip filter when only lt or gt sign is eneterd
-                    if (["amount", "duration"].indexOf(fldName) > -1 &&
+                    if (["amount", "duration"].indexOf(filter_tag) > -1 &&
                         [">", ">=", "<", "<="].indexOf(filter_text) > -1 ) {
                        skip_filter = true;
                     }
-                    if (fldName === "text"){
+                    if (filter_tag === "text"){
                     // employee/rosterdate and order columns, no special mode on these columns
                         filter_value = filter_text;
                     } else if(!skip_filter) {
@@ -417,17 +417,18 @@
                         let filter_str = (["lte", "gte"].indexOf(mode) > -1) ? filter_text.slice(2) :
                                          (["lt", "gt"].indexOf(mode) > -1) ? filter_text.slice(1) : filter_text;
                         filter_value = 0;
-                        console.log( "filter_str ", filter_str);
-                        console.log( "fldName ", fldName);
                         const value_number = Number(filter_str.replace(/\,/g,"."));
 
-                        if (fldName === "amount") {
+                        //console.log( "filter_tag ", filter_tag);
+                        //console.log( "filter_str ", filter_str);
+                        //console.log( "value_number ", value_number);
+
+                        if (filter_tag === "amount") {
                             // replace comma's with dots, check if value = numeric, convert to minutes
-0
                             if (value_number) { filter_value = 100 * value_number};
-                        console.log( "value_number ", value_number);
+                        //.log( "value_number ", value_number);
                             filter_value = (value_number) ? value_number : null;
-                        } else if (fldName === "duration") {
+                        } else if (filter_tag === "duration") {
                             // convert to minutes if ":" in filter_str
                             if(filter_str.indexOf(":") > -1){
                                 const arr = filter_str.split(":");
@@ -440,13 +441,15 @@
                         // replace comma's with dots, check if value = numeric, convert to minutes
                                 if (value_number) { filter_value = 60 * value_number};
                             }
+                            //console.log( "filter_value ", filter_value);
                         } else {
                             skip_filter = true;
                         }
                     }
                 }; // other
+                //console.log( "skip_filter ", skip_filter);
                 if (!skip_filter) {
-                    filter_dict[col_index] = [mode, filter_value, fldName]
+                    filter_dict[col_index] = [mode, filter_value, filter_tag]
                 };
             }
         }
@@ -473,7 +476,11 @@
                         const filter_value = arr[1];
                         const fldName = arr[2];
 
+        //console.log( "filter_value", filter_value);
+        //console.log( "fldName", fldName);
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
+        //console.log( "filter_row", filter_row);
+        //console.log( "cell_value", cell_value);
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if(mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
@@ -489,7 +496,7 @@
                              } else {
                                 hide_row = true;
                              }
-                            console.log( "text cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
+                            //console.log( "text cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         } else {
                             // duration columns or numeric columns, make blank cells zero
                             cell_value = (cell_value) ? cell_value : 0;
@@ -504,7 +511,7 @@
                             } else {
                                 if (cell_value !== filter_value) {hide_row = true};
                             }
-                           // console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
+                           //console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         }
                     };
                 });  // Object.keys(filter_dict).forEach(function(col_index) {
@@ -706,6 +713,7 @@
             for (let i = 0, tblRow; i < tblBody.rows.length; i++) {
                 tblRow = tblBody.rows[i];
                 const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id)
+
                 if (["paydatecode", "functioncode", "wagefactor"].indexOf(tblName) > -1){
                     const code = get_dict_value(map_dict, ["code", "value"])
                     if(code) {
@@ -715,30 +723,37 @@
                             break;
                         }
                     }
-
-                } else if(tblName === "teammember"){
-        //console.log("tblRow.id", tblRow.id);
-                    const employee_code = get_dict_value(map_dict, ["employee", "code"])
-                    const datefirst = get_dict_value(map_dict, ["employee", "datefirst"])
-
-        //console.log("datefirst", datefirst);
+                } else if (["absence", "teammember"].indexOf(tblName) > -1){
+                    let employee_code = null, datefirst = null;
+                    if (tblName === "absence"){
+                        employee_code = get_dict_value(map_dict, ["e_code"])
+                        // absence datfirst / last is stored in table scheme
+                        datefirst = get_dict_value(map_dict, ["s_df"], "2500-01-01")
+                    } else {
+                        employee_code = get_dict_value(map_dict, ["employee", "code"])
+                        datefirst = get_dict_value(map_dict, ["employee", "datefirst"], "2500-01-01")
+                    }
                     if(employee_code) {
                         const employee_code_lc = employee_code.toLowerCase()
                         if(employee_code_lc < search_code_lc) {
                             // goto next row
                          } else if(employee_code_lc === search_code_lc) {
-        // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
-                            // TODO search on datfirst
+        // --- search_rowindex = row_index - 1, because of header row. Header row has index 0.
+                            // search on datefirst when employee_code and search_code are the same
+                            if(datefirst <= search_datefirst) {
+                                // goto next row
+                            } else  if( datefirst > search_datefirst) {
+                                search_rowindex = tblRow.rowIndex - 1;
+                                break;
+                            }
                         } else  if( employee_code_lc > search_code_lc) {
         // --- search_rowindex = row_index - 1, to put new row above row with higher exceldatetime
                             search_rowindex = tblRow.rowIndex - 1;
-        //console.log("search_rowindex FOUND ", search_rowindex);
                             break;
                         }
                     }
                 }
         }}
-        //console.log("search_rowindex", search_rowindex);
         return search_rowindex
     }  // t_get_rowindex_by_code_datefirst
 
@@ -1861,13 +1876,13 @@
 
 //========= t_Sidebar_DisplayPeriod  ======================== PR2020-07-31
     function t_Sidebar_DisplayPeriod(loc, selected_period) {
-        console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
+        //console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
         let period_text = null;
         if (!isEmpty(selected_period)){
             const period_tag = get_dict_value(selected_period, ["period_tag"]);
             const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
 
-        console.log( "loc.period_select_list: " , loc.period_select_list);
+        //console.log( "loc.period_select_list: " , loc.period_select_list);
             let default_text = null, extend_text = null;
             for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
                 item = loc.period_select_list[i];  // item = ('today', TXT_today)
@@ -1875,8 +1890,8 @@
                 if (item[0] === 'today'){ default_text = item[1] }
             }
             if(!period_text){period_text = default_text}
-        console.log( "period_text: " , period_text);
-        console.log( "loc.period_extension: " , loc.period_extension);
+        //console.log( "period_text: " , period_text);
+        //console.log( "loc.period_extension: " , loc.period_extension);
             if(loc.period_extension){
                let extend_default_text = null
                 for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
@@ -1895,7 +1910,7 @@
                 period_text += " +- " + extend_text;
             }
         }
-        console.log( "period_text: " , period_text);
+        //console.log( "period_text: " , period_text);
         return period_text
     }; // t_Sidebar_DisplayPeriod
 

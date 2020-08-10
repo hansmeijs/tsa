@@ -44,8 +44,9 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    <div class="tsa_margin_top_48 mx-4">
-    {% if user.is_authenticated and user.is_perm_planner %}
+    <div class="tsa_margin_top48_left24 mx-4">
+    {% if user.is_authenticated  %}
+    {% if user.is_perm_planner %}
 <!-- =================== msgbox  =================== -->
     <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
@@ -151,27 +152,27 @@
 
 <!-- =================== CONTAINER =================== -->
 
-    <!-- box with scheme input elements -->
-    <div class="mx-4 my-1">
 <!-- CONTENT HEADER - LOADER -->
-        <div class="mt-5">
-            <div class="content_header">
-                <div class="content_subheader_left tsa_flex_4 mx-2">
-                    <h5 id="id_hdr_text"></h5>
-                </div>
-                <div class="content_header_middle mx-4 p-2 ">
-                    <div id="id_loader" class="image_container">
-                        <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                    </div>
-                </div>
-                <div class="content_subheader_right tsa_flex_4 mx-2">
-                    <h5 id="id_hdr_right_text"></h5>
+
+<!-- class content_header -->
+        <div class="content_header">
+<!-- header_text -->
+            <div class="content_subheader_left tsa_flex_4 mx-2">
+                <h5 id="id_hdr_text"></h5>
+            </div>
+ <!-- loader -->
+            <div class="content_header_middle mb-2">
+                <div id="id_loader" class="image_container">
+                    <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                 </div>
             </div>
+<!-- right header_text -->
+            <div class="content_subheader_right tsa_flex_4">
+                <h5 id="id_hdr_right_text"></h5>
+            </div>
         </div>
-        <!-- end CONTENT HEADER - LOADER -->
-
-        <!-- BUTTON GROUP -->
+<!-- end class content_header -->
+<!-- BUTTON GROUP -->
         <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
             <button type="button" data-btn="btn_grid" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
             <button type="button" data-btn="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
@@ -181,17 +182,14 @@
         </div>
 <!-- end BUTTON GROUP -->
 
-    </div>
-<!-- END box with scheme input elements -->
+<!-- end CONTENT HEADER - LOADER -->
 
-    <!-- end class content_subheader mt-5 -->
-    <!-- class content body mx-2 -->
+<!-- CONTENT BODY -->
     <div class="content_body mx-2">
 
 <!-- =================== GRID  =================== -->
-
         <div id="id_div_gridlayout" class=" display_hide">
-            <div class="tsa_main_container m-4">
+            <div class="tsa_main_container mt-4">
                 <div class="tsa_team_container">
                     <div id="id_grid_scheme_container" class="grid_scheme tbl_border tsa_bc_lightlightgrey">
                         <div class="m-2">
@@ -298,6 +296,11 @@
     {% else %}
         <div class="mx-4">
             <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
+    {% endif %}
+    {% else %}
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
         </div>
     {% endif %}
     </div>

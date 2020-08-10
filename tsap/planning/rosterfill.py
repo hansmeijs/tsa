@@ -744,10 +744,11 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                                                              comp_timezone, timeformat, interval, user_lang, request)
 
                 emplhour_list, emplhours_rows = pld.create_emplhour_list(period_dict=roster_period_dict,
-                                                         comp_timezone=comp_timezone,
-                                                         timeformat=timeformat,
-                                                         user_lang=user_lang,
-                                                         request=request)
+                                                            request_item=None,
+                                                            comp_timezone=comp_timezone,
+                                                            timeformat=timeformat,
+                                                            user_lang=user_lang,
+                                                            request=request)
 
                 # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                 update_dict['emplhour_list'] = emplhour_list
@@ -964,8 +965,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
 
 def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
-                           lastof_month, comp_timezone, request):  # PR2020-01-5
-    #logger.debug(' ============= add_orderhour_emplhour ============= ')
+                           lastof_month, comp_timezone, request):  # PR2020-01-5 PR2020-08-06
+    logger.debug(' ============= add_orderhour_emplhour ============= ')
 
     # mode 'i' = inactive
     # mode 'a' = isabsence
@@ -1014,7 +1015,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     row_breakduration = row[idx_sh_bd]
     row_timeduration = row[idx_sh_td]
 
-    timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
+    timestart, timeend, planned_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         offsetstart=row[idx_sh_os],
         offsetend=row[idx_sh_oe],
@@ -1022,15 +1023,21 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-    # set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
-    # PR2020-07-24 request Guido: also set time_duration = 0when employee = None
+
+    logger.debug('planned_duration: ' + str(planned_duration))
+    # set planned_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
+    # PR2020-07-24 request Guido: also set time_duration = 0 when employee = None
+    # PR2020-08-06 debug: but dont set planned duration to 0 when employee = None
+    # Note: billingduration = time_duration
     if (is_saturday and row[idx_o_s_nosat]) or \
                 (is_sunday and row[idx_o_s_nosun]) or \
                 (is_publicholiday and row[idx_o_s_noph]) or \
-                (is_restshift) or \
-                (employee_pk is None):
+                (is_restshift):
+        planned_duration = 0
+    if employee_pk is not None:
+        time_duration = planned_duration
+    else:
         time_duration = 0
-        #logger.debug('no hours: ')
 
     # calculate datepart
     date_part = 0
@@ -1101,8 +1108,9 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             shift_wagefactor=None,
             timestart=timestart,
             timeend=timeend,
-            break_duration=row_breakduration,
+            planned_duration=planned_duration,
             time_duration=time_duration,
+            break_duration=row_breakduration,
             offset_start=row_offsetstart,
             offset_end=row_offsetend,
             date_part=date_part,
@@ -1124,7 +1132,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 
 def add_emplhour(row, orderhour, employee_pk, is_replacement,
                  shift_wagefactor,
-                 timestart, timeend, break_duration, time_duration,
+                 timestart, timeend, planned_duration, time_duration, break_duration,
                  offset_start, offset_end, date_part, lastof_month, comp_timezone, request):
     #logger.debug(' ============= add_emplhour ============= ')
     # ('row: ')
@@ -1260,10 +1268,10 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
 
                 timestart=timestart,
                 timeend=timeend,
+                billingduration=time_duration,
+                plannedduration=planned_duration,
                 timeduration=time_duration,
                 breakduration=break_duration,
-                plannedduration=time_duration,
-                billingduration=time_duration,
 
                 offsetstart=offset_start,
                 offsetend=offset_end,

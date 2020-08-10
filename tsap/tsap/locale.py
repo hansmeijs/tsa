@@ -225,6 +225,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Absence'] = TXT_Absence
         dict['Total'] = TXT_Total
 
+        dict['Add_absence'] = TXT_Add_absence
+        dict['Delete_absence'] = TXT_Delete_absence
         dict['Absence_category'] = TXT_Absence_category
         dict['Absence_categories'] = TXT_Absence_categories
         dict['Select_abscat'] = TXT_Select_abscat
@@ -240,6 +242,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['First_date_in_service'] = TXT_First_date_in_service
         dict['Last_date_in_service'] = TXT_Last_date_in_service
+        dict['is_in_service_thru'] = TXT_is_in_service_thru
 
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
@@ -247,6 +250,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         # mod confirm
         dict['Pease_select_employee_first'] = TXT_Pease_select_employee_first
+        dict['Pease_select_absence_first'] = TXT_Pease_select_absence_first
 
         # print planning
         dict['Company'] = TXT_Company
@@ -386,6 +390,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Planned_hours_2lines'] = TXT_Planned_hours_2lines
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
+        dict['Absence_2lines'] = TXT_Absence_2lines
 
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
@@ -531,7 +536,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Absence_category_2lines'] = TXT_Absence_category_2lines
         dict['Absence_categories'] = TXT_Absence_categories
         dict['is_in_service_thru'] = TXT_is_in_service_thru
-
 
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
@@ -728,7 +732,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
             ('tomorrow', TXT_tomorrow),
             ('yesterday', TXT_yesterday),
             ('tweek', TXT_thisweek),
+            ('lweek', TXT_lastweek),
             ('tmonth', TXT_thismonth),
+            ('lmonth', TXT_lastmonth),
             ('other', TXT_customperiod)
         )
 
@@ -910,7 +916,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Worked_hours'] = TXT_Worked_hours
         dict['Billing_hours'] = TXT_Billing_hours
         dict['Absence'] = TXT_Absence
-        dict['Absence_2lines'] = pgettext_lazy('2 lines', 'Absence')
+        dict['Absence_2lines'] = TXT_Absence_2lines
 
         dict['Hourly_rate'] = TXT_Hourly_rate
         dict['Tax'] = _('Tax rate')
@@ -1206,6 +1212,7 @@ TXT_Current_teammember = _('Current teammember')
 TXT_Current_teammembers = _('Current teammembers')
 
 TXT_Pease_select_employee_first = _('Please select an employee first.')
+TXT_Pease_select_absence_first = _('Please select an absence first.')
 
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')

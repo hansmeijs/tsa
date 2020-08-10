@@ -360,8 +360,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow = tblBody.insertRow(-1);
             tblRow.id = map_id
 // --- add data attributes to tblRow
-            //tblRow.setAttribute("data-pk", map_dict.id);
-            //tblRow.setAttribute("data-ppk", map_dict.company_id);
+            tblRow.setAttribute("data-pk", map_dict.id);
+            tblRow.setAttribute("data-ppk", map_dict.company_id);
             tblRow.setAttribute("data-table", tblName);
 // --- add EventListener to tblRow
             tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
@@ -630,53 +630,66 @@ document.addEventListener('DOMContentLoaded', function() {
         // mod_dict modes are:  addnew, select, update
         let url_str = url_user_add_upload
         console.log("url_str: ", url_str);
-        const company_pk = get_dict_value(company_dict, ["id", "pk"]);
         const upload_mode = (mode === "validate") ? "validate" :
                             (mod_dict.mode === "update" ) ? "update" :
                             (["addnew", "select"].indexOf(mod_dict.mode) > -1) ? "create" : null;
 
-        let upload_dict = {mode: upload_mode,
-                           company_pk: company_pk,
-                           user_pk: mod_dict.user_pk,
-                           user_ppk: mod_dict.user_ppk,
-                           username: el_MSU_username.value,
-                           last_name: el_MSU_last_name.value,
-                           email: el_MSU_email.value,
-                           employee_pk: mod_dict.employee_pk
+// ---  create mod_dict
+        const upload_dict = {mode: upload_mode,
+                             user_pk: mod_dict.user_pk,
+                             user_ppk: mod_dict.user_ppk,
+                             table: "user",
+                             mapid: mod_dict.map_id,
+                             username: el_MSU_username.value,
+                             last_name: el_MSU_last_name.value,
+                             email: el_MSU_email.value,
+                             employee_pk: mod_dict.employee_pk
                            }
         console.log("upload_dict: ", upload_dict);
-        if(!isEmpty(upload_dict)) {
-            const el_loader =  document.getElementById("id_ModSelUsr_loader");
-            el_loader.classList.remove(cls_visible_hide);
-            const parameters = {"upload": JSON.stringify (upload_dict)}
 
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_str,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+        const el_loader =  document.getElementById("id_ModSelUsr_loader");
+        el_loader.classList.remove(cls_visible_hide);
 
-                    el_loader.classList.add(cls_visible_hide);
+        const parameters = {"upload": JSON.stringify (upload_dict)}
+        let response = "";
+        $.ajax({
+            type: "POST",
+            url: url_str,
+            data: parameters,
+            dataType:'json',
+            success: function (response) {
+                console.log( "response");
+                console.log( response);
 
-                    MSU_SetMsgElements(response);
+                el_loader.classList.add(cls_visible_hide);
+
+                MSU_SetMsgElements(response);
+
+                if ("updated_list" in response) {
+                    for (let i = 0, len = response["updated_list"].length; i < len; i++) {
+                        const updated_dict = response["updated_list"][i];
+                        UpdateFromResponse_ShowOk(updated_dict);
+                    }
+                };
+                if ("user_list" in response){
+                    for (let i = 0, len = response["user_list"].length; i < len; i++) {
+                        const update_dict = response["user_list"][i];
+                        UpdateFromResponse_User(update_dict);
+                    }
+                }
+
+        // ---  show only the elements that are used in this tab
+                //const container_element = document.getElementById("id_div_form_controls");
+                //show_hide_selected_elements_byClass("tab_show", mod_dict.tab_mode, container_element);
 
 
-            // ---  show only the elements that are used in this tab
-                    //const container_element = document.getElementById("id_div_form_controls");
-                    //show_hide_selected_elements_byClass("tab_show", mod_dict.tab_mode, container_element);
+            },  // success: function (response) {
+            error: function (xhr, msg) {
+                console.log(msg + '\n' + xhr.responseText);
+                alert(msg + '\n' + xhr.responseText);
+            }  // error: function (xhr, msg) {
+        });  // $.ajax({
 
-
-                },  // success: function (response) {
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }  // error: function (xhr, msg) {
-            });  // $.ajax({
-        }  //  if(!!row_upload)
     };  // UploadNewUser
 
 //========= UploadToggle  ============= PR2020-07-31
@@ -688,17 +701,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let has_permit = (get_attr_from_el(el_input, "data-value") === "true")
         const tblRow = get_tablerow_selected(el_input)
 
-        const cur_user_pk = get_dict_value(selected_period, ["cur_user_pk"])
-
         console.log( "fldName", fldName);
         mod_dict = {};
         if(tblRow){
             const tblName = get_attr_from_el(tblRow, "data-table")
             const map_id = tblRow.id
             const map_dict = get_mapdict_from_datamap_by_id(user_map, map_id);
-           console.log( "map_dict", map_dict);
-            const is_request_user = (cur_user_pk === map_dict.id)
-        console.log( "is_request_user", is_request_user);
+
+            const requsr_pk = get_dict_value(selected_period, ["requsr_pk"])
+            const is_request_user = (requsr_pk === map_dict.id)
+
             if(!isEmpty(map_dict)){
                 if(fldName === "perm64_sysadmin" && is_request_user && has_permit ){
                     alert("sysadmins cannot remove their own sysadmin permission")
@@ -706,17 +718,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert("sysadmins cannot set their own permission to read-only")
                 } else {
 // toggle value of has_permit
-
-
                     has_permit = !has_permit;
+// ---  create mod_dict
+                    const pk_int = map_dict.id;
+                    const ppk_int = map_dict.company_id;
                     mod_dict = {
-                        id: {pk: map_dict.id,
-                             ppk: map_dict.company_id,
+                        id: {pk: pk_int,
+                             ppk: ppk_int,
                              table: "user",
-                             rowid: map_id,
+                             mapid: map_id,
                              rowindex: tblRow.rowIndex}
-                     }
-                    mod_dict[fldName] = { value: has_permit, update: true};
+                    }
+                    mod_dict[fldName] = has_permit;
 
                     // when readonly is set: set other permissions to false, except when is_request_user
                     if (fldName === "perm01_readonly" && !has_permit && !is_request_user) {
@@ -749,8 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
            //console.log( "mod_dict", mod_dict);
-                    UploadChanges(mod_dict,
-                    url_users_upload);
+                    UploadChanges(mod_dict, url_users_upload);
                 }
             }  //  if(!isEmpty(map_dict)){
         }  //   if(!!tblRow)
@@ -803,8 +815,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log( response);
                     if ("updated_list" in response) {
                         for (let i = 0, len = response["updated_list"].length; i < len; i++) {
-                            const update_dict = response["updated_list"][i];
-                            UpdateFromResponse_ShowOk(update_dict);
+                            const updated_dict = response["updated_list"][i];
+                            UpdateFromResponse_ShowOk(updated_dict);
                         }
                     };
                     if ("user_list" in response){
@@ -828,8 +840,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ UPDATE +++++++++++++++++++++++++++++++++++++++++++
 //=========  UpdateFromResponse_User  ================ PR2020-06-10
     function UpdateFromResponse_User(update_dict) {
-       //console.log(" --- UpdateFromResponse_User  ---");
-       //console.log("update_dict", deepcopy_dict(update_dict));
+       console.log(" --- UpdateFromResponse_User  ---");
+       console.log("update_dict", deepcopy_dict(update_dict));
 
 //--- get info from updated item
         const tblName = get_dict_value(update_dict, ["table"]);
@@ -902,24 +914,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // UpdateFromResponse_User
 
 //=========  UpdateFromResponse_ShowOk  ================ PR2020-06-10
-    function UpdateFromResponse_ShowOk(update_dict) {
-        //console.log(" --- UpdateFromResponse_ShowOk  ---");
-        //console.log("update_dict", deepcopy_dict(update_dict));
+    function UpdateFromResponse_ShowOk(updated_dict) {
+        console.log(" --- UpdateFromResponse_ShowOk  ---");
+        console.log("updated_dict", deepcopy_dict(updated_dict));
+
+        //updated_dict = { mapid: "user_111", table: "user", updated: ["perm16_hrman"]}
+
 //--- get info from updated item
-        const tblName = get_dict_value(update_dict, ["table"]);
-        const row_id = get_dict_value(update_dict, ["rowid"]);
-        const updated_list = get_dict_value(update_dict, ["updated"]);
+        const tblName = get_dict_value(updated_dict, ["table"]);
+        const row_id = get_dict_value(updated_dict, ["mapid"]);
+        const updated_field_list = get_dict_value(updated_dict, ["updated"]);
+        console.log("updated_field_list", updated_field_list);
 //--- lookup table row of updated item
         let tblRow = document.getElementById(row_id);
         if(tblRow){
-//--- loop through updated_list
-            for (let i = 0, len = updated_list.length; i < len; i++) {
-                const field_name = updated_list[i];
+//--- loop through updated_field_list
+            for (let i = 0, len = updated_field_list.length; i < len; i++) {
+                const field_name = updated_field_list[i];
+        console.log("field_name", field_name);
                 for (let j = 0, len = tblRow.cells.length; j < len; j++) {
                     let el = tblRow.cells[j].children[0];
                     const el_fldName = get_attr_from_el(el, "data-field")
                     if (el_fldName === field_name){
+        console.log("el_fldName", el_fldName);
                         ShowOkElement(el);
+                        break;
                     }
                 }
             }
@@ -931,15 +950,17 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(" -----  MSU_Open   ----")
         console.log("mode", mode)  // modes are: addnew, select, update
 
-
-        let user_dict = {}, user_pk = null, user_ppk = null, header_text = null;
-        const company_pk = get_dict_value(company_dict, ["id", "pk"]);
+        let user_dict = {}, user_pk = null, user_ppk = null, map_id = null, header_text = null;
         const fldName = get_attr_from_el(el_input, "data-field");
         if(el_input){
             const tblRow = get_tablerow_selected(el_input);
-            user_dict = get_mapdict_from_datamap_by_id(user_map, tblRow.id);
+            map_id = tblRow.id;
+            user_dict = get_mapdict_from_datamap_by_id(user_map, map_id);
             user_pk = get_dict_value(user_dict, ["id"]);
             user_ppk = get_dict_value(user_dict, ["company_id"]);
+        } else {
+            // when new user: get user_ppk from company_dict
+            user_ppk = get_dict_value(company_dict, ["id", "pk"]);
         }
         selected_user_pk = user_pk
         mod_dict = {
@@ -947,9 +968,9 @@ document.addEventListener('DOMContentLoaded', function() {
             skip_validate_username: (mode === "addnew"),
             skip_validate_last_name: (mode === "addnew"),
             skip_validate_email: (mode === "addnew"),
-            company_pk: company_pk,
             user_pk: user_pk,
             user_ppk: user_ppk,
+            map_id: map_id,
             username: get_dict_value(user_dict, ["username"]),
             last_name: get_dict_value(user_dict, ["last_name"]),
             email: get_dict_value(user_dict, ["email"]),
@@ -1238,6 +1259,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSU_SetMsgElements(response){
         console.log( "===== MSU_SetMsgElements  ========= ");
 
+
         const err_dict = ("msg_err" in response) ? response["msg_err"] : {}
         const validation_ok = get_dict_value(response, ["validation_ok"], false);
         let is_ok = ("msg_ok" in response);
@@ -1377,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Upload Changes
         UploadChanges(mod_dict, url_user_add_upload);
-    }
+    }  // ModConfirmSave
 
 //###########################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -2704,6 +2704,9 @@ let planning_list = [] // for export and printing - can replace map?
     // ---  put datefirst datelast in input boxes
             el_MSO_scheme_datefirst.value = get_dict_value(mod_upload_dict, ["scheme", "datefirst", "value"]);
             el_MSO_scheme_datelast.value = get_dict_value(mod_upload_dict, ["scheme", "datelast", "value"]);
+            if(el_MSO_scheme_datefirst.value && el_MSO_scheme_datelast.value && el_MSO_scheme_datelast.value < el_MSO_scheme_datefirst.value)  {
+                el_MSO_scheme_datelast.value = el_MSO_scheme_datefirst.value;
+            }
             cal_SetDatefirstlastMinMax(el_MSO_scheme_datefirst, el_MSO_scheme_datelast);
             el_MSO_scheme_datefirst.readOnly = false;
             el_MSO_scheme_datelast.readOnly = false;
@@ -3070,8 +3073,7 @@ let planning_list = [] // for export and printing - can replace map?
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                 (fldName === "timeduration") ? loc.Working_hours : null;
-        let st_dict = { interval: interval, comp_timezone: comp_timezone, user_lang: user_lang,
-                        show_btn_delete: show_btn_delete,
+        let st_dict = { show_btn_delete: show_btn_delete,
                         url_settings_upload: url_settings_upload,
                         text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                         txt_dateheader: txt_dateheader,
@@ -3081,7 +3083,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 
-        ModTimepickerOpen(loc, el_input, MSO_TimepickerResponse, tp_dict, st_dict)
+        mtp_TimepickerOpen(loc, el_input, MSO_TimepickerResponse, tp_dict, st_dict)
 
     };  // MSO_TimepickerOpen
 

@@ -123,7 +123,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 if instance:
                                     this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
                                     # delete_instance adds 'deleted' or 'error' to id_dict
-                                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
                             else:
@@ -183,7 +183,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                                 if instance:
                                     this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
                             else:

@@ -192,10 +192,11 @@
         return display_arr
     }  // format_date_from_dateJS_vanilla
 
-
 //=========  format_time_from_offset_JSvanilla ================ PR2020-04-10
-    function format_time_from_offset_JSvanilla(rosterdate_iso, offset, timeformat, user_lang, display24, skip_hour_suffix, weekday_list) {
+    function format_time_from_offset_JSvanilla(loc, rosterdate_iso, offset,
+                                                display24, only_show_weekday_when_prev_next_day, skip_hour_suffix) {
         //console.log( "===== format_time_from_offset_JSvanilla  ========= ");
+        //console.log( "only_show_weekday_when_prev_next_day", only_show_weekday_when_prev_next_day);
         //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
         //  format: wo 16.30 u or Sat, 12:00 pm
         "use strict";
@@ -204,11 +205,13 @@
 
         let time_formatted = "";
         if (offset != null && !!rosterdate_iso){
-            const isEN = (user_lang === "en")
-            const isAmPm = (timeformat === "AmPm")
+            const isEN = (loc.user_lang === "en")
+            const isAmPm = (loc.timeformat === "AmPm")
+            const is_midnight_endofday = ( offset === 1440 )
+            const is_prev_next_day = (offset < 0 || offset > 1440 || ( is_midnight_endofday && !display24 ))
 
             let rosterdate_JS = get_dateJS_from_dateISO (rosterdate_iso);
-            //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
+            //  when display24 = true: ma 00.00 u is displayed as 'zo 24.00 u'
             // on rosterdate 'zo':
             // timestart: offset = 0 > zo 0:00 u
             // timestart: offset = 1440 > ma 0:00 u
@@ -227,9 +230,14 @@
             let weekday_index = rosterdate_JS.getDay()
             if (!weekday_index) {weekday_index = 7}  // JS sunday = 0, iso sunday = 7
 
-            const weekday_str = weekday_list[weekday_index];
-
-            const curDayOffset = Math.floor(offset/1440);  // - 90 (1.5 h)
+            let weekday_str = null;
+            if (only_show_weekday_when_prev_next_day ){
+                if(is_prev_next_day) {weekday_str = loc.weekdays_abbrev[weekday_index];  }
+            } else {
+                weekday_str = loc.weekdays_abbrev[weekday_index];
+            }
+            let curDayOffset = Math.floor(offset/1440);  // - 90 (1.5 h)
+            if ( is_midnight_endofday && display24 ) { curDayOffset = 0 };
             const curRemainder = offset - curDayOffset * 1440;
             let curHours = Math.floor(curRemainder/60);
             const curMinutes = curRemainder - curHours * 60;
@@ -253,7 +261,7 @@
             let prefix = "", suffix = "";
             if (!!rosterdate_JS){
                 // show weekday when rosterdate_JS has value
-                prefix = weekday_str + " "
+                if((weekday_str)) { prefix = weekday_str + " "}
             } else {
                 // show < or > when rosterdate_JS has novalue
                 if (curDayOffset < 0){prefix = "< "};
@@ -361,7 +369,7 @@
 
 //========= f_get_periodtext_sidebar  ==================================== PR 2020-03-13 PR2020-07-11
     function f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso) {
-        console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
+        //console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
         let period_text = "";
         let prefix = ""; //  loc.Period + ": ";
         if (datefirst_iso && !datelast_iso) {
@@ -769,7 +777,7 @@
             }  // if (!hide_value){
         }  // if(!!rosterdate_JS)
         return display_txt
-    }  // function format_date_iso
+    }  // format_time_from_rosterdate_offset
 
 //oooooooooooooooooooooooooooooooo
 //========= format_datetime_element  ======== PR2019-06-03
@@ -1457,7 +1465,7 @@
 
 //========= display_planning_period  ======== PR2020-01-21
     function display_planning_period(selected_planning_period, loc, skip_prefix) {
-        console.log( "===== display_planning_period  ========= ");
+        //console.log( "===== display_planning_period  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
         const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");

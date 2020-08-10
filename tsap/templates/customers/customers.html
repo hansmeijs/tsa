@@ -47,8 +47,9 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    <div class="tsa_margin_top_48 mx-4">
-    {% if user.is_authenticated and user.is_perm_accman %}
+    <div class="tsa_margin_top48_left24 mx-4">
+  {% if user.is_authenticated %}
+     {% if user.is_perm_planner or user.is_perm_accman %}
 <!-- =================== msgbox  =================== -->
         <div class="popup display_hide">
             <span class="popuptext" id="id_msgbox"></span>
@@ -178,5 +179,10 @@
             <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
         </div>
     {% endif %}
+  {% else %}
+    <div class="mx-4">
+        <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
+    </div>
+  {% endif %}
     </div>
 {% endblock %}

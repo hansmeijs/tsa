@@ -384,9 +384,10 @@
     /* margin: <top><right><bottom><left> */
    margin-top: 72px
 }
-.tsa_margin_top_48 {
+.tsa_margin_top48_left24 {
     /* margin: <top><right><bottom><left> */
-   margin-top: 48px
+   margin-top: 48px;
+   margin-left: 24px;
 }
 .tsa_margin_top_24 {
     /* margin: <top><right><bottom><left> */

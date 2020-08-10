@@ -209,6 +209,25 @@ class User(AbstractUser):
     # - Inspection and School users can only add their own role
     # - Inspection and School users can have all permits: 'Admin', 'Auth',  'Write' and 'Read'
 
+    """
+    PR2020-08-05
+    Gebruikersgroepen en permissies
+    Er zijn de volgende gebruikersgroepen: 
+    	Systeembeheerder.   Alleen een systeembeheerder kan gebruikers accounts aanmaken en wijzigen. Hij heeft alleen toegang tot de pagina ‘Gebruikers’
+    	Accountmanager.     De accountmanager heeft volledige toegang tot de pagina’s ‘Klanten’ en ‘Facturering’. 
+    	                    De accountmanager kan de pagina ‘Rooster’ inzien, maar geen wijzigingen aanbrengen.
+    	HR-manager.         De HR-manager heeft volledige toegang tot de pagina’s ‘Medewerkers’ en ‘Loonadministratie’. 
+    	                    De HR-manager kan de pagina ‘Rooster’ inzien, maar geen wijzigingen aanbrengen behalve ontgrendelen
+    	Controleur.         De controleur heeft volledige toegang tot de pagina ‘Rooster’. 
+    	                    Kan shifts vergrendelen, niet ontgrendelen
+    	Planner.            De planner heeft volledige toegang tot de pagina ‘Planning’, ‘Mederwerker’ en 'Klanten' en 'Locaties'  
+    	                    De planner kan de pagina ‘Rooster’ inzien en roosters toevoegen of verwijderen, maar geen wijzigingen aanbrengen.
+    	                    De planner kan de pagina ‘Mederwker’ en'Klanten en Loccaies 
+    	Medewerker.         Een medewerker heeft toegang tot de (nog te maken) pagina ‘Medewerker’. 
+            Een medewerker kan zijn eigen rooster inzien en wijzigingen in te tijden aanbrengen, eventueel ook afwezigheid toevoegen of diensten ruilen.
+
+    """
+
     @property
     def permits_choices(self):
         # PR201806-01 function creates tuple of permits, used in UserAddForm, UserEditForm
@@ -267,7 +286,6 @@ class User(AbstractUser):
                     if self.is_perm_sysadmin:
                         has_permit = True
         return has_permit
-
 
     @property
     def is_role_system_and_perm_sysadmin(self):
@@ -364,27 +382,28 @@ class Usersetting(Model):
 
     user = ForeignKey(User, related_name='usr_settings', on_delete=CASCADE)
     key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
-    setting = CharField(max_length=2048, null=True, blank=True)
+    # setting = CharField(max_length=2048, null=True, blank=True) PR2020-08-06 removed
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
-
+    datetimesetting = DateTimeField(null=True)  #  for last_emplhour_check PR2020-08-06
 
 # ===========  Classmethod
+    # TODO removen setting is already removed
     @classmethod
-    def get_setting(cls, key_str, user): #PR2019-07-02
+    def get_settingXXX(cls, key_str, user): #PR2019-07-02
         # function returns value of setting row that matches the filter
         # logger.debug('---  get_setting  ------- ')
         setting = None
-        if user and key_str:
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                if row.setting:
-                    setting = row.setting
+        # if user and key_str:
+        #     row = cls.objects.filter(user=user, key=key_str).first()
+        #     if row:
+        #         if row.setting:
+        #             setting = row.setting
         return setting
 
     @classmethod
-    def set_setting(cls, key_str, setting, user): #PR2019-07-02
-        # function returns list of setting rows that matches the filter
+    def set_settingXXX(cls, key_str, setting, user): #PR2019-07-02
+        # function renews setting rows that matches the filter, adds if not exist
         # logger.debug('---  set_setting  ------- ')
         # logger.debug('setting: ' + str(setting))
         # get
@@ -431,6 +450,30 @@ class Usersetting(Model):
                 #logger.debug('row does not exist')
                 row = cls(user=user, key=key_str, jsonsetting=setting_dict)
             row.save()
+
+    @classmethod
+    def get_datetimesetting(cls, key_str, user):  # PR2020-08-06
+        saved_datetime_setting = None
+        if user and key_str:
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                if row.datetimesetting:
+                    saved_datetime_setting = row.datetimesetting
+
+        return saved_datetime_setting
+
+    @classmethod
+    def set_datetimesetting(cls, key_str, new_datetime, user):   # PR2020-08-06
+        if user and key_str:
+            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                row.datetimesetting = new_datetime
+            elif new_datetime:
+                #logger.debug('row does not exist')
+                row = cls(user=user, key=key_str, datetimesetting=new_datetime)
+            row.save()
+
 
     # TODO get rid of set_selected_pk
     @classmethod

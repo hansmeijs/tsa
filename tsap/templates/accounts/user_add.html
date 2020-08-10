@@ -17,7 +17,7 @@
 {% block content %}
   <div class="container">
     {% if user.permit_user_modify %}
-      <h4 class="tsa_margin_top_48">{% trans 'Add user' %}</h4>
+      <h4 class="tsa_margin_top48_left24">{% trans 'Add user' %}</h4>
       <form method="post" novalidate>
         {% csrf_token %}
          <input type="hidden" name="next" value="{{ next }}">

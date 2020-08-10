@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="icon" href="{% static 'img/favicon.ico' %}" />
+        <title>TSA secure</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% static 'css/tsap.css' %}">
+        <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+        <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js"></script>
+
+        <script src="{% static 'js/employee.js' %}"></script>
+    </head>
+    <body>
+
+<!-- NAV BAR -->
+    <nav class="navbar navbar-default navbar-expand-sm mobileheaderbar fixed-top">
+        <div class="container">
+
+            <!-- Brand -->
+            <div class="modal_body_left">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'img/tsalogo.png' %}" href="{% url 'home' %}" height="24" width="72">
+                </a>
+                {% if user.is_authenticated %}
+                    <span class=" pt-4" >Securitas{{ company }}</span>
+                {% else %}
+                    <a class=" nopadding">secure</a>
+                {% endif %}
+
+            </div>
+
+            <div class="modal_body_right">
+                {% if user.is_authenticated %}
+
+                    <a class="btn dropdown-toggle nopadding" href="#" id="userMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ user.username_sliced }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right nopadding" aria-labelledby="userMenu">
+                        <a class="dropdown-item" href="{% url 'language_set_url' user.pk 'en' %}" >{% trans 'English' %}</a>
+                        <a class="dropdown-item" href="{% url 'language_set_url' user.pk 'nl' %}">{% trans 'Dutch' %}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{% url 'password_change' %}">{% trans 'Change password' %}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{% url 'logout' %}">{% trans 'Log out' %}</a>
+                    </div>
+
+                {% else %}
+                    <form class="form-inline ml-auto">
+                        <a href="{% url 'login' %}" class="btn nopadding">{% trans 'Log in' %}</a>
+                    </form>
+
+                {% endif %}
+            </div>
+        </div>
+
+    </nav>
+<!-- END OF NAV BAR -->
+        <div class="mobile_margin_top_33">
+            {% if user.is_authenticated %}
+                {% if user.is_perm_employee %}
+<!-- class content_header -->
+                    <div class="mobiledatecontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_1">
+                            <h5 id="id_hdr_text" class="ta_c"><</h5>
+                        </div>
+                        <div class="tsa_flex_4">
+                            <h5 class=" mt-2 ta_c">donderdag <br> 29 september 2020</h5>
+                        </div>
+                        <div class="tsa_flex_1">
+                            <h5 id="id_hdr_right_text" class="ta_c">></h5>
+                        </div>
+                    </div>
+
+                <div class="mobileshiftcontaner mobile_border" >
+                      <div class="mobiledatecontaner tsa_bc_yellow_light">
+                        <div class="tsa_flex_2">
+                            <h2 class=" mt-2 ta_c">wo<br>23:00 u</h2>
+                        </div>
+                        <div class="tsa_flex_1">
+                            <h2 class=" mt-2 ta_c"> - </h2>
+                        </div>
+                        <div class="tsa_flex_2">
+                            <h2 class=" mt-2 ta_c">07:00 u</h2>
+                        </div>
+                    </div>
+
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_c">
+                            <h5 class="mt-2 ta_c">Maduro & Curiel's Bank  <br> Jan Noorduijnweg</h5>
+                        </div>
+                    </div>
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_l">
+                            <div>Colpa de, William</div>
+                            <div>van Delden, Johan</div>
+                            <div>Regales, Ruëny</div>
+                        </div>
+                    </div>
+                    <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                        <button data-btn="employee" class="btn btn-secondary ">{% trans 'I am absent' %}</button>
+                        <button data-btn="absence" class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
+                    </div>
+                </div>
+
+                <div class="mobileshiftcontaner mobile_border" >
+                      <div class="mobiledatecontaner tsa_bc_yellow_light">
+                       <div class="tsa_flex_1"> <h2 class=" mt-2 ta_c"> <br> </h2> </div>
+                        <div class="tsa_flex_3">
+                            <h2 class=" mt-2 ta_c tsa_color_darkgrey">13:00 u</h2>
+                        </div>
+                        <div class="tsa_flex_1">
+                            <h2 class=" mt-2 ta_c tsa_color_darkgrey"> - </h2>
+                        </div>
+                        <div class="tsa_flex_3">
+                            <h2 class=" mt-2 ta_c tsa_color_darkgrey">17:00 u</h2>
+                        </div>
+                       <div class="tsa_flex_1">
+                            <div id="id_loader" class="image_container visibility_hideXX">
+                                <img  src="{% static 'img/padlock.gif' %}" height="18" width="18">
+                            </div>
+                       </div>
+
+                    </div>
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_c">
+                            <h5 class="mt-2 ta_c tsa_color_darkgrey">Maduro & Curiel's Bank  <br> Jan Noorduijnweg</h5>
+                        </div>
+                    </div>
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_l tsa_color_darkgrey">
+                            <div>Colpa de, William</div>
+                            <div>van Delden, Johan</div>
+                            <div>Regales, Ruëny</div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="mobileshiftcontaner mobile_border" >
+                      <div class="mobiledatecontaner tsa_bc_yellow_light">
+                        <div class="tsa_flex_2">
+                            <h2 class=" mt-2 ta_c">19:00 u</h2>
+                        </div>
+                        <div class="tsa_flex_1">
+                            <h2 class=" mt-2 ta_c"> - </h2>
+                        </div>
+                        <div class="tsa_flex_2">
+                            <h2 class=" mt-2 ta_c">21:00 u</h2>
+                        </div>
+
+                    </div>
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_c">
+                            <h5 class="mt-2 ta_c">Maduro & Curiel's Bank  <br> Jan Noorduijnweg</h5>
+                        </div>
+                    </div>
+                    <div class=" mobileshiftcontaner tsa_bc_lightlightgrey">
+                        <div class="tsa_flex_4 ta_l">
+                            <div>Colpa de, William</div>
+                            <div>van Delden, Johan</div>
+                            <div>Regales, Ruëny</div>
+                        </div>
+                    </div>
+                                        <div id="id_btn_concctainer" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                        <button data-btn="employee" class="btn btn-secondary ">{% trans 'I am absent' %}</button>
+                        <button data-btn="absence" class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
+                    </div>
+                </div>
+
+
+
+
+            <!-- END CONTENT BODY -->
+
+<!-- =================== END CONTAINER =================== -->
+
+                    <div id="id_data"
+                        data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
+                        data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
+                        data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
+                        data-imgsrc_delete="{% static 'img/delete.gif' %}"
+                        data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
+                        data-imgsrc_warning="{% static 'img/warning.gif' %}"
+                        data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
+                        data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
+                        data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+
+                        data-datalist_download_url="{% url 'datalist_download_url' %}"
+                        data-settings_upload_url="{% url 'settings_upload_url' %}"
+                        data-employee_import_url="{% url 'employee_import_url' %}"
+                        data-employee_upload_url="{% url 'employee_upload_url' %}"
+                        data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+                    >
+                    </div>
+                {% else %}
+                    <div class="mx-4">
+                        <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="mx-4">
+                    <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
+                </div>
+            {% endif %}
+        </div>
+    </body>
+</html>

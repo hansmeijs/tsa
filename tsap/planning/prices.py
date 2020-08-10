@@ -419,7 +419,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
         logger.debug(' ============= PricesUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_accman:
 
 # 3. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)

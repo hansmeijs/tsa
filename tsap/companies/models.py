@@ -628,12 +628,31 @@ class Employeelog(TsaBaseModel):
         ordering = ['-modifiedat']
 
 
+class Empoloyeenotes(TsaBaseModel):
+    objects = TsaManager()
+
+    employee = ForeignKey(Employee, related_name='+', on_delete=CASCADE)
+    note = CharField(max_length=2048, null=True, blank=True)
+    isadminnote = BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-modifiedat']
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
+
+
 class Teammember(TsaBaseModel):
     objects = TsaManager()
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
     employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
     replacement = ForeignKey(Employee, related_name='replacements', on_delete=SET_NULL, null=True, blank=True)
+    switch = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -797,6 +816,7 @@ class Orderhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     hasnote = BooleanField(default=False)
+    isdeleted  = BooleanField(default=False)
 
     class Meta:
         ordering = ['rosterdate']
@@ -860,6 +880,7 @@ class Emplhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     haschanged  = BooleanField(default=False)  # haschanged will show an orange diamond on the roster page
+    isdeleted  = BooleanField(default=False)  # for updatng roster page
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
@@ -895,7 +916,6 @@ class Emplhour(TsaBaseModel):
         return True if status_int > 1 else False
 
 
-
 class Emplhourlog(TsaBaseModel):
     objects = TsaManager()
 
@@ -920,7 +940,6 @@ class Emplhourlog(TsaBaseModel):
     billingduration = IntegerField(default=0)
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
-
 
     status = PositiveSmallIntegerField(default=0)
     deleted = BooleanField(default=False)
@@ -1000,6 +1019,7 @@ class Companysetting(Model):  # PR2019-03-09
     company = ForeignKey(Company, related_name='companysettings', on_delete=CASCADE)
     key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
+    datetimesetting = DateTimeField(null=True)  #  for last_emplhour_updated PR2020-08-10
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
 
@@ -1393,7 +1413,8 @@ def get_instance(table, pk_int, parent, update_dict=None):
 
 def delete_instance(instance, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
-    delete_ok = False
+    deleted_ok = False
+    msg_err = None
     if instance:
         try:
             instance.delete(request=request)
@@ -1405,9 +1426,9 @@ def delete_instance(instance, update_dict, request, this_text=None):
             update_dict['id']['error'] = msg_err
         else:
             update_dict['id']['deleted'] = True
-            delete_ok = True
+            deleted_ok = True
     # instance = None does not work here, it works outside this function
     # if delete_ok:
     #    instance = None
 
-    return delete_ok
+    return deleted_ok, msg_err

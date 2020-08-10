@@ -6,13 +6,12 @@
     let mod_quicksave = false;
     let mod_quicksave_initialized = false;
 
-//========= ModTimepickerOpen  ====================================
-    function ModTimepickerOpen(loc, el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        console.log("=== MODAL  ModTimepickerOpen  =====");
-        console.log( "tp_dict: ", tp_dict);
-        console.log( "st_dict: ", st_dict);
+//========= mtp_TimepickerOpen  ====================================
+    function mtp_TimepickerOpen(loc, el_input, ModTimepickerChanged, tp_dict, st_dict) {
+        //console.log("===  mtp_TimepickerOpen  =====");
+        //console.log( "tp_dict: ", tp_dict);
+        //console.log( "st_dict: ", st_dict);
         // tp_dict.page is not used in Timepicker. It is used when returned to page
-        document.getElementById("id_mtp_modal").classList.remove("hidden");
 
         // only retrieve is_quicksave from roster page when starting up page.
         // changed value is saved in mod_quicksave, and from here sent to server
@@ -20,6 +19,8 @@
             mod_quicksave = tp_dict.quicksave;
             mod_quicksave_initialized = true;
         }
+        const el_mtp_modal = document.getElementById("id_mtp_modal");
+        el_mtp_modal.classList.remove("hidden");
 
         CalcMinMax(tp_dict)
 
@@ -29,17 +30,18 @@
         document.getElementById("id_timepicker_date").innerText = get_header_date(loc, tp_dict, st_dict)
 
         CreateFooter(tp_dict, st_dict, ModTimepickerChanged);
+
         CreateTimepickerHours(ModTimepickerChanged, tp_dict, st_dict);
-        CreateTimepickerMinutes(ModTimepickerChanged, tp_dict, st_dict);
+
+        CreateTimepickerMinutes(loc, ModTimepickerChanged, tp_dict, st_dict);
 
         if (tp_dict["isampm"]) {HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict)}
-        HighlightAndDisableHours(tp_dict, "ModTimepickerOpen");
+        HighlightAndDisableHours(tp_dict, "mtp_TimepickerOpen");
         HighlightAndDisableMinutes(tp_dict)
 
 // ---  hide save button on quicksave
         HideSaveButtonOnQuicksave(tp_dict, st_dict);
-
-    }; // function ModTimepickerOpen
+    }; // mtp_TimepickerOpen
 
 //========= CreateHeader  ====================================
     function CreateHeader(loc, tp_dict, st_dict) {
@@ -198,7 +200,7 @@
     }  //function CreateTimepickerHours
 
 //========= CreateTimepickerMinutes  ====================================
-    function CreateTimepickerMinutes(ModTimepickerChanged, tp_dict, st_dict) {
+    function CreateTimepickerMinutes(loc, ModTimepickerChanged, tp_dict, st_dict) {
         //console.log( "=== CreateTimepickerMinutes  ");
 
 // ---  set references to elements
@@ -207,7 +209,8 @@
 
 // ---  hide minutes tables when interval = 60
         let el_cont_minute = document.getElementById("id_timepicker_cont_minute");
-        const interval = st_dict["interval"];
+
+        const interval = (loc.interval) ? loc.interval : 5;
         if(interval === 60) {
             el_cont_minute.classList.add("display_hide")
         } else {
@@ -491,8 +494,6 @@
         const curDate_is_rosterdate = tp_dict["curDate_is_rosterdate"];
         const prevday_disabled = tp_dict.prevday_disabled;
         const nextday_disabled = tp_dict.nextday_disabled;
-        // TODO fix, get rid of moment.js
-        const comp_timezone = ''; // get_attr_from_el(el_timepicker, "data-timezone");
 
         //const curDate = tp_dict["curDate"]
         const curDateMidnight = 0; // was  curDate.clone()

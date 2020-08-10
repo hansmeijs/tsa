@@ -3,12 +3,12 @@
 {% load static %}
 
 {% block title %}{% trans 'Employees' %}{% endblock %}
+
 {% block script %}
     <script src="{% static 'js/employees.js' %}"></script>
     <script src="{% static 'js/modtimepicker.js' %}"></script>
     <script src="{% static 'js/calendar.js' %}"></script>
 {% endblock %}
-
 
 <!-- SIDE BAR -->
 {% block sidebar %}
@@ -38,8 +38,10 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    <div class="tsa_margin_top_48 mx-4">
-    {% if user.is_authenticated and user.is_perm_hrman %}
+    <div class="tsa_margin_top48_left24 mx-4">
+
+  {% if user.is_authenticated %}
+     {% if user.is_perm_planner or user.is_perm_hrman %}
 
 <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
@@ -113,7 +115,7 @@
             <button data-btn="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
             <button data-btn="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
             <button data-btn="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-            <button data-btn="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
+            <button data-btn="calendar" class="btn btn-secondary display_hide">{% trans 'Calendar' %}</button>
             <button data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
         </div>
 <!-- end BUTTON GROUP -->
@@ -121,7 +123,7 @@
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-        <div class="content_body mx-4">
+        <div class="content_body mx-2">
 <!-- =================== DATA TABLE  =================== -->
             <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_shifts tab_planning display_hide">
              <!--   <div class="content_subheader_left mx-2 tab_show tab_planning display_hide">
@@ -131,7 +133,6 @@
                  <table class="table tsa_tbl">
                     <thead id="id_tblHead_datatable"></thead>
                     <tbody id="id_tblBody_datatable"></tbody>
-                    <tfoot id="id_tblFoot_datatable"></tfoot>
                 </table>
             </div>
 
@@ -168,6 +169,11 @@
     {% else %}
         <div class="mx-4">
             <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
+        </div>
+    {% endif %}
+    {% else %}
+        <div class="mx-4">
+            <div class="alert alert-danger">{% trans "You must be logged in to view this page." %}</div>
         </div>
     {% endif %}
     </div>

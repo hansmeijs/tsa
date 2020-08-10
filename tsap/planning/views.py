@@ -48,7 +48,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
         #logger.debug(' ')
-        logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
+        #logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
         #logger.debug('request.POST' + str(request.POST))
 
         starttime = timer()
@@ -77,7 +77,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     interval = request.user.company.interval if request.user.company.interval else 15
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
-                    logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
+                    #logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
 
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
@@ -169,13 +169,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('abscat_list')
                     #logger.debug('request_item abscat_list' + str(request_item))
                     if request_item:
-                        dict_list = cust_dicts.create_absencecategory_list(request)
-                        datalists['abscat_list'] = dict_list
-# ----- absence_list
+                        abscat_order_list, abscat_order_rows = cust_dicts.create_abscat_order_list(request)
+                        datalists['abscat_list'] = abscat_order_list
+                        datalists['abscat_rows'] = abscat_order_rows
+# ----- absence_list used in scheme. TODO change absence_list to absence_rows in scheme page
                     request_item = datalist_request.get('absence_list')
                     if request_item:
-                        dict_list = ed.create_absence_list(filter_dict=request_item, request=request)
-                        datalists['absence_list'] = dict_list
+                        dict_list, dict_rows = ed.create_absence_list(filter_dict=request_item, teammember_pk=None, request=request)
+                        # datalists['absence_list'] = dict_list
+                        datalists['absence_rows'] = dict_rows
 # - page_scheme_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
                     request_item = datalist_request.get('page_scheme_list')
                     if request_item:
@@ -258,6 +260,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists[key] = d.period_get_and_save(key, request_item,
                                                                          comp_timezone, timeformat, interval, user_lang, request)
 
+
 # ----- emplhour (roster page)
                     request_item = datalist_request.get('emplhour')
                     roster_period_dict = datalists.get('roster_period')
@@ -266,6 +269,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
                         # roster_period_dict is already retrieved
                         emplhour_list, emplhours_rows = d.create_emplhour_list(period_dict=roster_period_dict,
+                                                                request_item=request_item,
                                                                 comp_timezone=comp_timezone,
                                                                 timeformat=timeformat,
                                                                 user_lang=user_lang,
@@ -548,7 +552,7 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
         absence_customer = cust_dicts.get_or_create_absence_customer(request)
         if absence_customer:
             absence_customer_pk = absence_customer.pk
-            abscat_list = cust_dicts.create_absencecategory_list(request)
+            abscat_list = cust_dicts.create_abscat_order_list(request)
             if abscat_list:
                 datalists['abscat_list'] = abscat_list
 # - get teammember_list list, create one if not exists
@@ -762,86 +766,11 @@ def download_customer_planning(table_dict, planning_period_dict, datalists, save
 class RosterView(View):
 
     def get(self, request):
-        param = {}
-        #logger.debug(' ============= RosterView ============= ')
-        if request.user.company is not None:
-            # datefirst = None
-            # datelast = None
-            # crit = (Q(orderhour__order__customer__company=request.user.company) | Q(employee__company=request.user.company))
-            # if datefirst:
-            #     crit.add(Q(rosterdate__gte=datefirst), crit.connector)
-            # if datelast:
-            #     crit.add(Q(rosterdate__lte=datelast), crit.connector)
-            #emplhours = m.Emplhour.objects.filter(crit)
-            # emplhours = m.Emplhour.objects.all()
-
-            # for emplhour in emplhours:
-            #     string = str(emplhour.id)
-            #     if emplhour.rosterdate:
-            #          string += ' - rosterdate: ' + str(emplhour.rosterdate)
-            #      if emplhour.orderhour:
-            #         string += ' - order: ' + str(emplhour.orderhour.order.code)
-
-            # b. get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-
-    # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-
-    # get weekdays translated
-            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
-
-    # get months translated
-            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[lang])
-
-            # get interval
-            interval = 1
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-            # get timeformat
-            timeformat = 'AmPm'
-            if request.user.company.timeformat:
-                timeformat = request.user.company.timeformat
-            if not timeformat in c.TIMEFORMATS:
-                timeformat = '24h'
-
-            # get quicksave from Usersetting
-            quicksave = 0
-            quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
-            if quicksave_str:
-                quicksave = int(quicksave_str)
-
-            # get_current = False
-            # period_dict = d.get_period_dict_and_save(request, get_current)
-            # period_json = json.dumps(period_dict)
-
-
-            # TODO change to today in period_dict  today =  get_today(request)
-
-            # --- get today
-            today_dict = {'value': str(date.today()),
-                          'wdm': f.get_date_WDM_from_dte(date.today(), user_lang),
-                          'wdmy': f.format_WDMY_from_dte(date.today(), user_lang),
-                          'dmy': f.format_DMY_from_dte(date.today(), user_lang),
-                          'offset': f.get_weekdaylist_for_DHM(date.today(), user_lang)}
-            today_json = json.dumps(today_dict)
-
-            param = get_headerbar_param(request, {
-                'lang': user_lang,
-                'timezone': comp_timezone,
-                'timeformat': timeformat,
-                'interval': interval,
-                'weekdays': weekdays_json,
-                'months': months_json,
-                'today': today_json,
-                'quicksave': quicksave
-            })
-
+        logger.debug(' ============= RosterView ============= ')
+        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        activate(user_lang)
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'roster.html', param)
+        return render(request, 'roster.html')
 
 
 # === SchemesView ===================================== PR2019-03-24
@@ -892,7 +821,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
         logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
 
  # - Reset language
             # PR2019-08-24 Debug: language gets lost, get request.user.lang again
@@ -1434,7 +1363,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
        #logger.debug(' ============= GridUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
 
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -1467,7 +1396,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
         logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
 
 # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -1547,7 +1476,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                     # shift, team and schemeitem have on_delete=CASCADE set.
                     # Therefore they don't have to be deleted separately
                     this_text = _("Scheme '%(suffix)s'") % {'suffix': instance.code}
-                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                     if deleted_ok:
                         # instance will stay after delete, therefore must set instance = None
                         instance = None
@@ -1637,7 +1566,7 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
             # add pk here, because instance will be deleted
             update_dict['id']['pk'] = instance.pk
             # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-            deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+            deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
             if deleted_ok:
                 instance = None
 # C. Create new shift
@@ -1699,7 +1628,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
             if instance:
                 this_text = _("Team %(suffix)s") % {'suffix': instance.code}
                 # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-                deleted_or_created_ok = m.delete_instance(instance, update_dict, request, this_text)
+                deleted_or_created_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                 if deleted_or_created_ok:
                     instance = None
 # 5. Create new team
@@ -1955,7 +1884,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 
         item_update_dict = {}
 
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
 # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2164,7 +2093,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
        #logger.debug('============= SchemeItemUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
 
 # 1. get upload_list from request.POST
             upload_json = request.POST.get('upload', None)
@@ -2218,7 +2147,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                                 # add pk here, because instance will be deleted
                                 update_dict['id']['pk'] = instance.pk
                                 # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-                                delete_ok = m.delete_instance(instance, update_dict, request, this_text)
+                                deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                                 if delete_ok:
                                     instance = None
 # C. Create new schemeitem
@@ -2258,7 +2187,7 @@ class ReviewView(View):
     def get(self, request):
         param = {}
         #logger.debug(' ============= ReviewView ============= ')
-        if request.user.company is not None:
+        if request.user is not None and request.user.company is not None and request.user.is_perm_accman:
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
@@ -2409,7 +2338,7 @@ def upload_period(interval_upload, request):  # PR2019-07-10
                 period_dict_json = json.dumps(period_dict)  # dumps takes an object and produces a string:
                 #logger.debug('period_dict_json: ' + str(period_dict_json))
 
-                Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
+                Usersetting.set_jsonsetting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
 
 # calculate  updated period_dict
             # get today_midnight_local_iso
@@ -2544,8 +2473,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
         #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None:
-
+        if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
 # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2613,7 +2541,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 this_text = _('This shift')
                                 # save instance to log before deleting
                                 emplhourlog_pk = save_emplhour_instance_to_emplhourlog(emplhour, True)  # True = is_deleted
-                                deleted_ok = m.delete_instance(emplhour, update_dict, request, this_text)
+                                deleted_ok, msg_errNIU = m.delete_instance(emplhour, update_dict, request, this_text)
                                 if deleted_ok:
                                     emplhour = None # don't delete this line - needed to skip update
                                     f.remove_empty_attr_from_dict(update_dict)
@@ -2693,6 +2621,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 updatedict_final = d.create_emplhour_itemdict_from_row (
                                     emplhour_rows[0], update_dict, comp_timezone, timeformat, user_lang)
 
+                            logger.debug('updatedict_final: ' + str(updatedict_final))
 # 6. remove empty attributes from update_dict
                     # is already done in create_emplhour_itemdict_from_row
                     #f.remove_empty_attr_from_dict(update_dict)
@@ -3280,6 +3209,9 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
         save_orderhour = False
         save_changes = False
         recalc_duration = False
+        is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
+        is_restshift = emplhour.orderhour.isrestshift
+        is_absence = emplhour.orderhour.isabsence
 
         saved_rosterdate_dte = getattr(emplhour, 'rosterdate')
 
@@ -3439,7 +3371,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
 # --- recalculate timeduration and amount, addition, tax, wage
         #logger.debug('calculate working hours')
         if recalc_duration:
-            #logger.debug(' --- recalc_duration --- ')
+            logger.debug(' --- recalc_duration --- ')
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
             saved_time_duration = getattr(emplhour, 'timeduration', 0)
@@ -3452,18 +3384,27 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
                     timestart=emplhour.timestart,
                     timeend=emplhour.timeend,
                     breakduration=saved_breakduration)
+    # - set plannedduration and billingduration
+            # - only when created record, not when absence or restshift, but don't skip when employee = None PR2020-08-07
+            if is_create and new_time_duration and not is_restshift and not is_absence:
+                setattr(emplhour, 'plannedduration', new_time_duration)
+                update_dict['plannedduration']['updated'] = True
+                setattr(emplhour, 'billingduration', new_time_duration)
+                update_dict['billingduration']['updated'] = True
     # - set new_time_duration = 0 when restshift or employee = None PR2020-07-24
             # Note: not when isabsence, absence hours are stored in field 'timeduration'
-            if emplhour.orderhour.isrestshift or emplhour.employee is None:
+            if is_restshift or emplhour.employee is None:
                 new_time_duration = 0
     # - save timeduration
             if new_time_duration != saved_time_duration:
                 setattr(emplhour, field, new_time_duration)
                 update_dict[field]['updated'] = True
+
     # - when is_billable: make billingduration equal to time_duration
             if emplhour.orderhour.isbillable:
     # - save billingduration
                 setattr(emplhour, 'billingduration', emplhour.timeduration)
+                update_dict['billingduration']['updated'] = True
 
     # get pricerate, additionrate, taxrate
             pricecode = f.get_pat_code_cascade('shift', 'pricecode', emplhour.orderhour, request)
@@ -3535,7 +3476,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
                 update_dict['id']['error'] = msg_err
 
 # 7. update overlap
-            # TODO check hoe to fix update_emplhour_overlap
+            # TODO check how to fix update_emplhour_overlap
             #if emplhour:
             #   rosterdate= emplhour.rosterdate
             #   employee = emplhour.employee
@@ -3544,7 +3485,7 @@ def update_emplhour(emplhour, upload_dict, update_dict, clear_overlap_list, requ
             #     if old_employee_pk and old_employee_pk != employee.pk:
             #         d.update_emplhour_overlap(old_employee_pk, emplhour.rosterdate, request, eplh_update_list)
 
-       #logger.debug('oooooooooooooooooooo update_dict: ' + str(update_dict))
+    logger.debug('update_dict: ' + str(update_dict))
 
     return update_dict
 # --- end of update_emplhour
@@ -3900,8 +3841,8 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                     update_dict['id'] = {}
                 update_dict['id']['error'] = msg_err
 
-
-def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
+# NOT IN USE
+def get_rangemin_rangemaxXXX (upload_dict, request):  # PR2019-08-19
     rangemin = None
     rangemax = None
 

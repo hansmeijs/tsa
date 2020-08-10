@@ -19,8 +19,6 @@ from django.utils.functional import Promise
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
-from tsap.functions import id_found_in_list
-
 class LazyEncoder(DjangoJSONEncoder):
     def default(self, obj):
         if isinstance(obj, Promise):

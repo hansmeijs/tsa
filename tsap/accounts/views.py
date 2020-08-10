@@ -882,13 +882,13 @@ def SignupActivateView(request, uidb64, token):
 # === end of SignupActivateView =====================================
 
 
-# === UsersUploadView ===================================== PR2020-07-31
+# === UserPermitsUploadView ===================================== PR2020-07-31
 @method_decorator([login_required], name='dispatch')
-class UsersUploadView(UpdateView):  # PR2019-06-23
+class UserPermitsUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ')
-        logger.debug(' ============= UsersUploadView ============= ')
+        logger.debug(' ============= UserPermitsUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_sysadmin:
@@ -898,18 +898,15 @@ class UsersUploadView(UpdateView):  # PR2019-06-23
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: {'field': 'perm16_hrman',
-                #               'id': {'pk': 105, 'ppk': 100, 'table': 'user', 'rowid': 'users_105', 'rowindex': 3},
-                #               'permit': {'value': True, 'update': True}}
-
+                # upload_dict: {'id': {'pk': 111, 'ppk': 3, 'table': 'user', 'rowid': 'user_111', 'rowindex': 3},
+                #                'perm08_planner': True}
+# - create update_dict
                 table = f.get_dict_value(upload_dict, ('id', 'table'))
+                map_id = f.get_dict_value(upload_dict, ('id', 'mapid'))
+                update_dict = {'table': table, 'mapid': map_id, 'updated': []}
+# - get user
                 pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
                 # ppk_int not in use, filter on request.user.company instead.
-                map_id = f.get_dict_value(upload_dict, ('id', 'mapid'))
-                row_id = f.get_dict_value(upload_dict, ('id', 'rowid'))
-
-                update_dict = {'table': table, 'rowid': row_id, 'updated': []}
-
                 user = am.User.objects.get_or_none(id=pk_int, company=request.user.company)
                 if user:
                     saved_permit_sum = user.permits
@@ -918,14 +915,14 @@ class UsersUploadView(UpdateView):  # PR2019-06-23
                                     'perm16_hrman', 'perm32_accman', 'perm64_sysadmin'):
                         if field in upload_dict:
                             perm_key = int(field[4:6])
-                            perm_value = f.get_dict_value(upload_dict, (field, 'value'))
+                            perm_value = f.get_dict_value(upload_dict, (field,), False)
                             if perm_value:
-                                # add to permits_list if not exist in permits_list yet
+                                # add perm_value to permits_list if not exist in permits_list yet
                                 if perm_key not in permits_list:
                                     permits_list.append(perm_key)
                                     update_dict['updated'].append(field)
                             else:
-                                # remove from permits_list if exists in permits_list yet
+                                # remove perm_value from permits_list if exists in permits_list
                                 if perm_key in permits_list:
                                     permits_list.remove(perm_key)
                                     update_dict['updated'].append(field)
@@ -942,15 +939,17 @@ class UsersUploadView(UpdateView):  # PR2019-06-23
                         user.permits = new_permit_sum
                         user.modifiedby_id = request.user.pk
                         user.save(request=request)
+# - create_user_list returns list of only 1 user
                         update_wrap['user_list'] = ad.create_user_list(request, user.pk)
                 update_list = []
+# - update_dict['updated'] contains list of updated fields, that will be made green after update
                 if update_dict:
                     update_list.append(update_dict)
                 update_wrap['updated_list'] = update_list
 
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+# === end of UserPermitsUploadView =====================================
 
-# === end of UsersUploadView =====================================
 ########################################################################
 # === UserAddUploadView ===================================== PR2020-08-02
 class UserAddUploadView(View):
@@ -979,23 +978,19 @@ class UserAddUploadView(View):
                 user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                 activate(user_lang)
 
+# - create update_dict
+                table = upload_dict.get('table')
+                map_id = upload_dict.get('mapid')
+                update_dict = {'table': table, 'mapid': map_id, 'updated': []}
+
 # - check if this user company is same as request.user.company
-                has_error = False
-                update_dict = {'id': {'table': 'user'}}
-
+                user_pk = upload_dict.get('user_pk')
+                user_ppk = upload_dict.get('user_ppk')
                 company = request.user.company
+                if user_ppk and user_ppk == company.pk:
+                    has_error = False
 
-                mode = f.get_dict_value(upload_dict, ('mode',))
-                user_pk = f.get_dict_value(upload_dict, ('user_pk',))
-                user_ppk = f.get_dict_value(upload_dict, ('user_ppk',))
-
-                if user_pk:
-                    user_ppk_is_ok = (user_ppk == company.pk)
-                else:
-                    company_pk = f.get_dict_value(upload_dict, ('company_pk',))
-                    user_ppk_is_ok = (company_pk == company.pk)
-
-                if user_ppk_is_ok:
+                    mode = upload_dict.get('mode')
                     is_validate_only = (mode == 'validate')
                     is_delete = (mode == 'delete')
                     is_create = (mode == 'create')
@@ -1011,15 +1006,13 @@ class UserAddUploadView(View):
                                 try:
                                     instance.delete()
                                 except:
-                                    msg_err = _("User '%(usr)s'") % {'usr': instance.username_sliced}
-                                    update_dict['id']['error'] = msg_err
+                                    err_dict['delete'] = _('An error occurred. This user could not be deleted.')
                                 else:
-                                    update_dict['id']['deleted'] = True
-                                    delete_ok = True
+                                    update_dict['deleted'] = True
                         update_wrap['update_dict'] = update_dict
-                    elif is_create or is_validate_only:
 
-    # - check if this username already exists
+                    elif is_create or is_validate_only:
+# - check if this username already exists
                         username = upload_dict.get('username')
                         logger.debug('username: ' + str(username))
                         msg_err = v.validate_unique_username(username, company.companyprefix, user_pk)
@@ -1117,14 +1110,12 @@ class UserAddUploadView(View):
                             if instance:
        # - check if this username already exists
                                 new_username = upload_dict.get('username')
-                                logger.debug('new_username: ' + str(new_username))
                                 msg_err = v.validate_unique_username(new_username, company.companyprefix, user_pk)
                                 if msg_err:
                                     err_dict['username'] = msg_err
                                     has_error = True
         # - check if namelast is blank
                                 new_last_name = upload_dict.get('last_name')
-                                logger.debug('new_last_name: ' + str(new_last_name))
                                 msg_err = v.validate_notblank_maxlength(new_last_name, c.NAME_MAX_LENGTH, _('The name'))
                                 logger.debug('msg_err: ' + str(msg_err))
                                 if msg_err:
@@ -1132,37 +1123,51 @@ class UserAddUploadView(View):
                                     has_error = True
         # - check if this is a valid email address:
                                 new_email = upload_dict.get('email')
-                                logger.debug('new_email: ' + str(new_email))
                                 msg_err = v.validate_email_address(new_email)
                                 logger.debug('msg_err: ' + str(msg_err))
                                 if msg_err:
                                     err_dict['email'] = msg_err
                                     has_error = True
-            # - check if this email address already exists
+        # - check if this email address already exists
                                 else:
                                     msg_err = v.validate_unique_useremail(new_email, company, user_pk)
-                                    logger.debug('msg_err: ' + str(msg_err))
                                     if msg_err:
                                         err_dict['email'] = msg_err
                                         has_error = True
-
+        # - get new_employee_pk
+                                new_employee_pk = upload_dict.get('employee_pk')
+                                new_employee = None
+                                if new_employee_pk:
+                                    new_employee = m.Employee.objects.get_or_none(id=new_employee_pk, company=company)
+        # -  update user
                                 if not is_validate_only and not has_error:
                                     # - get now without timezone
                                     now_utc_naive = datetime.utcnow()
                                     now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
 
-            # -  update user
                                     data_has_changed = False
                                     if new_username != instance.username:
                                         prefixed_username = company.companyprefix + new_username
                                         instance.username = prefixed_username
                                         data_has_changed = True
+                                        update_dict['updated'].append('username')
                                     if new_last_name != instance.last_name:
                                         instance.last_name = new_last_name
                                         data_has_changed = True
+                                        update_dict['updated'].append('last_name')
                                     if new_email != instance.email:
                                         instance.email = new_email
                                         data_has_changed = True
+                                        update_dict['updated'].append('email')
+                                    if new_email != instance.email:
+                                        instance.email = new_email
+                                        data_has_changed = True
+                                        update_dict['updated'].append('email')
+                                    if new_employee != instance.employee:
+                                        instance.employee = new_employee
+                                        data_has_changed = True
+                                        update_dict['updated'].append('employee')
+
                                     if data_has_changed:
                                         try:
                                             instance.modifiedby=request.user
@@ -1170,14 +1175,19 @@ class UserAddUploadView(View):
                                             instance.save()
                                             msg_ok_01 = _("The changes have been saved successfully.")
                                             update_wrap['msg_ok'] = {'msg_ok_01': msg_ok_01}
-                                        except:
-                                        # - return message 'We have sent an email to user'
-                                            update_wrap['msg_error'] =  _('An error occurred. The changes have not been saved.')
 
+                                            # - create_user_list returns list of only 1 user
+                                            update_wrap['user_list'] = ad.create_user_list(request, instance.pk)
+
+                                        except:
+                                        # - return message
+                                            update_wrap['msg_error'] = _('An error occurred. The changes have not been saved.')
+                                            update_dict['updated'] = []
 
 # - +++++++++ en of is update ++++++++++++
+                    if update_dict:
+                        update_wrap['updated_list'] = [update_dict]
 
-                    logger.debug('err_dict: ' + str(err_dict))
                     if err_dict:
                         update_wrap['msg_err'] = err_dict
                     else:

@@ -53,7 +53,6 @@
                 <a class="navbar-brand navbar-default nopadding">secure</a>
             {% endif %}
 
-
             <!-- User -->
             <button class="navbar-toggler nopadding" type="button" data-toggle="collapse" data-target="#mainMenu" aria-controls="mainMenu" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -66,24 +65,9 @@
                                 {{ user.username_sliced }}
                             </a>
                             <div class="dropdown-menu dropdown-menu-right nopadding" aria-labelledby="userMenu">
-                                <!-- temporary for testing
-                                <a class="dropdown-item"  >{{ user.role_str }}</a>
-                                <a class="dropdown-item"  >{{ user.permits_str }}</a>
-                                <div class="dropdown-divider"></div>
-
-                                -->
                                 <a class="dropdown-item"  href="{% url 'language_set_url' user.pk 'en' %}" >{% trans 'English' %}</a>
                                 <a class="dropdown-item" href="{% url 'language_set_url' user.pk 'nl' %}">{% trans 'Dutch' %}</a>
-                                {% if user.is_perm_admin %}
-                                    <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item"  href="{% url 'user_list_url' %}" >{% trans 'Users' %}</a>
-                                {% endif %}
-                                {% if user.is_superuser %}
-                                    <a class="dropdown-item"  href="/admin/" >Admin</a>
-                                {% endif %}
-
                                 <div class="dropdown-divider"></div>
-
                                 <a class="dropdown-item" href="{% url 'password_change' %}">{% trans 'Change password' %}</a>
                             </div>
                         </li>
@@ -123,7 +107,7 @@
             {% if user.is_perm_accman %}
                 <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Billing' %}</a>
             {% endif %}
-            {% if is_role_system_and_perm_sysadmin %}
+            {% if user.is_role_system_and_perm_sysadmin %}
                 <a id="id_hdr_comp" href="{% url 'company_url' %}">{% trans 'Company' %}</a>
             {% endif %}
             {% if user.is_perm_sysadmin %}
