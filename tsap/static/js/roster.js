@@ -1289,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             extend_index: extend_index,
             extend_offset: extend_offset};
         // only save dates when tag = "other"
-        if(period_tag == "other"){
+        if(period_tag === "other"){
             if (el_mod_period_datefirst.value) {upload_dict.period_datefirst = el_mod_period_datefirst.value};
             if (el_mod_period_datelast.value) {upload_dict.period_datelast = el_mod_period_datelast.value};
         }

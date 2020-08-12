@@ -291,11 +291,11 @@
         }
     }  // add_or_remove_attr
 
-//========= function add_hover  =========== PR2020-05-20
+//========= function add_hover  =========== PR2020-05-20 PR2020-08-10
     function add_hover(el, hover_class, default_class) {
 //- add hover to element
-        if(!hover_class){hover_class = "tr_hover" };
-        if(!!el){
+        if(!hover_class){hover_class = "tr_hover"};
+        if(el){
             el.addEventListener("mouseenter", function(){
                 if(default_class) {el.classList.remove(default_class)}
                 el.classList.add(hover_class)
@@ -305,6 +305,7 @@
                 el.classList.remove(hover_class)
             });
         }
+        el.classList.add("pointer_show")
     }  // add_hover
 
 //========= function add_hover  =========== PR2020-06-09
@@ -481,41 +482,36 @@
         //console.log(data_map) // PR2019-11-26
     }  // update_map_item
 
-//========= insertAtIndex  ================== PR2020-01-20
+//========= insertAtIndex  ================== PR2020-01-20 PR2020-08-11
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
-
-    function insertInMapAtIndex(data_map, map_id, item_dict, code_colindex, user_lang){
+    function insertInMapAtIndex(data_map, map_id, new_row, new_code, code_key, user_lang){
         //console.log(("===== insertInMapAtIndex ==== "))
         const data_arr = Array.from(data_map);
-        //console.log("data_arr: ", data_arr)
-
-        const row_index = getRowIndex(data_arr, code_colindex, item_dict, user_lang);
-        //console.log("row_index: ", row_index)
-
-        data_arr.splice(row_index, 0, [map_id, item_dict]);
-
+        const row_index = getRowIndex(data_arr, code_key, new_code, user_lang);
+        data_arr.splice(row_index, 0, [map_id, new_row]);
         data_map.clear();
         data_arr.forEach(([k,v]) => data_map.set(k,v));
     }  // insertInMapAtIndex
 
-//========= getRowIndex  =============  PR2020-01-20
-    function getRowIndex(data_arr, code_colindex, item_dict, user_lang) {
-        //console.log(" --- getRowIndex --- ")
-        // function gets code from item_dict and searches sorted position of this code in selecttable, returns index
+//========= getRowIndex  =============  PR2020-01-20 PR2020-08-11
+    function getRowIndex(data_arr, code_key, new_code, user_lang) {
+        console.log(" --- getRowIndex --- ")
+        // function searches sorted position of new_code in selecttable, returns index
         // similar to GetNewSelectRowIndex in tables.js
         let row_index = -1
-        if (!!data_arr && !!item_dict){
-            const new_code = get_subdict_value_by_key(item_dict, "code", "value", "").toLowerCase()
+        if (data_arr && new_code){
+            const new_code_lc = new_code.toLowerCase();
             const len = data_arr.length;
-            if (!!len){
-                for (let i = 0, row, value, el; i < len; i++) {
-                    row = data_arr[i];
-                    row_code = (!!row[code_colindex]) ? row[code_colindex] : "";
+            if (len){
+                for (let i = 0, map_item, map_dict, row_code; i < len; i++) {
+                    map_item = data_arr[i];
+                    map_dict = map_item[1];
+                    row_code = (map_dict[code_key]) ? map_dict[code_key] : "";
                     // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
                     // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
-                    // row_code 'acu' new_code 'giro' compare = -1
-                    // row_code 'mcb' new_code 'giro' compare =  1
-                    let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+                    // row_code 'acu' new_code_lc 'giro' compare = -1
+                    // row_code 'mcb' new_code_lc 'giro' compare =  1
+                    let compare = row_code.localeCompare(new_code_lc, user_lang, { sensitivity: 'base' });
                     if (compare > 0) {
                         row_index = i - 1;
                         break;
@@ -1620,6 +1616,25 @@
         //console.log( "el_datefirst: ", el_datefirst);
         }
     }  // set_other_datefield_minmax
+
+
+// --- ModConfirm_Message---------------------------------- PR2020-08-11
+    function ModConfirm_Message(loc, hdr_text, msg01_txt, msg02_txt, msg03_txt){
+    // ---  show modal confirm with message 'First select employee'
+            document.getElementById("id_confirm_header").innerText = (hdr_text) ? hdr_text : null
+            document.getElementById("id_confirm_msg01").innerText =  (msg01_txt) ? msg01_txt : null
+            document.getElementById("id_confirm_msg02").innerText = (msg02_txt) ? msg02_txt : null
+            document.getElementById("id_confirm_msg03").innerText = (msg03_txt) ? msg03_txt : null
+
+            document.getElementById("id_confirm_btn_save").classList.add(cls_hide);
+            const el_btn_cancel = document.getElementById("id_confirm_btn_cancel");
+            el_btn_cancel.innerText = loc.Close;
+            setTimeout(function() {el_btn_cancel.focus()}, 50);
+
+             $("#id_mod_confirm").modal({backdrop: true});
+    }
+
+
 
 //###########################################################################
 // +++++++++++++++++ VALIDATORS ++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -4241,9 +4241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (payroll_total_row) {
                 let cell_values = [];
                 let index_last_datarow = row_index - 2
-                if (index_last_datarow < index_first_datarow) {
-                    index_last_datarow = index_first_datarow
-                }
+                if (index_last_datarow < index_first_datarow) {index_last_datarow = index_first_datarow}
                 for (let x = 1, len = col_count; x < len; x++) {
                     // excell column is header_row_index -1 because of margin column in header_row
                     const excel_col = x - 1

@@ -2,7 +2,6 @@
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models.functions import Lower
 from django.http import HttpResponse
 
 from django.shortcuts import render
@@ -10,17 +9,12 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
-from accounts import models as acc_m
 from companies import models as m
 from companies.views import LazyEncoder
 from companies import dicts as compdicts
 
 from customers import dicts as cd
-from planning import dicts as pld
-
 from tsap.headerbar import get_headerbar_param
-from tsap.settings import TIME_ZONE
-from tsap import locale as loc
 from planning.views import update_scheme, update_shift_instance
 
 from tsap import constants as c
@@ -335,12 +329,12 @@ def create_new_customer(parent, upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
-                if not has_error:
-                    has_error = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
+                msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                if not msg_err:
+                    msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
 
     # 4. create and save customer
-                    if not has_error:
+                    if not msg_err:
                         instance = m.Customer(company=parent, code=code, name=name)
                         instance.save(request=request)
 
@@ -384,8 +378,8 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
                 # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
-                            if not has_error:
+                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
+                            if not msg_err:
                  # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -472,13 +466,13 @@ def create_order(parent, upload_dict, update_dict, request):
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
-            has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
-            logger.debug('has_error' + str(has_error))
-            if not has_error:
-                has_error = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
+            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+            logger.debug('msg_err' + str(msg_err))
+            if not msg_err:
+                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
 
 # 4. create and save order
-                if not has_error:
+                if not msg_err:
                     instance = m.Order(
                         customer=parent,
                         code=code,
@@ -525,9 +519,9 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
         # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field,
+                            msg_err = v.validate_code_name_identifier(table, field,
                                                                         new_value, False, parent, update_dict, request, instance.pk)
-                            if not has_error:
+                            if not msg_err:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -894,7 +888,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                 if new_value != old_value:
                                     setattr(customer, field, new_value)
                                     is_updated = True
-                                    old_str = updated_from_str + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                    old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
                                     logfile.append((" " * 10 + 'first name' + " " * 25)[:35] + old_str + (value_str or '<blank>'))
 
                         customer.save(request=request)
@@ -961,7 +955,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                                 has_changes = True
                                                 old_date_str = old_date_dte.isoformat() if old_date_dte else '<blank>'
                                                 new_date_str = new_date_dte.isoformat() if new_date_dte else '<blank>'
-                                                old_str = updated_from_str + old_date_str + ' to: ' if is_update else ''
+                                                old_str = ' is updated from: ' + old_date_str + ' to: ' if is_update else ''
                                                 fieldtext = 'first date of order' if field == 'datefirst' else 'last date of order'
                                                 logfile.append((" " * 10 + fieldtext + " " * 25)[:35] + old_str + new_date_str)
                                         else:
@@ -980,7 +974,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                             if new_value != old_value:
                                                 setattr(order, field, new_value)
                                                 has_changes = True
-                                                old_str = updated_from_str + (
+                                                old_str = ' is updated from: ' + (
                                                             old_value or '<blank>') + ' to: ' if is_update else ''
                                                 logfile.append(
                                                     (" " * 10 + field + " " * 25)[:35] + old_str + (value_str or '<blank>'))

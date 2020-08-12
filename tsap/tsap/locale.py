@@ -98,6 +98,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Do_you_want_to_continue'] = _('Do you want to continue?')
     dict['Yes_delete'] = _('Yes, delete')
     dict['Yes_make_inactive'] = _('Yes, make inactive')
+    dict['Make_inactive'] = _('Make inactive')
     dict['No_cancel'] = _('No, cancel')
 
     # ModTimepicker
@@ -190,7 +191,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
-        dict['Click_show_inactive_employees'] = TXT_Click_show_inactive_employees
+        dict['Click_show_inactive_employees'] = _('Click to show or hide inactive employees.')
+        dict['Click_to_make_this_employee_inactive'] = _('Click to make this employee inactive or active.')
 
         dict['Hours_per_week'] = TXT_Hours_per_week
         dict['Hours_per_day'] = TXT_Hours_per_day
@@ -1216,8 +1218,6 @@ TXT_Pease_select_absence_first = _('Please select an absence first.')
 
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')
-
-TXT_Click_show_inactive_employees = _('Click to show or hide inactive employees')
 
 TXT_Employee_list = _('Employee list')
 TXT_Employee_data = _('Employee data')

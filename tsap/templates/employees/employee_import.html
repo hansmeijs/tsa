@@ -41,7 +41,7 @@
 
 <div class="containerXX">
 <div class="ta_l tsa_margin_top48_left24">
-  {% if not user.is_authenticated %}
+  {% if user.is_authenticated %}
      {% if user.is_perm_hrman %}
             <h4 class="ta_l mx-4 mt-4">{% trans 'Upload employees' %}</h4>
 

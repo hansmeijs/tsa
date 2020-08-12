@@ -360,8 +360,8 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12
     function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
-        //console.log( "===== t_SetExtendedFilterDict  ========= ");
-        //console.log( "col_index ", col_index, "el_key ", el_key);
+        console.log( "===== t_SetExtendedFilterDict  ========= ");
+        console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
@@ -419,9 +419,9 @@
                         filter_value = 0;
                         const value_number = Number(filter_str.replace(/\,/g,"."));
 
-                        //console.log( "filter_tag ", filter_tag);
-                        //console.log( "filter_str ", filter_str);
-                        //console.log( "value_number ", value_number);
+                        console.log( "filter_tag ", filter_tag);
+                        console.log( "filter_str ", filter_str);
+                        console.log( "value_number ", value_number);
 
                         if (filter_tag === "amount") {
                             // replace comma's with dots, check if value = numeric, convert to minutes
@@ -447,7 +447,7 @@
                         }
                     }
                 }; // other
-                //console.log( "skip_filter ", skip_filter);
+                console.log( "skip_filter ", skip_filter);
                 if (!skip_filter) {
                     filter_dict[col_index] = [mode, filter_value, filter_tag]
                 };
@@ -714,8 +714,9 @@
                 tblRow = tblBody.rows[i];
                 const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id)
 
-                if (["paydatecode", "functioncode", "wagefactor"].indexOf(tblName) > -1){
-                    const code = get_dict_value(map_dict, ["code", "value"])
+                if (["employee", "paydatecode", "functioncode", "wagefactor"].indexOf(tblName) > -1){
+                    const key_arr = (tblName === "employee") ? ["code"] : ["code", "value"];
+                    const code = get_dict_value(map_dict, key_arr)
                     if(code) {
                         const code_lc = code.toLowerCase()
                         if( code_lc > search_code_lc) {

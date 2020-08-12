@@ -264,7 +264,16 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
         blank_not_allowed = False
         fld = ''
         if field == 'code':
-            fld = _('Code')
+            if table in ('employee', 'order', 'customer'):
+                fld = _('Short name')
+            elif table == 'team':
+                fld = _('Team name')
+            elif table == 'shift':
+                fld = _('Shift name')
+            elif table == 'scheme':
+                fld = _('Scheme name')
+            else:
+                fld = _('Code')
             blank_not_allowed = True
         elif field == 'name':
             fld = _('Name')
@@ -348,9 +357,9 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 is_inactive = getattr(instance, 'inactive', False)
             if exists:
                 if is_inactive:
-                    msg_err = _("'%(val)s' exists, but is inactive.") % {'fld': fld, 'val': new_value}
+                    msg_err = _("%(fld)s '%(val)s' exists, but is inactive.") % {'fld': fld, 'val': new_value}
                 else:
-                    msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
+                    msg_err = _("%(fld)s '%(val)s' already exists.") % {'fld': fld, 'val': new_value}
 
     #logger.debug('msg_err: ' + str(msg_err))
     if msg_err:
@@ -359,8 +368,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 update_dict[field] = {}
             update_dict[field]['error'] = msg_err
 
-    has_error = True if msg_err else False
-    return has_error
+    return msg_err
 
 
 def validate_namelast_namefirst(namelast, namefirst, company, update_field, update_dict, this_pk=None):
@@ -448,12 +456,13 @@ def employee_email_exists(email, company, this_pk = None):
 def validate_employee_has_emplhours(instance, update_dict):
     # validate if employee has emplhour records PR2019-07-30
     has_emplhours = False
+    msg_err = None
     if instance:
         has_emplhours = m.Emplhour.objects.filter(employee=instance).exists()
         if has_emplhours:
             msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
             update_dict['id']['error'] = msg_err
-    return has_emplhours
+    return has_emplhours, msg_err
 
 def validate_order_has_emplhours(order, update_dict, is_abscat):
     # validate if order has emplhour records PR2020-06-10

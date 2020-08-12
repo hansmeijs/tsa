@@ -13,49 +13,55 @@ from planning import views as plv
 import logging
 logger = logging.getLogger(__name__)
 
-def create_employee_list(company, user_lang, inactive=None, datefirst_iso=None, datelast_iso=None):
+def create_employee_list(company, user_lang, is_inactive=None, datefirst_iso=None, datelast_iso=None, employee_pk=None):
     # --- create list of all active employees of this company PR2019-06-16
     #logger.debug(' --- create_employee_list   ')
     # PR2020-05-11 with Django model it took 10 seconds - with sql it takes ??? to be tested
 
     #logger.debug(' =============== create_employee_list ============= ')
 
-    company_pk = company.pk
-    sql_employee = """ SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
+    sql_filter = {'compid': company.pk}
+    sql_list = [""" SELECT e.id, e.company_id, e.code, e.datefirst, e.datelast,
         e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
         e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,
         fc.id AS fc_id, fc.code AS fc_code, wc.id AS wc_id, wc.code AS wc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
-        e.locked, e.inactive
-    
+        e.locked, e.inactive, 
+        CONCAT('employee_', e.id::TEXT) AS mapid
+        
         FROM companies_employee AS e 
         LEFT JOIN companies_wagecode AS wc ON (wc.id = e.wagecode_id) 
         LEFT JOIN companies_wagecode AS fc ON (fc.id = e.functioncode_id) 
         LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
  
-        WHERE ( e.company_id = %(compid)s::INT )
-        AND ( e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL OR %(rdl)s IS NULL )
-        AND ( e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL OR %(rdf)s IS NULL )
-        AND ( e.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
-        
-        ORDER BY LOWER(e.code) ASC
-        """
-
+        WHERE (e.company_id = %(compid)s::INT)
+        """]
+    if employee_pk:
+        # when employee_pk has value: skip other filters
+        sql_list.append(' AND (e.id = %(eid)s::INT)')
+        sql_filter['eid'] = employee_pk
+    else:
+        if datefirst_iso:
+            sql_list.append(' AND (e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL)')
+            sql_filter['rdl'] = datelast_iso
+        if datelast_iso:
+            sql_list.append('AND (e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL)')
+            sql_filter['rdl'] = datelast_iso
+        if is_inactive is not None:
+            sql_list.append('AND (e.inactive = CAST(%(inactive)s AS BOOLEAN))')
+            sql_filter['inactive'] = is_inactive
+    sql_list.append('ORDER BY LOWER(e.code)')
+    sql_employee = ' '.join(sql_list)
     newcursor = connection.cursor()
-    newcursor.execute(sql_employee, {
-        'compid': company_pk,
-        'rdf': datefirst_iso,
-        'rdl': datelast_iso,
-        'inactive': inactive
-    })
-    employees = f.dictfetchall(newcursor)
+    newcursor.execute(sql_employee, sql_filter)
+    employee_rows = f.dictfetchall(newcursor)
 
     employee_list = []
-    for employee in employees:
+    for row in employee_rows:
         item_dict = {}
-        create_employee_dict_from_sql(employee, item_dict, user_lang)
+        create_employee_dict_from_sql(row, item_dict, user_lang)
         if item_dict:
             employee_list.append(item_dict)
-    return employee_list
+    return employee_list, employee_rows
 
 
 def create_employee_dict_from_sql(instance,  item_dict, user_lang):

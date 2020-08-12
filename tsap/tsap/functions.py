@@ -2394,8 +2394,8 @@ def system_updates():
     # update_shiftcode_in_orderhours() PR2020-07-25
     # update_customercode_ordercode_in_orderhours() PR2020-07-25
     # update_employeecode_in_orderhours() PR2020-07-25
-    update_sysadmin_in_user()  # PR2020-07-30
-
+    # update_sysadmin_in_user()  # PR2020-07-30
+    pass
 
 def update_sysadmin_in_user():
     # Once-only function to add sysadmin permit to admin users PR2020-07-30

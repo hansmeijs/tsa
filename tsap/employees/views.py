@@ -117,6 +117,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
         logger.debug(' ============= EmployeeUploadView ============= ')
 
         update_wrap = {}
+
         has_permit = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_planner or request.user.is_perm_hrman)
@@ -129,13 +130,22 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
+
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict' + str(upload_dict))
 # 3. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
+                    table = id_dict.get('table', '')
+                    pk_int = id_dict.get('pk')
+                    temp_pk_str = id_dict.get('temp_pk', '')
+                    row_index = id_dict.get('rowindex', '')
+                    is_create = ('create' in id_dict)
+                    is_delete = ('delete' in id_dict)
+
                     update_dict = {}
+                    employee_row = {}
+                    update_status = {}
 # A. check if parent exists  (company is parent of employee)
                     parent = request.user.company
                     if parent:
@@ -149,35 +159,61 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
                             temp_pk=temp_pk_str,
                             row_index=row_index)
 
+                        # PR2020-08-11 new approach: updated_dict only contains update status , values are in absence_rows
+                        update_status = {'updated': []}
 # C. Delete employee
                         if is_delete:
+                            logger.debug('is_delete' + str(is_delete))
+                            # upload_dict{'id': {'pk': 2772, 'table': 'employee', 'shiftoption': '-', 'delete': True}}
                             instance = m.Employee.objects.get_or_none(id=pk_int, company=parent)
                             if instance:
+                                update_status['mapid'] = 'employee_' + str(instance.pk)
                                 this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
+                                logger.debug('this_text' + str(this_text))
                         # a. check if employee has emplhours, put msg_err in update_dict when error
-                                has_emplhours = validate_employee_has_emplhours(instance, update_dict)
-                                if not has_emplhours:
+                                has_emplhours, msg_err = validate_employee_has_emplhours(instance, update_dict)
+                                logger.debug('has_emplhours' + str(has_emplhours))
+                                if has_emplhours:
+                                    update_status['deleted'] = False
+                                    update_status['msg_err'] = msg_err
+                                else:
                         # b. check if there are teammembers with this employee: absence teammembers, remove employee from shift teammembers
                                     delete_employee_from_teammember(instance, request)
                         # c. delete employee
-                                    deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
+                                    deleted_ok, msg_err = m.delete_instance(instance, update_dict, request, this_text)
+                                    update_status['deleted'] = deleted_ok
                                     if deleted_ok:
                                         instance = None
+                                    else:
+                                        update_status['msg_err'] = msg_err
                         else:
 # D. Create new employee
                             if is_create:
-                                instance = create_employee(upload_dict, update_dict, request)
+                                instance, msg_err = create_employee(upload_dict, update_dict, request)
+                                if instance:
+                                    update_status['created'] = True if instance else False
+                                else:
+                                    update_status['created'] = False
+                                    update_status['msg_err'] = msg_err
 # E. Get existing employee
                             else:
                                 instance = m.Employee.objects.get_or_none(id=pk_int, company=parent)
 
 # F. Update employee, also when it is created
                             if instance:
-                                update_employee(instance, parent, upload_dict, update_dict, user_lang, request)
+                                update_status['mapid'] = 'employee_' + str(instance.pk)
+                                update_employee(instance, parent, upload_dict, update_dict, update_status, user_lang, request)
 
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                         if instance:
                             ed.create_employee_dict(instance, update_dict, user_lang)
+                            # PR2020-08-08 new approach: create dict_row
+                            employee_listNIU, employee_rows = ed.create_employee_list(
+                                company=request.user.company,
+                                user_lang=user_lang,
+                                employee_pk = instance.pk)
+                            if employee_rows:
+                                employee_row = employee_rows[0]
 
 # H. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
@@ -186,10 +222,13 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
                     if update_dict:
                         update_list = []
                         update_list.append(update_dict)
-                        update_wrap['update_list'] = update_list
+                        update_wrap['update_employee_list'] = update_list
+
+                        employee_row['status'] = update_status
+                        update_wrap['update_employee_row'] = employee_row
 
 # J. return update_wrap
-            return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 @method_decorator([login_required], name='dispatch')
@@ -1614,7 +1653,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 # f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
             if teammember:
                 ed.create_teammember_dict_from_model(teammember, update_dict)
-                # PR2020-08-08 new approasch: create dict_row
+                # PR2020-08-08 new approach: create dict_row
                 absence_listNIU, absence_rows = ed.create_absence_list(filter_dict={}, teammember_pk=teammember.pk, request=request)
                 if absence_rows:
                     absence_row = absence_rows[0]
@@ -2852,7 +2891,7 @@ def create_employee(upload_dict, update_dict, request):
     #logger.debug(' --- create_employee')
 
     instance = None
-
+    msg_err = None
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
@@ -2876,8 +2915,8 @@ def create_employee(upload_dict, update_dict, request):
             if code:
 
     # c. validate code checks null, max len and exists
-                has_error = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
-                if not has_error:
+                msg_err = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                if not msg_err:
 # 4. create and save 'customer' or 'order'
                     try:
                         instance = m.Employee(
@@ -2885,17 +2924,18 @@ def create_employee(upload_dict, update_dict, request):
                             code=code)
                         instance.save(request=request)
                     except:
-                        update_dict['id']['error'] = _('This employee could not be created.')
+                        msg_err = str(_("An error occurred. Employee '%(val)s' could not be added.") % {'val': code})
+                        update_dict['id']['error'] = msg_err
                     else:
 # 6. put info in update_dict
                         update_dict['id']['pk'] = instance.pk
                         update_dict['id']['created'] = True
                         update_dict['code']['updated'] = True
-    return instance
+    return instance, msg_err
 
 
 #######################################################
-def update_employee(instance, parent, upload_dict, update_dict, user_lang, request):
+def update_employee(instance, parent, upload_dict, update_dict, update_status, user_lang, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
     logger.debug(' ------- update_employee -------')
@@ -2928,7 +2968,7 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                     if field in ['code', 'identifier']:
                         if new_value != saved_value:
             # validate_code_name_id checks for null, too long and exists. Puts msg_err in update_dict
-                            has_error = validate_code_name_identifier(
+                            msg_err = validate_code_name_identifier(
                                 table='employee',
                                 field=field,
                                 new_value=new_value, parent=parent,
@@ -2936,7 +2976,7 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                                 update_dict=update_dict,
                                 request=request,
                                 this_pk=instance.pk)
-                            if not has_error:
+                            if not msg_err:
                                 # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -3031,9 +3071,6 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                             # - update field employee in emplhour
                             setattr(instance, field, new_value)
                             is_updated = True
-                            logger.debug('is_updated = True: ' + str(is_updated))
-
-                            logger.debug('instance.functioncode: ' + str(instance.functioncode))
 
 # 4. save changes in field 'inactive'
                     elif field == 'inactive':
@@ -3043,8 +3080,6 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
-                            #logger.debug('inactive is_updated]: ' + str(is_updated) + ' ' + str(type(is_updated)))
-
                     else:
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
@@ -3053,6 +3088,7 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
 # 4. add 'updated' to field_dict'
                     if is_updated:
                         update_dict[field]['updated'] = True
+                        update_status['updated'].append(field)
                         save_changes = True
 # --- end of for loop ---
 
@@ -3398,9 +3434,9 @@ def create_new_functioncode(parent, upload_dict, update_dict, request):
         if code:
 # - validate code
             # msg_err is added in update_dict[fldName]
-            has_error = v.validate_code_name_identifier('functioncode', 'code', code, False, parent, update_dict, request)
-            logger.debug('has_error: ' + str(has_error))
-            if not has_error:
+            msg_err = v.validate_code_name_identifier('functioncode', 'code', code, False, parent, update_dict, request)
+            logger.debug('msg_err: ' + str(msg_err))
+            if not msg_err:
 # - create and save functioncode
                 instance = m.Wagecode(company=parent, code=code, isfunctioncode=True)
                 instance.save(request=request)
@@ -3450,10 +3486,10 @@ def update_functioncode(instance, parent, upload_dict, update_dict, request):
                         if new_value != saved_value:
                             logger.debug('new_value != saved_value')
         # b. validate code or name
-                            has_error = v.validate_code_name_identifier('functioncode', field, new_value, False,
+                            msg_err = v.validate_code_name_identifier('functioncode', field, new_value, False,
                                                                         parent, update_dict, request, instance.pk)
-                            logger.debug('has_error: ' + str(has_error))
-                            if not has_error:
+                            logger.debug('msg_err: ' + str(msg_err))
+                            if not msg_err:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -3641,8 +3677,8 @@ def update_wagefactor(instance, parent, upload_dict, update_dict, request):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
         # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
-                            if not has_error:
+                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
+                            if not msg_err:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -3843,8 +3879,8 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
                         # field 'code' is required
                         if new_value != saved_value:
         # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
-                            if not has_error:
+                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
+                            if not msg_err:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True

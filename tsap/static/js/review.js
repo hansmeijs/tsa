@@ -96,21 +96,24 @@ document.addEventListener('DOMContentLoaded', function() {
         billing_agg: { tbl_col_count: 12,
                     field_caption: ["", "Customer", "Order", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
                     field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-                    field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
+                    filter_tags: ["", "text", "text", "duration","duration","","duration", "","amount", "amount", "amount"],
+                    //field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
                     field_width: ["016", "150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
                     field_align:  ["c", "l", "l", "r","r", "c", "r", "c", "r", "r", "r", "c"]
             },
         billing_rosterdate: { tbl_col_count: 12,
                     field_caption: ["<", "Order", "Date", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
                     field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-                    field_tags: ["div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
+                    filter_tags: ["", "text", "text", "duration","duration","","duration", "","amount", "amount", "amount"],
+                    //field_tags: ["div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
                     field_width: ["016","150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
                     field_align:  ["c", "l", "l", "r","r", "c", "r", "c", "r", "r", "r", "c"]
             },
         billing_detail: { tbl_col_count: 14,
             field_caption: ["<", "Order", "Date", "Shift", "Employee", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
             field_names: ["back", "text", "text", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-            field_tags: ["div","div", "div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
+            filter_tags: ["","text","text","text","text","duration","duration","","duration", "","amount","amount","amount"],
+            //field_tags: ["div","div", "div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
             field_width: ["016","150", "090","150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
             field_align:  ["c", "l", "l", "l", "l","r","r", "c", "r", "c", "r", "r", "r",  "c"]
             },
@@ -519,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
             th.appendChild(el_div);
             tblRow.appendChild(th);
         };
-    };  //function CreateTblHeader
+    };  //  CreatePricesHeader
 
 //=========  CreateGrandTotal  === PR2020-02-23
     function CreateGrandTotal(rptName, row_list){
@@ -1794,6 +1797,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //}
        //console.log("billing_header_row", billing_header_row);
         const field_names = field_settings[tblName].field_names;
+        const filter_tags = field_settings[tblName].filter_tags
         const field_caption = field_settings[tblName].field_caption;
         const field_width = field_settings[tblName].field_width;
         const field_align = field_settings[tblName].field_align;
@@ -1808,6 +1812,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const col_count = field_names.length;
         for (let j = 0, th, el_div; j < col_count; j++) {
             const field_name = field_names[j];
+            const filter_tag = filter_tags[j];
 
 // +++  append th's to header row ++++++++++++++++++++++++++++++++
             th = document.createElement("th");
@@ -1856,6 +1861,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add attributes
             el_input.setAttribute("data-field", field_name);
+            el_input.setAttribute("data-filtertag", filter_tag);
             el_input.setAttribute("autocomplete", "off");
             el_input.setAttribute("ondragstart", "return false;");
             el_input.setAttribute("ondrop", "return false;");
@@ -1893,7 +1899,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillBillingRows  =====================  PR2020-07-03
     function FillBillingRows() {
         // called by HandleBtnSelect and HandleBillingFilter
-        //console.log( "====== FillBillingRows  === ");
+        console.log( "====== FillBillingRows  === ");
         //console.log( "billing_level ", billing_level);
         //console.log( "selected_btn ", selected_btn);
 
@@ -2224,8 +2230,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
-        //console.log("===  ModPeriodSave  =====") ;
-        //console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
+        console.log("===  ModPeriodSave  =====") ;
+        console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
 // ---  get period_tag
         const period_tag = get_dict_value(mod_dict, ["period_tag"], "tweek");
 // ---  create upload_dict
@@ -2235,11 +2241,12 @@ document.addEventListener('DOMContentLoaded', function() {
             extend_index: 0,
             extend_offset: 0};
         // only save dates when tag = "other"
-        if(period_tag == "other"){
-            if (el_mod_period_datefirst.value) {mod_dict.period_datefirst = el_mod_period_datefirst.value};
-            if (el_mod_period_datelast.value) {mod_dict.period_datelast = el_mod_period_datelast.value};
+        if(period_tag === "other"){
+            if (el_mod_period_datefirst.value) {upload_dict.period_datefirst = el_mod_period_datefirst.value};
+            if (el_mod_period_datelast.value) {upload_dict.period_datelast = el_mod_period_datelast.value};
         }
 // ---  upload new setting
+        console.log("upload_dict: ", upload_dict ) ;
         let datalist_request = {review_period: upload_dict,
                                 billing_list: {mode: "get"}};
         DatalistDownload(datalist_request, "ModPeriodSave");
@@ -2583,11 +2590,14 @@ document.addEventListener('DOMContentLoaded', function() {
 ///////////////////
 //========= HandleBillingFilter  ====================================
     function HandleBillingFilter(el, col_index, el_key) {
-       //console.log( "===== HandleBillingFilter  ========= ");
+        console.log( "===== HandleBillingFilter  ========= ");
+        console.log( "el_key", el_key);
+        console.log( "filter_dict", filter_dict);
         const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
+        console.log( "skip_filter", skip_filter);
         if (!skip_filter) {
             if(selected_btn === "payrolltabular"){
-               // FillPayrollTabularRows();
+               FillPayrollTabularRows();
             } else {
                 FillBillingRows();
             }

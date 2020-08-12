@@ -876,8 +876,8 @@
 
 // ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict, loc) {
-        //console.log("PrintEmployeePlanning")
-        //console.log("selected_period", selected_period)
+        console.log("PrintEmployeePlanning")
+        console.log("selected_period", selected_period)
 
         const today_JS = new Date();
         const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
@@ -918,6 +918,8 @@
         const endWeekIndex = enddateJS.getWeekIndex();
         //console.log("endWeekIndex", endWeekIndex)
 
+        const selected_employee_pk = get_dict_value(selected_period, ["selected_employee_pk"]);
+
         let doc = new jsPDF("landscape","mm","A4");
 
         let pos = {left: setting.margin_left,
@@ -955,112 +957,113 @@
             if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
     //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
 
-//======================== change in employee
-
-// -------- detect change in employee
+// -------- filter employee
             const employee_pk = get_dict_value(item_dict, ["employee", "pk"], 0);
-    //console.log("employee_pk: ", employee_pk, "this_employee_pk:", this_employee_pk)
-            if (employee_pk !== this_employee_pk){
+            const add_row = ( (!selected_employee_pk) || (selected_employee_pk && employee_pk === selected_employee_pk) );
+            if(add_row){
+//======================== detect change in employee
+                if (employee_pk !== this_employee_pk){
+    //---------- skip addPage on first page
+                    if(is_first_page){
+                        is_first_page = false
+                    } else {
+    //---------- print last week of previous employee
+                        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
+                                    rpthdr_tabs, rpthdr_values, loc, doc)
+    //---------- print new page
+                        doc.addPage();
+                    }
+    //---------- reset values
+                    this_employee_pk = employee_pk;
+                    prev_rosterdate_iso = null;
+                    prev_weekIndex = null;
+                    week_list = [ [], [], [], [], [], [], [], [] ];
 
-//---------- skip addPage on first page
-                if(is_first_page){
-                    is_first_page = false
-                } else {
-//---------- print last week of previous employee
+                    // reset pos y
+                    pos.left = setting.margin_left;
+                    pos.top = setting.margin_top;
+
+    //---------- get employee values
+                    const code = get_dict_value(item_dict, ["employee", "code"], "");
+                    const namelast = get_dict_value(item_dict, ["employee", "namelast"], "");
+                    const namefirst = get_dict_value(item_dict, ["employee", "namefirst"], "");
+                    rpthdr_values[0][2] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
+
+    //----------  print employee header
+                    // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
+    // ---  print report header
+                    PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+
+    //----------  print table header NOT IN USE
+                    //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
+                    //console.log("TblHeader_height", TblHeader_height )
+                    //pos.y += TblHeader_height
+                   //console.log("printTblHeader pos.y", pos.y )
+                }  // if (employee_pk !== this_employee_pk){
+
+    //======================== change in this_rosterdate
+    // -------- detect change in this_rosterdate
+                // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
+                  if (this_weekIndex !== prev_weekIndex){
+
+    //------------- print Week
+                    // print printWeekHeader and printWeekData before updating prev_weekIndex
                     PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
                                 rpthdr_tabs, rpthdr_values, loc, doc)
-//---------- print new page
-                    doc.addPage();
-                }
-//---------- reset values
-                this_employee_pk = employee_pk;
-                prev_rosterdate_iso = null;
-                prev_weekIndex = null;
-                week_list = [ [], [], [], [], [], [], [], [] ];
 
-                // reset pos y
-                pos.left = setting.margin_left;
-                pos.top = setting.margin_top;
+    //------------- put current values in prev_ variables
+                    prev_rosterdate_iso = this_rosterdate_iso;
+                    prev_weekIndex = this_weekIndex;
+                    prev_duration_sum = this_duration_sum;
+                    prev_duration_total += this_duration_sum;
+                    this_duration_sum = 0;
 
-//---------- get employee values
-                const code = get_dict_value(item_dict, ["employee", "code"], "");
-                const namelast = get_dict_value(item_dict, ["employee", "namelast"], "");
-                const namefirst = get_dict_value(item_dict, ["employee", "namefirst"], "");
-                rpthdr_values[0][2] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
+    //------------- then reset week_list
+                    // week_list has 8 items: max_shifts, day_list1 -  day_list7
+                    // day_list has 0 ore more shift_listst
+                    // shift_list contains [time, shift, cust, order]
+                    week_list = [ [], [], [], [], [], [], [], [] ];
+                    this_duration_sum = 0;
+                }  //  if (weekIndex !== this_weekIndex){
 
-//----------  print employee header
-                // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-// ---  print report header
-                PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+    //======================== get shift info
+        //console.log("======================== get shift info: ")
+        //console.log("item_dict: ", item_dict)
+                const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
+                const order_code = get_dict_value(item_dict, ["order", "code"], "");
+                const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
+                const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
 
-//----------  print table header NOT IN USE
-                //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
-                //console.log("TblHeader_height", TblHeader_height )
-                //pos.y += TblHeader_height
-               //console.log("printTblHeader pos.y", pos.y )
-            }  // if (employee_pk !== this_employee_pk){
+                //let display_time = null;
+                const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
+                const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
+                const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);
 
-//======================== change in this_rosterdate
-// -------- detect change in this_rosterdate
-            // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
-              if (this_weekIndex !== prev_weekIndex){
+                const skip_prefix_suffix = true;
+                const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
 
-//------------- print Week
-                // print printWeekHeader and printWeekData before updating prev_weekIndex
-                PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                            rpthdr_tabs, rpthdr_values, loc, doc)
+                if(!!time_duration) {this_duration_sum += time_duration};
 
-//------------- put current values in prev_ variables
-                prev_rosterdate_iso = this_rosterdate_iso;
-                prev_weekIndex = this_weekIndex;
-                prev_duration_sum = this_duration_sum;
-                prev_duration_total += this_duration_sum;
-                this_duration_sum = 0;
+                const overlap = get_dict_value(item_dict, ["overlap", "value"], false);
 
-//------------- then reset week_list
-                // week_list has 8 items: max_shifts, day_list1 -  day_list7
-                // day_list has 0 ore more shift_listst
-                // shift_list contains [time, shift, cust, order]
-                week_list = [ [], [], [], [], [], [], [], [] ];
-                this_duration_sum = 0;
-            }  //  if (weekIndex !== this_weekIndex){
+                //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
+                let shift_list = [];
+                // first item in shift_list contains overlap, is not printed
+                shift_list.push(overlap);
+                if(!!display_time) {shift_list.push(display_time)};
+                // skip shift_code if shift_code and display_time are equal
+                if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
 
-//======================== get shift info
-    //console.log("======================== get shift info: ")
-    //console.log("item_dict: ", item_dict)
-            const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
-            const order_code = get_dict_value(item_dict, ["order", "code"], "");
-            const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-            const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
+                if(!!customer_code) { shift_list.push(customer_code)};
+                if(!!order_code) { shift_list.push(order_code)};
+        // don't show time_duration. is for testing
+                //if(!!time_duration) { shift_list.push(display_duration (time_duration, loc.user_lang))};
 
-            //let display_time = null;
-            const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
-            const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
-            const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);
+                let day_list = week_list[this_weekday]
+                day_list.push(shift_list);
+                week_list[this_weekday] = day_list
 
-            const skip_prefix_suffix = true;
-            const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
-
-            if(!!time_duration) {this_duration_sum += time_duration};
-
-            const overlap = get_dict_value(item_dict, ["overlap", "value"], false);
-
-            //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
-            let shift_list = [];
-            // first item in shift_list contains overlap, is not printed
-            shift_list.push(overlap);
-            if(!!display_time) {shift_list.push(display_time)};
-            // skip shift_code if shift_code and display_time are equal
-            if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
-
-            if(!!customer_code) { shift_list.push(customer_code)};
-            if(!!order_code) { shift_list.push(order_code)};
-    // don't show time_duration. is for testing
-            //if(!!time_duration) { shift_list.push(display_duration (time_duration, loc.user_lang))};
-
-            let day_list = week_list[this_weekday]
-            day_list.push(shift_list);
-            week_list[this_weekday] = day_list
+            }  // if(add_row){
         }  //  for (const [map_id, item_dict] of planning_map.entries()) {
 
 // ================ print last Week of last employee

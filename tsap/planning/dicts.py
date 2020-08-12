@@ -2173,8 +2173,8 @@ def create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone,
 
 
 def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    logger.debug(' === create_emplhour_itemdict_from_row ==')
-    logger.debug('row: ' + str(row))
+    #logger.debug(' === create_emplhour_itemdict_from_row ==')
+    #logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict_from_row

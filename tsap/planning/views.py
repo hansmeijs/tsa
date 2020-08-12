@@ -56,16 +56,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
         if request.user is not None:
             if request.user.company is not None:
                 if request.POST['download']:
-                    # update_isabsence_istemplate was one time only, is removed after update
-                    # f.update_isabsence_istemplate()
-                    # update_workminutesperday is one time only, to be removed after update
-                    # f.update_workminutesperday()
-                    # update_company_workminutesperday is one time only, to be removed after update PR2020-06-29
-                    #f.update_company_workminutesperday()
-                    #f.update_shiftcode_in_orderhours()
-                    #f.update_customercode_ordercode_in_orderhours()
-                    #f.update_employeecode_in_orderhours()
-                    f.update_sysadmin_in_user()
+
                     f.system_updates()
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -144,8 +135,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- employee
                     request_item = datalist_request.get('employee_list')
                     if request_item:
-                        dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
-                        datalists['employee_list'] = dict_list
+                        employee_list, employee_rows = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
+                        datalists['employee_list'] = employee_list
+                        datalists['employee_rows'] = employee_rows
 # ----- customer
                     request_item = datalist_request.get('customer_list')
                     if request_item:
@@ -176,7 +168,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('absence_list')
                     if request_item:
                         dict_list, dict_rows = ed.create_absence_list(filter_dict=request_item, teammember_pk=None, request=request)
-                        # datalists['absence_list'] = dict_list
+                        datalists['absence_list'] = dict_list
                         datalists['absence_rows'] = dict_rows
 # - page_scheme_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
                     request_item = datalist_request.get('page_scheme_list')
@@ -1754,7 +1746,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                         # field 'code' is required
                         if new_value != saved_value:
             # b. validate code
-                            has_error = validate_code_name_identifier(
+                            msg_err = validate_code_name_identifier(
                                 table=table,
                                 field=field,
                                 new_value=new_value,
@@ -1763,7 +1755,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                                 update_dict=update_dict,
                                 request=request,
                                 this_pk=instance.pk)
-                            if not has_error:
+                            if not msg_err:
              # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -4070,8 +4062,8 @@ def create_shift_instance(parent, upload_dict, update_dict, request):
             code = code_dict.get('value')
         if code:
 # 2. validate code
-            has_error = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, request)
-            if not has_error:
+            msg_err = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, request)
+            if not msg_err:
 # 4. create and save shift
                 try:
                     shift = m.Shift(
@@ -4117,7 +4109,7 @@ def update_shift_instance(instance, parent, upload_dict, update_dict, user_lang,
                         if new_value != saved_value:
             # a. validate code
                             #  validate_code_name_identifier add mes_err to update_dict
-                            has_error = validate_code_name_identifier(
+                            msg_err = validate_code_name_identifier(
                                 table='shift',
                                 field=field,
                                 new_value=new_value,
@@ -4126,7 +4118,7 @@ def update_shift_instance(instance, parent, upload_dict, update_dict, user_lang,
                                 update_dict=update_dict,
                                 request=request,
                                 this_pk=instance.pk)
-                            if not has_error:
+                            if not msg_err:
              # b. save field if changed and no_error
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -4260,8 +4252,8 @@ def create_teXXXam(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
     # c. validate code
-                has_error = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
-                if not has_error:
+                msg_err = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                if not msg_err:
 # 4. create and save team
                     team = m.Team(scheme=parent, code=code)
                     team.save(request=request)
@@ -4290,8 +4282,8 @@ def create_scheme(parent, upload_dict, update_dict, request):
         if code_dict:
             code = code_dict.get('value')
 # - validate code
-        has_error = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, request)
-        if not has_error:
+        msg_err = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, request)
+        if not msg_err:
             instance = m.Scheme(order=parent, code=code)
             instance.save(request=request)
 # - return msg_err when instance not created

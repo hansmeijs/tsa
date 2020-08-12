@@ -44,7 +44,7 @@ class TsaBaseModel(Model):
     inactive = BooleanField(default=False)
 
     modifiedby = ForeignKey(AUTH_USER_MODEL, null=True, related_name='+', on_delete=SET_NULL)
-    modifiedat = DateTimeField()
+    modifiedat = DateTimeField(db_index=True)
 
     class Meta:
         abstract = True
