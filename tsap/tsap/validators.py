@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)  # __name__ tsap.validators
 def validate_unique_username(username, companyprefix, cur_user_id=None):
     #logger.debug ('=== validate_unique_username ====')
     #logger.debug ('username: <' + str(username) + '>')
+    #logger.debug ('cur_user_id: <' + str(cur_user_id) + '>')
     #logger.debug ('companyprefix: <' + str(companyprefix) + '>')
     # __iexact looks for the exact string, but case-insensitive. If username is None, it is interpreted as an SQL NULL
 
@@ -27,17 +28,19 @@ def validate_unique_username(username, companyprefix, cur_user_id=None):
         msg_err = _('Username must have %(fld)s characters or fewer.') % {'fld': c.USERNAME_SLICED_MAX_LENGTH}
     else:
         prefixed_username = companyprefix + username
-        logger.debug ('prefixed_username: ' + str(prefixed_username))
-        logger.debug ('cur_user_id: ' + str(cur_user_id))
+        #logger.debug ('prefixed_username: ' + str(prefixed_username))
+        #logger.debug ('cur_user_id: ' + str(cur_user_id))
         if cur_user_id:
             user = am.User.objects.filter(username__iexact=prefixed_username).exclude(pk=cur_user_id).first()
         else:
             user = am.User.objects.filter(username__iexact=prefixed_username).first()
-        logger.debug ('user: ' + str(user))
+        #logger.debug ('user: ' + str(user))
         if user:
             msg_err = str(_("This username already exists. "))
-            if not user.is_active:
-                msg_err += str(_("The user is inactive."))
+            if not user.activated:
+                msg_err += str(_("The account is not activated yet."))
+            elif not user.is_active:
+                msg_err += str(_("The account is inactive."))
 
     return msg_err
 
@@ -57,8 +60,8 @@ def validate_email_address(email_address):
 
 # === validate_unique_useremail ===================================== PR2020-03-31
 def validate_unique_useremail(value, company=None, cur_user_id=None):
-    logger.debug ('validate_unique_useremail', value)
-    logger.debug ('cur_user_id', cur_user_id)
+    #logger.debug ('validate_unique_useremail', value)
+    #logger.debug ('cur_user_id', cur_user_id)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
     msg_err = None
     if not value:
@@ -73,12 +76,15 @@ def validate_unique_useremail(value, company=None, cur_user_id=None):
             else:
                 user = am.User.objects.filter(company=company, email__iexact=value).first()
 
-            logger.debug('user', user)
+            #logger.debug('user', user)
             if user:
                 username = user.username_sliced
                 msg_err = str(_("This email address is already in use by '%(usr)s'. ") % {'usr': username})
-                if not user.is_active:
-                    msg_err += str(_("This user is inactive."))
+                if not user.activated:
+                    msg_err += str(_("The account is not activated yet."))
+                elif not user.is_active:
+                    msg_err += str(_("The account is inactive."))
+
     return msg_err
 
 

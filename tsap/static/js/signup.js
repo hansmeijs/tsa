@@ -138,9 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if ("msg_ok" in response) {
                         tab_mode = "tab_ok"
                         let msg_dict = response["msg_ok"]
-                        document.getElementById("id_msg_01").innerText = get_dict_value(msg_dict, ["msg_ok_01"])
-                        document.getElementById("id_msg_02").innerText = get_dict_value(msg_dict, ["msg_ok_02"])
-                        document.getElementById("id_msg_03").innerText = get_dict_value(msg_dict, ["msg_ok_03"])
+                        document.getElementById("id_msg_01").innerText = get_dict_value(msg_dict, ["msg01"])
+                        document.getElementById("id_msg_02").innerText = get_dict_value(msg_dict, ["msg02"])
+                        document.getElementById("id_msg_03").innerText = get_dict_value(msg_dict, ["msg03"])
                     } else {
                         tab_mode = "tab_edit"
                         if ("msg_err" in response) {

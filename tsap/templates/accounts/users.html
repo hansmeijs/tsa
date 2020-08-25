@@ -58,7 +58,6 @@
             <table class="table tsa_tbl">
                 <thead id="id_tblHead_datatable"></thead>
                 <tbody id="id_tblBody_datatable"></tbody>
-                <tfoot id="id_tblFoot_datatable"></tfoot>
             </table>
 <!-- =================== END DATA TABLE  =================== -->
         </div>
@@ -67,18 +66,7 @@
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"
-            data-users_upload_url="{% url 'users_upload_url' %}"
-            data-user_add_upload_url="{% url 'user_add_upload_url' %}"
-
-            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
-            data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
-            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
-
-            data-imgsrc_delete="{% static 'img/delete.gif' %}"
-            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
-
-            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
-            data-imgsrc_chck01="{% static 'img/chck01.png' %}"
+            data-user_upload_url="{% url 'user_upload_url' %}"
         >
         </div>
 

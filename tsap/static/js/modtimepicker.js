@@ -102,22 +102,21 @@
         el_footer.appendChild(div_left);
 
         if(st_dict["show_btn_delete"] && tp_dict["offset"] != null){
-            let btn_delete = document.createElement("button");
-                btn_delete.setAttribute("type", "button")
-                // timepicker_close to close normal popup: btn_delete.classList.add("timepicker_close")
+            let btn_delete = document.createElement("div");
+                // PR2020-08-21 instead of button with el_img, create div el with border and background img
 
+                // timepicker_close to close normal popup: btn_delete.classList.add("timepicker_close")
                 // both data-toggle and href needed for toggle popup and modal form
                 //btn_delete.setAttribute("data-toggle", "modal");
                 //btn_delete.setAttribute("href", "#id_mod_timepicker");
 
-                AppendChildIcon(btn_delete, st_dict.imgsrc_delete, "18")
+                btn_delete.classList.add("btn_del_0_1")
 
                 btn_delete.addEventListener("click", function() {
                     ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_delete")}, false )
 //- add hover delete img
-                btn_delete.addEventListener("mouseenter", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_deletered)});
-                btn_delete.addEventListener("mouseleave", function() {btn_delete.children[0].setAttribute("src", st_dict.imgsrc_delete)});
-
+                btn_delete.addEventListener("mouseenter", function() {add_or_remove_class (btn_delete, "btn_del_0_2", true, "btn_del_0_1")});
+                btn_delete.addEventListener("mouseleave", function() {add_or_remove_class (btn_delete, "btn_del_0_1", true, "btn_del_0_2")});
             el_footer.appendChild(btn_delete);
         }
 
@@ -907,7 +906,7 @@ function CalcMinMax(dict) {
         let curDayOffset = tp_dict.curDayOffset;
 
         let date_text = "";
-        if (!!st_dict.txt_dateheader){
+        if (st_dict.txt_dateheader){
             date_text = st_dict.txt_dateheader;
         } else if (st_dict["txt_break"] === "breakduration"){
             date_text = st_dict["txt_break"]

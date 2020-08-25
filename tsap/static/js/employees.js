@@ -110,11 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         filter_tags: ["", "text", "text","text","text","text","amount", "amount", "amount"],
                         field_width:  ["016","180", "120", "120","100", "100", "090","090", "090", "032"],
                         field_align: ["c","l", "l", "l","r", "r",  "r", "r", "r", "c"]},
-            absence: { tbl_col_count: 7,
-                        field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Hours_per_day"],
-                        field_names: ["", "employee", "order", "datefirst", "datelast", "timeduration", "delete"],
-                        field_width:  ["016","180", "220", "120", "120","120", "032"],
-                        field_align: ["c", "l", "l", "r", "r", "r", "c"]},
+            absence: { tbl_col_count: 9,
+                        field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
+                        field_names: ["", "employee", "order", "datefirst", "datelast", "timestart", "timeend", "timeduration", "delete"],
+                        filter_tags: ["", "text", "text", "text", "text", "text", "text", "text", "text","duration"],
+                        field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "032"],
+                        field_align: ["c", "l", "l", "r", "r", "r", "r", "r", "c"]},
             shifts: { tbl_col_count: 8,
                         field_caption: ["","Employee", "Order", "Team", "First_date", "Last_date", "Replacement_employee"],
                         field_names: ["","employee", "order", "team", "datefirst", "datelast", "replacement", "delete"],
@@ -204,12 +205,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MODAL SELECT EMPLOYEE ------------------------------------
         //let el_mod_select_employee_body = document.getElementById("id_ModSelEmp_select_employee_body");
-        let el_mod_select_employee_input_employee = document.getElementById("id_ModSelEmp_input_employee");
+        let el_mod_select_employee_input_employee = document.getElementById("id_MSE_input_employee");
             el_mod_select_employee_input_employee.addEventListener("keyup", function(event){
                 setTimeout(function() {ModSelectEmployee_FilterEmployee(el_mod_select_employee_input_employee, event.key)}, 50)});
         let el_mod_select_employe_btn_save = document.getElementById("id_ModSelEmp_btn_save")
             el_mod_select_employe_btn_save.addEventListener("click", function() {ModSelectEmployee_Save("save")}, false )
-        document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {ModSelectEmployee_Save("remove")}, false )
+        document.getElementById("id_MSE_btn_remove").addEventListener("click", function() {ModSelectEmployee_Save("remove")}, false )
 
 // ---  MODAL ABSENCE ------------------------------------
         let el_MAB_input_employee = document.getElementById("id_MAB_input_employee")
@@ -514,9 +515,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // HandleBtnSelect
 
-//=========  HandleTableRowClicked  ================ PR2019-03-30
-    function HandleTableRowClicked(tr_clicked) {
-        console.log("=== HandleTableRowClicked");
+//=========  HandleTblRowClicked  ================ PR2019-03-30
+    function HandleTblRowClicked(tr_clicked) {
+        console.log("=== HandleTblRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows, highlight selected row
@@ -542,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "selected_teammember_pk: ", selected_teammember_pk);
 // ---  update header text
         UpdateHeaderText();
-    }  // HandleTableRowClicked
+    }  // HandleTblRowClicked
 
 //========= HandleBtnCalendar  ============= PR2019-12-04
     function HandleBtnCalendar(mode) {
@@ -577,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
             calendar_datefirst_JS = get_thisweek_monday_sunday_dateobj()[0];
         }
 
-        let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
+        let calendar_datelast_JS = add_daysJS(calendar_datefirst_JS, 6)
         const calendar_datefirst_iso = get_dateISO_from_dateJS(calendar_datefirst_JS);
         const calendar_datelast_iso = get_dateISO_from_dateJS(calendar_datelast_JS);
 
@@ -749,7 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.setAttribute("data-pk", pk_str);
             if(employee_pk){tblRow.setAttribute("data-employee_pk", employee_pk)};
 // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
+            tblRow.addEventListener("click", function() {HandleTblRowClicked(tblRow)}, false);
 //+++ insert td's into tblRow
             const column_count = field_settings[tblName].tbl_col_count;
             for (let j = 0; j < column_count; j++) {
@@ -942,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_new_row = !parseInt(pk_str); // don't use Number, "545-03" wil give NaN
 
     // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
+            tblRow.addEventListener("click", function() {HandleTblRowClicked(tblRow)}, false);
 
 //+++ insert td's into tblRow
             const column_count = field_settings[selected_btn].tbl_col_count;
@@ -1528,7 +1529,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
                     } else if (["offsetstart", "offsetend", "timestart", "timeend"].indexOf( fldName ) > -1){
                         const title_overlap = null
-                        format_datetime_element (el_input, el_msg, field_dict, loc.comp_timezone, loc.timeformat, loc.months_abbrev, loc.weekdays_abbrev, title_overlap)
+                        format_datetime_elementMOMENT (el_input, el_msg, field_dict, loc.comp_timezone, loc.timeformat, loc.months_abbrev, loc.weekdays_abbrev, title_overlap)
                     } else if (fldName ===  "team"){
                         const key_str = "code";
                         format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
@@ -2302,7 +2303,7 @@ if(pgeName === "absence"){
             null, cls_selected, cls_hover );
         ModSelectEmployee_headertext();
 // hide button /remove employee'
-        document.getElementById("id_ModSelEmp_div_remove_employee").classList.add(cls_hide)
+        document.getElementById("id_MSE_div_btn_remove").classList.add(cls_hide)
 // Set focus to el_mod_employee_input
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){
@@ -2480,7 +2481,7 @@ if(pgeName === "absence"){
 
 // ---  put employee name in header
         let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
-        let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
+        let el_div_remove = document.getElementById("id_MSE_div_btn_remove")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -2494,7 +2495,7 @@ if(pgeName === "absence"){
         }
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
+        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
         el_mod_employee_input.value = null
 
         console.log("---------- employee_pk: ", employee_pk)
@@ -2532,7 +2533,7 @@ if(pgeName === "absence"){
                     code: employee_code,
                     update: true};
 // put code_value in el_input_employee
-                document.getElementById("id_ModSelEmp_input_employee").value = employee_code
+                document.getElementById("id_MSE_input_employee").value = employee_code
 // save selected employee
                 ModEmployeeSave("save");
             }  // if(!isEmpty(employee_dict))
@@ -2543,7 +2544,7 @@ if(pgeName === "absence"){
     function ModEmployeeFilterEmployee(option, event_key) {
         //console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_ModSelEmp_input_employee")
+        let el_input = document.getElementById("id_MSE_input_employee")
 // save when clicked 'Enter', TODO only if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
             ModEmployeeSave("save");
@@ -2824,7 +2825,7 @@ if(pgeName === "absence"){
 
 // ---  fill functioncode select options. t_FillOptionsAbscat is also used for functioncodes
         const el_MFE_functioncode = document.getElementById("id_MFE_fc_id");
-        t_FillOptionsAbscat(el_MFE_functioncode, functioncode_map, "", "", mod_MFE_dict.fc_id);
+        t_FillOptionsAbscat(loc, el_MFE_functioncode, functioncode_map, mod_MFE_dict.fc_id);
 // ---  employee form
         let form_elements = document.getElementById("id_MFE_div_form_controls").querySelectorAll(".form-control")
         for (let i = 0, el, fldName, value; el = form_elements[i]; i++) {
@@ -2978,7 +2979,8 @@ if(pgeName === "absence"){
         mod_MAB_dict.teammember_ppk = map_dict.t_id;
         mod_MAB_dict.order_pk = map_dict.o_id;
         mod_MAB_dict.order_ppk = map_dict.c_id;
-        mod_MAB_dict.order_code = map_dict.o_code;
+        // remove tilde from abscat PR2020-8-14
+        mod_MAB_dict.order_code = (map_dict.o_code) ? map_dict.o_code.replace(/~/g,"") : null;
         mod_MAB_dict.employee_pk = map_dict.e_id;
         mod_MAB_dict.employee_code = map_dict.e_code;
         mod_MAB_dict.employee_datefirst = map_dict.e_df;
@@ -3146,7 +3148,9 @@ if(pgeName === "absence"){
             for (const [map_id, map_dict] of data_map.entries()) {
                 const pk_int = map_dict.id;
                 const ppk_int = (is_tbl_employee) ? map_dict.comp_id : map_dict.c_id;
-                const code_value = (is_tbl_employee) ? map_dict.code : map_dict.o_code;
+                let code_value = (is_tbl_employee) ? map_dict.code : map_dict.o_code;
+                // remove tilde from abscat PR2020-08-14
+                if (!is_tbl_employee && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
                 const is_inactive = (is_tbl_employee) ? map_dict.inactive : map_dict.o_inactive;
 // --- validate if employee can be added to list
                 if (!is_inactive){
@@ -3494,7 +3498,8 @@ if(pgeName === "absence"){
 
         mod_MAB_dict.order_pk = (abscat_dict) ? abscat_dict.id : null;
         mod_MAB_dict.order_ppk = (abscat_dict) ? abscat_dict.c_id : null;
-        mod_MAB_dict.order_code = (abscat_dict) ? abscat_dict.o_code : null;
+        // remove tilde from abscat PR2020-8-14
+        mod_MAB_dict.order_code = (abscat_dict) ? (abscat_dict.o_code) ? abscat_dict.o_code.replace(/~/g,"") : null : null;
 
         console.log( "mod_MAB_dict", mod_MAB_dict);
     }  // MAB_SetOrderDict
@@ -3893,7 +3898,7 @@ console.log( "reset mod_dict: ");
 
     // ---  fill absence select options, put value in select box
             //console.log("loc.Select_abscat", loc.Select_abscat)
-            t_FillOptionsAbscat(el_modshift_absence, abscat_map, loc.Select_abscat, loc.No_absence_categories)
+            t_FillOptionsAbscat(loc, el_modshift_absence, abscat_map)
             // put value of abscat (=order_pk) in select abscat element
             el_modshift_absence.value = (!!order_pk) ? order_pk : 0;
 
@@ -4746,7 +4751,6 @@ console.log( "reset mod_dict: ");
 //========= HandleFilterName  ====================================
     function HandleFilterName(el, index, el_key) {
         console.log( "===== HandleFilterName  ========= ");
-
         console.log( "el", el, typeof el);
         console.log( "index", index, typeof index);
         console.log( "el_key", el_key, typeof el_key);
@@ -4792,6 +4796,7 @@ console.log( "reset mod_dict: ");
                     //console.log( "skip_filter = true");
                 } else {
                     filter_dict[index] = new_filter.toLowerCase();
+                    
                     //console.log( "filter_dict[index]: ", filter_dict[index]);
                 }
             }
@@ -5068,7 +5073,8 @@ console.log( "reset mod_dict: ");
                 const class_width = "tw_" + field_settings[sel_btn].field_width[i] ;
                 const class_align = "ta_" + field_settings[sel_btn].field_align[i] ;
                 el_div.classList.add(class_width, class_align);
-// --- add width, text_align and left margin to first column
+// add right padding to date and number fields
+                if([3,4,5,6,7].indexOf(i) > -1) {el_div.classList.add("pr-2")};
                 th.appendChild(el_div);
             header_row.appendChild(th);
 // +++  insert filter row ++++++++++++++++++++++++++++++++
@@ -5097,18 +5103,15 @@ console.log( "reset mod_dict: ");
     function FillAbsenceTblRows() {
         // called by HandleBtnSelect and HandlePayrollFilter
         console.log( "====== FillAbsenceTblRows  === ");
-// --- reset table,
+// --- reset tblBody
         tblBody_datatable.innerText = null
-        const data_map = absence_map;
-        if(absence_map){
 // --- loop through absence_map
+        if(absence_map){
             for (const [map_id, map_dict] of absence_map.entries()) {
 // TODO: add filter
-        console.log( "map_dict", map_dict);
                 let add_Row = map_dict.c_isabsence;
-        console.log( "map_dict.c_isabsence", map_dict.c_isabsence);
                 if (add_Row){
-                    let tblRow = CreateAbsenceTblRow(map_id, map_dict.id, map_dict.t_id, map_dict.e_id, -1);
+                    const tblRow = CreateAbsenceTblRow(map_id, map_dict.id, map_dict.t_id, map_dict.e_id, -1);
                     UpdateAbsenceTblRow(tblRow, map_id, map_dict);
                     if (map_dict.id === selected_teammember_pk) { tblRow.classList.add(cls_selected)}
                 }  // if (add_Row)
@@ -5123,14 +5126,14 @@ console.log( "reset mod_dict: ");
         const sel_btn = "absence";
         let tblRow = null;
         if(field_settings[sel_btn]){
-// --- insert tblRow into tblBody
+// +++  insert tblRow into tblBody
             tblRow = tblBody_datatable.insertRow(row_index)
             tblRow.id = map_id;
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-pk", pk_str);
             if(employee_pk){tblRow.setAttribute("data-employee_pk", employee_pk)};
 // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
+            tblRow.addEventListener("click", function() {HandleTblRowClicked(tblRow)}, false);
 //+++ insert td's into tblRow
             const column_count = field_settings[sel_btn].tbl_col_count;
             for (let j = 0; j < column_count; j++) {
@@ -5154,8 +5157,8 @@ console.log( "reset mod_dict: ");
     // --- add field_width and text_align
                 el.classList.add("tw_" + field_settings[sel_btn].field_width[j],
                                  "ta_" + field_settings[sel_btn].field_align[j]);
-    // add right padding to number field
-                if(j === 5) {el.classList.add("pr-2")};
+    // add right padding to date and number fields
+                if([3,4,5,6,7].indexOf(j) > -1) {el.classList.add("pr-2")};
     // --- add element to td.
                 td.appendChild(el);
             }  // for (let j = 0; j < 8; j++)
@@ -5163,14 +5166,14 @@ console.log( "reset mod_dict: ");
         return tblRow
     };  // CreateAbsenceTblRow
 
-//========= UpdateAbsenceTblRow  ============= PR2020-08-08
+//========= UpdateAbsenceTblRow  ====== PR2020-08-08
     function UpdateAbsenceTblRow(tblRow, map_id, map_dict){
         //console.log("========= UpdateAbsenceTblRow  =========");
         //console.log("map_dict", map_dict);
         if (tblRow && !isEmpty(map_dict)) {
             const update_status = get_dict_value(map_dict, ["status", "updated"])
             //console.log("update_status", update_status);
-// --- loop through cells of tablerow
+// --- loop through cells of tblRow
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 // el_input is first child of td, td is cell of tblRow
                 let el_input = tblRow.cells[i].children[0];
@@ -5182,7 +5185,9 @@ console.log( "reset mod_dict: ");
                     } else if (fldName === "replacement"){
                         el_input.innerText = map_dict.rpl_code;
                     } else if (fldName === "order"){
-                        const inner_text = ( (selected_btn === "shifts") ?  map_dict.c_code + " - " : "" ) + map_dict.o_code
+                        let inner_text = ( (selected_btn === "shifts") ?  map_dict.c_code + " - " : "" ) + map_dict.o_code
+                        // remove tilde from abscat PR2020-08-14
+                        if (selected_btn === "absence" && inner_text.includes("~")){inner_text = inner_text.replace(/~/g,"")}
                         el_input.innerText = inner_text;
                     } else if (fldName === "team"){
                         el_input.innerText = map_dict.t_code
@@ -5197,9 +5202,24 @@ console.log( "reset mod_dict: ");
                         const date_formatted = format_dateISO_vanilla (loc, date_iso, true, false);
                         // add linebreak on empty cell, otherwise eventlistener does not work
                         el_input.innerText = (date_formatted) ? date_formatted : "\n";
+
+                    } else if (["timestart", "timeend"].indexOf( fldName ) > -1){
+                        let display_text = null;
+                        if (fldName === "timestart" && map_dict.sh_os_arr) {
+                            display_text = display_offset_time (loc, map_dict.sh_os_arr[0]);
+                        } else if (fldName === "timeend" && map_dict.sh_os_arr) {
+                            display_text = display_offset_time (loc, map_dict.sh_oe_arr[0]);
+                        };
+                        // hard return necessary to display hover or green OK field when it is empty
+                        if (!display_text){display_text = "\n"}
+                        el_input.innerText = display_text
+
                     } else if (fldName === "timeduration"){
                         let time_duration = (map_dict.sh_td_arr) ? map_dict.sh_td_arr[0] : 0;
-                        el_input.innerText = display_duration (time_duration, loc.user_lang);
+                        let display_text = display_duration (time_duration, loc.user_lang);
+                        // hard return necessary to display hover or green OK field when it is empty
+                        if (!display_text){display_text = "\n"}
+                        el_input.innerText = display_text
                     }
 // ---  make _updated el_input green for 2 seconds
 // make changed fields green

@@ -1,14 +1,15 @@
 # PR2019-02-28
 from django.contrib.postgres.fields import JSONField
 
-from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum, Max, Min
+from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
+from django.db import connection
 
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, SmallIntegerField, IntegerField, \
     DateField, DateTimeField, Q, Value
 from django.db.models.functions import Lower, Coalesce
 from django.utils.translation import ugettext_lazy as _
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap import constants as c
@@ -50,11 +51,12 @@ class TsaBaseModel(Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        # skip modifiedby and modifiedatwhen subtracting balance PR2019-04-09
+        # skip modifiedby and modifiedat when subtracting balance PR2019-04-09
 
         # get now without timezone
+        # timezone.now() is timezone aware
+        # datetime.now() is timezone naive. PR2018-06-07
         now_utc_naive = datetime.utcnow()
-        # now_utc_naive: 2019-07-16 14:29:55.819695
         # convert now to timezone utc
         now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
 
@@ -63,10 +65,13 @@ class TsaBaseModel(Model):
             self.request = kwargs.pop('request', None)
             if self.request.user:
                 self.modifiedby = self.request.user
-            # timezone.now() is timezone aware, based on the
-            # datetime.now() is timezone naive. PR2018-06-07
+                self.company = self.request.user.company
+        # put now_utc in Companysettings (only when table is emplhour) PR2020-08-12
+                key = 'last_emplhour_updated'
+                if key in kwargs:
+                    self.request = kwargs.pop('last_emplhour_updated', None)
+                    Companysetting.set_datetimesetting(key, now_utc, self.company)
 
-            # now_utc: 2019-07-16 14:29:55.819695+00:00
             self.modifiedat = now_utc
 
         # modifiedat is required. Fill in when empty
@@ -80,8 +85,10 @@ class TsaBaseModel(Model):
         self.request = kwargs.pop('request', None)
         # to be used for log purpose
         # self.data_has_changed('d')
-        # save to logfile before deleting record
+        # save to logfile before deleting record happens outside this function
         # self.save_to_log()
+
+
         super(TsaBaseModel, self).delete(*args, **kwargs)
 
     @property
@@ -271,6 +278,7 @@ class Order(TsaBaseModel):
     nohoursonsaturday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
     nohoursonsunday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
     nohoursonpublicholiday = BooleanField(default=False)
+    nohoursoncompanyholiday = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
@@ -499,8 +507,8 @@ class Scheme(TsaBaseModel):
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
     nohoursonsunday = BooleanField(default=False)
-    # nohoursonweekend = BooleanField(default=False)  # deprecated
     nohoursonpublicholiday = BooleanField(default=False)
+    nohoursoncompanyholiday = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -753,7 +761,7 @@ class Schemeitem(TsaBaseModel):
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
-                scheme = Scheme.objects.get_or_none(pk=self.scheme.pk)
+                scheme = Scheme.objects.get_or_none(pk=self.scheme_id)
                 if scheme:
                     #logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only). Value fore once-only is cycle = 32767
@@ -816,7 +824,6 @@ class Orderhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     hasnote = BooleanField(default=False)
-    isdeleted  = BooleanField(default=False)
 
     class Meta:
         ordering = ['rosterdate']
@@ -879,14 +886,16 @@ class Emplhour(TsaBaseModel):
     note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
+
     haschanged  = BooleanField(default=False)  # haschanged will show an orange diamond on the roster page
-    isdeleted  = BooleanField(default=False)  # for updatng roster page
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
     # used in FilRosterdate to skip existing shifts (happens when same rosterdate is created for the second time)
     schemeitemid = IntegerField(null=True)
     teammemberid = IntegerField(null=True)
+
+    modifiedbyusername = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -903,7 +912,7 @@ class Emplhour(TsaBaseModel):
         has_status_created = False
         field_value = getattr(self, 'status', 0)
         status_int = int(field_value)
-        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_01_CREATED
+        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_001_CREATED
         if status_str[:1] == '1':
             has_status_created = True
         return has_status_created
@@ -926,6 +935,7 @@ class Emplhourlog(TsaBaseModel):
     order = ForeignKey(Order, related_name='+', on_delete=SET_NULL, null=True)
     employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
+    teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True)
 
     customercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     ordercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -941,8 +951,15 @@ class Emplhourlog(TsaBaseModel):
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
 
+    isabsence = BooleanField(default=False)
+    isrestshift = BooleanField(default=False)
+    issplitshift = BooleanField(default=False)
+    isreplacement = BooleanField(default=False)
+
     status = PositiveSmallIntegerField(default=0)
-    deleted = BooleanField(default=False)
+    isdeleted = BooleanField(default=False)  # for updatng roster page
+
+    modifiedbyusername = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     class Meta:
         ordering = ['-modifiedat']
@@ -1020,6 +1037,7 @@ class Companysetting(Model):  # PR2019-03-09
     key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
     datetimesetting = DateTimeField(null=True)  #  for last_emplhour_updated PR2020-08-10
+    datetimesetting2 = DateTimeField(null=True)  #  for last_emplhour_deleted PR2020-08-23
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
 
@@ -1092,250 +1110,150 @@ class Companysetting(Model):  # PR2019-03-09
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
 
-        #logger.debug('row.setting: ' + str(row.setting))
+    @classmethod
+    def get_datetimesetting(cls, key_str, company):  # PR2020-08-23
+        datetime_setting = None
+        datetime_setting2 = None
+        if company and key_str:
+            row = cls.objects.filter(company=company, key=key_str).first()
+            if row:
+                if row.datetimesetting:
+                    datetime_setting = row.datetimesetting
+                if row.datetimesetting2:
+                    datetime_setting2 = row.datetimesetting2
 
+        return datetime_setting, datetime_setting2
+
+    @classmethod
+    def set_datetimesetting(cls, key_str, new_datetime, company):   # PR2020-08-12
+        if company and key_str:
+            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+            row = cls.objects.filter(company=company, key=key_str).first()
+            if row:
+                row.datetimesetting = new_datetime
+            elif new_datetime:
+                row = cls(company=company, key=key_str, datetimesetting=new_datetime)
+            row.save()
+
+    @classmethod
+    def set_datetimesetting2(cls, key_str, new_datetime, company):  # PR2020-08-23
+        if company and key_str:
+            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+            row = cls.objects.filter(company=company, key=key_str).first()
+            if row:
+                row.datetimesetting2 = new_datetime
+            elif new_datetime:
+                row = cls(company=company, key=key_str, datetimesetting2=new_datetime)
+            row.save()
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# company entries
 
 
-# =====  add_duration_to_companyinvoice  =====
-def add_duration_to_companyinvoice(rosterdate_dte, duration_sum, is_delete_rosterdate, request, comp_timezone, user_lang):  # PR2020-04-07
-    #logger.debug('===========  add_duration_to_companyinvoice  ==================== ')
-    #logger.debug('duration_sum: ' + str(duration_sum))
-    #logger.debug('is_delete_rosterdate: ' + str(is_delete_rosterdate))
-    # called by FillRosterdate and RemoveRosterdate
+def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
+    logger.debug('-----  delete_emplhour  -----')
+    # function first saves record in log  with isdeleted=True
+    # adds datetime seleted in Companysettings
+    # then deletes emplhour record
+    # also deletes orderhour record, when it has no other emplhour records
+    deleted_row = None
+    if emplhour:
+        logger.debug('emplhour: ' + str(emplhour))
+        orderhour = emplhour.orderhour
+        other_emplhours_exist = Emplhour.objects.filter(orderhour=orderhour).exclude(pk=emplhour.pk).exists()
+        logger.debug('other_emplhours_exist: ' + str(other_emplhours_exist))
 
-    # no negative values allowed, skip when zero
-    if duration_sum > 0:
-        date_formatted = f.format_date_element(rosterdate_dte, user_lang, False, False, True, True, False, True)
-        if is_delete_rosterdate:
-            msg = _("Roster removed of %(fld)s") % {'fld': date_formatted}
-        else:
-            msg = _("Roster created of %(fld)s") % {'fld': date_formatted}
+# - first delete history of this emplhour
+        Emplhourlog.objects.filter(emplhour_id=emplhour.pk).delete()
+        logger.debug('Emplhourlog count: ' + str(Emplhourlog.objects.filter(emplhour_id=emplhour.pk).count()))
+# -  save emplhour to log before deleting - to be able to upate other logged in computers
+        # get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # convert now to timezone utc
+        modified_at = now_utc_naive.replace(tzinfo=pytz.utc)
+        logger.debug('emplhour modified_at: ' + str(modified_at))
 
-# - convert minutes to hours, rounded
-        duration_hours_rounded = int(0.5 + duration_sum / 60)
+        save_to_emplhourlog(emplhour.pk, request, True, modified_at)  # is_deleted = True
+        logger.debug('saved_to_emplhourlog count: ')
 
-# - when is_delete_rosterdate: only subtract when roster is remove before the actual rosterdate
-        # - to prevent smart guys to delete roster after the actual date and so deduct entries
-        if is_delete_rosterdate:
-    # - get today in comp_timezone
-            timezone = pytz.timezone(comp_timezone)
-            today_dte = datetime.now(timezone).date()
-            time_delta = today_dte - rosterdate_dte
-            # rosterdate_dte: 2020-04-21 <class 'datetime.date'>
-            # today_dte: 2020-04-16 <class 'datetime.date'>
-            # datediff: -5 days, 0:00:00 <class 'datetime.timedelta'>
-            days_diff = time_delta.days
-    # - make entries zero when rosterdate is today or after today
-            if days_diff < 0:
-                duration_hours_rounded = duration_hours_rounded * -1
-            else:
-                duration_hours_rounded = 0
+# -  put date_deleted (=now_utc) in Companysetting.datetimesetting2
+        key = 'last_emplhour_updated'
+        Companysetting.set_datetimesetting2(key, modified_at, request.user.company)
 
-# - create entry_charged only when duration_hours_rounded has value
-        if duration_hours_rounded:
-            company = request.user.company
-            entry_rate = company.entryrate
-            entry = Companyinvoice(
-                company=request.user.company,
-                cat=c.ENTRY_CAT_00_CHARGED,
-                entries=0,
-                used=duration_hours_rounded,
-                balance=0,
-                entryrate=entry_rate,
-                datepayment=rosterdate_dte,
-                dateexpired=None,
-                expired=False,
-                note=msg
-            )
-            entry.save(request=request)
+# - create deleted_row
+        deleted_row = {'pk': emplhour.pk,
+                           'mapid': 'emplhour_' + str(emplhour.pk),
+                           'isdeleted': True}
+# - delete emplhour record
+        try:
+            emplhour.delete()
+        except:
+            deleted_row = None
 
-# add entries to refund from balance
-            if is_delete_rosterdate:
-                entry_refund_to_spare(duration_hours_rounded, request, comp_timezone)
-# subtract entries from refund or paid/bonus
-            else:
-                entry_balance_subtract(duration_sum, request, comp_timezone)
-# =====  end of add_duration_to_companyinvoice
+# - also delete orderhour when it has no other emplhour records
+        if not other_emplhours_exist:
+            orderhour.delete()
 
-def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-04  PR2020-04-08
-    # function subtracts entries from balance: from refund first, then from paid / bonus: oldest expiration date first
-    #logger.debug('-------------  entry_balance_subtract  ----------------- ')
-    #logger.debug('duration_sum ' + str(duration_sum))
-
-    if request.user.company:
-# - get today in comp_timezone
-        today_dte = datetime.now(pytz.timezone(comp_timezone)).date()
-        # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
-        # today:2019-08-01 <class 'datetime.date'>
-
-# - convert minutes to hours, rounded. Subtotal is the entries to be subtracted
-        subtotal = int(0.5 + duration_sum / 60)
-        if subtotal > 0:
-            # - first deduct from category ENTRY_CAT_02_PAID (paid or bonus), then from ENTRY_CAT_01_SPARE
-            # order by expiration date, null comes last, use annotate and coalesce to achieve this
-            crit = Q(company=request.user.company) & \
-                   Q(expired=False) & \
-                   (Q(cat=c.ENTRY_CAT_01_SPARE) | Q(cat=c.ENTRY_CAT_02_PAID) | Q(cat=c.ENTRY_CAT_03_BONUS))
-            invoices = Companyinvoice.objects\
-                .annotate(dateexpired_nonull=Coalesce('dateexpired', Value(datetime(2500, 1, 1))))\
-                .filter(crit).order_by('-cat', 'dateexpired_nonull')
-
-# - loop through invoice_rows
-            save_changes = False
-            for invoice in invoices:
-                #logger.debug('invoice: ' + str(invoice.dateexpired) + ' cat: ' + str(invoice.cat))
-# - skip if row is expired. (expired=False is also part of crit, but let it stay here)
-                if not invoice.expired:
-# - check if row is expired. If so: set expired=True and balance=0
-                    if invoice.dateexpired and invoice.dateexpired < today_dte:
-                        invoice.expired = True
-                        invoice.balance = 0
-                        save_changes = True
-                    else:
-                        if subtotal > 0:
-                            saved_used = invoice.used
-                            saved_balance = invoice.balance
-# - if balance is sufficient: subtract all from balance, else subtract balance
-                            # field 'entries' contains amount of paid entries or bonus entries
-                            # field 'used' contains amount of used entries or refund entries
-                            # field 'balance' contains available ( = entries - used)
-                            if saved_balance > 0:
-                                # subtract subtotal from balance, but never more than balance
-                                subtract = subtotal if saved_balance >= subtotal else saved_balance
-                                #logger.debug('subtract: ' + str(subtract) + ' ' + str(type(subtract)))
-                                invoice.used = saved_used + subtract
-                                invoice.balance = saved_balance - subtract
-                                subtotal = subtotal - subtract
-                                save_changes = True
-                                #logger.debug('invoice.balance ' + str(invoice.balance))
-                    if save_changes:
-                        invoice.save(request=request)
-
-# - if any entries left: subtract from spare record (spare balance can be negative). Create spare record if not exists
-# - if subtotal is negative it is a refund. Entries will be added to ENTRY_CAT_REFUND
-        if subtotal > 0:
-            #logger.debug('subtotal: ' + str(subtotal) + ' ' + str(type(subtotal)))
-            spare_row = Companyinvoice.objects.filter(
-                company=request.user.company,
-                cat=c.ENTRY_CAT_01_SPARE).first()
-            #logger.debug('refund_row: ' + str(refund_row) + ' ' + str(type(refund_row)))
-            if spare_row is None:
-                entry_create_spare_row(request)
-
-            if spare_row:
-                saved_entries = getattr(spare_row, 'entries', 0)
-                saved_balance = getattr(spare_row, 'balance', 0)
-                spare_row.entries = 0
-                spare_row.used = saved_entries + subtotal
-                spare_row.balance = saved_balance - subtotal
-                spare_row.save(request=request)
-                #logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+    return deleted_row
 
 
-def entry_refund_to_spare(duration_hours_rounded, request, comp_timezone):  # PR2020-04-25
-    # - it is a refund. Entries will be added to ENTRY_CAT_01_SPARE
-    #  = refund happens when deleting shifts of a rosterdate
-    #logger.debug('-------------  entry_refund_to_spare  ----------------- ')
-    #logger.debug('duration_hours_rounded ' + str(duration_hours_rounded))
+def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None):
+    # PR2020-07-26 PR2020-08-22
+    logger.debug('  ----- save_to_emplhourlog -----')
+    logger.debug('is_deleted: ' + str(is_deleted))
+    logger.debug('request.user: ' + str(request.user))
 
-    if request.user.company and duration_hours_rounded:
-        # - it is a refund. Entries will be added to ENTRY_CAT_REFUND
+    # when is_delete: set modified_date to now, use emplhour modified_date
 
-# - open refund_row
-        spare_row = Companyinvoice.objects.filter(
-            company=request.user.company,
-            cat=c.ENTRY_CAT_01_SPARE).first()
+    sql_keys = {'ehid': emplhour_pk}
+    sql_list = []
+    sql_list.append("""
+        INSERT INTO companies_emplhourlog (
+                id, emplhour_id, rosterdate,
+                order_id, employee_id, schemeitem_id,
+                customercode, ordercode, shiftcode, employeecode,
+                timestart, timeend, breakduration, timeduration,
+                plannedduration, billingduration,
+                offsetstart, offsetend,
+                isabsence,  isrestshift,  issplitshift, isreplacement,
+                status,
+                isdeleted, 
+                modifiedby_id, modifiedat, modifiedbyusername
+                )
+        SELECT nextval('companies_emplhourlog_id_seq'),
+                eh.id, eh.rosterdate, oh.order_id, eh.employee_id, oh.schemeitem_id,
+                oh.customercode, oh.ordercode, oh.shiftcode, eh.employeecode,
+                eh.timestart, eh.timeend, eh.breakduration, eh.timeduration,
+                eh.plannedduration, eh.billingduration,
+                eh.offsetstart, eh.offsetend,
+                oh.isabsence, oh.isrestshift, oh.issplitshift, eh.isreplacement,
+                eh.status,
+    """)
 
- # - if not found: create refund_row if not found
-        if spare_row is None:
-            entry_create_spare_row(request)
+    if is_deleted:
+        # - set request user in modified_by of deleted emplhour record
+        sql_list.append("""TRUE,  
+            CAST(%(modifiedby_id)s AS INTEGER), CAST(%(modifiedat)s AS DATE), %(username)s""")
+        modifiedby_id = request.user.pk
+        username = request.user.username_sliced
+        sql_keys = {'ehid': emplhour_pk,
+                    'modifiedby_id': modifiedby_id,
+                    'modifiedat': modified_at,
+                    'username': username}
+    else:
+        sql_list.append("""FALSE, eh.modifiedby_id, eh.modifiedat, eh.modifiedbyusername""")
+        sql_keys = {'ehid': emplhour_pk}
 
-# - subtract duration_hours_rounded from field 'used' of refund_row
-        if spare_row:
-            saved_used = getattr(spare_row, 'used', 0)
-            spare_row.used = saved_used - duration_hours_rounded
-            spare_row.balance = saved_used - duration_hours_rounded + c.ENTRY_NEGATIVE_ALLOWED
-            spare_row.save(request=request)
-            #logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+    sql_list.append("""
+        FROM companies_emplhour AS eh 
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+        WHERE ( eh.id = %(ehid)s) 
+        """)
 
-
-def entry_create_bonus(request, entries, valid_months, note, comp_timezone, entryrate=0, entrydate=None):  # PR2020-04-15
-    # function adds a row with a balance. Called by SignupActivateView for bonus. TODO: add row when payment is made
-    #logger.debug('-------------  entry_create_bonus  ----------------- ')
-
-# -. get entrydate = today when blank
-    if entrydate is None:
-        # get today in comp_timezone
-        timezone = pytz.timezone(comp_timezone)
-        entrydate = datetime.now(timezone).date()
-
-# - add valid_months to entrydate > dateexpired
-    entrydate_plus_valid_months = f.add_months_to_date(entrydate, valid_months)
-
-    companyinvoice = Companyinvoice(
-        company=request.user.company,
-        cat=c.ENTRY_CAT_03_BONUS,
-        entries=entries,
-        used=0,
-        balance=entries,
-        entryrate=entryrate,
-        datepayment=entrydate,
-        dateexpired=entrydate_plus_valid_months,
-        expired=False,
-        note=note
-    )
-    companyinvoice.save(request=request)
-
-
-def entry_create_spare_row(request):  # PR2020-04-15
-    # function adds a spare row. A spare row contains the 'max negative allowed' and add refund as negative used,
-    #logger.debug('-------------  entry_create_spare_row  ----------------- ')
-
-# - check if there is already a spare row (do't use get_or_no
-    # don't use get_or_none, it wil return None when multiple rows exist, therefore adding another record
-    spare_row = Companyinvoice.objects.filter(
-        company=request.user.company,
-        cat=c.ENTRY_CAT_01_SPARE).first()
-
-# - if no spare row is found: add row with default spare
-    if spare_row is None:
-        companyinvoice = Companyinvoice(
-            company=request.user.company,
-            cat=c.ENTRY_CAT_01_SPARE,
-            entries=0,
-            used=0,
-            balance=0,
-            entryrate=0,
-            datepayment=None,
-            dateexpired=None,
-            expired=False,
-            note=_('Spare')
-        )
-        companyinvoice.save(request=request)
-
-
-# ===========  get_entry_balance
-def get_entry_balance(request, comp_timezone):  # PR2019-08-01 PR2020-04-08
-    # function returns avalable balance: sum of balance of paid and refund records
-    # balance will be set to 0 when expired, no need to filter for expiration date
-    #logger.debug('---  get_entry_balance  ------- ')
-
-    balance = 0
-    if request.user.company:
- # a. get today in comp_timezone
-        timezone = pytz.timezone(comp_timezone)
-        today = datetime.now(timezone).date()
-        # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
-        # today:2019-08-01 <class 'datetime.date'>
-
-        crit = Q(company=request.user.company) & \
-               Q(expired=False) & \
-               (Q(cat=c.ENTRY_CAT_01_SPARE) | Q(cat=c.ENTRY_CAT_02_PAID) | Q(cat=c.ENTRY_CAT_03_BONUS))
-        balance = Companyinvoice.objects.filter(crit).aggregate(Sum('balance'))
-        # from https://simpleisbetterthancomplex.com/tutorial/2016/12/06/how-to-create-group-by-queries.html
-    return balance
+    sql = ' '.join(sql_list)
+    logger.debug('sql: ' + str(sql))
+    logger.debug('sql_keys: ' + str(sql_keys))
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    logger.debug('  ----- save_to_emplhourlog done ')
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1427,8 +1345,7 @@ def delete_instance(instance, update_dict, request, this_text=None):
         else:
             update_dict['id']['deleted'] = True
             deleted_ok = True
-    # instance = None does not work here, it works outside this function
-    # if delete_ok:
-    #    instance = None
 
     return deleted_ok, msg_err
+
+

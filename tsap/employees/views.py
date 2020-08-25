@@ -156,7 +156,6 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
                             table=table,
                             pk=pk_int,
                             ppk=parent.pk,
-                            temp_pk=temp_pk_str,
                             row_index=row_index)
 
                         # PR2020-08-11 new approach: updated_dict only contains update status , values are in absence_rows
@@ -768,12 +767,14 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     if team_list:
         update_wrap['team_list'] = team_list
 
-    shift_list = pld.create_shift_list(
+    shift_list, shift_rows = pld.create_shift_list(
         filter_dict=filter_dict,
         company=request.user.company,
         user_lang=user_lang)
     if shift_list:
         update_wrap['shift_list'] = shift_list
+    if shift_rows:
+        update_wrap['shift_rows'] = shift_rows
 
     teammember_list = ed.create_teammember_list(
         filter_dict=filter_dict,
@@ -1693,7 +1694,6 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
             table=table,
             pk=pk_int,
             ppk=ppk_int,
-            temp_pk=temp_pk_str,
             row_index=row_index)
 
 # A. new absence has no parent, get ppk_int from team_dict and put it back in upload_dict
@@ -3294,7 +3294,6 @@ def upload_abscat_order(upload_dict, user_lang, request):
     is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
     is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
     is_absence = f.get_dict_value(upload_dict, ('id', 'isabsence'), False)
-    temp_pk_str = None
 
     update_list = []
     # - check if parent exists (customer is parent of order)
@@ -3311,7 +3310,6 @@ def upload_abscat_order(upload_dict, user_lang, request):
             table=table,
             pk=pk_int,
             ppk=parent.pk,
-            temp_pk=temp_pk_str,
             row_index=row_index)
         # - Delete abscat order
         if is_delete:
@@ -3736,7 +3734,6 @@ def upload_paydatecode(upload_dict, user_lang, request):
     row_index = f.get_dict_value(upload_dict, ('id', 'rowindex'))
     is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
     is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
-    temp_pk_str = None
 
     update_list = []
     refresh_employeelist_needed = False
@@ -3751,7 +3748,6 @@ def upload_paydatecode(upload_dict, user_lang, request):
             table=table,
             pk=pk_int,
             ppk=parent.pk,
-            temp_pk=temp_pk_str,
             row_index=row_index)
 # +++++ Delete Paydatecode
         if is_delete:
@@ -4384,12 +4380,14 @@ def create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang,
         if team_list:
             update_wrap['team_list'] = team_list
 
-        shift_list = pld.create_shift_list(
+        shift_list, shift_rows = pld.create_shift_list(
             filter_dict=filter_dict,
             company=request.user.company,
             user_lang=user_lang)
         if shift_list:
             update_wrap['shift_list'] = shift_list
+        if shift_rows:
+            update_wrap['shift_rows'] = shift_rows
 
         teammember_list = ed.create_teammember_list(
             filter_dict=filter_dict,
@@ -4456,12 +4454,14 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
     if team_list:
         update_wrap['team_list'] = team_list
 
-    shift_list = pld.create_shift_list(
+    shift_list, shift_rows = pld.create_shift_list(
         filter_dict=filter_dict,
         company=request.user.company,
         user_lang=user_lang)
     if shift_list:
         update_wrap['shift_list'] = shift_list
+    if shift_rows:
+        update_wrap['shift_rows'] = shift_rows
 
     teammember_list = ed.create_teammember_list(
         filter_dict=filter_dict,

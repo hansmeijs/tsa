@@ -27,8 +27,8 @@
 
 // ++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++
     function PrintRoster(option, selected_period, emplhour_list, company_dict, loc, imgsrc_warning) {
-        //console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
-        //console.log("emplhour_list: ", emplhour_list)
+        console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
+        console.log("emplhour_list: ", emplhour_list)
 
 // ---  calculate subtotals and display values of subtotal rows and detail rows
         const subtotals = calc_roster_totals(emplhour_list, loc);
@@ -42,7 +42,6 @@
 // ---  sort rows by sort_key and store them in nested arrayall information is stored in this nested array 'subtotals'
         // all information is stored in this nested array 'subtotals'
         const sorted_rows = get_sorted_rows_from_totals(subtotals, loc.user_lang)
-        //console.log( sorted_rows)
 
 // ---  loop recursively through sorted_rows
         let img_warning = new Image();
@@ -99,6 +98,7 @@
 
 // +++++++ loop through rows from sorted_rows[1] +++++++++++++++++++++++++
            const rosterdate_rows = sorted_rows[1];
+        console.log( "rosterdate_rows", rosterdate_rows)
            for (let i = 0, len = rosterdate_rows.length; i < len; i++) {
                 const rosterdate_header_row = rosterdate_rows[i][0];
                 const customer_rows = rosterdate_rows[i][1]
@@ -611,7 +611,7 @@
                 if (pos.top + total_height_needed > setting.page_height){
                     AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                 }
-                // filter (!row.o_isabs && !row.oh_isrest) is part of SQL
+                // filter (!row.c_isabsence && !row.oh_isrestshift) is part of SQL
                 const plan_dur_format = format_total_duration (row.eh_plandur, loc.user_lang)
                 const time_dur_format = format_total_duration (row.eh_timedur, loc.user_lang)
                 const diff_format = format_total_duration (row.eh_timedur - row.eh_plandur, loc.user_lang)
@@ -676,7 +676,7 @@
         let datefirst_weekday = datefirst_JS.getDay()
         if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
         // when weekday = 1 it starts at first column (monday) if not , get monday before datefirst_weekday
-        const startdateJS = addDaysJS(datefirst_JS, + 1 - datefirst_weekday)
+        const startdateJS = add_daysJS(datefirst_JS, + 1 - datefirst_weekday)
         const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
 
         const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
@@ -684,7 +684,7 @@
         let datelast_weekday = datelast_JS.getDay()
         if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
         // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
-        const enddateJS = addDaysJS(datelast_JS, + 7 - datelast_weekday)
+        const enddateJS = add_daysJS(datelast_JS, + 7 - datelast_weekday)
         //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
         const endWeekIndex = enddateJS.getWeekIndex();
         //console.log("endWeekIndex", endWeekIndex)
@@ -905,7 +905,7 @@
         let datefirst_weekday = datefirst_JS.getDay()
         if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
         // when weekday = 1 it starts at first column (monday) if not , get monday before datefirst_weekday
-        const startdateJS = addDaysJS(datefirst_JS, + 1 - datefirst_weekday)
+        const startdateJS = add_daysJS(datefirst_JS, + 1 - datefirst_weekday)
         const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
 
         const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
@@ -913,7 +913,7 @@
         let datelast_weekday = datelast_JS.getDay()
         if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
         // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
-        const enddateJS = addDaysJS(datelast_JS, + 7 - datelast_weekday)
+        const enddateJS = add_daysJS(datelast_JS, + 7 - datelast_weekday)
         //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
         const endWeekIndex = enddateJS.getWeekIndex();
         //console.log("endWeekIndex", endWeekIndex)
@@ -1326,7 +1326,7 @@
             const prev_rosterdate_JS = get_dateJS_from_dateISO (prev_rosterdate_iso)
             let prev_weekday = prev_rosterdate_JS.getDay()
             if (prev_weekday === 0 ) {prev_weekday = 7}// JS sunday = 0, iso sunday = 7
-            const prev_mondayJS = addDaysJS(prev_rosterdate_JS, + 1 - prev_weekday)
+            const prev_mondayJS = add_daysJS(prev_rosterdate_JS, + 1 - prev_weekday)
 
     // --- calculate height of the week shifts, to check if it fits on page
             const padding_top = 2;
@@ -1397,7 +1397,7 @@
                 } else {
                     text_str =  day_str + " " +   date_str + " " + month_str;
                 }
-                this_dayJS = addDaysJS(this_dayJS, + 1 )
+                this_dayJS = add_daysJS(this_dayJS, + 1 )
             }
             doc.text(pos_x + pad_x, pos_y - 2, text_str);
             pos_x = (weekday === 0) ? pos_x + setting.column00_width : pos_x + setting.column_width
@@ -1756,8 +1756,8 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
         if (len > 0) {
             for (let i = 0, row; row = review_list[i]; i++) {
                 //console.log("row: ", row)
-                const count = (!row.o_isabs && !row.oh_isrest) ? 1 : 0;
-                const is_billable = (!row.o_isabs && !row.oh_isrest && !!row.oh_bill);
+                const count = (!row.c_isabsence && !row.oh_isrestshift) ? 1 : 0;
+                const is_billable = (!row.c_isabsence && !row.oh_isrestshift && !!row.oh_bill);
 
                 const company_pk = get_dict_value(row, ["comp_id"], "").toString();
                 const customer_pk = get_dict_value(row, ["cust_id"], "").toString();
@@ -1883,8 +1883,8 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
                 const rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
                 const ehoh_pk = get_dict_value(row, ["eh_id"], "").toString();
 
-                const count = (!row.o_isabs && !row.oh_isrest) ? 1 : 0;
-                const billable_count = (!row.o_isabs && !row.oh_isrest && !!row.oh_bill) ? 1 : 0;
+                const count = (!row.c_isabsence && !row.oh_isrestshift) ? 1 : 0;
+                const billable_count = (!row.c_isabsence && !row.oh_isrestshift && !!row.oh_bill) ? 1 : 0;
                 const employee_code = get_dict_value(row, ["e_code"]);
                 const order_code = get_dict_value(row, ["ordr_code"], "");
                 const customer_code = get_dict_value(row, ["cust_code"], "");
@@ -1967,26 +1967,27 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
         if (len > 0) {
             for (let i = 0, row; row = emplhour_list[i]; i++) {
                 //console.log("row: ", row)
-                const rosterdate_iso =  get_dict_value(row, ["rosterdate", "value"]);
-                const customer_pk = get_dict_value(row, ["customer", "pk"]);
-                const customer_code = get_dict_value(row, ["customer", "code"]);
-                const order_pk = get_dict_value(row, ["order", "pk"]);
-                const order_code = get_dict_value(row, ["order", "code"]);
-                const customer_order_code = customer_code + " - " + order_code;
-                const emplhour_pk = get_dict_value(row, ["id", "pk"]);
-                const employee_code = get_dict_value(row, ["employee", "code"]);
+                const rosterdate_iso =  row.rosterdate;
+                const customer_pk = row.c_id;
+                const customer_code = row.customercode;
+                const order_pk = row.o_id;
+                const order_code = row.ordercode;
+                const customer_order_code = row.c_o_code;
+                const emplhour_pk = row.id;
+                const employee_code = row.employeecode;
 
-                const shift_code  = get_dict_value(row, ["shift", "code"], "");
-                const time_start = get_dict_value(row, ["timestart", "display"], "");
-                const time_end = get_dict_value(row, ["timeend", "display"], "");
+                const shift_code  = row.shiftcode;
+                const time_start = format_time_from_offset_JSvanilla( loc, row.rosterdate, row.offsetstart, true, false, false)
+                const time_end = format_time_from_offset_JSvanilla( loc, row.rosterdate, row.offsetend, true, false, false)
 
-                const time_dur = get_dict_value(row, ["timeduration", "value"], 0);
-                const break_dur = get_dict_value(row, ["breakduration", "value"], 0);
-                const is_absence = get_dict_value(row, ["id", "isabsence"], false);
-                const is_restshift = get_dict_value(row, ["id", "isrestshift"], false);
-                const worked_hours = (!is_absence && !is_restshift) ? time_dur : 0;
-                const break_hours = (!is_absence && !is_restshift) ? break_dur : 0;
-                const absence_hours = (is_absence) ? time_dur : 0;
+                const time_dur = display_duration (row.timeduration, loc.user_lang)
+                const break_dur = display_duration (row.breakduration, loc.user_lang)
+
+                const is_absence = row.c_isabsence;
+                const is_restshift = row.oh_isrestshift;
+                const worked_hours = (!is_absence && !is_restshift) ? row.timeduration : 0;
+                const break_hours = (!is_absence && !is_restshift) ? row.breakduration : 0;
+                const absence_hours = (is_absence) ? row.timeduration : 0;
                 const shift_count = (!is_absence && !is_restshift) ? 1 : 0;
 
                 const worked_format = format_total_duration (worked_hours, loc.user_lang);

@@ -108,7 +108,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 table=table,
                                 pk=pk_int,
                                 ppk=parent.pk,
-                                temp_pk=temp_pk_str,
                                 row_index=row_index)
 
 # C. Delete customer
@@ -169,7 +168,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 table=table,
                                 pk=pk_int,
                                 ppk=parent.pk,
-                                temp_pk=temp_pk_str,
                                 row_index=row_index)
 
 # C. Delete instance
@@ -186,7 +184,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     instance = create_order(parent, upload_dict, update_dict, request)
 # E. Get existing order
                                 else:
-                                    instance = m.get_instance(table, pk_int, parent, update_dict)
+                                    # was: instance = m.get_instanceXX(table, pk_int, parent, update_dict)
+                                    instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
 
 # F. update order, also when it is created
                                 if instance:
@@ -243,13 +242,13 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str,
                             row_index=row_index)
 
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
                         #logger.debug('parent: ' + str(parent))
                         if parent:
-                            instance = m.get_instance(table, pk_int, parent, update_dict)
+                            instance = m.get_instance##(table, pk_int, parent, update_dict)
+                            # TODO to be replaced by: instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                             #logger.debug('parent: ' + str(instance))
                             if instance:
                                 update_order(instance, parent, upload_dict, update_dict, user_lang, request)
@@ -261,13 +260,14 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str,
                             row_index=row_index)
 
                         parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
                         #logger.debug('SCHEME parent: ' + str(parent))
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
+                            # TODO to be replaced by: instance = m.Scheme.objects.get_or_none(id=pk_int, order=parent)
+
                             #logger.debug('SCHEME instance: ' + str(instance))
                             if instance:
                                 update_scheme(instance, upload_dict, update_dict, request)
@@ -279,12 +279,12 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str,
                             row_index=row_index)
                         parent = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
                         #logger.debug('SHIFT parent: ' + str(parent))
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
+                            # TODO to be replaced by: instance = m.Shift.objects.get_or_none(id=pk_int, scheme=parent)
                             #logger.debug('SHIFT instance: ' + str(instance))
                             if instance:
                                 update_shift_instance(instance, parent, upload_dict, update_dict, user_lang, request)

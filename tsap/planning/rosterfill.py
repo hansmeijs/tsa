@@ -17,6 +17,7 @@ from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as pld
 from planning import views as plv
+from companies import subscriptions as sbscr
 
 from tsap.settings import TIME_ZONE
 
@@ -68,61 +69,62 @@ idx_s_dvgph = 29
 idx_o_s_nosat = 30
 idx_o_s_nosun = 31
 idx_o_s_noph = 32
+idx_o_s_noch = 33
 
-idx_sh_os = 33
-idx_sh_oe = 34
-idx_sh_os_nonull = 35  # non zero os for sorting when creating rosterdate
-idx_sh_oe_nonull = 36  # non zero os for sorting when creating rosterdate
-idx_sh_bd = 37
-idx_sh_td = 38
+idx_sh_os = 34
+idx_sh_oe = 35
+idx_sh_os_nonull = 36  # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 37  # non zero os for sorting when creating rosterdate
+idx_sh_bd = 38
+idx_sh_td = 39
 
-idx_tm_rd = 39
-idx_tm_count = 40
+idx_tm_rd = 40
+idx_tm_count = 41
 
-idx_e_tm_id_arr = 41
-idx_e_si_id_arr = 42
-idx_e_mod_arr = 43  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_os_arr = 44
-idx_e_oe_arr = 45
-idx_e_o_seq_arr = 46
+idx_e_tm_id_arr = 42
+idx_e_si_id_arr = 43
+idx_e_mod_arr = 44  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_os_arr = 45
+idx_e_oe_arr = 46
+idx_e_o_seq_arr = 47
 
-idx_r_tm_id_arr = 47
-idx_r_si_id_arr = 48
-idx_r_mod_arr = 49
-idx_r_os_arr = 50
-idx_r_oe_arr = 51
-idx_r_o_seq_arr = 52
+idx_r_tm_id_arr = 48
+idx_r_si_id_arr = 49
+idx_r_mod_arr = 50
+idx_r_os_arr = 51
+idx_r_oe_arr = 52
+idx_r_o_seq_arr = 53
 
-idx_isreplacement = 53
+idx_isreplacement = 54
 
-idx_tm_ovr = 54
-idx_tm_prc_id = 55
+idx_tm_ovr = 55
+idx_tm_prc_id = 56
 
-idx_r_prc_id = 56
-idx_e_prc_id = 57
-idx_sh_prc_id = 58
+idx_r_prc_id = 57
+idx_e_prc_id = 58
+idx_sh_prc_id = 59
 
-idx_tm_adc_id = 59
-idx_r_adc_id = 60
-idx_e_adc_id = 61
-idx_sh_adc_id = 62
-idx_sh_txc_id = 63
+idx_tm_adc_id = 60
+idx_r_adc_id = 61
+idx_e_adc_id = 62
+idx_sh_adc_id = 63
+idx_sh_txc_id = 64
 
-idx_o_inv_id = 64
+idx_o_inv_id = 65
 
-idx_e_fnc_id = 65
-idx_e_wgc_id = 66
-idx_e_pdc_id = 67
-idx_e_pdc_dte = 68
+idx_e_fnc_id = 66
+idx_e_wgc_id = 67
+idx_e_pdc_id = 68
+idx_e_pdc_dte = 69
 
-idx_r_fnc_id = 69
-idx_r_wgc_id = 70
-idx_r_pdc_id = 71
-idx_r_pdc_dte = 72
+idx_r_fnc_id = 70
+idx_r_wgc_id = 71
+idx_r_pdc_id = 72
+idx_r_pdc_dte = 73
 
-idx_sh_wfc_id = 73
+idx_sh_wfc_id = 74
 
-idx_o_nopay = 74
+idx_o_nopay = 75
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -188,6 +190,7 @@ sql_schemeitem_sub00 = """
         s.nohoursonsaturday AS s_nosat,
         s.nohoursonsunday AS s_nosun,
         s.nohoursonpublicholiday AS s_noph,
+        s.nohoursoncompanyholiday AS s_noch,
 
         si.onpublicholiday AS si_onph,
         CAST(si.rosterdate AS date) AS si_rd,
@@ -532,9 +535,9 @@ sql_teammember_sub08 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(o.code,'') AS o_code,
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,       
         c.id AS c_id, 
-        COALESCE(c.code,'') AS c_code,
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
         c.company_id AS comp_id, 
 
         e_sub.e_id AS e_id,
@@ -578,6 +581,7 @@ sql_teammember_sub08 = """
         CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
         CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
         CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
+        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -743,19 +747,14 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 roster_period_dict = pld.period_get_and_save('roster_period', period_dict,
                                                              comp_timezone, timeformat, interval, user_lang, request)
 
-                emplhour_list, emplhours_rows = pld.create_emplhour_list(period_dict=roster_period_dict,
-                                                            request_item=None,
-                                                            comp_timezone=comp_timezone,
-                                                            timeformat=timeformat,
-                                                            user_lang=user_lang,
-                                                            request=request)
+# def create_emplhour_list(period_dict, request_item, comp_timezone, timeformat, user_lang, request):
+                emplhour_rows, no_updates = pld.create_emplhour_list(period_dict=roster_period_dict,
+                                                                is_emplhour_check=False,
+                                                                request=request)
 
-                # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
-                update_dict['emplhour_list'] = emplhour_list
-                update_dict['emplhours_rows'] = emplhours_rows
-
-                # debug: also update table in window when list is empty, Was: if list:
-                # update_dict['emplhour_list'] = list
+                # PR2019-11-18 debug:  must also update table in window when list is empty,
+                # therefore: don't use 'if emplhour_list:', blank lists must also be returned
+                update_dict['emplhour_rows'] = emplhour_rows
 
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
@@ -813,7 +812,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
 
             entries_count = 0
-            entry_balance = m.get_entry_balance(request, comp_timezone)
+            entry_balance = sbscr.get_entry_balance(request, comp_timezone)
             entries_employee_list = []
 
             #logger.debug('entry_balance: ' + str(entry_balance))
@@ -889,6 +888,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                         is_saturday=is_saturday,
                         is_sunday=is_sunday,
                         is_publicholiday=is_publicholiday,
+                        is_companyholiday=is_companyholiday,
                         lastof_month=lastof_month,
                         comp_timezone=comp_timezone,
                         request=request)
@@ -923,7 +923,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                         #logger.debug('=-------------- row added to dict ')
 
             # - add duration_sum to Companyinvoice
-            m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone,
+            sbscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone,
                                              user_lang)  # PR2020-04-07
 
         # except:
@@ -964,9 +964,9 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
     return return_dict, logfile
 
 
-def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday,
-                           lastof_month, comp_timezone, request):  # PR2020-01-5 PR2020-08-06
-    logger.debug(' ============= add_orderhour_emplhour ============= ')
+def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
+                           lastof_month, comp_timezone, request):  # PR2020-01-5 PR2020-08-14
+    #logger.debug(' ============= add_orderhour_emplhour ============= ')
 
     # mode 'i' = inactive
     # mode 'a' = isabsence
@@ -1014,8 +1014,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     row_offsetend = row[idx_sh_oe]
     row_breakduration = row[idx_sh_bd]
     row_timeduration = row[idx_sh_td]
-
-    timestart, timeend, planned_duration = f.calc_timestart_time_end_from_offset(
+    # return values of calc_timestart_time_end_from_offset are: starttime_local, endtime_local, new_timeduration
+    timestart, timeend, new_timeduration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         offsetstart=row[idx_sh_os],
         offsetend=row[idx_sh_oe],
@@ -1024,20 +1024,45 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         comp_timezone=comp_timezone
     )
 
-    logger.debug('planned_duration: ' + str(planned_duration))
-    # set planned_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
-    # PR2020-07-24 request Guido: also set time_duration = 0 when employee = None
-    # PR2020-08-06 debug: but dont set planned duration to 0 when employee = None
-    # Note: billingduration = time_duration
-    if (is_saturday and row[idx_o_s_nosat]) or \
+    # Note: rows with is_publicholiday or is_companyholiday are filtered out.
+    #    Maybe these rows are still necessary TODO PR2020-08-14
+
+    # PR2020-08-14 planned_duration are hours that are requested by clients
+    # therefore:
+    #  - planned_duration = 0 when absence or rest shift
+    #  - planned_duration = 0 when is_saturday and nohoursonsaturday etc.
+    # PR2020-08-06 debug:
+    #  - planned_duration is NOT set to 0 when employee = None
+
+    if (is_absence) or (is_restshift) or \
+                (is_saturday and row[idx_o_s_nosat]) or \
                 (is_sunday and row[idx_o_s_nosun]) or \
                 (is_publicholiday and row[idx_o_s_noph]) or \
-                (is_restshift):
+                (is_companyholiday and row[idx_o_s_noch]):
         planned_duration = 0
-    if employee_pk is not None:
-        time_duration = planned_duration
     else:
+        planned_duration = new_timeduration
+
+    # timeduration are the real hours made by employee, including absence hours, but no rest hours
+    # therefore:
+    #  -  time_duration gets also value when absence or rest shift
+    #  -  time_duration gets no value when rest shift
+    # PR2020-07-24 request Guido:
+    #  -  time_duration = 0 when employee is None, but will be filled in when employee is filled in later
+    #  -  nohoursonsaturday not yet in use for non-absence rows,
+    #       but probably it will be necessary for employees that have paid shifts without worked time
+    #       (i.e when they dont have to work on public holiday but still get paid)
+    if (is_restshift) or \
+            (employee_pk is None) or \
+            (is_saturday and row[idx_o_s_nosat]) or \
+            (is_sunday and row[idx_o_s_nosun]) or \
+            (is_publicholiday and row[idx_o_s_noph]) or \
+            (is_companyholiday and row[idx_o_s_noch]):
         time_duration = 0
+    else:
+        time_duration = new_timeduration
+
+    # Note: billingduration = time_duration
 
     # calculate datepart
     date_part = 0
@@ -1048,11 +1073,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     # (happens when FillRosterdate for this rosterdate is previously used)
 
     # emplhour is linked with schemeitem by rosterdate / schemeitemid / teammmeberid, not by Foreignkey
-    # when creating roster only one emplhour is created per orderhour. It contains status STATUS_01_CREATED = True.
+    # when creating roster only one emplhour is created per orderhour. It contains status STATUS_001_CREATED = True.
     # only one emplhour is created per (rosterdate / schemeitemid / teammmeber) combination
     # orderhour_id of emplhour never changes
     # one orderhour can have multiple emplhours when split function is used
-    # split emplhour records or absence emplhour records have STATUS_01_CREATED = False.
+    # split emplhour records or absence emplhour records have STATUS_001_CREATED = False.
     # emplhour records that are not confirmed are already deleted in delete_emplhours_orderhours,
     # therefore you only heve to check for existing emplhour records
 
@@ -1072,7 +1097,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         price_code, addition_code, tax_code = None, None, None
         price_rate, addition_rate, tax_rate = 0, None, None
         invoice_date = lastof_month
-
+        # remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-14
+        order_code = row[idx_o_code].replace('~', '') if is_absence else row[idx_o_code]
 # 3. create new orderhour
         orderhour = m.Orderhour(
             order_id=order_pk,
@@ -1083,7 +1109,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             isabsence=is_absence,
             isrestshift=is_restshift,
             customercode=row[idx_c_code],
-            ordercode=row[idx_o_code],
+            ordercode=order_code,
             shiftcode=row[idx_sh_code],
 
             pricecode=price_code,
@@ -1094,7 +1120,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             additionrate=addition_rate,
             taxrate=tax_rate,
 
-            status=c.STATUS_01_CREATED
+            status=c.STATUS_001_CREATED
         )
         orderhour.save(request=request)
 
@@ -1252,6 +1278,7 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
             # elif shift_wagefactor:
             #    wagefactor = shift_wagefactor
             wagefactorcode_id = None
+            username = request.user.username_sliced
 
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
@@ -1260,18 +1287,20 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
                 employee_id=row[idx_e_id],
                 employeecode=row[idx_e_code],
 
-                paydate=pay_date,
-                paydatecode_id=paydatecode_id,
-                lockedpaydate=False,
                 isreplacement=is_replacement,
                 datepart=date_part,
 
+                paydate=pay_date,
+                paydatecode_id=paydatecode_id,
+                lockedpaydate=False,
+                nopay=False,
+
                 timestart=timestart,
                 timeend=timeend,
-                billingduration=time_duration,
-                plannedduration=planned_duration,
                 timeduration=time_duration,
                 breakduration=break_duration,
+                billingduration=time_duration,
+                plannedduration=planned_duration,
 
                 offsetstart=offset_start,
                 offsetend=offset_end,
@@ -1289,10 +1318,13 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
                 addition=addition,
                 tax=tax,
 
+                status=c.STATUS_001_CREATED,
+                haschanged=False,
                 overlap=overlap,
+
                 schemeitemid=row[idx_si_id],
                 teammemberid=row[idx_tm_id],
-                status=c.STATUS_01_CREATED
+                modifiedbyusername=username
             )
 
             #logger.debug('new_emplhour: ' + str(new_emplhour))
@@ -1312,13 +1344,17 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
                 #     pricerate = employee.pricerate
                 # if pricerate:
                 #     new_emplhour.pricerate = pricerate
-            new_emplhour.save(request=request)
+            new_emplhour.save(request=request, last_emplhour_updated=True)
 
             if new_emplhour:
                 emplhour_is_added = True
+
+# - save to log
+                m.save_to_emplhourlog(new_emplhour.pk, request, False)  # is_deleted=False
+
                 # - put info in id_dict
-                id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True}
-                update_dict = {'id': id_dict}
+                #id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True}
+                #update_dict = {'id': id_dict}
                 # pd.create_emplhour_itemdict_from_instance(new_emplhour, update_dict, comp_timezone)
                 # update_list.append(update_dict)
 
@@ -1408,8 +1444,8 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
                 )
                 """, {
         'cid': request.user.company_id,
-        'eh_status': c.STATUS_02_START_CONFIRMED,
-        'oh_status': c.STATUS_08_LOCKED,
+        'eh_status': c.STATUS_004_START_CONFIRMED,
+        'oh_status': c.STATUS_032_LOCKED,
         'rd': new_rosterdate_dte})
     deleted_count = newcursor.rowcount
 
@@ -1492,7 +1528,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
         # - create recordset of orderhour records with rosterdate = rosterdate_current
         #   Don't filter on schemeitem Is Not Null (schemeitem Is Not Null when generated by Scheme, schemeitem Is Null when manually added)
         try:
-            # get orderhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
+            # get orderhour records of this date and status less than STATUS_004_START_CONFIRMED, also delete records with rosterdate Null
             crit = Q(order__customer__company=request.user.company) & \
                    (Q(rosterdate=rosterdate_iso) | Q(rosterdate__isnull=True))
             orderhours = m.Orderhour.objects.filter(crit)
@@ -1501,7 +1537,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                 if not orderhour.rosterdate:
                     delete_orderhour = True
                 else:
-                    orderhour_confirmed = orderhour.status >= c.STATUS_02_START_CONFIRMED
+                    orderhour_confirmed = orderhour.status >= c.STATUS_004_START_CONFIRMED
                     delete_orderhour = not orderhour_confirmed
                 # get emplhours of this orderhour
                 emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
@@ -1517,7 +1553,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                                 # dont delete emplhour when orderhour_confirmed
                                 count_confirmed += 1
                             else:
-                                if emplhour.status >= c.STATUS_02_START_CONFIRMED:
+                                if emplhour.status >= c.STATUS_004_START_CONFIRMED:
                                     # dont delete orderhour when one or more emplhours are confirmed
                                     orderhour_confirmed = True
                                     delete_orderhour = False
@@ -1525,19 +1561,19 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                                 else:
                                     delete_emplhour = True
 
-                        # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
+                        # check emplhours status:, skip if STATUS_004_START_CONFIRMED or higher
                         if delete_emplhour:
-                            emplhour.delete(request=request)
+                            # delete_emplhour first saves to log and updates date_deleted in Companysetting.datetimesetting2
+                            # the deletes emplhour and - if orderhour has no more emplhours - also deletes orderhour
+                            m.delete_emplhour_instance(emplhour, request)
 
-                            # also delete history of this emplhour
-                            m.Emplhourlog.objects.filter(emplhour_id=emplhour_pk).delete()
 
                             count_deleted += 1
 
                             # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
                             # - count_duration counts only duration of normal and single shifts, for invoicing
-                            # when no time provided: fill in 8 hours =480 minutes
-                            if not orderhour.isabsence and not orderhour.isrestshift and emplhour.status == c.STATUS_01_CREATED:
+                            # when no time provided: fill in 8 hours = 480 minutes
+                            if not orderhour.isabsence and not orderhour.isrestshift and emplhour.status == c.STATUS_001_CREATED:
                                 if emplhour.plannedduration:
                                     duration_sum += emplhour.plannedduration
                                 else:
@@ -1581,7 +1617,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
 
         # - subtract duration_sum from Companyinvoice
         rosterdate_dte = f.get_date_from_ISO(rosterdate_iso)
-        m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone,
+        sbscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone,
                                          user_lang)  # PR2020-04-07
 
     return return_dict
@@ -1824,6 +1860,8 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
     # no rest shifts, no inactive schemeitems, only schemitems within date range,
     # WHERE MOD((CAST(%(rd)s AS date) - CAST(si.rosterdate AS date)), s.cycle) = 0
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+
+    # TODO remove SHIFT_CAT_0512_ABSENCE
     newcursor.execute("""
         SELECT
             %(rd)s AS rosterdate, sq.tm_id, sq.si_id, 
@@ -2408,7 +2446,8 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                     row=row,
                     is_saturday=is_saturday,
                     is_sunday=is_sunday,
-                    is_publicholiday=is_publicholiday)
+                    is_publicholiday=is_publicholiday,
+                    is_companyholiday=is_companyholiday)
                 if planning_dict_short:
                     calendar_shortlist.append(planning_dict_short)
 
@@ -2474,8 +2513,8 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
     })
     dictrows = f.dictfetchall(newcursor)
     for dictrow in dictrows:
-        #logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
-        #logger.debug(str(dictrow))
+        logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
+        logger.debug(str(dictrow))
     """
 
     # TODO to filter multiple order_pk's Works, but add 'Show All orders
@@ -2976,7 +3015,7 @@ def create_planning_dict(row, is_saturday, is_sunday, is_publicholiday, timeform
     return planning_dict
 
 
-def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday):  # PR2019-10-27 PR2020-07-10
+def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is_companyholiday):  # PR2019-10-27 PR2020-07-10 PR2020-08-14
     #logger.debug(' --- create_planning_dict_short --- ')
     #logger.debug(row)
 
@@ -2991,6 +3030,7 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday):  
         if (is_saturday and row[idx_o_s_nosat]) or \
                 (is_sunday and row[idx_o_s_nosun]) or \
                 (is_publicholiday and row[idx_o_s_noph]) or \
+                (is_companyholiday and row[idx_o_s_noch]) or \
                 (is_restshift):
             time_duration = 0
 
@@ -3478,9 +3518,9 @@ sql_customer_calendar_team_sub11 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(o.code,'') AS o_code,
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
         c.id AS c_id, 
-        COALESCE(c.code,'') AS c_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
         c.company_id AS comp_id,
 
         tm_sub.e_id_arr AS e_id,
@@ -3512,6 +3552,7 @@ sql_customer_calendar_team_sub11 = """
         CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
         CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
         CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
+        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
 
         si_sub.sh_os,
         si_sub.sh_oe,

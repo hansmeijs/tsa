@@ -70,7 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let company_dict = {};
         let employee_map = new Map();
-
+        let customer_map = new Map();
+        let order_map = new Map();
         let abscat_map = new Map(); // list of all absence categories
 
         let functioncode_map = new Map();
@@ -83,9 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let payroll_mapped_columns = {};  // dict of mapped pk > col_index of absence categories in crosstab 'payroll_map'
         let paydatecodes_inuse_list = [];
         let paydateitems_inuse_list = [];
-
+        let employees_inuse_list = [];
         let payroll_period_detail_list = [];
-        let payroll_period_agg_list = [];
 
         let payroll_period_detail_rows = [];  // put all values in payroll_period_detail_rows, so it can be exported or sent to pdf
         let payroll_period_agg_rows = [];
@@ -101,6 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let loc = {};
 
         let mod_dict = {};
+        let mod_MSO_dict = {};
+        let mod_MSE_dict = {};
 
         let filter_select = "";
         let filter_mod_employee = "";
@@ -119,23 +121,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div"],
                         field_width:  ["180", "120", "120", "120", "120", "120", "120", "032", "032"],
                         field_align: ["l", "c",  "c", "c", "c", "l", "r", "c", "c"]},
-            payroll_agg: { tbl_col_count: 4,
-                        field_caption: ["", "Employee", "Planned_hours", "Worked_hours"],
-                        field_names: ["back", "e_code", "eh_plandur_sum", "duration", "-"],
-                        filter_tags: ["back", "text", "duration", "duration", "-"],
-                        field_tags: ["div","div", "div", "div", "div"],
-                        field_width: ["016", "150", "100", "100", "032"],
-                        field_align: ["c", "l", "r", "r", "c"]},
-            payroll_detail: { tbl_col_count: 6,
-                        field_caption: ["<", "Date", "Order", "Planned_hours", "Worked_hours"],
-                        field_names:  ["", "text", "text", "duration", "duration"],
-                        filter_tags: ["back", "text", "div", "duration", "duration", "-"],
-                        field_tags: ["div", "div", "div", "div", "div", "div"],
-                        field_width: ["016", "090",  "180", "100", "100", "032"],
-                        field_align: ["c", "l", "l","r", "r", "c"]},
+            payroll_agg: { tbl_col_count: 5,
+                        field_caption: ["", "Employee", "Total_hours", "Planned_hours", "Worked_hours"],
+                        field_names: ["back", "e_code", "eh_total_sum", "eh_plandur_sum", "duration", "-"],
+                        filter_tags: ["back", "text", "duration", "duration", "duration", "-"],
+                        field_tags: ["div","div", "div", "div", "div", "div"],
+                        field_width: ["016", "150", "090", "090", "090","032"],
+                        field_align: ["c", "l", "r", "r","r", "c"]},
+            payroll_detail: { tbl_col_count: 7,
+                        field_caption: ["<", "Date", "Order", "Total_hours", "Planned_hours", "Worked_hours"],
+                        field_names:  ["", "text", "text", "duration", "duration", "duration"],
+                        filter_tags: ["back", "text", "text", "duration", "duration", "duration", "-"],
+                        field_tags: ["div", "div", "div", "div", "div", "div", "div"],
+                        field_width: ["016", "090",  "180", "100", "100", "100", "032"],
+                        field_align: ["c", "l", "l","r", "r", "r", "c"]},
             payroll_tabular: { tbl_col_count: 14,
-                        field_caption: ["", "Employee", "Date", "Order", "Start_time", "End_time", "Planned_hours_2lines", "Worked_hours_2lines", "Absence_2lines", "Total_hours_2lines", "Wage_factor", "Function", "Payroll_period"],
-                        field_names: ["", "employee_code", "rosterdate", "c_o_code", "offsetstart", "offsetend", "plandur", "timedur", "absdur", "totaldur", "wagefactor", "functioncode", "paydatecode", ""],
+                        field_caption: ["", "Employee", "Date", "Order", "Start_time", "End_time", "Total_hours_2lines", "Planned_hours_2lines", "Worked_hours_2lines", "Absence_2lines", "Wage_factor", "Function", "Payroll_period"],
+                        field_names: ["", "employee_code", "rosterdate", "c_o_code", "offsetstart", "offsetend", "totaldur", "plandur", "timedur", "absdur", "totaldur", "wagefactor", "functioncode", "paydatecode", ""],
                         filter_tags: ["", "text", "text", "text", "text", "text", "duration", "duration", "duration", "duration", "text", "text", "text", ""],
                         field_width: ["016", "150", "090",  "180", "090", "090", "090", "090", "090", "090", "100", "100", "100", "032"],
                         field_align: ["c", "l", "l", "l", "r", "r", "r", "r", "r", "r", "l", "l", "l", "c"]},
@@ -207,17 +209,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_btn_remove_selected = document.getElementById("id_btn_remove_selected");
             el_btn_remove_selected.addEventListener("click", function() {HandleBtnAddRemoveSelected("remove")}, false )
 
-// === EVENT HANDLERS FOR MODAL ===
-// ---  MOD PERIOD ------------------------------------
-        const el_mod_period_datefirst = document.getElementById("id_mod_period_datefirst");
-            el_mod_period_datefirst.addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false );
-        const el_mod_period_datelast = document.getElementById("id_mod_period_datelast");
-            el_mod_period_datelast.addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false );
-        const el_mod_period_oneday = document.getElementById("id_mod_period_oneday");
-            el_mod_period_oneday.addEventListener("change", function() {ModPeriodDateChanged("oneday")}, false );
-        document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false );
-
-// ---  MOD SELECT PAYROLL PERIOD ------------------------------
+// ---  SIDE BAR
+// ---  side bar - select period
         let el_sbr_select_period = document.getElementById("id_SBR_select_period");
             el_sbr_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
             add_hover(el_sbr_select_period)
@@ -227,9 +220,34 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_sbr_select_paydate = document.getElementById("id_sbr_select_paydate");
             el_sbr_select_paydate.addEventListener("click", function() {MSP_Open()}, false );
             add_hover(el_sbr_select_paydate)
-        let el_sbr_select_showall = document.getElementById("id_sbr_select_showll");
-            el_sbr_select_showall.addEventListener("click", function() {ResetFilterRows()}, false );
-            add_hover(el_sbr_select_showall)
+// ---  side bar - select order
+        let el_sidebar_select_order = document.getElementById("id_SBR_select_order");
+            el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
+            add_hover(el_sidebar_select_order);
+// ---  side bar - select employee
+        let el_sidebar_select_employee = document.getElementById("id_SBR_select_employee");
+            el_sidebar_select_employee.addEventListener("click", function() {MSE_Open()}, false );
+            add_hover(el_sidebar_select_employee);
+// ---  side bar - select absence
+        let el_sidebar_select_absence = document.getElementById("id_SBR_select_absence");
+            el_sidebar_select_absence.addEventListener("change", function() {Sidebar_SelectAbsenceShowall("isabsence")}, false );
+            add_hover(el_sidebar_select_absence);
+// ---  side bar - showall
+        let el_sbr_select_showall = document.getElementById("id_SBR_select_showall");
+            el_sbr_select_showall.addEventListener("click", function() {Sidebar_SelectAbsenceShowall("showall")}, false );
+            add_hover(el_sbr_select_showall);
+
+// === EVENT HANDLERS FOR MODALS ===
+// ---  MOD PERIOD ------------------------------------
+        const el_mod_period_datefirst = document.getElementById("id_mod_period_datefirst");
+            el_mod_period_datefirst.addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false );
+        const el_mod_period_datelast = document.getElementById("id_mod_period_datelast");
+            el_mod_period_datelast.addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false );
+        const el_mod_period_oneday = document.getElementById("id_mod_period_oneday");
+            el_mod_period_oneday.addEventListener("change", function() {ModPeriodDateChanged("oneday")}, false );
+        document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false );
+
+// ---  MODAL SELECT PERIOD
         let el_MSP_tblbody = document.getElementById("id_MSP_tblbody");
         let el_MSP_input_payrollperiod = document.getElementById("id_MSP_input_payrollperiod")
             el_MSP_input_payrollperiod.addEventListener("focus", function() {MSP_InputOnfocus("payrollperiod")}, false )
@@ -241,6 +259,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {MSP_InputElementKeyup("datelast", el_MSP_input_paydate)}, 50)});
         let el_MSP_btn_save = document.getElementById("id_MSP_btn_save")
             el_MSP_btn_save.addEventListener("click", function() {MSP_Save()}, false )
+
+// ---  MOD SELECT ORDER ------------------------------
+        let el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
+        let el_modorder_tblbody_order = document.getElementById("id_MSO_tblbody_order");
+        let el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
+            el_MSO_input_customer.addEventListener("keyup", function(event){
+                setTimeout(function() {MSO_FilterCustomer()}, 50)});
+        let el_MSO_btn_save = document.getElementById("id_MSO_btn_save")
+            el_MSO_btn_save.addEventListener("click", function() {MSO_Save()}, false )
+
+// ---  MOD SELECT EMPLOYEE ------------------------------
+        let el_modemployee_input_employee = document.getElementById("id_MSE_input_employee")
+            el_modemployee_input_employee.addEventListener("keyup", function(event){
+                setTimeout(function() {MSE_FilterEmployee()}, 50)});
+        let el_modemployee_btn_save = document.getElementById("id_ModSelEmp_btn_save")
+            el_modemployee_btn_save.addEventListener("click", function() {MSE_Save()}, false )
+
 
 // ---  MODAL ABSENCE CATEGORY
         let form_elements = document.getElementById("id_MAC_input_container").querySelectorAll(".tsa_input_text")
@@ -288,14 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_MWF_btn_delete = document.getElementById("id_MWF_btn_delete");
             el_MWF_btn_delete.addEventListener("click", function() {MWF_Save("delete")}, false )
 
-// ---  MODAL EMPLOYEE
-        let el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
-        let el_modemployee_input_employee = document.getElementById("id_ModSelEmp_input_employee");
-            el_modemployee_input_employee.addEventListener("keyup", function(event){
-                setTimeout(function() {ModEmployeeFilterEmployee(el_modemployee_input_employee, event.key)}, 50)});
-        document.getElementById("id_ModSelEmp_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
-        document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
-
 // ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
         document.getElementById("id_confirm_btn_save").addEventListener("click", function() {ModConfirmSave()});
@@ -335,6 +362,8 @@ document.addEventListener('DOMContentLoaded', function() {
             payroll_list: {get: true},
             paydatecode_list: {get: true},
             //order_list: {isabsence: false, istemplate: false, inactive: false},
+            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             functioncode_list: {mode: "get"},
             wagecode_list: {get: true},
             wagefactor_list: {get: true},
@@ -374,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loc = response["locale_dict"];
 // --- create Submenu
                     CreateSubmenu()
+                    Sidebar_FillOptionsAbsence();
 // --- create table Headers
                     label_list = [loc.Company, loc.Employee, loc.Planning + " " + loc.of, loc.Print_date];
                     pos_x_list = [6, 65, 105, 130, 155, 185];
@@ -405,6 +435,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period)
 
                     //call_DisplayCustomerOrderEmployee = true;
+
+                    const sel_isabsence = get_dict_value(selected_period, ["isabsence"]) //  can have value null, false or true
+                    const sel_value_absence = (!!sel_isabsence) ? "2" : (sel_isabsence === false) ? "1" : "0";
+                    el_sidebar_select_absence.value = sel_value_absence;
+                    Sidebar_DisplayCustomerOrder();
+                    Sidebar_DisplayEmployee()
+
+
                 }
 // --- refresh maps and fill tables
                 refresh_maps(response);
@@ -435,6 +473,9 @@ document.addEventListener('DOMContentLoaded', function() {
             refresh_datamap(response["abscat_list"], abscat_map);
             fill_datatable = true;
         }
+        if ("customer_list" in response) {refresh_datamap(response["customer_list"], customer_map)}
+        if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
+
         if ("functioncode_list" in response) {
             refresh_datamap(response["functioncode_list"], functioncode_map)
             fill_datatable = true;
@@ -463,6 +504,8 @@ document.addEventListener('DOMContentLoaded', function() {
             paydatecodes_inuse_list = response["paydatecodes_inuse_list"] };
         if("paydateitems_inuse_list" in response){
             paydateitems_inuse_list = response["paydateitems_inuse_list"] };
+        if("employees_inuse_list" in response){
+            employees_inuse_list = response["employees_inuse_list"] };
 
 //----------------------------
 // --- reset table
@@ -475,8 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
             create_payroll_mapped_columns();
         };
         if ("payroll_period_agg_list" in response){
-            payroll_period_agg_list = response["payroll_period_agg_list"]
-            payroll_period_agg_rows = CreateHTML_period_agg_list(payroll_period_agg_list);
+            payroll_period_agg_rows = CreateHTML_period_agg_list(response["payroll_period_agg_list"]);
             fill_datatable = true;
         }
         if ("payroll_period_detail_list" in response) {
@@ -545,11 +587,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  fill datatable
          if(selected_btn === "payrollcrosstab"){
-            CreatePayrollHeader();
-            FillPayrollRows();
+            CreateCrosstabHeader();
+            FillCrosstabRows();
         } else if(selected_btn === "payrolltabular"){
-            CreatePayrollTabularHeader();
-            FillPayrollTabularRows();
+            CreateTabularHeader();
+            FillTabularRows();
         } else if(["paydatecode","functioncode"].indexOf(selected_btn) > -1){
             FillFunctioncodeOrPaydatecodeRows(selected_btn);
         } else if(selected_btn === "wagefactor"){
@@ -616,10 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 is_payroll_detail_mode = true;
                 UpdateHeaderText();
         // --- fill payroll_mapped_columns and create tblHead with filter ansd total row
-               CreatePayrollHeader();
-               FillPayrollRows();
-        // --- show sbr button 'back to payroll overview'
-               el_sbr_select_showall.classList.remove(cls_hide)
+               CreateCrosstabHeader();
+               FillCrosstabRows();
             }
         }
     }  // HandleAggRowClicked
@@ -711,10 +751,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ PAYROLL  +++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= FillPayrollRows  ====================================
-    function FillPayrollRows() {
+//========= FillCrosstabRows  ====================================
+    function FillCrosstabRows() {
         // called by HandleBtnSelect and HandlePayrollFilter
-       console.log( "====== FillPayrollRows  === ");
+       console.log( "====== FillCrosstabRows  === ");
 
 // --- reset table, except for header
         tblBody_datatable.innerText = null
@@ -749,13 +789,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add duration to total_row.
                     AddToPayrollTotalrow(row_data);
                 }
-        // --- hide sbr button 'back to payroll overview'
-               el_sbr_select_showall.classList.add(cls_hide)
             }
         }
         UpdatePayrollTotalrow()
-        //console.log("FillPayrollRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
-    }  // FillPayrollRows
+        //console.log("FillCrosstabRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
+    }  // FillCrosstabRows
 
 //========= AddToPayrollTotalrow  ================= PR2020-06-16
     function AddToPayrollTotalrow(row_data) {
@@ -793,8 +831,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdatePayrollTotalrow  ================= PR2020-06-16
     function UpdatePayrollTotalrow() {
-        console.log("======== UpdatePayrollTotalrow  ========= ");
-        console.log("is_payroll_detail_mode", is_payroll_detail_mode);
+        //console.log("======== UpdatePayrollTotalrow  ========= ");
+        //console.log("is_payroll_detail_mode", is_payroll_detail_mode);
         //console.log("payroll_total_row", payroll_total_row);
         /// row_data = ["Bakhuis RDJ", "2020-05-12", 0, 540, 0, 0, 0, 0, 540]
         const tblRow = document.getElementById("id_payroll_totalrow");
@@ -877,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  add planned hours, worked hours, absence hours, total hours
                 for (let j = 0; j < 4; j++) {
                     col_index += 1;
-                    let duration = (j === 0) ? item.plandur : (j === 1) ? item.timedur : (j === 2) ? item.absdur : item.totaldur;
+                    let duration = (j === 0) ? item.totaldur : (j === 1) ? item.plandur : (j === 2) ? item.timedur : item.absdur;
                     duration = (duration) ? duration : null;
                     const duration_formatted = format_total_duration (duration, loc.user_lang);
                     td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
@@ -916,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_period_agg_list  ==================================== PR2020-06-24
     function CreateHTML_period_agg_list(payroll_period_agg_list) {
-        //console.log("==== CreateHTML_period_agg_list  ========= ");
+        console.log("==== CreateHTML_period_agg_list  ========= ");
 
         // payroll_period_agg_list = [ e_id: 2615, e_code: "Sambo SMJ", eh_plandur_sum: 240, eh_timedur_agg: {0: 1235}
 
@@ -924,13 +962,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // table columns: 0: margin, 1: employee_code, 2: planned_hours, 3: worked_hours 3 etc: Absence hours last column: total hours
 
         const workedhours_col_index = 3;
-        const col_count =  2 + workedhours_col_index + payroll_abscat_list.length;
+        const col_count =  5 + workedhours_col_index + payroll_abscat_list.length;
 
         let detail_rows = [];
         if (payroll_period_agg_list){
             for (let i = 0, item; item = payroll_period_agg_list[i]; i++) {
                 let col_index = 0, td_html = [], filter_data = [], excel_data = [];
-// add margin first column
+// add margin as first column
                 td_html[col_index] =  "<td><div></div></td>"
 // add employee_code
                 col_index += 1;
@@ -939,6 +977,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 td_html[col_index] = "<td><div class=\"ta_l\">" + employee_code + "</div></td>";
                 filter_data[col_index] = (employee_code) ? employee_code.toLowerCase() : null
                 excel_data[col_index] = employee_code;
+//--- add total duration
+                col_index += 1;
+                const col_tot_dur = col_index;
+                // row_sum is not calulated yet, add total column after adding agg_dict
 // --- add planned duration
                 col_index += 1;
                 const duration = (item.eh_plandur_sum) ? item.eh_plandur_sum : null;
@@ -970,11 +1012,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }}};
 
 //--- put total in last column of this row
-                col_index = col_count -1;
+                // use column col_tot_dur instead of col_index += 1;
                 duration_formatted = format_total_duration (row_sum, loc.user_lang);
-                td_html[col_index] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-                excel_data[col_index] = row_sum;
-                filter_data[col_index] = (row_sum) ? row_sum : null
+                td_html[col_tot_dur] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
+                excel_data[col_tot_dur] = row_sum;
+                filter_data[col_tot_dur] = (row_sum) ? row_sum : null
+///////////////////////////
+    // ---  add wagefactor, functioncode, paydatecode
+                for (let j = 0; j < 3; j++) {
+                    col_index += 1;
+                    // also add margin ml-2 to wagefactor
+                    const class_ml2 = (j === 0) ? "<td><div class=\"ta_l ml-2\">" : "<td><div class=\"ta_l\">";
+                    let value = (!j) ? item.wagefactor : (j === 1) ? item.functioncode : item.paydatecode;
+                    if (!value) { value = "" };
+                    td_html[col_index] = class_ml2 + value + "</div></td>"
+                    filter_data[col_index] = (value) ? value.toLowerCase() : null
+                    excel_data[col_index] = value;
+                }
+/////////////////////////////
 //--- add empty td's
                 for (let j = 0; j < col_count; j++) {
                     if(!td_html[j] ){ td_html[j] = "<td><div></div></td>" }
@@ -1095,9 +1150,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ///////////////////////////////
 
-//=========  CreatePayrollTabularHeader  === PR2020-07-19
-    function CreatePayrollTabularHeader() {
-        //console.log("===  CreatePayrollTabularHeader ==");
+//=========  CreateTabularHeader  === PR2020-07-19
+    function CreateTabularHeader() {
+        //console.log("===  CreateTabularHeader ==");
         const tblName = "payroll_tabular";
         //console.log("field_settings[tblName]", field_settings[tblName]);
 // --- reset table
@@ -1160,12 +1215,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 th.appendChild(el_div)
             tblTotalRow.appendChild(th);
         }
-    };  //  CreatePayrollTabularHeader
+    };  //  CreateTabularHeader
 
 
-//========= FillPayrollTabularRows  ====================================
-    function FillPayrollTabularRows() {
-       //console.log( "====== FillPayrollTabularRows  === ");
+//========= FillTabularRows  ====================================
+    function FillTabularRows() {
+       //console.log( "====== FillTabularRows  === ");
 
 // --- reset table, except for header
         tblBody_datatable.innerText = null
@@ -1201,20 +1256,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add duration to total_row.
                     AddToPayrollTotalrow(row_data);
                 }
-        // --- hide sbr button 'back to payroll overview'
-               el_sbr_select_showall.classList.add(cls_hide)
             }
         }
         UpdatePayrollTotalrow()
-        //console.log("FillPayrollRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
-    }  // FillPayrollTabularRows
+        //console.log("FillCrosstabRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
+    }  // FillTabularRows
 
 
 ///////////////////////////////
 
-//=========  CreatePayrollHeader  === PR2020-05-24
-    function CreatePayrollHeader() {
-        console.log("===  CreatePayrollHeader ==");
+//=========  CreateCrosstabHeader  === PR2020-05-24
+    function CreateCrosstabHeader() {
+        console.log("===  CreateCrosstabHeader ==");
         const tblName = (is_payroll_detail_mode) ? "payroll_detail" : "payroll_agg";
 
         //console.log("selected_btn", selected_btn);
@@ -1240,14 +1293,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (payroll_abscat_list) {
             // payroll_abscat_list has item for each abscat that is in use in current selection.
             // format: [order_pk, order_code, order_sequence]   [ [1450, "Vakantie", 322], [1447, "Onbekend", 7] ]
-            for (let i = 0, item; item=payroll_abscat_list[i]; i++) {
+            for (let i = 0, caption, item; item=payroll_abscat_list[i]; i++) {
                 col_index += 1;
-                payroll_header_row[col_index] = item[1];
+                caption = item[1];
+                // replace tilde with "-\n"
+                if (caption.includes("~")){caption = caption.replace(/~/g,"-\n")}
+                payroll_header_row[col_index] = caption;
             }
         };
-// +++  add column 'Total hours' and add caption to payroll_header_row
+// +++  add column 'Wage_factor' and add caption to payroll_header_row
         col_index +=1
-        payroll_header_row[col_index] = loc.Total_hours;
+        payroll_header_row[col_index] = loc.Wage_factor;
+// +++  add column 'Function' and add caption to payroll_header_row
+        col_index +=1
+        payroll_header_row[col_index] = loc.Function;
+// +++  add column 'Payroll period' and add caption to payroll_header_row
+        col_index +=1
+        payroll_header_row[col_index] = loc.Payroll_period;
 //  --- calc col_count
         const col_count = col_index +=1 ;
 
@@ -1264,8 +1326,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if(payroll_header_row[j]) {el_div.innerText = payroll_header_row[j]};
 // --- add width, text_align and left margin to first column
             //if (j === 0 ){ el_div.classList.add("ml-2")};
-            const class_width = (j < last_static_col_index) ?
-                                "tw_" + field_settings[tblName].field_width[j] :
+            const class_width = (j < last_static_col_index) ? "tw_" + field_settings[tblName].field_width[j] :
+                                (j === col_count - 1) ? "tw_" + field_settings[tblName].field_width[j] :
                                 "tw_" + field_settings[tblName].field_width[last_static_col_index]
             const class_align = (j < last_static_col_index) ?
                                 "ta_" + field_settings[tblName].field_align[j] :
@@ -1293,8 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add EventListener
             el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, j, event.which)});
 // --- add attribute data-field
-            const field_name = (j < last_static_col_index) ?
-                                field_settings[tblName].field_names[j] :
+            const field_name = (j < last_static_col_index) ? field_settings[tblName].field_names[j] :
                                 field_settings[tblName].field_names[last_static_col_index]
             const filter_tag = (j < last_static_col_index) ?
                                 field_settings[tblName].filter_tags[j] :
@@ -1348,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', function() {
             th.appendChild(el_div)
             tblRow.appendChild(th);
         };
-    };  //  CreatePayrollHeader
+    };  //  CreateCrosstabHeader
 
 //###########################################################################
 // +++++++++++++++++ CREATE +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2169,9 +2230,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
         if ( !skip_filter) {
             if(selected_btn === "payrolltabular"){
-                FillPayrollTabularRows();
+                FillTabularRows();
             } else {
-                FillPayrollRows();
+                FillCrosstabRows();
             }
         };
     }  // HandlePayrollFilter
@@ -2285,7 +2346,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= ShowTableRow  ==================================== PR2020-01-17
     function ShowTableRow(tblRow) {
         // only called by Filter_TableRows
-        // table payroll has its own ShowPayrollRow, called by FillPayrollRows
+        // table payroll has its own ShowPayrollRow, called by FillCrosstabRows
         //console.log( "===== ShowTableRow  ========= ");
         let hide_row = false;
         if (!!tblRow){
@@ -2362,9 +2423,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     is_payroll_detail_mode = false;
                 }
 // --- hide sbr button 'back to payroll overview'
-                el_sbr_select_showall.classList.add(cls_hide)
-                CreatePayrollHeader();
-                FillPayrollRows();
+                CreateCrosstabHeader();
+                FillCrosstabRows();
                 UpdateHeaderText();
             }
         }
@@ -2707,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', function() {
        //console.log( "MSP_Save selected_paydatecode_pk", selected_paydatecode_pk);
 
         payroll_period_detail_list = [];
-        payroll_period_agg_list = [];
+
         payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
         payroll_mapped_columns = {};  // dict of mapped pk > col_index of absence categories in crosstab 'payroll_map'
         //paydatecodes_inuse_list = [];
@@ -2721,7 +2781,7 @@ document.addEventListener('DOMContentLoaded', function() {
         is_payroll_detail_mode = false;
 
         UpdateHeaderText();
-        FillPayrollRows()
+        FillCrosstabRows()
 
 // ---  hide modal
         $("#id_mod_select_paydate").modal("hide");
@@ -2915,7 +2975,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tblName === "payrollperiod") { MSP_FillSelectTable("datelast")};
     }  // MSP_SelectItem
 
-
  //=========  MSP_headertext  ================ PR2020-06-23
     function MSP_headertext() {
         //console.log( "=== MSP_headertext  ");
@@ -2929,6 +2988,492 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         document.getElementById("id_MSP_header").innerText = header_text
     }  // MSO_headertext
+
+
+// +++++++++++++++++ MODAL SIDEBAR SELECT ORDER +++++++++++++++++++++++++++++++++++
+
+// +++++++++++++++++ MODAL SIDEBAR SELECT EMPLOYEE +++++++++++++++++++++++++++++++++++
+
+// +++++++++++++++++ MODAL SIDEBAR SELECT ABSCAT +++++++++++++++++++++++++++++++++++
+
+// +++++++++++++++++ SIDEBAR SELECT ABSENCE OR SHOW ALL  +++++++++++++++++++++++++++++++++++++++++++
+
+
+//========= Sidebar_FillOptionsAbsence  ==================================== PR2020-08-15
+    function Sidebar_FillOptionsAbsence() {
+        //console.log( "=== Sidebar_FillOptionsAbsence  ");
+        // isabsence can have value: false: without absence, true: absence only, null: show all
+        // selected_value not yet initialized
+        //const curOption = (selected_value === true) ? 2 : (selected_value === false) ? 1 : 0
+        const option_list = [loc.With_absence, loc.Without_absence, loc.Absence_only]
+        let option_text = "";
+        for (let i = 0, len = option_list.length; i < len; i++) {
+            option_text += "<option value=\"" + i.toString() + "\"";
+            //if (i === curOption) {option_text += " selected=true" };
+            option_text +=  ">" + option_list[i] + "</option>";
+        }
+        el_sidebar_select_absence.innerHTML = option_text;
+
+    }  // Sidebar_FillOptionsAbsence
+
+
+//=========  Sidebar_SelectAbsenceShowall  ================ PR2020-08-15
+    function Sidebar_SelectAbsenceShowall(key) {
+        //console.log( "===== Sidebar_SelectAbsenceShowall ========= ");
+// ---  get selected_option from clicked select element
+        // option 2: isabsence = true (absence only) option 1: isabsence = false (no absence) option 1: isabsence = null (absence + no absence)
+
+        let period_dict = {}
+        if(key === "isabsence") {
+            // when order is selected, absence cannot be shown. Remove order_pk when isabsence = null
+            const selected_option = Number(el_sidebar_select_absence.options[el_sidebar_select_absence.selectedIndex].value);
+            let selected_value = null;
+            switch (selected_option) {
+                case 2:  // absence only
+                    selected_value = true
+                    // when absence only: no order filter can apply. set customer_pk and order_pk to null
+                    selected_period.customer_pk = null;
+                    selected_period.order_pk = null;
+                    period_dict["customer_pk"] = null
+                    period_dict["order_pk"] = null
+                    break;
+                case 1:  // no absence
+                    selected_value = false
+                    break;
+                default:  // absence + no absence
+                    // when absence + no absence: no order filter can apply. set customer_pk and order_pk to null
+                    selected_period.customer_pk = null;
+                    selected_period.order_pk = null;
+                    period_dict["customer_pk"] = null
+                    period_dict["order_pk"] = null
+                    selected_value = null
+            }
+
+            period_dict[key] = selected_value
+        } else if(key === "showall") {
+            period_dict = {employee_pk: null, customer_pk: null, order_pk: null, isabsence: null}
+        }
+// ---  upload new setting
+        // when 'emplhour' exists in request it downloads emplhour_list based on filters in period_dict
+        let datalist_request = {payroll_period: period_dict, payroll_list: {mode: "get"}};
+        DatalistDownload(datalist_request);
+    }  // Sidebar_SelectAbsenceShowall
+
+// +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
+//========= MSO_Open ====================================  PR2019-11-16
+    function MSO_Open () {
+        //console.log(" ===  MSO_Open  =====") ;
+        //console.log("selected_period.customer_pk:", selected_period.customer_pk) ;
+        //console.log("selected_period.order_pk:", selected_period.order_pk) ;
+
+        // do not update selected_period.customer_pk until MSO_Save
+        mod_MSO_dict = {
+            customer_pk: selected_period.customer_pk,
+            order_pk: selected_period.order_pk
+        };
+
+        el_MSO_input_customer.value = null;
+        MSO_FillSelectTableCustomer();
+        // MSO_SelectCustomer is called by MSO_FillSelectTableCustomer
+        //MSO_FillSelectTableOrder is called by MSO_SelectCustomer
+        MSO_headertext();
+
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){ el_MSO_input_customer.focus() }, 500);
+
+// ---  show modal
+         $("#id_modselectorder").modal({backdrop: true});
+
+}; // MSO_Open
+
+//=========  MSO_Save  ================ PR2020-01-29
+    function MSO_Save() {
+        //console.log("===  MSO_Save =========");
+        //console.log( "mod_MSO_dict: ", mod_MSO_dict);
+
+// ---  upload new setting
+        let period_dict = {
+                customer_pk: mod_MSO_dict.customer_pk,
+                order_pk: mod_MSO_dict.order_pk
+            };
+
+        // if customer_pk or order_pk has value: set absence to 'without absence'
+        if(!!mod_MSO_dict.customer_pk || !!mod_MSO_dict.order_pk) {
+            period_dict.isabsence = false;
+        }
+        const datalist_request = {
+            payroll_period: period_dict,
+            payroll_list: {get: true}
+            };
+        DatalistDownload(datalist_request);
+
+// hide modal
+        $("#id_modselectorder").modal("hide");
+    }  // MSO_Save
+
+//=========  MSO_SelectCustomer  ================ PR2020-01-09
+    function MSO_SelectCustomer(tblRow) {
+       //console.log( "===== MSO_SelectCustomer ========= ");
+       //console.log( "tblRow: ", tblRow);
+        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedTblbody(el_MSO_tblbody_customer, cls_selected)
+// ---  get clicked tablerow
+        if(!!tblRow) {
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+// ---  get pk from id of select_tblRow
+            let data_pk = get_attr_from_el(tblRow, "data-pk")
+            if(!Number(data_pk)){
+                if(data_pk === "addall" ) {
+                    mod_MSO_dict.customer_pk = 0;
+                    mod_MSO_dict.order_pk = 0;
+                    MSO_Save();
+                }
+            } else {
+                const pk_int = Number(data_pk)
+                if (pk_int !== mod_MSO_dict.customer_pk){
+                    mod_MSO_dict.customer_pk = pk_int;
+                    mod_MSO_dict.order_pk = 0;
+                }
+            }
+// ---  put value in input box
+            el_MSO_input_customer.value =  get_attr_from_el(tblRow, "data-value");
+        } else {
+
+        }
+        MSO_FillSelectTableOrder();
+        MSO_headertext();
+    }  // MSO_SelectCustomer
+
+//=========  MSO_SelectOrder  ================ PR2020-01-09
+    function MSO_SelectOrder(tblRow, event_target_NIU, skip_save) {
+       //console.log( "===== MSO_SelectOrder ========= ");
+       //console.log( "skip_save", skip_save);
+// ---  deselect all highlighted rows
+        DeselectHighlightedTblbody(el_modorder_tblbody_order, cls_selected)
+// ---  get clicked tablerow
+        if(!!tblRow) {
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+            // el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_el(el_select, "data-value");
+// ---  get pk from id of select_tblRow
+            const data_pk_int = Number(get_attr_from_el(tblRow, "data-pk"));
+            mod_MSO_dict.order_pk = (!!data_pk_int) ? data_pk_int : 0;
+        }
+        MSO_headertext();
+// ---  save when clicked on tblRow, not when called by script
+        if(!skip_save) { MSO_Save() };
+    }  // MSO_SelectOrder
+
+//=========  MSO_FilterCustomer  ================ PR2020-01-28
+    function MSO_FilterCustomer() {
+       //console.log( "===== MSO_FilterCustomer  ========= ");
+        let new_filter = el_MSO_input_customer.value;
+        //console.log( "new_filter: <" + new_filter + ">");
+// ---  deselect all highlighted rows
+        DeselectHighlightedTblbody(el_MSO_tblbody_customer, cls_selected)
+// reset selected customer_pk, order.pk
+        mod_MSO_dict.customer_pk = 0;
+        mod_MSO_dict.order_pk = 0;
+// ---  filter select_customer rows
+        if (!!el_MSO_tblbody_customer.rows.length){
+            const filter_dict = t_Filter_SelectRows(el_MSO_tblbody_customer, new_filter);
+// ---  if filter results have only one customer: put selected customer in el_MSO_input_customer
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            if (!!selected_pk) {
+                el_MSO_input_customer.value = get_dict_value(filter_dict, ["selected_value"])
+// ---  put pk of selected customer in mod_MSO_dict
+                const pk_int = Number(selected_pk)
+                if(!!pk_int && pk_int !== mod_MSO_dict.customer_pk){
+                    mod_MSO_dict.customer_pk = pk_int;
+                }
+// ---  Set focus to btn_save
+                el_MSO_btn_save.focus()
+        }};
+        MSO_FillSelectTableOrder();
+        MSO_headertext();
+    }; // MSO_FilterCustomer
+
+//=========  MSO_FillSelectTableCustomer  ================ PR2020-02-07
+    function MSO_FillSelectTableCustomer() {
+       console.log( "===== MSO_FillSelectTableCustomer ========= ");
+
+        const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
+        const addall_to_list_txt = "<" + loc.All_customers + ">";
+
+        t_Fill_SelectTable(el_MSO_tblbody_customer, null, customer_map, "customer", mod_MSO_dict.customer_pk, null,
+            MSO_MSE_Filter_SelectRows, null, MSO_SelectCustomer, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
+            null, cls_selected, cls_hover)
+// ---  lookup selected tblRow
+        let tr_selected = null;
+        if(!!mod_MSO_dict.customer_pk) {
+            for(let i = 0, tblRow; tblRow = el_MSO_tblbody_customer.rows[i]; i++){
+                const customer_pk = get_attr_from_el_int(tblRow, "data-pk");
+                if (customer_pk === mod_MSO_dict.customer_pk) {
+                    tr_selected = tblRow;
+                    break;
+                }
+            }
+        }
+       //console.log( "tr_selected: ", tr_selected);
+        if(!tr_selected){
+// ---  if not found, make 'addall' row selected
+           //let tr_addall =  el_MSO_tblbody_customer.rows[0]
+           let tr_addall = el_MSO_tblbody_customer.querySelector("[data-pk='addall']");
+
+       //console.log( "tr_addall: ", tr_addall);
+           if(!!tr_addall){ tr_selected = tr_addall }
+        }
+        MSO_SelectCustomer(tr_selected);
+
+    }  // MSO_FillSelectTableCustomer
+
+//=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
+    function MSO_FillSelectTableOrder() {
+       console.log( "===== MSO_FillSelectTableOrder ========= ");
+       //console.log( "mod_MSO_dict.customer_pk: ", mod_MSO_dict.customer_pk);
+       //console.log( "mod_MSO_dict.order_pk: ", mod_MSO_dict.order_pk);
+
+// ---  hide div_tblbody_order when no customer selected, reset tblbody_order
+        add_or_remove_class (document.getElementById("id_MSO_div_tblbody_order"), cls_hide, !mod_MSO_dict.customer_pk)
+        el_modorder_tblbody_order.innerText = null;
+
+        if (!!mod_MSO_dict.customer_pk){
+            const filter_ppk_int = mod_MSO_dict.customer_pk, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false;
+            const addall_to_list_txt = "<" + loc.All_orders + ">";
+
+            t_Fill_SelectTable(el_modorder_tblbody_order, null, order_map, "order", mod_MSO_dict.customer_pk, null,
+                MSO_MSE_Filter_SelectRows, null, MSO_SelectOrder, null, false,
+                filter_ppk_int, filter_show_inactive, filter_include_inactive,
+                filter_include_absence, filter_istemplate, addall_to_list_txt,
+                null, cls_selected, cls_hover);
+    // select first tblRow
+            const rows_length = el_modorder_tblbody_order.rows.length;
+            if(!!rows_length) {
+                let firstRow = el_modorder_tblbody_order.rows[0];
+                MSO_SelectOrder(firstRow, null, true);  // skip_save = true
+                if (rows_length === 1) { el_MSO_btn_save.focus();}
+            }
+            const head_txt = (!!rows_length) ? loc.Select_order + ":" : loc.No_orders;
+            document.getElementById("id_MSO_div_tblbody_header").innerText = head_txt
+
+            el_MSO_btn_save.disabled = (!rows_length);
+        }
+    }  // MSO_FillSelectTableOrder
+
+//=========  MSO_headertext  ================ PR2020-02-07
+    function MSO_headertext() {
+        //console.log( "=== MSO_headertext  ");
+        let header_text = null;
+        if(!!mod_MSO_dict.customer_pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_MSO_dict.customer_pk)
+            const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
+            let order_code = null;
+            if(!!mod_MSO_dict.order_pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_MSO_dict.order_pk)
+                order_code = get_dict_value(order_dict, ["code", "value"]);
+            } else {
+                order_code = loc.All_orders.toLowerCase()
+            }
+            header_text = customer_code + " - " + order_code
+        } else {
+            header_text = loc.All_customers
+        }
+        document.getElementById("id_MSO_header").innerText = header_text
+    }  // MSO_headertext
+
+// +++++++++++++++++ END MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
+
+// +++++++++++++++++ MODAL SELECT EMPLOYEE +++++++++++++++++++++++++++++++++++++++++++
+//========= MSE_Open ====================================  PR2020-02-27
+    function MSE_Open (mode) {
+        //console.log(" ===  MSE_Open  =====") ;
+        // opens modal select open from sidebar
+        let employee_pk = (selected_period.employee_pk > 0) ? selected_period.employee_pk : null;
+        mod_MSE_dict = {employee: {pk: employee_pk}};
+
+        let tblBody_select = document.getElementById("id_ModSelEmp_tbody_employee");
+
+        // reset el_MRO_input_order
+        //el_MRO_input_order.innerText = null;
+
+        const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = true, filter_include_absence = false, filter_istemplate = false,
+                        addall_to_list_txt = "<" + loc.All_employees + ">";
+        // only put employees in list that are in agg_rows
+
+        const employee_agg_map = new Map();
+        if(employees_inuse_list) {
+            for(let i = 0, row_dict; row_dict = employees_inuse_list[i]; i++){
+                console.log("row_dict", row_dict)
+                const map_dict = {id: {pk: row_dict.id, table: "employee"}, code: {value: row_dict.code }}
+                employee_agg_map.set("emplyee_" + row_dict.id, map_dict)
+                console.log("map_dict", map_dict)
+            }
+        }
+        console.log("employee_agg_map", employee_agg_map)
+
+
+
+        t_Fill_SelectTable(tblBody_select, tblHead, employee_agg_map, "employee", selected_period.employee_pk, null,
+            MSO_MSE_Filter_SelectRows, null, MSE_SelectEmployee, null, false,
+            filter_ppk_int, filter_show_inactive, filter_include_inactive,
+            filter_include_absence, filter_istemplate, addall_to_list_txt,
+            null, cls_selected, cls_hover );
+
+        MSE_headertext();
+
+// hide button /remove employee'
+        document.getElementById("id_MSE_div_btn_remove").classList.add(cls_hide)
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){
+            el_modemployee_input_employee.focus()
+        }, 500);
+    // ---  show modal
+         $("#id_mod_select_employee").modal({backdrop: true});
+}; // MSE_Open
+
+//=========  MSE_Save  ================ PR2020-01-29
+    function MSE_Save() {
+        console.log("===  MSE_Save =========");
+        const datalist_request = {
+            payroll_period: {employee_pk: mod_MSE_dict.employee_pk},
+            payroll_list: {get: true}
+            };
+        DatalistDownload(datalist_request);
+// hide modal
+        $("#id_mod_select_employee").modal("hide");
+
+    }  // MSE_Save
+
+//=========  MSE_SelectEmployee  ================ PR2020-01-09
+    function MSE_SelectEmployee(tblRow) {
+        //console.log( "===== MSE_SelectEmployee ========= ");
+        //console.log( tblRow);
+        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
+// ---  get clicked tablerow
+        if(!!tblRow) {
+// ---  deselect all highlighted rows
+            DeselectHighlightedRows(tblRow, cls_selected)
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+// ---  get pk from id of select_tblRow
+            let data__pk = get_attr_from_el(tblRow, "data-pk")
+            if(!Number(data__pk)){
+                if(data__pk === "addall" ) {
+                    mod_MSE_dict.employee_pk = 0;
+                }
+            } else {
+                const pk_int = Number(data__pk)
+                if (pk_int !== selected_period.employee_pk){
+                    mod_MSE_dict.employee_pk = pk_int;
+                }
+            }
+// ---  put value in input box
+            el_modemployee_input_employee.value = get_attr_from_el(tblRow, "data-value", "")
+            MSE_headertext();
+
+            MSE_Save()
+        }
+    }  // MSE_SelectEmployee
+
+//=========  MSE_FilterEmployee  ================ PR2020-03-01
+    function MSE_FilterEmployee() {
+        //console.log( "===== MSE_FilterEmployee  ========= ");
+
+// ---  get value of new_filter
+        let new_filter = el_modemployee_input_employee.value
+
+        let tblBody = document.getElementById("id_ModSelEmp_tbody_employee");
+        const len = tblBody.rows.length;
+        if (!!new_filter && !!len){
+// ---  filter rows in table select_employee
+            const filter_dict = t_Filter_SelectRows(tblBody, new_filter);
+// ---  if filter results have only one employee: put selected employee in el_modemployee_input_employee
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            if (!!selected_pk) {
+                el_modemployee_input_employee.value = get_dict_value(filter_dict, ["selected_value"])
+// ---  put pk of selected employee in mod_MSE_dict
+                if(!Number(selected_pk)){
+                    if(selected_pk === "addall" ) {
+                        mod_MSE_dict.employee_pk = 0;
+                    }
+                } else {
+                    const pk_int = Number(selected_pk)
+                    if (pk_int !== selected_period.employee_pk){
+                        mod_MSE_dict.employee_pk = pk_int;
+                    }
+                }
+                MSE_headertext();
+// ---  Set focus to btn_save
+                el_modemployee_btn_save.focus()
+            }  //  if (!!selected_pk) {
+        }
+    }; // MSE_FilterEmployee
+
+    function MSE_headertext() {
+        //console.log( "=== MSE_headertext  ");
+        let header_text = null;
+        //console.log( "mod_MSE_dict: ", mod_MSE_dict);
+
+        if(!!mod_MSE_dict.employee_pk){
+            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", mod_MSE_dict.employee_pk)
+            const employee_code = get_dict_value(employee_dict, ["code", "value"], "");
+            header_text = employee_code
+        } else {
+            header_text = loc.Select_employee
+        }
+
+        document.getElementById("id_ModSelEmp_hdr_employee").innerText = header_text
+
+    }  // MSE_headertext
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//========= Sidebar_DisplayCustomerOrder  ====================================
+    function Sidebar_DisplayCustomerOrder() {
+        //console.log( "===== Sidebar_DisplayCustomerOrder  ========= ");
+
+        let header_text = null;
+        if(!!selected_period.customer_pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_period.customer_pk)
+            const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
+            let order_code = null;
+            if(!!selected_period.order_pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_period.order_pk)
+                order_code = get_dict_value(order_dict, ["code", "value"]);
+            } else {
+                order_code = loc.All_orders.toLowerCase()
+            }
+            header_text = customer_code + " - " + order_code
+        } else {
+            header_text = loc.All_customers
+        }
+        el_sidebar_select_order.value = header_text
+    }; // Sidebar_DisplayCustomerOrder
+
+//========= Sidebar_DisplayEmployee  ====================================
+    function Sidebar_DisplayEmployee() {
+        //console.log( "===== Sidebar_DisplayEmployee  ========= ");
+
+        let header_text = null;
+        if(!!selected_period.employee_pk){
+            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_period.employee_pk)
+            const employee_code = get_dict_value(employee_dict, ["code", "value"], "");
+            header_text = employee_code
+        } else {
+            header_text = loc.All_employees
+        }
+        el_sidebar_select_employee.value = header_text
+    }; // Sidebar_DisplayEmployee
+
 
 
 // +++++++++++++++++ MODAL WAGECODE WAGEFACTOR ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3414,7 +3959,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         let today_index = date_JS.getDay()
                         let day_diff = mod_dict.weekdayindex - today_index
                         if (day_diff < 0 ) { day_diff += 7}
-                        const referencedate = addDaysJS(date_JS, + day_diff)
+                        const referencedate = add_daysJS(date_JS, + day_diff)
                         const referencedate_iso = get_dateISO_from_dateJS(referencedate);
                         mod_dict.referencedate = referencedate_iso
                     }
@@ -3653,7 +4198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let today_index = today_JS.getDay()
             let day_diff = mod_dict.weekdayindex - today_index;
             if (day_diff < 0 ) { day_diff += 7}
-            const referencedate = addDaysJS(today_JS, day_diff)
+            const referencedate = add_daysJS(today_JS, day_diff)
             referencedate_iso = get_dateISO_from_dateJS(referencedate);
         }
         return referencedate_iso;
@@ -4115,8 +4660,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 //###########################################################################
-// +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+//========= MSO_MSE_Filter_SelectRows  ====================================
+    function MSO_MSE_Filter_SelectRows() {
+        //console.log( "===== MSO_MSE_Filter_SelectRows  ========= ");
+        // skip filter if filter value has not changed, update variable filter_select
+
+        let new_filter = document.getElementById("id_filter_select_input").value;
+
+        let skip_filter = false
+        if (!new_filter){
+            if (!filter_select){
+                skip_filter = true
+            } else {
+                filter_select = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_select) {
+                skip_filter = true
+            } else {
+                filter_select = new_filter.toLowerCase();
+            }
+        }
+        if (!skip_filter) {
+// filter table customer and order
+    // reset filter tBody_customer
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+    // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_period.customer_pk );
+    // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_period.customer_pk);
+
+// filter selecttable customer and order
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
+            t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_period.customer_pk)
+        } //  if (!skip_filter) {
+    }; // MSO_MSE_Filter_SelectRows
 
 
 //##################################################################################

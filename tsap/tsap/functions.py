@@ -1779,7 +1779,7 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
     return list_str
 
 
-def create_update_dict(field_list, table, pk, ppk, temp_pk=None, row_index=None):
+def create_update_dict(field_list, table, pk, ppk, map_id=None, row_index=None):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
@@ -1791,8 +1791,8 @@ def create_update_dict(field_list, table, pk, ppk, temp_pk=None, row_index=None)
                 update_dict['id']['pk'] = pk
             if ppk:
                 update_dict['id']['ppk'] = ppk
-            if temp_pk:
-                update_dict['id']['temp_pk'] = temp_pk
+            if map_id:
+                update_dict['id']['mapid'] = map_id
             if row_index:
                 update_dict['id']['rowindex'] = row_index
     return update_dict
@@ -2397,6 +2397,7 @@ def system_updates():
     # update_sysadmin_in_user()  # PR2020-07-30
     pass
 
+
 def update_sysadmin_in_user():
     # Once-only function to add sysadmin permit to admin users PR2020-07-30
     #logger.debug('........update_sysadmin_in_user..........')
@@ -2747,7 +2748,9 @@ def calc_timeduration_from_shift(shift):
 def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, timeduration,
                                         comp_timezone):
     #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
-    # called by add_orderhour_emplhour
+    # function calculates fields 'timestart' 'timeend' and 'new_timeduration', based on rosterdate and offset
+    # called by add_orderhour_emplhour, (also when rosterdate_has_changed, but this should not be possible)
+    # takes daylight saving time in account
     # set duration 0 when restshift or no_hours_on saturday etc is done outside this function
     starttime_local = None
     endtime_local = None

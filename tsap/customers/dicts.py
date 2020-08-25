@@ -96,31 +96,103 @@ def create_companyinvoice_dict(companyinvoice):
     return item_dict
 
 
-def create_customer_list(company, is_absence=None, is_template=None, inactive=None):
+def create_customer_list(company, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
-# --- create list of customers of this company PR2019-09-03
-    # .order_by(Lower('code')) is in model
-    crit = Q(company=company)
+    company_pk = company.pk
+    sql_keys = {'compid': company_pk}
+
+    sql_list = []
+    sql_list.append(""" 
+        SELECT c.id, 
+        c.company_id AS comp_id,
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        c.name, c.contactname, c.address, c.zipcode,  c.city,  c.country,  c.email, c.telephone,
+        c.identifier, c.interval,
+        c.invoicecode_id AS c_invc_id,  
+        c.isabsence, c.istemplate, c.inactive,
+        
+        CONCAT('customer_', c.id::TEXT) AS mapid
+
+        FROM companies_customer AS c   
+        WHERE c.company_id = %(compid)s
+        """)
+
     if is_absence is not None:
-        crit.add(Q(isabsence=is_absence), crit.connector)
+        if is_absence:
+            sql_list.append('AND c.isabsence')
+        else:
+            sql_list.append('AND NOT c.isabsence')
+        sql_keys['isabsence'] = is_absence
+
     if is_template is not None:
-        crit.add(Q(istemplate=is_template), crit.connector)
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-    customers = m.Customer.objects.filter(crit)
-    #logger.debug(str(customers.query))
+        if is_template:
+            sql_list.append('AND c.istemplate')
+        else:
+            sql_list.append('AND NOT c.istemplate')
+        sql_keys['istemplate'] = is_template
+
+    if is_inactive is not None:
+        if is_inactive:
+            sql_list.append('AND c.inactive')
+        else:
+            sql_list.append('AND NOT c.inactive')
+        sql_keys['inactive'] = is_inactive
+
+    sql_list.append('ORDER BY LOWER(c.code)')
+    sql = ' '.join(sql_list)
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    customer_rows = f.dictfetchall(newcursor)
 
     customer_list = []
-    for customer in customers:
+    for customer in customer_rows:
         item_dict = {}
-        create_customer_dict(customer, item_dict)
+        create_order_dict_from_sql(customer, item_dict)
 
         if item_dict:
             customer_list.append(item_dict)
 
-    return customer_list
+    return customer_list, customer_rows
+
+def create_customer_dict_from_sql(row, item_dict):
+    # --- create dict of this customer from teched sql_row PR2020-08-18
+    if row:
+        for field in c.FIELDS_CUSTOMER:
+            # --- get field_dict from  item_dict  if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            item_dict['pk'] = row.id
+
+            if field == 'id':
+                field_dict['pk'] = row.id
+                field_dict['ppk'] = row.comp_id
+                field_dict['table'] = 'customer'
+                field_dict['isabsence'] = row.isabsence
+                field_dict['istemplate'] = row.istemplate
+
+            elif field == 'code':
+                value = row.get('c_code')
+                if value:
+                    field_dict['value'] = value
+
+            elif field == 'invoicecode':
+                value = row.get('invoicecode_id')
+                if value:
+                    field_dict['value'] = value
+            elif field in ( 'code', 'name', 'identifier',
+                    'contactname', 'address', 'zipcode', 'city', 'country',
+                   'email', 'telephone', 'interval', 'inactive', 'locked'):
+                value = row.get(field)
+                if value:
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+    f.remove_empty_attr_from_dict(item_dict)
+
 
 def create_customer_dict(customer, item_dict):
     # --- create dict of this customer PR2019-09-28
@@ -179,21 +251,29 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, is_absence=None, is_template=None, is_inactive=None):
+def create_order_list(company, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # absence orders are loaded in create_abscat_list
 
     # date filter not in use (yet)
-    datefirst_iso, datelast_iso = None, None
+    period_datefirst, period_datelast = None, None
 
-    sql_order = """ SELECT o.id AS o_id, c.id AS c_id, 
-        COALESCE(o.code, '') AS o_code,
-        COALESCE(c.code, '') AS c_code,
-        CONCAT(c.code, ' - ', o.code) AS c_o_code,
+    company_pk = company.pk
+    sql_keys = {'compid': company_pk}
+
+    sql_list = []
+    sql_list.append(""" 
+        SELECT o.id, 
+        c.id AS c_id, 
+
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        
+        CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
 
         o.name,
-        o.contactname,  o.address, o.zipcode,  o.city,  o.country, 
+        o.contactname, o.address, o.zipcode,  o.city,  o.country, 
         o.identifier, 
 
         o.billable AS o_billable,
@@ -205,43 +285,64 @@ def create_order_list(company, user_lang, is_absence=None, is_template=None, is_
         o.invoicecode_id AS o_ic_id,  
         
         o.datefirst, o.datelast,
-        o.isabsence, o.istemplate ,
-        o.inactive
+        o.isabsence, o.istemplate,
+        o.inactive,
+        c.inactive AS c_inactive,
+        
+        CONCAT('order_', o.id::TEXT) AS mapid
 
         FROM companies_order AS o 
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id)  
 
         WHERE c.company_id = %(compid)s
-        AND ( o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL OR %(rdl)s IS NULL )
-        AND ( o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL OR %(rdf)s IS NULL )
-        AND ( o.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
-        AND ( o.isabsence = CAST(%(isabsence)s AS BOOLEAN) OR %(isabsence)s IS NULL )
-        AND ( o.istemplate = CAST(%(istemplate)s AS BOOLEAN) OR %(istemplate)s IS NULL )
-        AND ( c.inactive = CAST(%(inactive)s AS BOOLEAN) OR %(inactive)s IS NULL )
-        ORDER BY LOWER(c.code), LOWER(o.code)
-        """
+        """)
+
+    if period_datefirst:
+        sql_list.append('AND (o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL)')
+        sql_keys['rdf'] = period_datefirst
+
+    if period_datelast:
+        sql_list.append('AND (o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL)')
+        sql_keys['rdl'] = period_datelast
+
+    if is_absence is not None:
+        if is_absence:
+            sql_list.append('AND c.isabsence')
+        else:
+            sql_list.append('AND NOT c.isabsence')
+        sql_keys['isabsence'] = is_absence
+
+    if is_template is not None:
+        if is_template:
+            sql_list.append('AND c.istemplate')
+        else:
+            sql_list.append('AND NOT c.istemplate')
+        sql_keys['istemplate'] = is_template
+
+    if is_inactive is not None:
+        if is_inactive:
+            sql_list.append('AND o.inactive')
+        else:
+            sql_list.append('AND NOT o.inactive')
+        sql_keys['inactive'] = is_inactive
+
+    sql_list.append('ORDER BY LOWER(c.code), LOWER(o.code)')
+    sql = ' '.join(sql_list)
+
     newcursor = connection.cursor()
-    newcursor.execute(sql_order, {
-        'compid': company.id,
-        'rdf': datefirst_iso,
-        'rdl': datelast_iso,
-        'isabsence': is_absence,
-        'istemplate': is_template,
-        'inactive': is_inactive
-    })
-    orders = f.dictfetchall(newcursor)
+    newcursor.execute(sql, sql_keys)
+    order_rows = f.dictfetchall(newcursor)
 
     order_list = []
-    for order in orders:
+    for order in order_rows:
         item_dict = {}
         create_order_dict_from_sql(order, item_dict)
 
         if item_dict:
             order_list.append(item_dict)
 
-    return order_list
+    return order_list, order_rows
 
-#????????????
 
 def create_order_dict_from_sql(instance, item_dict):
     # --- create dict of this order PR2019-09-28
@@ -263,7 +364,7 @@ def create_order_dict_from_sql(instance, item_dict):
             field_dict = item_dict[field] if field in item_dict else {}
 
             if field == 'id':
-                field_dict['pk'] = instance.get('o_id')
+                field_dict['pk'] = instance.get('id')
                 field_dict['ppk'] = instance.get('c_id')
                 field_dict['table'] = 'order'
                 field_dict['isabsence'] = instance.get('isabsence', False)
@@ -434,9 +535,12 @@ def create_abscat_order_list(request):
     sql_abscat_orders = """ SELECT  
         o.id, 
         c.id AS c_id, 
-        o.code AS o_code,
-        c.code AS c_code,
         c.company_id AS comp_id,
+
+        CONCAT('abscat_', c.id::TEXT) AS mapid,
+        
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
 
         o.identifier AS o_identifier,
         o.nohoursonpublicholiday AS o_noph,
@@ -666,6 +770,8 @@ def create_order_pricerate_list(company, user_lang):
         pricerate_list.append(item_dict)
 
 # --- create list of schemes of this order
+
+        # TODO remove SHIFT_CAT_0512_ABSENCE
         schemes = m.Scheme.objects.filter(
             order=order,
             cat__lt=c.SHIFT_CAT_0512_ABSENCE  # no absence, template or rest shifts
@@ -699,6 +805,7 @@ def create_order_pricerate_list(company, user_lang):
             pricerate_list.append(item_dict)
 
 # --- create list of shifts of this scheme
+        # TODO remove SHIFT_CAT_0512_ABSENCE
             shifts = m.Shift.objects.filter(
                 scheme=scheme,
                 cat__lt=c.SHIFT_CAT_0512_ABSENCE # no absence, template or rest shifts

@@ -164,7 +164,8 @@ LOGOUT_REDIRECT_URL = 'home'
 
 # In global.settings.py: PR2018-07-30
 # The number of days a password reset link is valid for
-PASSWORD_RESET_TIMEOUT_DAYS = 3
+# changed to 7 days PR2020-08-15
+PASSWORD_RESET_TIMEOUT_DAYS = 7
 
 
 # was: PR 2018-03-27  EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

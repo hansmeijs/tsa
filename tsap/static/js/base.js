@@ -101,9 +101,9 @@
 
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
-        console.log("=== UploadSettings");
-        console.log("url_str", url_str);
-        console.log("upload_dict", upload_dict);
+        //console.log("=== UploadSettings");
+        //console.log("url_str", url_str);
+        //console.log("upload_dict", upload_dict);
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
             let response = "";
@@ -113,8 +113,8 @@
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
                 },  // success: function (response) {
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -371,14 +371,14 @@
         return item_dict
     }
 
-//========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01
+//========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01 PR2020-08-24
     function get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str) {
         // function gets map_id form tblName and  pk_int, looks up 'map_id' in data_map
         let map_dict;
-        if(!!tblName && !!pk_str){
-            const map_id = get_map_id(tblName, pk_str);
+        if(tblName && pk_str){
+            const map_id = tblName + "_" + pk_str;
             map_dict = data_map.get(map_id);
-            // instead of:  map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
+            // instead of: map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
         };
         // map.get returns 'undefined' if the key can't be found in the Map object.
         if (!map_dict) {map_dict = {}}
@@ -430,10 +430,16 @@
         data_map.clear();
         const data_list_length = data_list.length
         if (data_list && data_list_length) {
-            // get tblName from first item in data_list
-            const table_in_dict = get_dict_value(data_list[0], ["id", "table"]);
             // tblName ovverrules table in id, necessary for absence_map
-            const table = (tblName) ? tblName : (table_in_dict) ? table_in_dict : "no_table";
+            let table = null;
+            if(tblName){
+                table = tblName;
+            } else {
+                // get tblName from first item in data_list
+                const table_in_dict = get_dict_value(data_list[0], ["id", "table"]);
+                table = (table_in_dict) ? table_in_dict : "no_table";
+            }
+
             for (let i = 0; i < data_list_length; i++) {
                 const item_dict = data_list[i];
                 let pk_str = get_dict_value(item_dict, ["id", "pk"]);
@@ -455,6 +461,7 @@
             }
         }
     }
+
 //========= update_map_item  ================== PR2020-04-22
     function update_map_item(data_map, map_id, update_dict, user_lang){
         //console.log(" --- update_map_item ---")
@@ -485,7 +492,7 @@
 //========= insertAtIndex  ================== PR2020-01-20 PR2020-08-11
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
     function insertInMapAtIndex(data_map, map_id, new_row, new_code, code_key, user_lang){
-        //console.log(("===== insertInMapAtIndex ==== "))
+        //console.log("===== insertInMapAtIndex ==== ")
         const data_arr = Array.from(data_map);
         const row_index = getRowIndex(data_arr, code_key, new_code, user_lang);
         data_arr.splice(row_index, 0, [map_id, new_row]);
@@ -495,7 +502,7 @@
 
 //========= getRowIndex  =============  PR2020-01-20 PR2020-08-11
     function getRowIndex(data_arr, code_key, new_code, user_lang) {
-        console.log(" --- getRowIndex --- ")
+        //console.log(" --- getRowIndex --- ")
         // function searches sorted position of new_code in selecttable, returns index
         // similar to GetNewSelectRowIndex in tables.js
         let row_index = -1
@@ -503,15 +510,16 @@
             const new_code_lc = new_code.toLowerCase();
             const len = data_arr.length;
             if (len){
-                for (let i = 0, map_item, map_dict, row_code; i < len; i++) {
+                for (let i = 0, map_item, map_dict, row_code, row_code_lc; i < len; i++) {
                     map_item = data_arr[i];
                     map_dict = map_item[1];
                     row_code = (map_dict[code_key]) ? map_dict[code_key] : "";
+                    row_code_lc = (row_code) ? row_code.toLowerCase() : "";
                     // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
                     // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
                     // row_code 'acu' new_code_lc 'giro' compare = -1
                     // row_code 'mcb' new_code_lc 'giro' compare =  1
-                    let compare = row_code.localeCompare(new_code_lc, user_lang, { sensitivity: 'base' });
+                    let compare = row_code_lc.localeCompare(new_code_lc, user_lang, { sensitivity: 'base' });
                     if (compare > 0) {
                         row_index = i - 1;
                         break;
@@ -561,13 +569,16 @@
         return value_str;
     };
 
-//========= get_attr_from_el_int  ============= PR2019-06-07
+//========= get_attr_from_el_int  ============= PR2019-06-07 PR2020-08-14 PR2020-08-17
     function get_attr_from_el_int(element, key){
         "use strict";
-        let value_int = null;
+        let value_int = 0; //PR2020-08-17 default changed from null to 0
         if(!!element && !!key){
             if(element.hasAttribute(key)){
-                value_int = Number(element.getAttribute(key))
+                const value = element.getAttribute(key);
+                if (Number(value)){
+                    value_int = Number(element.getAttribute(key));
+                }
             };
         }
         return value_int;
@@ -735,7 +746,6 @@
         return dict_clone;
     }  // deepcopy_dict
 
-
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= get_dateJS_from_dateISO  ======== PR2019-10-28
@@ -793,20 +803,20 @@
 
 //========= get_tomorrow_iso new  ========== PR2019-11-15
     function get_tomorrow_iso() {
-        const tomorrow_JS = addDaysJS(new Date(), + 1)
+        const tomorrow_JS = add_daysJS(new Date(), + 1)
         // add 1 to month, getMonth starts with 0 for January
         return [tomorrow_JS.getFullYear(), 1 + tomorrow_JS.getMonth(), tomorrow_JS.getDate()].join("-");
     }
 
 //========= get_yesterday_iso new  ========== PR2019-11-15
     function get_yesterday_iso() {
-        const yesterday_JS = addDaysJS(new Date(), - 1)
+        const yesterday_JS = add_daysJS(new Date(), - 1)
         // add 1 to month, getMonth starts with 0 for January
         return [yesterday_JS.getFullYear(), 1 + yesterday_JS.getMonth(), yesterday_JS.getDate()].join("-");
     }
 
-//========= addDaysJS  ======== PR2019-11-03
-    function addDaysJS(date_JS, days) {
+//========= add_daysJS  ======== PR2019-11-03
+    function add_daysJS(date_JS, days) {
         // this function returns a new date object, instead of updating the existing one
         // from https://codewithhugo.com/add-date-days-js/
         // see also: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
@@ -867,7 +877,6 @@
         return days_diff
     }  // get_days_diff_JS
 
-
 //========= get_now_arr ========== PR2020-07-08
     function get_now_arr() {
         // send 'now' as array to server, so 'now' of local computer will be used
@@ -876,8 +885,8 @@
         return now_arr;
     }
 
-//========= get_today_iso new  ========== PR2020-07-08
-    function get_today_iso() {
+//========= get_today_ISO new  ========== PR2020-07-08
+    function get_today_ISO() {
         // new Date() returns '2019-11-1' and doesn't work with date input
         // today_JS.toISOString gives the today date in UTC: on 2020-07-08 20:00 it gives  2020-07-9
         // build date_iso from year, month, date of today_JS
@@ -893,11 +902,10 @@
         // PR2020-07-17 debug.  today_JS = new Date(); gives Fri Jul 17 2020 11:16:23 GMT-0400 (Bolivia Time)
         // this messes up the lookup dates in the scheme grid.
         // instead use:  today_JS = get_dateJS_from_dateISO(today_iso)
-        const today_iso =  get_today_iso()
-        const today_JS =  get_dateJS_from_dateISO(today_iso)
+        const today_iso = get_today_ISO()
+        const today_JS = get_dateJS_from_dateISO(today_iso)
         return today_JS
     }
-
 
 //========= get_thisweek_monday_JS_from_DateJS new  ========== PR2019-12-04 PR2020-07-07
     function get_thisweek_monday_JS_from_DateJS(date_JS) {
@@ -905,7 +913,7 @@
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
             if (!weekday_index) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-            monday_JS = addDaysJS(date_JS, + 1 - weekday_index)
+            monday_JS = add_daysJS(date_JS, + 1 - weekday_index)
         }
         return monday_JS;
     }  // get_thisweek_monday_JS_from_DateJS
@@ -916,7 +924,7 @@
         if(!!date_JS){
             let weekday_index = date_JS.getDay()
             if (!weekday_index) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-            sunday_JS = addDaysJS(date_JS, + 7 - weekday_index)
+            sunday_JS = add_daysJS(date_JS, + 7 - weekday_index)
         }
         return sunday_JS;
     }  // get_thisweek_sunday_JS_from_DateJS
@@ -926,8 +934,8 @@
         const today_JS = new Date();
         let weekday_index = today_JS.getDay()
         if (weekday_index === 0 ) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-        const monday_JS = addDaysJS(today_JS, + 1 - weekday_index)
-        const sunday_JS = addDaysJS(today_JS, + 7 - weekday_index)
+        const monday_JS = add_daysJS(today_JS, + 1 - weekday_index)
+        const sunday_JS = add_daysJS(today_JS, + 7 - weekday_index)
         return [monday_JS, sunday_JS];
     }  // get_thisweek_monday_sunday_dateobj
 
@@ -962,8 +970,8 @@
         const today_JS = new Date();
         let weekday_index = today_JS.getDay()
         if (weekday_index === 0 ) {weekday_index = 7}  // Sunday = 0 in JS, Sunday = 7 in ISO
-        const nextweek_monday_JS = addDaysJS(today_JS, + 8 - weekday_index)
-        const nextweek_sunday_JS = addDaysJS(today_JS, + 14 - weekday_index)
+        const nextweek_monday_JS = add_daysJS(today_JS, + 8 - weekday_index)
+        const nextweek_sunday_JS = add_daysJS(today_JS, + 14 - weekday_index)
         return [nextweek_monday_JS, nextweek_sunday_JS];
     }  // get_nextweek_monday_sunday_dateobj
 
@@ -1002,7 +1010,6 @@
         const nextmonth_lastday_iso = get_yyyymmdd_from_ISOstring(nextmonth_lastday_JS.toISOString())
         return [nextmonth_firstday_iso, nextmonth_lastday_iso];
     }  // get_nextweek_monday_sunday_iso
-
 
 //========= get_thismonth_firstJS_from_dateJS  ========== PR2020-07-06
     function get_thismonth_firstJS_from_dateJS(dateJS) {
@@ -1045,15 +1052,6 @@
         const nextmonth_lastday_JS = new Date(y, m, 0);
         return nextmonth_lastday_JS;
     }  // get_nextmonth_lastJS_from_dateJS
-
-//========= get_today_local  ======== PR2019-07-09
-    function get_today_localMOMENT(comp_timezone) {
-        // from: https://stackoverflow.com/questions/18448347/how-to-create-time-in-a-specific-time-zone-with-moment-js
-        //  moment() gives 'now' in user timezone : 2019-07-09 T 20:25:16-04:00
-        // this creates today in comp_timezone
-        // new moment.tz(ISOstring, timezone)
-        return new moment.tz([moment().year(), moment().month(), moment().date(), 0, 0, 0], comp_timezone);
-    }
 
 //=========  get_newdate_from_date  ================ PR2019-05-06
     function get_newdate_from_date(o_date, add_day, add_month, add_year) {
@@ -1149,20 +1147,23 @@
         return date_str;
     }
 
-//========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
+//========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29 PR2020-08-15
     function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
         "use strict";
-        console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
+        //console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
+        //console.log("datetimeUTCiso", datetimeUTCiso)
+        //console.log("companyoffset", companyoffset)
+        //console.log("useroffset", useroffset)
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = companyoffset
 
         // datetime_iso = "2019-03-30T04:00:00-04:00"
         let datetimearr = [];
-        if (!!datetimeUTCiso){
+        if (datetimeUTCiso){
 
-            console.log("datetimeUTCiso: ", datetimeUTCiso)
+            //console.log("datetimeUTCiso: ", datetimeUTCiso)
             let datUTC = get_dateJS_from_dateISO_vanilla(datetimeUTCiso)
-            console.log("datUTC: ", datUTC, typeof datUTC)
+            //console.log("datUTC: ", datUTC, typeof datUTC)
 
             let arr = get_array_from_ISOstring(datetimeUTCiso)
             // Month 4 april has index 3
@@ -1173,18 +1174,18 @@
             // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
             //console.log("datetime_local: ", datetime_local, typeof datetime_local)
 
-            console.log("companyoffset: ", companyoffset)
-            console.log("useroffset: ", useroffset)
+            //console.log("companyoffset: ", companyoffset)
+            //console.log("useroffset: ", useroffset)
 
             // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
             //companyoffset stores offset from UTC to company_timezone in seconds
             const datetime_offset = datetime_local.setSeconds(offset)
             // datetime_offset:  1561455540000 number
-            console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+            //console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
 
             const datetime_new = new Date(datetime_offset);
             //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
-            console.log("datetime_new: ", datetime_new, typeof datetime_new)
+            //console.log("datetime_new: ", datetime_new, typeof datetime_new)
             datetimearr[0] = datetime_new.getFullYear()
             datetimearr[1]  = datetime_new.getMonth()
             datetimearr[2] = datetime_new.getDate()
@@ -1193,7 +1194,7 @@
 
             //console.log(datetimearr[0], datetimearr[1], datetimearr[2], datetimearr[3], datetimearr[4])
         }
-        return datetimearr ;
+        return datetimearr;
     }
 
 //========= function get_datetime_iso_from_ints  ========== PR2019-06-28
@@ -1446,7 +1447,6 @@
 
 // =============================================================================
 
-
 //========= get_userOffset new  ========== PR2019-06-27
     function get_userOffset() {
     // get_userOffset calculates offset from local computer timezone to UTC in minutes
@@ -1572,18 +1572,18 @@
         }}};
     };
 
-//========= set_tblrow_error_byID  ====  PR2020-04-13
-    function set_tblrow_error_byID(tr_id) {
-        let tr_changed = document.getElementById(tr_id);
-        set_tblrow_error(tr_changed);
+//========= b_ShowTblrowError_byID  ====  PR2020-04-13
+    function b_ShowTblrowError_byID(tr_id) {
+        let tblRow = document.getElementById(tr_id);
+        b_ShowTblrowError(tblRow);
     }
 
-//========= set_tblrow_error set_element_class  ====  PR2020-04-13
-    function set_tblrow_error(tr_changed) {
+//========= b_ShowTblrowError set_element_class  ====  PR2020-04-13
+    function b_ShowTblrowError(tblRow) {
         const cls_error = "tsa_tr_error";
-        if(!!tr_changed){
-            tr_changed.classList.add(cls_error);
-            setTimeout(function (){ tr_changed.classList.remove(cls_error); }, 2000);
+        if(tblRow){
+            tblRow.classList.add(cls_error);
+            setTimeout(function (){ tblRow.classList.remove(cls_error); }, 2000);
         }
     }
 
@@ -1617,7 +1617,6 @@
         }
     }  // set_other_datefield_minmax
 
-
 // --- ModConfirm_Message---------------------------------- PR2020-08-11
     function ModConfirm_Message(loc, hdr_text, msg01_txt, msg02_txt, msg03_txt){
     // ---  show modal confirm with message 'First select employee'
@@ -1631,14 +1630,11 @@
             el_btn_cancel.innerText = loc.Close;
             setTimeout(function() {el_btn_cancel.focus()}, 50);
 
-             $("#id_mod_confirm").modal({backdrop: true});
+            $("#id_mod_confirm").modal({backdrop: true});
     }
-
-
 
 //###########################################################################
 // +++++++++++++++++ VALIDATORS ++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 //========= get_number_from_input  ========== PR2020-06-10
     function get_number_from_input(loc, fldName, input_value) {

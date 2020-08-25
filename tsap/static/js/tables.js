@@ -285,10 +285,11 @@
 
 //========= t_UpdateSelectRow  ============= PR2019-10-20 PR2020-05-21
     function t_UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_default, imgsrc_black) {
-        console.log("t_UpdateSelectRow in tables.js");
+        //console.log("t_UpdateSelectRow in tables.js");
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
+        //console.log("update_dict", update_dict);
         // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
         if(!isEmpty(update_dict)){
             if(!!selectRow){
@@ -314,15 +315,15 @@
                     let el_input = selectRow.cells[0].children[0]
                     el_input.innerText = code_value;
                     selectRow.setAttribute("data-value", code_value);
-                    console.log("selectRow:", selectRow);
+                    //console.log("selectRow:", selectRow);
 
     // --- add active img to second td in table
                     const is_inactive = get_dict_value(update_dict,["inactive", "value"], false);
                     const is_updated = get_dict_value(update_dict, ["inactive", "updated"], false);
                     selectRow.setAttribute("data-inactive", is_inactive);
 
-                    console.log("is_inactive:", is_inactive);
-                    console.log("is_updated:", is_updated);
+                    //console.log("is_inactive:", is_inactive);
+                    //console.log("is_updated:", is_updated);
                     let td_01 = selectRow.cells[1];
                     if(td_01){
                         let el_inactive = td_01.children[0]
@@ -334,7 +335,6 @@
                             }
                             // if is_updated: make el_inactive green for 2 seconds
                             if(is_updated){
-                    console.log("ShowOkElement:");
                                 ShowOkElement(el_inactive, "border_bg_valid", "tsa_bc_lightlightgrey")
                                 }
                             // if is_inactive=true and not filter_show_inactive:
@@ -360,8 +360,8 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12
     function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
-        console.log( "===== t_SetExtendedFilterDict  ========= ");
-        console.log( "col_index ", col_index, "el_key ", el_key);
+        //console.log( "===== t_SetExtendedFilterDict  ========= ");
+        //console.log( "col_index ", col_index, "el_key ", el_key);
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
@@ -419,9 +419,9 @@
                         filter_value = 0;
                         const value_number = Number(filter_str.replace(/\,/g,"."));
 
-                        console.log( "filter_tag ", filter_tag);
-                        console.log( "filter_str ", filter_str);
-                        console.log( "value_number ", value_number);
+                        //console.log( "filter_tag ", filter_tag);
+                        //console.log( "filter_str ", filter_str);
+                        //console.log( "value_number ", value_number);
 
                         if (filter_tag === "amount") {
                             // replace comma's with dots, check if value = numeric, convert to minutes
@@ -447,7 +447,7 @@
                         }
                     }
                 }; // other
-                console.log( "skip_filter ", skip_filter);
+                //console.log( "skip_filter ", skip_filter);
                 if (!skip_filter) {
                     filter_dict[col_index] = [mode, filter_value, filter_tag]
                 };
@@ -766,14 +766,17 @@
         if(search_orderby){
             if (typeof search_orderby === 'string' || search_orderby instanceof String) {
                 search_orderby = search_orderby.toLowerCase()};
+       //console.log("search_orderby", search_orderby);
             for (let i = 0, tblRow; tblRow = tblBody.rows[i]; i++) {
                 let row_orderby = get_attr_from_el(tblRow, "data-orderby");
                 if(row_orderby){
                     if (typeof row_orderby === 'string' || row_orderby instanceof String) {
                         row_orderby = row_orderby.toLowerCase()};
+        //console.log("row_orderby", row_orderby);
                     if(search_orderby < row_orderby) {
     // --- search_rowindex = row_index - 1, to put new row above row with higher row_orderby
                         row_index = tblRow.rowIndex - 1;
+        //console.log("search_orderby < row_orderby: row_index = ", row_index);
                         break;
         }}}}
         if(!row_index){row_index = 0}
@@ -1156,11 +1159,10 @@
     }
 
 //=========  AppendIcon  ================ PR2019-05-31
-    function AppendChildIcon(el, img_src, height ) {
-        if (!height) {height = "18"}
-        if (!!img_src) {
+    function AppendChildIcon(el, img_src, height) {
+        if (!height) {height = "18"};
+        if (img_src) {
             let img = document.createElement("img");
-
                 img.setAttribute("src", img_src);
                 img.setAttribute("height", height);
                 img.setAttribute("width", height);
@@ -1421,8 +1423,8 @@
 
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        console.log( "===== t_Filter_SelectRows  ========= ");
-        console.log( "filter_text: <" + filter_text + ">");
+        //console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "filter_text: <" + filter_text + ">");
         //console.log( "has_ppk_filter: " + has_ppk_filter);
         //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
 
@@ -1505,7 +1507,7 @@
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
                 tblRow = tblBody.rows[i]
-                show_row = f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
+                show_row = t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
                 if (show_row) {
                     tblRow.classList.remove(cls_hide)
                 } else {
@@ -1515,9 +1517,9 @@
         } //  if (!!len){
     }; // t_Filter_TableRows
 
-//========= f_ShowTableRow  ==================================== PR2020-01-17
-    function f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15
-        //console.log( "===== f_ShowTableRow  ========= ", tblName);
+//========= t_ShowTableRow  ==================================== PR2020-01-17
+    function t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15
+        //console.log( "===== t_ShowTableRow  ========= ", tblName);
         //console.log("filter_show_inactive", filter_show_inactive);
         //console.log("tblRow", tblRow);
 
@@ -1539,7 +1541,7 @@
         // else: (excl tag = 'a'): value = el.innerText
         // when not found:  value = 'data-value'
         let hide_row = false;
-        if (!!tblRow){
+        if (tblRow){
 
 // 1. skip new row
     // check if row is_addnew_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
@@ -1582,7 +1584,7 @@
                             let el = tbl_cell.children[0];
                             if (!!el) {
                         // skip if no filter on this colums
-                                if(!!filter_text){
+                                if(filter_text){
                         // get value from el.value, innerText or data-value
                                     const el_tagName = el.tagName.toLowerCase()
                                     let el_value = null;
@@ -1600,13 +1602,15 @@
 
                                     // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                                     if (filter_blank){
-                                        if (!!el_value){hide_row = true};
+                                        if (el_value){hide_row = true};
                                     } else if (filter_non_blank){
                                         if (!el_value){hide_row = true};
+                                    } else if (!el_value){
+                                        hide_row = true;
                                     } else {
-                                        el_value = el_value.toLowerCase();
+                                        const el_value_lc = el_value.toLowerCase() ;
                                         // hide row if filter_text not found
-                                        if (el_value.indexOf(filter_text) === -1) {hide_row = true};
+                                        if (el_value_lc.indexOf(filter_text) === -1) {hide_row = true};
                                     }
                                 }  //  if(!!filter_text)
                             }  // if (!!el) {
@@ -1618,12 +1622,12 @@
             } //  if(!is_addnew_row){
         }  // if (!!tblRow)
         return !hide_row
-    }; // f_ShowTableRow
+    }; // t_ShowTableRow
 
 
-//  ======= f_reset_tblHead_filter ======== PR2020-01-18
-    function f_reset_tblHead_filter (tblHead){
-        //console.log ("======= f_reset_tblHead_filter ========")
+//  ======= t_reset_tblHead_filter ======== PR2020-01-18
+    function t_reset_tblHead_filter (tblHead){
+        //console.log ("======= t_reset_tblHead_filter ========")
         if(!!tblHead){
             let filterRow = tblHead.rows[1];
             if(!!filterRow){
@@ -1634,11 +1638,11 @@
                 }
             }
         }
-    }; // f_reset_tblHead_filter
+    }; // t_reset_tblHead_filter
 
-//  ======= f_reset_tblSelect_filter ======== PR2020-01-18
-    function f_reset_tblSelect_filter (id_filter_select_input, id_filter_select_btn, imgsrc_inactive_lightgrey){
-        //console.log ("======= f_reset_tblSelect_filter ========")
+//  ======= t_reset_tblSelect_filter ======== PR2020-01-18
+    function t_reset_tblSelect_filter (id_filter_select_input, id_filter_select_btn, imgsrc_inactive_lightgrey){
+        //console.log ("======= t_reset_tblSelect_filter ========")
 //--- reset filter of select table
         let el_filter_select_input = document.getElementById(id_filter_select_input)
         if (!!el_filter_select_input){
@@ -1657,7 +1661,7 @@
             }
         }
 
-    }; // f_reset_tblSelect_filter
+    }; // t_reset_tblSelect_filter
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //  ======= ReplaceItemDict ========
@@ -1933,7 +1937,7 @@
     }  // function t_FillOptionsPeriodExtension
 
 //========= t_FillOptionsAbscat  ====================================
-    function t_FillOptionsAbscat(el_select, data_map, select_txt, select_none_txt, selected_pk) {
+    function t_FillOptionsAbscat(loc, el_select, data_map, selected_pk) {
         //console.log( "=== t_FillOptionsAbscat  ");
 
 // ---  fill options of select box
@@ -1942,27 +1946,26 @@
         let row_count = 0
 // --- loop through data_map (abscat_map, functioncode_map)
         if (data_map.size) {
-            for (const [map_id, item_dict] of data_map.entries()) {
-                const pk_int = get_dict_value (item_dict, ["id", "pk"], 0)
-                const ppk_int = get_dict_value_by_key (item_dict, ["id", "ppk"], 0)
-                const code = get_subdict_value_by_key(item_dict, "code", "value", "-")
-
+            for (const [map_id, map_dict] of data_map.entries()) {
+                const pk_int = (map_dict.id) ? map_dict.id : 0;
+                const ppk_int = map_dict.c_id;
+                const code = (map_dict.o_code) ? map_dict.o_code : "-";
                 option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
 // --- add selected if selected_pk has value
                 if (selected_pk && pk_int === selected_pk) {option_text += " selected=true" };
                 option_text +=  ">" + code + "</option>";
 
                 row_count += 1
-            }  // for (const [map_id, item_dict] of data_map.entries())
+            }  // for (const [map_id, map_dict] of data_map.entries())
         }  // if (!!len)
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
         let select_first_option = false
         if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_none_txt + "</option>"
+            option_text = "<option value=\"\" disabled selected hidden>" + loc.No_absence_categories + "</option>"
         } else if (row_count === 1) {
             select_first_option = true
         } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_txt + "</option>" + option_text
+            option_text = "<option value=\"\" disabled selected hidden>" + loc.Select_abscat + "</option>" + option_text
         }
         el_select.innerHTML = option_text;
 
@@ -2341,8 +2344,8 @@
 
     function get_teamcode_with_sequence_from_map(team_map, parent_pk, default_code){
         "use strict";
-        console.log(' --- get_teamcode_with_sequence_from_map --- ')
-        console.log('parent_pk: ', parent_pk)
+        //console.log(' --- get_teamcode_with_sequence_from_map --- ')
+        //console.log('parent_pk: ', parent_pk)
         // create new code with sequence character 1 higher than existing code PR2019-12-28
         if (!default_code) {default_code = "Team" }
         const default_code_len = default_code.length

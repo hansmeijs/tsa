@@ -698,7 +698,7 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
             const has_schemeitem_dicts = !isEmpty(selected_weekday_dict)
 
             // put btn_rosterdate_iso in btn attribute 'data-rosterdate'
-            const btn_rosterdate_JS = addDaysJS(calendar_datefirst_JS, i)
+            const btn_rosterdate_JS = add_daysJS(calendar_datefirst_JS, i)
             const btn_rosterdate_iso = get_dateISO_from_dateJS(btn_rosterdate_JS)
             btn.setAttribute("data-rosterdate", btn_rosterdate_iso);
 

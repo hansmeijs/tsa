@@ -194,12 +194,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_modorder_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MOD SELECT EMPLOYEE ------------------------------
-    let el_modemployee_input_employee = document.getElementById("id_ModSelEmp_input_employee")
+    let el_modemployee_input_employee = document.getElementById("id_MSE_input_employee")
         el_modemployee_input_employee.addEventListener("keyup", function(event){
             setTimeout(function() {MSE_FilterEmployee(el_modemployee_input_employee, event.key)}, 50)});
     let el_modemployee_btn_save = document.getElementById("id_ModSelEmp_btn_save")
         el_modemployee_btn_save.addEventListener("click", function() {MSE_Save("save")}, false )
-    let el_modemployee_btn_remove = document.getElementById("id_ModSelEmp_btn_remove_employee")
+    let el_modemployee_btn_remove = document.getElementById("id_MSE_btn_remove")
         el_modemployee_btn_remove.addEventListener("click", function() {MSE_Save("delete")}, false )
 
 // ---  MOD SELECT PRICE ------------------------------
@@ -2541,7 +2541,7 @@ document.addEventListener('DOMContentLoaded', function() {
             header_text = loc.All_customers
         }
 
-        document.getElementById("id_modorder_header").innerText = header_text
+        document.getElementById("id_MSO_header").innerText = header_text
 
     }  // MSO_headertext
 

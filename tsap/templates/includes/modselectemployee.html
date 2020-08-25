@@ -28,11 +28,12 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="modal_body_right mx-2 my-2">
                             <div class="mx-2 my-2">
-                                <h6 id="id_ModSelEmp_lbl_input_employee">{% trans 'Select employee' %}:</h6>
+                                <label id="id_MSE_label_employee" class="mx-2 my-1">{% trans 'Select employee' %}:</label>
                                 <div class="form-group">
-                                    <input id="id_ModSelEmp_input_employee"
+                                    <input id="id_MSE_input_employee"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
@@ -40,9 +41,9 @@
                                         class="form-control"
                                         placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                                 </div>
-                                <div id="id_ModSelEmp_div_remove_employee">
-                                    <h6>{% trans 'or remove the current employee' %}...</h6>
-                                    <button id="id_ModSelEmp_btn_remove_employee" type="button" class="btn btn-secondary">{% trans 'Remove' %}</button>
+                                <div id="id_MSE_div_btn_remove" class="m-2">
+                                    <div class="my-1">{% trans 'or remove the current employee' %}...</div>
+                                    <button id="id_MSE_btn_remove" type="button" class="btn btn-secondary">{% trans 'Remove' %}</button>
                                 </div>
                             </div>
                         </div>

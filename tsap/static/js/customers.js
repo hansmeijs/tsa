@@ -239,11 +239,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  MOD EMPLOYEE ------------------------------------
         let el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
-        document.getElementById("id_ModSelEmp_input_employee").addEventListener("keyup", function(event){
+        document.getElementById("id_MSE_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() { MSE_FilterEmployee("filter", event.key)}, 50)});
 
         document.getElementById("id_ModSelEmp_btn_save").addEventListener("click", function() {MSE_Save("update")}, false);
-        document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {MSE_Save("delete")}, false);
+        document.getElementById("id_MSE_btn_remove").addEventListener("click", function() {MSE_Save("delete")}, false);
 
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
@@ -396,7 +396,7 @@ let planning_list = [] // for export and printing - can replace map?
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
                 imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
-                header_txt, loc.TXT_Cick_show_inactive_customers);
+                header_txt, loc.Click_show_inactive_customers);
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
 
             FillTableRows("customer");
@@ -423,7 +423,7 @@ let planning_list = [] // for export and printing - can replace map?
                 filter_include_absence, filter_istemplate, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow, cls_hover,
                 imgsrc_default, imgsrc_default_header, imgsrc_default_black, imgsrc_hover,
-                header_txt, loc.TXT_Cick_show_inactive_orders);
+                header_txt, loc.Click_show_inactive_orders);
             const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
 
             if ( !!has_rows_arr[0] && ["calendar", "planning"].indexOf(selected_btn) > -1){
@@ -948,7 +948,7 @@ let planning_list = [] // for export and printing - can replace map?
             calendar_datefirst_JS = get_thisweek_monday_sunday_dateobj()[0];
         }
 
-        let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
+        let calendar_datelast_JS = add_daysJS(calendar_datefirst_JS, 6)
         const calendar_datefirst_iso = get_dateISO_from_dateJS(calendar_datefirst_JS);
         const calendar_datelast_iso = get_dateISO_from_dateJS(calendar_datelast_JS);
 
@@ -1532,7 +1532,7 @@ let planning_list = [] // for export and printing - can replace map?
                                             cls_bc_lightlightgrey, cls_bc_yellow_light,
                                             imgsrc_default, imgsrc_hover,
                                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
-                                            loc.TXT_Cick_show_inactive_customers)
+                                            loc.Click_show_inactive_customers)
 
                 HandleSelect_Row(selectRow);
         // imgsrc_inactive_lightgrey
@@ -4196,7 +4196,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const date_diff = get_days_diff(rosterdate_iso, first_rosterdate_iso)
                     const floor_value = Math.floor(date_diff/cycle)
                     const add_days = (- floor_value * cycle)
-                    new_rosterdate_dateJS = addDaysJS(rosterdate_dateJS, add_days)
+                    new_rosterdate_dateJS = add_daysJS(rosterdate_dateJS, add_days)
                 }
                 const new_rosterdate_iso = get_dateISO_from_dateJS(new_rosterdate_dateJS)
 
@@ -4451,7 +4451,7 @@ let planning_list = [] // for export and printing - can replace map?
                             sel_employee: {field: data_field, pk: employee_pk, ppk: employee_ppk, code: employee_code}};
 // ---  put employee name in header
         let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
-        let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
+        let el_div_remove = document.getElementById("id_MSE_div_btn_remove")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -4462,7 +4462,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
+        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
         el_mod_employee_input.value = null
         const employee_pk_int = Number(employee_pk);
         MSE_FillSelectTableEmployee(employee_pk_int);
@@ -4499,7 +4499,7 @@ let planning_list = [] // for export and printing - can replace map?
                 mod_employee_dict["sel_employee"]["code"] = selected_employee_code;
 
 // put code_value in el_input_employee
-                document.getElementById("id_ModSelEmp_input_employee").value = selected_employee_code
+                document.getElementById("id_MSE_input_employee").value = selected_employee_code
 // save selected employee
                 MSE_Save("update")
             }
@@ -4564,7 +4564,7 @@ let planning_list = [] // for export and printing - can replace map?
     function MSE_FilterEmployee(option, event_key) {
         //console.log( "===== MSE_FilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_ModSelEmp_input_employee")
+        let el_input = document.getElementById("id_MSE_input_employee")
         //console.log( el_input );
         // saving when only 1 employee found goes in 2 steps:
         // first step is adding "data-quicksave") === "true" to el_input
@@ -5228,10 +5228,10 @@ let planning_list = [] // for export and printing - can replace map?
 
 // reset filter of tblHead
             let tblHead = document.getElementById("id_thead_" + tblName)
-            if(!!tblHead){f_reset_tblHead_filter(tblHead)}
+            if(!!tblHead){t_reset_tblHead_filter(tblHead)}
 
 //--- reset filter of select table
-            f_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
+            t_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
 
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)

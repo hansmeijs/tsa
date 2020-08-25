@@ -188,7 +188,7 @@ class UserAddView(CreateView):
                 user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                 new_user.lang = user_lang
 
-                new_user.is_active = False
+                new_user.is_active = True # PR2020-08-18
                 new_user.activated = False
 
         # ======  save new_user
@@ -628,6 +628,10 @@ class TransactionImportConfirmView(FormView):
         return kwargs
 """
 
+# ++++ LOG IN  +++++++++++++++++++++++++++++++++++++++ PR2020-08-18
+
+
+
 # ++++ SIGN UP +++++++++++++++++++++++++++++++++++++++ PR2020-04-01
 
 # === SignupView ===================================== PR2020-03-30
@@ -732,7 +736,7 @@ class SignupUploadView(View):
                     email=email,
                     role=c.ROLE_01_COMPANY,
                     permits=c.PERMIT_64_SYSADMIN,
-                    is_active=False,
+                    is_active=True,
                     activated=False,
                     lang=user_lang,
                     modifiedby=None,
@@ -758,11 +762,11 @@ class SignupUploadView(View):
                 send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
 
 # - return message 'We have sent an email to user'
-                msg_ok_01 = _('Your company and user name are registered successfully.')
-                msg_ok_02 = _("We have sent an email to user '%(fld)s' with email address '%(email)s'.") % {'fld': new_user.username_sliced, 'email': new_user.email}
-                msg_ok_03 = _('Click the link in that email to verify the email address and create a password.')
+                msg01 = _('Your company and user name are registered successfully.')
+                msg02 = _("We have sent an email to user '%(fld)s' with email address '%(email)s'.") % {'fld': new_user.username_sliced, 'email': new_user.email}
+                msg03 = _('Click the link in that email to verify the email address and create a password.')
 
-                update_wrap['msg_ok'] = {'msg_ok_01': msg_ok_01, 'msg_ok_02': msg_ok_02, 'msg_ok_03': msg_ok_03}
+                update_wrap['msg_ok'] = {'msg01': msg01, 'msg02': msg02, 'msg03': msg03}
 
             if err_dict:
                 update_wrap['msg_err'] = err_dict
@@ -882,88 +886,21 @@ def SignupActivateView(request, uidb64, token):
 # === end of SignupActivateView =====================================
 
 
-# === UserPermitsUploadView ===================================== PR2020-07-31
-@method_decorator([login_required], name='dispatch')
-class UserPermitsUploadView(UpdateView):  # PR2019-06-23
-
-    def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= UserPermitsUploadView ============= ')
-
-        update_wrap = {}
-        if request.user is not None and request.user.company is not None and request.user.is_perm_sysadmin:
-
-# 3. get upload_dict from request.POST
-            upload_json = request.POST.get('upload', None)
-            if upload_json:
-                upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: {'id': {'pk': 111, 'ppk': 3, 'table': 'user', 'rowid': 'user_111', 'rowindex': 3},
-                #                'perm08_planner': True}
-# - create update_dict
-                table = f.get_dict_value(upload_dict, ('id', 'table'))
-                map_id = f.get_dict_value(upload_dict, ('id', 'mapid'))
-                update_dict = {'table': table, 'mapid': map_id, 'updated': []}
-# - get user
-                pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
-                # ppk_int not in use, filter on request.user.company instead.
-                user = am.User.objects.get_or_none(id=pk_int, company=request.user.company)
-                if user:
-                    saved_permit_sum = user.permits
-                    permits_list = user.permits_list
-                    for field in ('perm01_readonly', 'perm02_employee', 'perm04_supervisor' , 'perm08_planner',
-                                    'perm16_hrman', 'perm32_accman', 'perm64_sysadmin'):
-                        if field in upload_dict:
-                            perm_key = int(field[4:6])
-                            perm_value = f.get_dict_value(upload_dict, (field,), False)
-                            if perm_value:
-                                # add perm_value to permits_list if not exist in permits_list yet
-                                if perm_key not in permits_list:
-                                    permits_list.append(perm_key)
-                                    update_dict['updated'].append(field)
-                            else:
-                                # remove perm_value from permits_list if exists in permits_list
-                                if perm_key in permits_list:
-                                    permits_list.remove(perm_key)
-                                    update_dict['updated'].append(field)
-                    new_permit_sum = 0
-                    if permits_list:
-                        for item in permits_list:
-                            new_permit_sum = new_permit_sum + int(item)
-                    # sysadmin cannot remove permit_sysadmin from his own permit list PR2018-08-25
-                    # add permit_sysadmin if necessary
-                    if (user == self.request.user):
-                        if c.PERMIT_64_SYSADMIN not in permits_list:
-                            new_permit_sum = new_permit_sum + c.PERMIT_64_SYSADMIN
-                    if new_permit_sum != saved_permit_sum:
-                        user.permits = new_permit_sum
-                        user.modifiedby_id = request.user.pk
-                        user.save(request=request)
-# - create_user_list returns list of only 1 user
-                        update_wrap['user_list'] = ad.create_user_list(request, user.pk)
-                update_list = []
-# - update_dict['updated'] contains list of updated fields, that will be made green after update
-                if update_dict:
-                    update_list.append(update_dict)
-                update_wrap['updated_list'] = update_list
-
-        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
-# === end of UserPermitsUploadView =====================================
-
 ########################################################################
-# === UserAddUploadView ===================================== PR2020-08-02
-class UserAddUploadView(View):
-    #  UserAddUploadView is called from Users form when the sysadmin has filled in username and email and clicked on 'Submit'
+# === UserUploadView ===================================== PR2020-08-02
+@method_decorator([login_required], name='dispatch')
+class UserUploadView(View):
+    #  UserUploadView is called from Users form when the sysadmin has filled in username and email and clicked on 'Submit'
     #  it returns a HttpResponse, with ok_msg or err-msg
     #  when ok: it also sends an email to the user
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         logger.debug('  ')
-        logger.debug(' ========== UserAddUploadView ===============')
+        logger.debug(' ========== UserUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
-
+        updated_dict = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_sysadmin:
 # - get upload_dict from request.POST
             upload_json = request.POST.get("upload")
@@ -971,230 +908,406 @@ class UserAddUploadView(View):
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
 
-                # upload_dict: {'mode': 'validate', 'company_pk': 3, 'user_pk': 114, 'user_ppk': 3,
+                # upload_dict: {'mode': 'validate', 'company_pk': 3, 'pk_int': 114, 'user_ppk': 3,
                 # 'employee_pk': None, 'employee_code': None, 'username': 'Giterson_Lisette', 'last_name': 'Lisette Sylvia enzo Giterson', 'email': 'hmeijs@gmail.com'}
+# upload_dict: {'mode': 'delete', 'user_pk': 169, 'user_ppk': 3, 'mapid': 'user_169'}
+
 # - reset language
                 # PR2019-03-15 Debug: language gets lost, get request.user.lang again
                 user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                 activate(user_lang)
 
-# - create update_dict
-                table = upload_dict.get('table')
-                map_id = upload_dict.get('mapid')
-                update_dict = {'table': table, 'mapid': map_id, 'updated': []}
-
 # - check if this user company is same as request.user.company
-                user_pk = upload_dict.get('user_pk')
-                user_ppk = upload_dict.get('user_ppk')
+                pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
+                ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
+                map_id = f.get_dict_value(upload_dict, ('id', 'mapid'))
                 company = request.user.company
-                if user_ppk and user_ppk == company.pk:
-                    has_error = False
-
-                    mode = upload_dict.get('mode')
+                if ppk_int and ppk_int == company.pk:
+                    mode = f.get_dict_value(upload_dict, ('id', 'mode'))
                     is_validate_only = (mode == 'validate')
-                    is_delete = (mode == 'delete')
-                    is_create = (mode == 'create')
-                    logger.debug('mode: ' + str(mode))
-                    logger.debug('is_validate_only: ' + str(is_validate_only))
-                    logger.debug('is_create: ' + str(is_create))
+                    update_wrap['mode'] = mode
 
-                    if is_delete:
-                        if user_pk:
-                            instance = am.User.objects.get_or_none(id=user_pk, company=company)
+# ++++  resend activation email ++++++++++++
+                    if mode == 'resend_activation_email':
+                        resend_activation_email(pk_int, update_wrap, err_dict, request)
+# ++++  delete user ++++++++++++
+                    elif mode == 'delete':
+                        if pk_int:
+                            instance = am.User.objects.get_or_none(id=pk_int, company=company)
                             logger.debug('instance: ' + str(instance))
                             if instance:
-                                try:
-                                    instance.delete()
-                                except:
-                                    err_dict['delete'] = _('An error occurred. This user could not be deleted.')
+                                deleted_instance_list = ad.create_user_list(request, instance.pk)
+                                if deleted_instance_list:
+                                    updated_dict = deleted_instance_list[0]
+                                    updated_dict['mapid'] = map_id
+
+                                if request.user.is_perm_sysadmin and instance == request.user:
+                                    err_dict['msg01'] = _("System administrators cannot delete their own account.")
                                 else:
-                                    update_dict['deleted'] = True
-                        update_wrap['update_dict'] = update_dict
+                                    try:
+                                        instance.delete()
+                                    except:
+                                        err_dict['msg01'] = _('An error occurred. This user could not be deleted.')
+                                    else:
+                                        updated_dict['deleted'] = True
 
-                    elif is_create or is_validate_only:
-# - check if this username already exists
-                        username = upload_dict.get('username')
-                        logger.debug('username: ' + str(username))
-                        msg_err = v.validate_unique_username(username, company.companyprefix, user_pk)
-                        logger.debug('msg_err: ' + str(msg_err))
-                        if msg_err:
-                            err_dict['username'] = msg_err
-                            has_error = True
-
-    # - check if namelast is blank
-                        last_name = upload_dict.get('last_name')
-                        logger.debug('last_name: ' + str(last_name))
-                        msg_err = v.validate_notblank_maxlength(last_name, c.NAME_MAX_LENGTH, _('The name'))
-                        logger.debug('msg_err: ' + str(msg_err))
-                        if msg_err:
-                            err_dict['last_name'] = msg_err
-                            has_error = True
-
-    # - check if this is a valid email address:
-                        email = upload_dict.get('email')
-                        logger.debug('email: ' + str(email))
-                        msg_err = v.validate_email_address(email)
-                        logger.debug('msg_err: ' + str(msg_err))
-                        if msg_err:
-                            err_dict['email'] = msg_err
-                            has_error = True
-
-    # - check if this email address already exists
-                        else:
-                            msg_err = v.validate_unique_useremail(email, company, user_pk)
-                            logger.debug('msg_err: ' + str(msg_err))
-                            if msg_err:
-                                err_dict['email'] = msg_err
-                                has_error = True
-
-    # - get employee
-                        employee_pk = upload_dict.get('employee_pk')
-                        employee = None
-                        if employee_pk:
-                            employee = m.Employee.objects.get_or_none(id=employee_pk, company=company)
-                            logger.debug('employee: ' + str(employee))
-
-                        if not is_validate_only and not has_error:
-    # - get now without timezone
-                            now_utc_naive = datetime.utcnow()
-                            now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
-
-    # -  create new user
-                            prefixed_username = company.companyprefix + username
-                            new_user = am.User(
-                                company=company,
-                                username=prefixed_username,
-                                last_name=last_name,
-                                email=email,
-                                employee=employee,
-                                role=c.ROLE_01_COMPANY,
-                                permits=0,
-                                is_active=False,
-                                activated=False,
-                                lang=user_lang,
-                                modifiedby=request.user,
-                                modifiedat=now_utc)
-                            new_user.save()
-
-                            if new_user:
-                                update_wrap['user'] = {'pk': new_user.pk, 'username': new_user.username}
-                                current_site = get_current_site(request)
-
-    # -  send email 'Activate your account'
-                                subject = 'Activate your TSA-secure account'
-                                from_email = 'TSA-secure <noreply@tsasecure.com>'
-                                message = render_to_string('signup_activation_email.html', {
-                                    'user': new_user,
-                                    'domain': current_site.domain,
-                                    # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
-                                    # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
-                                    'token': account_activation_token.make_token(new_user),
-                                })
-                                # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
-                                send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
-
-    # - return message 'We have sent an email to user'
-                                msg_ok_01 = _("User '%(usr)s' is registered successfully.") % {'usr': new_user.username_sliced}
-                                msg_ok_02 = _("We have sent an email to the email address '%(email)s'.") % {'email': new_user.email}
-                                msg_ok_03 = _('The user must click the link in that email to verify the email address and create a password.')
-                                msg_ok_04 = _("This user has no permissions yet. Don't forget to grant permissions.")
-
-                                update_wrap['msg_ok'] = {'msg_ok_01': msg_ok_01, 'msg_ok_02': msg_ok_02, 'msg_ok_03': msg_ok_03, 'msg_ok_04': msg_ok_04}
+# ++++  create or validate new user ++++++++++++
+                    elif mode in ('create', 'validate'):
+                        new_user_pk, err_dict, ok_dict = create_or_validate_user_instance(upload_dict, pk_int, is_validate_only, user_lang, request)
+                        if err_dict:
+                            update_wrap['msg_err'] = err_dict
+                        if ok_dict:
+                            update_wrap['msg_ok'] = ok_dict
+                        # - new_user_pk has only value when new user is created, not when is_validate_only
+                        # - create_user_list returns list of only 1 user
+                        if new_user_pk:
+                            created_instance_list = ad.create_user_list(request, new_user_pk)
+                            updated_dict = created_instance_list[0]
+                            updated_dict['created'] = True
 
                     else:
 # - +++++++++ is update ++++++++++++
-                        if user_pk:
-                            instance = am.User.objects.get_or_none(id=user_pk, company=company)
-                            logger.debug('instance: ' + str(instance))
-                            if instance:
-       # - check if this username already exists
-                                new_username = upload_dict.get('username')
-                                msg_err = v.validate_unique_username(new_username, company.companyprefix, user_pk)
-                                if msg_err:
-                                    err_dict['username'] = msg_err
-                                    has_error = True
-        # - check if namelast is blank
-                                new_last_name = upload_dict.get('last_name')
-                                msg_err = v.validate_notblank_maxlength(new_last_name, c.NAME_MAX_LENGTH, _('The name'))
-                                logger.debug('msg_err: ' + str(msg_err))
-                                if msg_err:
-                                    err_dict['last_name'] = msg_err
-                                    has_error = True
-        # - check if this is a valid email address:
-                                new_email = upload_dict.get('email')
-                                msg_err = v.validate_email_address(new_email)
-                                logger.debug('msg_err: ' + str(msg_err))
-                                if msg_err:
-                                    err_dict['email'] = msg_err
-                                    has_error = True
-        # - check if this email address already exists
-                                else:
-                                    msg_err = v.validate_unique_useremail(new_email, company, user_pk)
-                                    if msg_err:
-                                        err_dict['email'] = msg_err
-                                        has_error = True
-        # - get new_employee_pk
-                                new_employee_pk = upload_dict.get('employee_pk')
-                                new_employee = None
-                                if new_employee_pk:
-                                    new_employee = m.Employee.objects.get_or_none(id=new_employee_pk, company=company)
-        # -  update user
-                                if not is_validate_only and not has_error:
-                                    # - get now without timezone
-                                    now_utc_naive = datetime.utcnow()
-                                    now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
-
-                                    data_has_changed = False
-                                    if new_username != instance.username:
-                                        prefixed_username = company.companyprefix + new_username
-                                        instance.username = prefixed_username
-                                        data_has_changed = True
-                                        update_dict['updated'].append('username')
-                                    if new_last_name != instance.last_name:
-                                        instance.last_name = new_last_name
-                                        data_has_changed = True
-                                        update_dict['updated'].append('last_name')
-                                    if new_email != instance.email:
-                                        instance.email = new_email
-                                        data_has_changed = True
-                                        update_dict['updated'].append('email')
-                                    if new_email != instance.email:
-                                        instance.email = new_email
-                                        data_has_changed = True
-                                        update_dict['updated'].append('email')
-                                    if new_employee != instance.employee:
-                                        instance.employee = new_employee
-                                        data_has_changed = True
-                                        update_dict['updated'].append('employee')
-
-                                    if data_has_changed:
-                                        try:
-                                            instance.modifiedby=request.user
-                                            instance.modifiedat=now_utc
-                                            instance.save()
-                                            msg_ok_01 = _("The changes have been saved successfully.")
-                                            update_wrap['msg_ok'] = {'msg_ok_01': msg_ok_01}
-
-                                            # - create_user_list returns list of only 1 user
-                                            update_wrap['user_list'] = ad.create_user_list(request, instance.pk)
-
-                                        except:
-                                        # - return message
-                                            update_wrap['msg_error'] = _('An error occurred. The changes have not been saved.')
-                                            update_dict['updated'] = []
+                        instance = am.User.objects.get_or_none(id=pk_int, company=company)
+                        if instance:
+                            err_dict, ok_dict = update_user_instance(instance, pk_int, upload_dict, is_validate_only, request)
+                            if err_dict:
+                                update_wrap['msg_err'] = err_dict
+                            if ok_dict:
+                                update_wrap['msg_ok'] = ok_dict
+                            # - create_user_list returns list of only 1 user
+                            updated_instance_list = ad.create_user_list(request, instance.pk)
+                            updated_dict = updated_instance_list[0]
+                            updated_dict['updated'] = True
+                            updated_dict['mapid'] = map_id
 
 # - +++++++++ en of is update ++++++++++++
-                    if update_dict:
-                        update_wrap['updated_list'] = [update_dict]
-
+                    if updated_dict:
+                        update_wrap['updated_list'] = [updated_dict]
                     if err_dict:
                         update_wrap['msg_err'] = err_dict
                     else:
                         update_wrap['validation_ok'] = True
 
+        # - create_user_list returns list of only 1 user
+        #update_wrap['user_list'] = ad.create_user_list(request, instance.pk)
 # - return update_wrap
         update_wrap_json = json.dumps(update_wrap, cls=LazyEncoder)
         return HttpResponse(update_wrap_json)
-# === end of UserAddUploadView =====================================
+# === end of UserUploadView =====================================
 
+
+# === get_new_permit_sum ==== PR2020-08-16
+def get_new_permit_sum_NIU(user, upload_dict, request):
+    logger.debug('-----  get_permit_changes  ----- ')
+
+    new_permit_sum = 0
+    if user:
+        permits_list = user.permits_list
+        for field in ('perm01_readonly', 'perm02_employee', 'perm04_supervisor' , 'perm08_planner',
+                        'perm16_hrman', 'perm32_accman', 'perm64_sysadmin'):
+            if field in upload_dict:
+                perm_key = int(field[4:6])
+                perm_value = f.get_dict_value(upload_dict, (field,), False)
+                if perm_value:
+# - add perm_value to permits_list if not exist in permits_list yet
+                    if perm_key not in permits_list:
+                        permits_list.append(perm_key)
+                else:
+# - remove perm_value from permits_list if exists in permits_list
+                    if perm_key in permits_list:
+                        permits_list.remove(perm_key)
+# - calculate new_permit_sum from permits_list
+        new_permit_sum = 0
+        if permits_list:
+            for item in permits_list:
+                new_permit_sum = new_permit_sum + int(item)
+# - sysadmin cannot remove permit_sysadmin from his own permit list PR2018-08-25
+        # add permit_sysadmin if necessary
+        if user == request.user:
+            if c.PERMIT_64_SYSADMIN not in permits_list:
+                new_permit_sum = new_permit_sum + c.PERMIT_64_SYSADMIN
+
+    return new_permit_sum
+# -----  en of get_new_permit_sum  -----
+
+
+########################################################################
+
+# === create_or_validate_user_instance ========= PR2020-08-16
+def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, user_lang, request):
+    logger.debug('-----  create_user_instance  -----')
+    logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('user_pk: ' + str(user_pk))
+
+    company = request.user.company
+    has_error = False
+    err_dict = {}
+    ok_dict = {}
+    new_user_pk = None
+
+# - check if this username already exists
+    # user_pk is pk of user that will be validated when the user already exist.
+    # user_pk is None when new user is created or validated
+    username = f.get_dict_value(upload_dict, ('username', 'value'))
+    logger.debug('username: ' + str(username))
+    msg_err = v.validate_unique_username(username, company.companyprefix, user_pk)
+    if msg_err:
+        err_dict['username'] = msg_err
+        has_error = True
+
+# - check if namelast is blank
+    last_name = f.get_dict_value(upload_dict, ('last_name', 'value'))
+    logger.debug('last_name: ' + str(last_name))
+    msg_err = v.validate_notblank_maxlength(last_name, c.NAME_MAX_LENGTH, _('The name'))
+    if msg_err:
+        err_dict['last_name'] = msg_err
+        has_error = True
+
+# - check if this is a valid email address:
+    email = f.get_dict_value(upload_dict, ('email', 'value'))
+    logger.debug('email: ' + str(email))
+    msg_err = v.validate_email_address(email)
+    if msg_err:
+        err_dict['email'] = msg_err
+        has_error = True
+
+# - check if this email address already exists
+    else:
+        msg_err = v.validate_unique_useremail(email, company, user_pk)
+        if msg_err:
+            err_dict['email'] = msg_err
+            has_error = True
+
+# - get employee
+    employee_pk = f.get_dict_value(upload_dict, ('employee', 'pk'))
+    employee = None
+    if employee_pk:
+        employee = m.Employee.objects.get_or_none(id=employee_pk, company=company)
+
+    logger.debug('employee: ' + str(employee))
+
+    if not is_validate_only and not has_error:
+        # - get now without timezone
+        now_utc_naive = datetime.utcnow()
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+
+        # -  create new user
+        prefixed_username = company.companyprefix + username
+        new_user = am.User(
+            company=company,
+            username=prefixed_username,
+            last_name=last_name,
+            email=email,
+            employee=employee,
+            role=c.ROLE_01_COMPANY,
+            permits=0,
+            is_active=True,
+            activated=False,
+            lang=user_lang,
+            modifiedby=request.user,
+            modifiedat=now_utc)
+        new_user.save()
+
+        logger.debug('new_user: ' + str(new_user))
+        if new_user:
+            new_user_pk = new_user.pk
+
+            current_site = get_current_site(request)
+
+            # -  send email 'Activate your account'
+            subject = 'Activate your TSA-secure account'
+            from_email = 'TSA-secure <noreply@tsasecure.com>'
+            message = render_to_string('signup_activation_email.html', {
+                'user': new_user,
+                'domain': current_site.domain,
+                # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
+                # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                'token': account_activation_token.make_token(new_user),
+            })
+            # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
+            mails_sent = send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
+            logger.debug('mails sent: ' + str(mails_sent))
+            # - return message 'We have sent an email to user'
+            msg01 = _("User '%(usr)s' is registered successfully.") % {'usr': new_user.username_sliced}
+            msg02 = _("We have sent an email to the email address '%(email)s'.") % {'email': new_user.email}
+            msg03 = _(
+                'The user must click the link in that email to verify the email address and create a password.')
+            msg04 = _("This user has no permissions yet. Don't forget to grant permissions.")
+
+            ok_dict = {'msg01': msg01, 'msg02': msg02, 'msg03': msg03, 'msg04': msg04}
+
+    return new_user_pk, err_dict, ok_dict
+
+# - +++++++++ end of create_or_validate_user_instance ++++++++++++
+
+# === update_user_instance ========== PR2020-08-16
+def update_user_instance(instance, user_pk, upload_dict, is_validate_only, request):
+    logger.debug('-----  update_user_instance  -----')
+    logger.debug('upload_dict: ' + str(upload_dict))
+    has_error = False
+    err_dict = {}
+    ok_dict = {}
+    field_changed_list = []
+    if instance:
+        company = request.user.company
+        data_has_changed = False
+        fields = ('username', 'last_name', 'email', 'employee', 'permits', 'is_active')
+        for field in fields:
+            # --- get field_dict from  item_dict  if it exists
+            field_dict = upload_dict[field] if field in upload_dict else {}
+            if field_dict and 'update' in field_dict:
+# - check if this username already exists
+                if field == 'username':
+                    new_username = field_dict.get('value')
+                    msg_err = v.validate_unique_username(new_username, company.companyprefix, user_pk)
+                    if msg_err:
+                        err_dict[field] = msg_err
+                        has_error = True
+                    if not has_error and new_username and new_username != instance.username:
+                        prefixed_username = company.companyprefix + new_username
+                        instance.username = prefixed_username
+                        data_has_changed = True
+# - check if namelast is blank
+                elif field == 'last_name':
+                    new_last_name = field_dict.get('value')
+                    msg_err = v.validate_notblank_maxlength(new_last_name, c.NAME_MAX_LENGTH, _('The name'))
+                    if msg_err:
+                        err_dict[field] = msg_err
+                        has_error = True
+                    if not has_error and new_last_name and new_last_name != instance.last_name:
+                        instance.last_name = new_last_name
+                        data_has_changed = True
+# - check if this is a valid email address:
+                elif field == 'email':
+                    new_email = field_dict.get('value')
+                    msg_err = v.validate_email_address(new_email)
+                    if msg_err:
+                        err_dict[field] = msg_err
+                        has_error = True
+# - check if this email address already exists
+                    else:
+                        msg_err = v.validate_unique_useremail(new_email, company, user_pk)
+                        if msg_err:
+                            err_dict[field] = msg_err
+                            has_error = True
+
+                    if not has_error and new_email and new_email != instance.email:
+                        instance.email = new_email
+                        data_has_changed = True
+# - get new_employee_pk
+                elif field == 'employee':
+                    new_employee_pk = field_dict.get('_pk')
+                    new_employee = None
+                    if new_employee_pk:
+                        new_employee = m.Employee.objects.get_or_none(id=new_employee_pk, company=company)
+                    if new_employee != instance.employee:
+                        instance.employee = new_employee
+                        data_has_changed = True
+
+                elif field == 'permits':
+                    new_permits = field_dict.get('value', 0)
+                    # sysadmins cannot remove sysadmin permission from their own account
+                    if request.user.is_perm_sysadmin and instance == request.user:
+                        if new_permits < c.PERMIT_64_SYSADMIN:
+                            err_dict[field] = _("System administrators cannot remove their own 'system administrator' permission.")
+                            has_error = True
+                        elif new_permits % 2:  # % modulus returns the decimal part (remainder) of the quotient
+                            err_dict[field] = _("System administrators cannot set their own permission to 'read-only'.")
+                            has_error = True
+                    if not has_error and new_permits != instance.permits:
+                        instance.permits = new_permits
+                        data_has_changed = True
+
+                elif field == 'is_active':
+                    new_isactive = field_dict.get('value', False)
+                    # sysadmins cannot remove is_active from their own account
+                    if request.user.is_perm_sysadmin and instance == request.user:
+                        if not new_isactive:
+                            err_dict[field] = _("System administrators cannot make their own account inactive.")
+                            has_error = True
+                    if not has_error and new_isactive != instance.is_active:
+                        instance.is_active = new_isactive
+                        data_has_changed = True
+
+# -  update user
+        if not is_validate_only and not has_error:
+            if data_has_changed:
+# - get now without timezone
+                now_utc_naive = datetime.utcnow()
+                now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+
+                try:
+                    instance.modifiedby = request.user
+                    instance.modifiedat = now_utc
+                    instance.save()
+                    ok_dict['msg_ok'] = _("The changes have been saved successfully.")
+                except:
+                    err_dict['save'] = _('An error occurred. The changes have not been saved.')
+
+    return err_dict, ok_dict
+# - +++++++++ end of update_user_instance ++++++++++++
+
+
+# === resend_activation_email ===================================== PR2020-08-15
+def resend_activation_email(user_pk, update_wrap, err_dict, request):
+    #  resend_activation_email is called from table Users, field 'activated' when the activation link has expired.
+    #  it sends an email to the user
+    #  it returns a HttpResponse, with ok_msg or err-msg
+
+    user = am.User.objects.get_or_none(id=user_pk, company= request.user.company)
+    logger.debug('user: ' + str(user))
+    has_error = False
+    if user:
+        update_wrap['user'] = {'pk': user.pk, 'username': user.username}
+
+        current_site = get_current_site(request)
+
+# - check if user.email is a valid email address:
+        msg_err = v.validate_email_address(user.email)
+        if msg_err:
+            err_dict['msg01'] = _("'%(email)s' is not a valid email address.") % {'email': user.email}
+            has_error = True
+
+# -  send email 'Activate your account'
+        if not has_error:
+            try:
+                subject = 'Activate your TSA-secure account'
+                from_email = 'TSA-secure <noreply@tsasecure.com>'
+                message = render_to_string('signup_activation_email.html', {
+                    'user': user,
+                    'domain': current_site.domain,
+                    # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
+                    # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                    'token': account_activation_token.make_token(user),
+                })
+                # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
+                mail_count = send_mail(subject, message, from_email, [user.email], fail_silently=False)
+                if not mail_count:
+                    err_dict['msg01'] = _('An error occurred.')
+                    err_dict['msg0'] = _('The activation email has not been sent.')
+                else:
+                # - return message 'We have sent an email to user'
+                    msg01 = _("We have sent an email to the email address '%(email)s' of user '%(usr)s'.") % \
+                                                    {'email': user.email, 'usr': user.username_sliced}
+                    msg02 = _('The user must click the link in that email to verify the email address and create a password.')
+                    msg03 = _("This user has no permissions yet. Don't forget to grant permissions.")
+
+                    update_wrap['msg_ok'] = {'msg01': msg01, 'msg02': msg02, 'msg03': msg03}
+
+            except:
+                err_dict['msg01'] = _('An error occurred.')
+                err_dict['msg0'] = _('The activation email has not been sent.')
+
+# - reset expiration date by setting the field 'date_joined', to now
+        if not has_error:
+            now_utc_naive = datetime.utcnow()
+            now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+            #user.date_joined = now_utc
+
+            #user.modifiedby = request.user
+            #user.modifiedat = now_utc
+
+            #user.save()
+# === end of resend_activation_email =====================================

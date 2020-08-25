@@ -6,14 +6,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 def create_user_list(request, user_pk=None):
-    # --- create list of all users of this company PR2020-07-31
+    # --- create list of all users of this company, or 1 user with user_pk PR2020-07-31
     #logger.debug(' =============== create_user_list ============= ')
     if request.user.company and request.user.is_perm_sysadmin:
         company_pk = request.user.company.pk
         sql_employee = """ SELECT 
             au.id, 
             au.company_id, 
-            CONCAT('user_', au.id) AS rowid,
+            CONCAT('user_', au.id) AS mapid,
             'user' AS table,
             
             SUBSTRING(au.username, 7) AS username,
@@ -30,6 +30,8 @@ def create_user_list(request, user_pk=None):
             au.activated,
             au.activatedat,
             au.is_active,
+            au.last_login,
+            au.date_joined,
             
             au.employee_id,
             e.code AS employee_code,

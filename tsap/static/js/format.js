@@ -192,6 +192,8 @@
         return display_arr
     }  // format_date_from_dateJS_vanilla
 
+// +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
+
 //=========  format_time_from_offset_JSvanilla ================ PR2020-04-10
     function format_time_from_offset_JSvanilla(loc, rosterdate_iso, offset,
                                                 display24, only_show_weekday_when_prev_next_day, skip_hour_suffix) {
@@ -259,7 +261,7 @@
             const delim = (isAmPm) ? ":" : ".";
 
             let prefix = "", suffix = "";
-            if (!!rosterdate_JS){
+            if (rosterdate_JS){
                 // show weekday when rosterdate_JS has value
                 if((weekday_str)) { prefix = weekday_str + " "}
             } else {
@@ -272,8 +274,72 @@
         return time_formatted
     }  // format_time_from_offset_JSvanilla
 
+//========= display_duration  ======== PR2019-09-08
+    function display_duration (value_int, user_lang, hour_suffix, hour_suffix_plural) {
+        //console.log("===== display_duration  =====")
+        // don't use Math.floor()
+        // Math.floor() returns the largest integer less than or equal to a given number. (-2.56 becomes -3)
+        // Math.trunc() cuts off the dot and the digits to the right of it. (-2.56 becomes -2)
+        // remainder (%) returns the remainder left over when x is divided by y ( -23 % 4 = -3
 
-// +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
+        let display_value = "";
+        if(!!value_int){
+            const is_negative = (value_int < 0);
+            if (is_negative){
+                value_int = value_int * -1
+            }
+            let hour_text;
+            const hours = Math.trunc(value_int/60);
+            if (hours < 100) {
+                const hour_str = "00" + hours.toString()
+                hour_text = hour_str.slice(-2);
+            } else {
+                hour_text =  hours.toString()
+            }
+            const minutes = value_int % 60  // % is remainder operator
+            const minute_str = "00" + minutes.toString()
+            const minute_text = minute_str.slice(-2);
+            const separator = (user_lang === "en") ? ":" : ".";
+            const suffix = (!!hour_suffix && !!hour_suffix_plural) ?
+                            (hours > 1) ? " " + hour_suffix_plural : " " + hour_suffix :
+                            (user_lang === "en") ? "" :" u";
+            display_value = hour_text + separator + minute_text + suffix.toLowerCase();
+            if(is_negative){display_value = "-" + display_value}
+        }  // if(!!value_int)
+        return display_value
+    }  // display_duration
+
+//========= display_planning_period  ======== PR2020-01-21
+    function display_planning_period(selected_planning_period, loc, skip_prefix) {
+        //console.log( "===== display_planning_period  ========= ");
+        //console.log( "selected_planning_period: ", selected_planning_period);
+        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
+        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
+
+        let period_txt = "";
+        if(!skip_prefix){
+            period_txt = loc.Period + ": ";
+            if (period_tag !== "other"){
+                for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
+                    if(loc.period_select_list[i][0] === period_tag ){
+                        period_txt = loc.period_select_list[i][1] + ": "
+                        break;
+                    }
+                }
+            }
+        }
+        period_txt += format_period(loc, datefirst_ISO, datelast_ISO)
+
+        let display_text = "";
+        if (!!period_txt) {
+            display_text = period_txt;
+        } else {
+            display_text = loc.Select_period + "...";
+        }
+        return display_text;
+    }  // display_planning_period
+
 
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
     function format_datemediumXXX(dtl, weekday_list, month_list, skip_weekday, skip_year) {
@@ -780,10 +846,12 @@
     }  // format_time_from_rosterdate_offset
 
 //oooooooooooooooooooooooooooooooo
-//========= format_datetime_element  ======== PR2019-06-03
-    function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
-        //console.log("------ format_datetime_element --------------")
+//========= format_datetime_elementMOMENT  ======== PR2019-06-03
+    function format_datetime_elementMOMENT (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
+        //console.log("------ format_datetime_elementMOMENT --------------")
         //console.log("field_dict: ", field_dict)
+
+        // TODO use format_datetime_from_datetimeJS(loc, datetimeJS) instead
 // probably not in use PR2020-01-16
 // used by employees.js UpdateField, fields "timestart", "timeend", not in table 'planning > maybe not in use
 // used by schemes.js UpdateField, fields "timestart", "timeend" > not in use
@@ -959,7 +1027,7 @@
 
 
         }  // if(!!el_input && !!field_dict){
-    }  // function format_datetime_element
+    }  // function format_datetime_elementMOMENT
 
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
@@ -1427,72 +1495,6 @@
     function insertAtIndex (string, index, new_character) {
         return string.substr(0, index) + new_character + string.substr(index);
     }
-//========= display_duration  ======== PR2019-09-08
-    function display_duration (value_int, user_lang, hour_suffix, hour_suffix_plural) {
-        //console.log("+++++++++ display_duration")
-        // don't use Math.floor()
-        // Math.floor() returns the largest integer less than or equal to a given number. (-2.56 becomes -3)
-        // Math.trunc() cuts off the dot and the digits to the right of it. (-2.56 becomes -2)
-        // remainder (%) returns the remainder left over when x is divided by y ( -23 % 4 = -3
-
-        let display_value = "";
-        if(!!value_int){
-            const is_negative = (value_int < 0);
-            if (is_negative){
-                value_int = value_int * -1
-            }
-            let hour_text;
-            const hours = Math.trunc(value_int/60);
-            if (hours < 100) {
-                const hour_str = "00" + hours.toString()
-                hour_text = hour_str.slice(-2);
-            } else {
-                hour_text =  hours.toString()
-            }
-            const minutes = value_int % 60  // % is remainder operator
-            const minute_str = "00" + minutes.toString()
-            const minute_text = minute_str.slice(-2);
-            const separator = (user_lang === "en") ? ":" : ".";
-            const suffix = (!!hour_suffix && !!hour_suffix_plural) ?
-                            (hours > 1) ? " " + hour_suffix_plural : " " + hour_suffix :
-                            (user_lang === "en") ? "" :" u";
-            display_value = hour_text + separator + minute_text + suffix.toLowerCase();
-            if(is_negative){display_value = "-" + display_value}
-        }  // if(!!value_int)
-        return display_value
-    }  // display_duration
-
-
-//========= display_planning_period  ======== PR2020-01-21
-    function display_planning_period(selected_planning_period, loc, skip_prefix) {
-        //console.log( "===== display_planning_period  ========= ");
-        //console.log( "selected_planning_period: ", selected_planning_period);
-        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
-        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
-
-        let period_txt = "";
-        if(!skip_prefix){
-            period_txt = loc.Period + ": ";
-            if (period_tag !== "other"){
-                for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
-                    if(loc.period_select_list[i][0] === period_tag ){
-                        period_txt = loc.period_select_list[i][1] + ": "
-                        break;
-                    }
-                }
-            }
-        }
-        period_txt += format_period(loc, datefirst_ISO, datelast_ISO)
-
-        let display_text = "";
-        if (!!period_txt) {
-            display_text = period_txt;
-        } else {
-            display_text = loc.Select_period + "...";
-        }
-        return display_text;
-    }  // display_planning_period
 
 //========= format_restshift_element  ======== PR2019-10-03
     function format_restshift_element (el_input, field_dict, imgsrc_rest_black, imgsrc_stat00, title) {
@@ -1670,22 +1672,22 @@
             let imgsrc = imgsrc_stat00;
             let title = "";
             let icon_class = "stat_0_0"
-            if (!status_sum ) { //STATUS_00_NONE = 0
+            if (!status_sum ) { //STATUS_000_NONE = 0
                 icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
                 title = loc.This_isan_added_shift;
-            } else if (status_sum === 1) { //STATUS_01_CREATED = 1
+            } else if (status_sum === 1) { //STATUS_001_CREATED = 1
                 icon_class = (has_changed) ? "stat_1_1" : "stat_0_1"
                 title = loc.This_isa_planned_shift;
-            } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED
+            } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_004_START_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
                 title = loc.Starttime_confirmed
-            } else if ([4,5].indexOf(status_sum) > -1) { //STATUS_04_END_CONFIRMED
+            } else if ([4,5].indexOf(status_sum) > -1) { //STATUS_016_END_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
                 title = loc.Endtime_confirmed
-            } else if ([6,7].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED + STATUS_04_END_CONFIRMED
+            } else if ([6,7].indexOf(status_sum) > -1) { //STATUS_004_START_CONFIRMED + STATUS_016_END_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
                 title = loc.Start_and_endtime_confirmed;
-            } else { //STATUS_08_LOCKED = 8
+            } else { //STATUS_032_LOCKED = 32
                 icon_class = (has_changed) ? "stat_1_5" : "stat_0_5"
                 title = loc.This_shift_is_locked;
             }
@@ -1786,8 +1788,8 @@
 //=========  ShowClassWithTimeout  ================ PR2020-04-26 PR2020-07-15
     function ShowClassWithTimeout(el, className, timeout) {
         // show class, remove it after timeout milliseconds
-        if(!timeout) { timeout = 2000};
         if(el && className){
+            if(!timeout) { timeout = 2000};
             el.classList.add(className);
             setTimeout(function (){el.classList.remove(className)}, timeout);
         };

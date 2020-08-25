@@ -39,7 +39,7 @@
                                         placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                                 </div>
                             </div>
-                            <div class="border_bg_valid m-4 tab_show tab_ok display_hide">
+                            <div id="id_msg_container" class="border_bg_valid m-4 tab_show tab_ok display_hide">
                                 <p id="id_msg_01" class="tsa_margin_form_label mx-4"></p>
                                 <p id="id_msg_02" class="tsa_margin_form_label mx-4"></p>
                                 <p id="id_msg_03" class="tsa_margin_form_label mx-4"></p>
@@ -52,54 +52,56 @@
                                     </div>
                                 </div>
                             </div>
-                <div class="tab_show tab_addnew tab_select tab_update display_hide">
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1">
-                                    <label for="id_MSU_username" class="mx-2 ">{% trans 'Username' %}:</label>
-                                    <input id="id_MSU_username" type="text" data-field="username"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+
+                            <div class="tab_show tab_addnew tab_select tab_update display_hide">
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1">
+                                        <label for="id_MSU_username" class="mx-2 ">{% trans 'Username' %}:</label>
+                                        <input id="id_MSU_username" type="text" data-field="username"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1">
+                                        <small id="id_MSU_msg_username" class="text-danger tsa_margin_form_label"></small>
+                                    </div>
+                                </div>
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1">
+                                        <label for="id_MSU_last_name" class="tsa_margin_form_label">{% trans 'Name' %}:</label>
+                                        <input id="id_MSU_last_name" type="text" data-field="last_name"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1">
+                                        <small id="id_MSU_msg_last_name" class="tsa_margin_form_label"></small>
+                                    </div>
+                                </div>
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1 ">
+                                        <label for="id_MSU_email" class="tsa_margin_form_label">{% trans 'Email address' %}:</label>
+                                        <input id="id_MSU_email" type="text" data-field="email"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="content_header">
+                                    <div class="content_subheader_left mx-1">
+                                        <small id="id_MSU_msg_email" class="tsa_margin_form_label"></small>
+                                    </div>
+                                </div>
+                                <div class="content_header mx-2 mt-2 tab_show tab_addnew tab_select display_hide">
+                                    <div class="content_subheader_left mx-1">
+                                        <small id="id_info_footer01" ></small>
+                                    </div>
+                                </div>
+                                <div class="content_header mx-2 tab_show tab_addnew tab_select display_hide">
+                                    <div class="content_subheader_left mx-1">
+                                        <small id="id_info_footer02" ></small>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1">
-                                    <small id="id_MSU_msg_username" class="text-danger tsa_margin_form_label"></small>
-                                </div>
-                            </div>
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1">
-                                    <label for="id_MSU_last_name" class="tsa_margin_form_label">{% trans 'Name' %}:</label>
-                                    <input id="id_MSU_last_name" type="text" data-field="last_name"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                                </div>
-                            </div>
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1">
-                                    <small id="id_MSU_msg_last_name" class="tsa_margin_form_label"></small>
-                                </div>
-                            </div>
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1 ">
-                                    <label for="id_MSU_email" class="tsa_margin_form_label">{% trans 'Email address' %}:</label>
-                                    <input id="id_MSU_email" type="text" data-field="email"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                                </div>
-                            </div>
-                            <div class="content_header">
-                                <div class="content_subheader_left mx-1">
-                                    <small id="id_MSU_msg_email" class="tsa_margin_form_label"></small>
-                                </div>
-                            </div>
-                            <div class="content_header mx-2 mt-2 tab_show tab_addnew tab_select display_hide">
-                                <div class="content_subheader_left mx-1">
-                                    <small id="id_info_footer01" ></small>
-                                </div>
-                            </div>
-                            <div class="content_header mx-2 tab_show tab_addnew tab_select display_hide">
-                                <div class="content_subheader_left mx-1">
-                                    <small id="id_info_footer02" ></small>
-                                </div>
-                            </div>
-    </div>
+
                         </div>
                     </div>
                 </div>

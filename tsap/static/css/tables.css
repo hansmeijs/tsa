@@ -210,17 +210,29 @@
     width: 18px;
     height: 18px;
 }
-/* SPRITES */
+/* SPRITES PR2020-08-17 */
 
+.stat_0_0, .stat_0_1, .stat_0_2, .stat_0_3, .stat_0_4, .stat_0_5, .stat_0_6,
+.stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6,
+.inactive_0_0, .inactive_0_1, .inactive_0_2, .inactive_0_3,
+.inactive_1_0, .inactive_1_1, .inactive_1_2, .inactive_1_3,
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4,
+.xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3,
+.exclamation_0_0, .exclamation_0_1, .exclamation_0_2,
+.tickmark_0_0, .tickmark_0_1, .tickmark_0_2,
+.delete_0_0, .delete_0_1, .delete_0_2 {
+    background-repeat: no-repeat;
+    height: 20px;
+    width: 20px;
+    margin: auto;
+    padding-top: 2px;
+    cursor: pointer;
+}
 
 .stat_0_0, .stat_0_1, .stat_0_2, .stat_0_3, .stat_0_4, .stat_0_5, .stat_0_6,
 .stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6 {
     background-image: url('/static/img/status.png');
     background-size: 140px 40px;
-    background-repeat: no-repeat;
-    height: 20px;
-    width: 20px;
-    /*border: none;*/
 }
 .stat_0_0 { background-position: -0px -0px;}
 .stat_0_1 { background-position: -20px -0px;}
@@ -237,8 +249,83 @@
 .stat_1_5 { background-position: -100px -20px;}
 .stat_1_6 { background-position: -120px -20px;}
 
-.pt_02px { padding-top: 2px; }
+.inactive_0_0, .inactive_0_1, .inactive_0_2, .inactive_0_3,
+.inactive_1_0, .inactive_1_1, .inactive_1_2, .inactive_1_3 {
+    background-image: url('/static/img/inactive.png');
+    background-size: 80px 40px;
+}
+.inactive_0_0 { background-position: -0px -0px;}
+.inactive_0_1 { background-position: -20px -0px;}
+.inactive_0_2 { background-position: -40px -0px;}
+.inactive_0_3 { background-position: -60px -0px;}
+.inactive_1_0 { background-position: -0px -20px;}
+.inactive_1_1 { background-position: -20px -20px;}
+.inactive_1_2 { background-position: -40px -20px;}
+.inactive_1_3 { background-position: -60px -20px;}
+
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4 {
+    background-image: url('/static/img/editor.png');
+    background-size: 100px 20px;
+}
+.edit_0_0 { background-position: -0px -0px;}
+.edit_0_1 { background-position: -20px -0px;}
+.edit_0_2 { background-position: -40px -0px;}
+.edit_0_3 { background-position: -60px -0px;}
+.edit_0_4 { background-position: -80px -0px;}
+
+.xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3 {
+    background-image: url('/static/img/xmark.png');
+    background-size: 80px 20px;
+}
+.xmark_0_0 { background-position: -0px -0px;}
+.xmark_0_1 { background-position: -20px -0px;}
+.xmark_0_2 { background-position: -40px -0px;}
+.xmark_0_3 { background-position: -60px -0px;}
+
+.exclamation_0_0, .exclamation_0_1, .exclamation_0_2 {
+    background-image: url('/static/img/exclamation.png');
+    background-size: 60px 20px;
+}
+.exclamation_0_0 { background-position: -0px -0px;}
+.exclamation_0_1 { background-position: -20px -0px;}
+.exclamation_0_2 { background-position: -40px -0px;}
+
+.tickmark_0_0, .tickmark_0_1, .tickmark_0_2 {
+    background-image: url('/static/img/tickmark.png');
+    background-size: 60px 20px;
+}
+.tickmark_0_0 { background-position: -0px -0px;}
+.tickmark_0_1 { background-position: -20px -0px;}
+.tickmark_0_2 { background-position: -40px -0px;}
+
+.delete_0_0, .delete_0_1, .delete_0_2 {
+    background-image: url('/static/img/delete.png');
+    background-size: 60px 20px;
+}
+.delete_0_0 { background-position: -0px -0px;}
+.delete_0_1 { background-position: -20px -0px;}
+.delete_0_2 { background-position: -40px -0px;}
+
+.btn_del_0_1, .btn_del_0_2 {
+    background-image: url('/static/img/btn_del.png');
+    background-size: 84px 28px;
+    background-repeat: no-repeat;
+
+    border: 1px solid #808080;  /* #2d2400 = 45 36 0 Panta Rhei grijs;*/  /* #808080; /* dark grey 128 128 128 */
+    border-radius: .1rem;
+    box-shadow: 2px 2px #808080;
+
+    height: 28px;
+    width: 28px;
+    margin: 0;
+    padding-top: 0px;
+    cursor: pointer;
+}
+.btn_del_0_1 { background-position: -28px -0px;}
+.btn_del_0_2 { background-position: -56px -0px;}
+
 /* END OF SPRITES */
+
 
 .tw_360 { width: 360px; }
 .tw_300 { width: 300px; }
@@ -273,6 +360,8 @@
 .tsa_tr_selected {
     background: #e0e0e0; /* light grey; tsa_tr_selected*/
 }
+
+
 
 .tsa_tr_error {
    /* background: #f1b5b5; /* licht rood; */
@@ -379,7 +468,13 @@
     /* padding: <top><right><bottom><left> */
     padding: 20px 20px 20px 20px;
 }
+.tsa_btn {
+    /* padding: <top><right><bottom><left> */
+     padding: 4px 4px 0px 4px;
+     margin: 4px 4px 0px 4px;
+     border: 2px solid #dc3545;    /*  red like in django is-invalid */
 
+}
 .tsa_margin_top_72 {
     /* margin: <top><right><bottom><left> */
    margin-top: 72px

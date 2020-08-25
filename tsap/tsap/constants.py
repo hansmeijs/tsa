@@ -149,41 +149,23 @@ PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on holidays', 'only on holidays', 'not 
 # PR2019-08-17
 # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
-STATUS_00_NONE = 0
-STATUS_01_CREATED = 1
-STATUS_02_START_CONFIRMED = 2
-STATUS_04_END_CONFIRMED = 4
-STATUS_08_LOCKED = 8
-STATUS_16_QUESTION = 16
-STATUS_32_REJECTED = 32
-STATUS_64_APPROVED = 64
+STATUS_000_NONE = 0
+STATUS_001_CREATED = 1
+STATUS_002_START_PENDING = 2
+STATUS_004_START_CONFIRMED = 4
+STATUS_008_END_PENDING = 8
+STATUS_016_END_CONFIRMED = 16
+STATUS_032_LOCKED = 32
 
-# shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
-SHIFT_CAT_0000_NORMAL = 0
-SHIFT_CAT_0001_INTERNAL = 1
-SHIFT_CAT_0002_BILLABLE_OVERRIDE = 2
-SHIFT_CAT_0004_BILLABLE = 4
-# SHIFT_CAT_0008_AVAILABLE = 8
-SHIFT_CAT_0016_UNASSIGNED = 16
+
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
-# SHIFT_CAT_0064_AVAILABLE = 64
-# SHIFT_CAT_0128_AVAILABLE = 128
-# SHIFT_CAT_0256_AVAILABLE = 256
 SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
-# SHIFT_CAT_1024_RESTSHIFT = 1024
-# SHIFT_CAT_2048_AVAILABLE = 2048
-# SHIFT_CAT_4096_TEMPLATE = 4096
-# SHIFT_CAT_8192_AVAILABLE = 8192
-# SHIFT_CAT_16384_AVAILABLE = 16384
 
 DATEPART01_NIGHTSHIFT_END = 360  # end of night shift 6.00 u
 DATEPART02_MORNINGSHIFT_END = 720  # end of morning shift 12.00 u
 DATEPART03_AFTERNOONSHIFT_END = 1080  # end of afternoon shift 18.00 u
 
-
 # 0 = normal, 10 = replacement
-TEAMMEMBER_CAT_00_NORMAL = 0
-TEAMMEMBER_CAT_10_REPLACEMENT = 10
 TEAMMEMBER_CAT_0512_ABSENCE = 512
 
 # PR2020-04-07 bonus added upon registering
@@ -363,8 +345,7 @@ FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', '
 
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
-                   'email', 'telephone', 'interval',
-                   'billable', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
+                   'email', 'telephone', 'interval', 'invoicecode', 'inactive', 'locked')
 
 FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',

@@ -65,14 +65,17 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['All_orders'] = TXT_All_orders if not is_custom else 'Alle projecten'
     dict['No_orders'] = TXT_No_orders if not is_custom else 'Geen projecten'
 
-
     dict['Team'] = _('Team')
     dict['Teams'] = TXT_Teams
-    dict['Employee'] = TXT_Employee
-    dict['Employees'] = TXT_Employees
-    dict['Replacement_employee'] = TXT_Replacement_employee
+
+    dict['Employee'] = _('Employee')
+    dict['Employees'] = _('Employees')
+    dict['All_employees'] = _('All employees')
+    dict['No_employees'] = _('No employees')
+
     dict['Select_employee'] = TXT_Select_employee
-    dict['No_employees'] = TXT_No_employees
+    dict['Replacement_employee'] = TXT_Replacement_employee
+
 
     dict['weekdays_abbrev'] = TXT_weekdays_abbrev
     dict['weekdays_long'] = TXT_weekdays_long
@@ -95,9 +98,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     # mod confirm
     dict['will_be_deleted'] = _(' will be deleted.')
     dict['will_be_made_inactive'] = _(' will be made inactive.')
+    dict['will_be_made_active'] = _(' will be made active.')
     dict['Do_you_want_to_continue'] = _('Do you want to continue?')
     dict['Yes_delete'] = _('Yes, delete')
     dict['Yes_make_inactive'] = _('Yes, make inactive')
+    dict['Yes_make_active'] = _('Yes, make active')
     dict['Make_inactive'] = _('Make inactive')
     dict['No_cancel'] = _('No, cancel')
 
@@ -165,6 +170,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['The_payrollperiod_data_will_be_saved'] = _('The payroll period data will be saved.')
         dict['Upload_payrollperiods'] = _('Upload payroll periods')
+
 # ====== PAGE COMPANY =========================
     elif page == 'company':
         dict['Description'] = TXT_Description
@@ -187,7 +193,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
         dict['Add_employee'] = TXT_Add_employee
         dict['Delete_employee'] = TXT_Delete_employee
-        dict['All_employees'] = TXT_All_employees
 
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
@@ -271,7 +276,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Upload_payroll_periods'] = TXT_Upload_payroll_periods
 
-
         dict['Absence'] = TXT_Absence
         dict['Absence_category'] = TXT_Absence_category
         dict['The_absence_category'] = TXT_The_absence_category
@@ -281,6 +285,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Add_abscat'] = TXT_Add_abscat
         dict['Delete_abscat'] = TXT_Delete_abscat
         dict['Make_abscat_inactive'] = TXT_Make_abscat_inactive
+
+        dict['With_absence'] = TXT_With_absence
+        dict['Without_absence'] = TXT_Without_absence
+        dict['Absence_only'] = TXT_Absence_only
 
         dict['Item_is_inactive'] = TXT_Item_is_inactive
 
@@ -396,9 +404,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
-
         # excel
-
         dict['Overview_rosterhours'] = _("Overview of roster hours")
         dict['Overview_rosterhours_per_abscat'] = _("Overview of roster hours per absence category")
 
@@ -434,7 +440,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Enter_short_name_of_customer'] = TXT_Enter_short_name_of_customer
         dict['Upload_customers_and_orders'] = TXT_Upload_customers_and_orders
 
-        dict['Cick_show_inactive_customers'] = TXT_Cick_show_inactive_customers
+        dict['Cick_show_inactive_customers'] = TXT_Click_show_inactive_customers
         dict['Make_customer_inactive'] = TXT_Make_customer_inactive
         dict['Make_order_inactive'] = TXT_Make_order_inactive
 
@@ -525,9 +531,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Select_scheme'] = _('Select scheme')
         dict['No_schemes'] = _('No schemes')
         dict['No_schemes'] = _('No schemes')
-        dict['Cick_show_inactive_schemes'] = TXT_Cick_show_inactive_schemes
-        dict['Cick_show_inactive_orders'] = TXT_Cick_show_inactive_orders
-        dict['Cick_show_inactive_teams'] = TXT_Cick_show_inactive_teams
+        dict['Cick_show_inactive_schemes'] = TXT_Click_show_inactive_schemes
+        dict['Cick_show_inactive_orders'] = TXT_Click_show_inactive_orders
+        dict['Cick_show_inactive_teams'] = TXT_Click_show_inactive_teams
 
         dict['Absence'] = TXT_Absence
         dict['Add_absence'] = TXT_Add_absence
@@ -538,6 +544,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Absence_category_2lines'] = TXT_Absence_category_2lines
         dict['Absence_categories'] = TXT_Absence_categories
         dict['is_in_service_thru'] = TXT_is_in_service_thru
+
+        dict['First_date'] = TXT_First_date
+        dict['Last_date'] = TXT_Last_date
+        dict['Hours_per_day'] = TXT_Hours_per_day
 
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
@@ -565,8 +575,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Public_holidays'] = TXT_Public_holidays
         dict['Public_holiday'] = TXT_Public_holiday
 
-
-
         dict['Cycle_starts_at'] = _('Cycle starts at')
 
         dict['New'] = TXT_New
@@ -586,13 +594,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['This_teammember'] = TXT_This_teammember
         dict['Add_employee'] = TXT_Add_employee
 
-
         dict['Add_teammember'] = TXT_Add_teammember
         dict['Delete_teammember'] = TXT_Delete_teammember
 
         dict['All_schemeitems_willbe_deleted'] = _('All shifts of this scheme will be deleted.')
         dict['Delete_scheme_shifts'] = _('Delete scheme shifts.')
-
 
         #dict['Replacement_employee'] = TXT_Replacement_employee
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
@@ -657,9 +663,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Scheme'] = TXT_Scheme
         dict['Billable'] = TXT_Billable
 
-        # sidebar
-        dict['All_employees'] = TXT_All_employees
-
         # mod select price
         dict['Select_hourly_rate_or_enter_new'] = _('Select an hourly rate in the list or enter a new rate')
         dict['Select_addition_or_enter_new'] = _('Select an addition in the list or enter a new addition')
@@ -693,7 +696,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         # sidebar
         dict['Select_customer'] = TXT_Select_customer
-        dict['All_employees'] = TXT_All_employees
         dict['Current_teammember'] = TXT_Current_teammember
         dict['Current_teammembers'] = TXT_Current_teammembers
 
@@ -810,7 +812,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['This_isa_restshift'] = TXT_This_isa_restshift
 
         dict['This_employee'] = TXT_This_employee
-        dict['All_employees'] = TXT_All_employees
 
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
@@ -819,9 +820,21 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Print_date'] = TXT_Print_date
         dict['Page'] = TXT_Page
 
+
+        dict['AllShifts'] = _('All shifts')
+        dict['NightshiftsOnly'] = _('Night shifts only')
+        dict['DayshiftsOnly'] = _('Day shifts only')
+        dict['EveningshiftsOnly'] = _('Evening shifts only')
+
+        dict['Night_shifts'] = _('Night shifts')
+        dict['Day_shifts'] = _('Day shifts')
+        dict['Evening_shifts'] = _('Evening shifts')
+
         dict['With_absence'] = TXT_With_absence
         dict['Without_absence'] = TXT_Without_absence
         dict['Absence_only'] = TXT_Absence_only
+        dict['Select_abscat'] = TXT_Select_abscat
+        dict['No_absence_categories'] = TXT_No_absence_categories
 
         dict['Rest_shifts'] = TXT_Rest_shifts
         dict['With_restshifts'] = TXT_With_restshifts
@@ -856,6 +869,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Delete_employee'] = TXT_Delete_employee
         dict['Delete_absence'] = TXT_Delete_absence
         dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
+
         dict['Employee_tobe_switched_with'] = _('Employee to be switched with')
         dict['Select_date'] = _('Select date')
         dict['Nodates_thatcanbe_switched'] = _('No dates with shifts that can be switched')
@@ -867,6 +882,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Break_hours_2lines'] = TXT_Break_hours_2lines
         dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
         dict['Absence_2lines'] = TXT_Absence_2lines
+
+        dict['Company'] = TXT_Company
 
         dict['Total'] = TXT_Total
 
@@ -911,8 +928,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
             ('lmonth', TXT_lastmonth),
             ('other', TXT_customperiod)
         )
-
-        dict['All_employees'] = TXT_All_employees
 
         dict['Rosterdate'] = TXT_Rosterdate
         dict['Worked_hours'] = TXT_Worked_hours
@@ -977,9 +992,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Billable'] = TXT_Billable
 
-        # sidebar
-        dict['All_employees'] = TXT_All_employees
-
         # mod select price
         dict['Select_hourly_rate_or_enter_new'] = _('Select an hourly rate in the list or enter a new rate')
         dict['Select_addition_or_enter_new'] = _('Select an addition in the list or enter a new addition')
@@ -1003,6 +1015,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['User_list'] = _('User list')
         dict['Permissions'] = _('Permissions')
+        dict['Set_permissions'] = _('Set permissions')
         dict['User'] = _('User')
         dict['Read_only'] = _('Read only')
         dict['Read_only_2lines'] =  pgettext_lazy('2 lines', 'Read\nonly')
@@ -1014,19 +1027,28 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['System_administrator'] = _('System administrator')
         dict['System_administrator_2lines'] = pgettext_lazy('2 lines', 'System\nadministrator')
 
+        dict['Sysadm_cannot_delete_own_account'] = _("System administrators cannot delete their own account.")
+        dict['Sysadm_cannot_remove_sysadm_perm'] = _("System administrators cannot remove their own 'system administrator' permission.")
+        dict['Sysadm_cannot_set_readonly'] = _("System administrators cannot set their own permission to 'read-only'.")
+        dict['Sysadm_cannot_set_inactive'] = _("System administrators cannot make their own account inactive.")
+
         dict['Username'] = _('Username')
         dict['Name'] = _('Name')
         dict['Email_address'] = TXT_Email_address
         dict['Linked_to_employee'] = _('Linked to employee')
         dict['Activated_at'] = _('Activated at')
+        dict['Last_loggedin'] = _('Last logged in')
         dict['Add_user'] = _('Add user')
         dict['Delete_user'] = _('Delete user')
         dict['This_user'] = _('This user')
         dict['Submit_employee_as_user'] = _('Submit employee as user')
         dict['Submit'] = _('Submit')
+        dict['Inactive'] = TXT_Inactive
 
         dict['No_user_selected']  = _('There is no user selected.')
-        dict['Make_user_inactive'] = _('Make user inactive.')
+        dict['Make_user_inactive'] = _('Make user inactive')
+        dict['Make_user_active'] = _('Make user active')
+        dict['This_user_is_inactive'] = _('This user is inactive.')
 
         dict['msg_user_info'] = [
             str(_('Required, maximum %(max)s characters. Letters, digits and @/./+/-/_ only.') % {'max': c.USERNAME_SLICED_MAX_LENGTH}),
@@ -1035,6 +1057,16 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Click_to_register_new_user'] = _('Click the submit button to register the new user.')
         dict['We_will_send_an_email_to_the_new_user'] = _('We will send an email to the new user, with a link to create a password and activate the account.')
+        dict['Activationlink_expired'] = _('The link to active the account is valid for 7 days and has expired.')
+        dict['We_will_resend_an_email_to_user'] = _('We will email a new activation link to user')
+        dict['Activation_email_not_sent'] = _('The activation email has not been sent.')
+
+
+        dict['Resend_activationlink'] = _('Click to send an email with a new activation link.')
+        dict['Activated'] = _('Activated')
+        dict['Resend_activation_email'] = _('Resend activation email')
+
+        dict['Yes_send_email'] = _('Yes, send email')
 
     return dict
 
@@ -1112,16 +1144,16 @@ TXT_Delete_customer = _('Delete customer')
 TXT_Enter_short_name_of_customer = _('Enter short name of customer')
 
 TXT_Upload_customers_and_orders = _('Upload customers and orders')
-TXT_Cick_show_inactive_customers = _('Click to show or hide inactive customers.')
 
-TXT_Make_customer_inactive = _('Make customer inactive.')
-TXT_Make_order_inactive = _('Make order inactive.')
-TXT_Make_planned_shifts_inactive = _('Make planned shifts inactive.')
+TXT_Make_customer_inactive = _('Make customer inactive')
+TXT_Make_order_inactive = _('Make order inactive')
+TXT_Make_planned_shifts_inactive = _('Make planned shifts inactive')
 
-TXT_Cick_show_inactive_orders = _('Click to show or hide inactive orders.')
-TXT_Cick_show_inactive_schemes = _('Click to show or hide inactive schemes.')
-TXT_Cick_show_inactive_shifts = _('Click to show or hide inactive shifts.')
-TXT_Cick_show_inactive_teams = _('Click to show or hide inactive teams.')
+TXT_Click_show_inactive_customers = _('Click to show or hide inactive customers.')
+TXT_Click_show_inactive_orders = _('Click to show or hide inactive orders.')
+TXT_Click_show_inactive_schemes = _('Click to show or hide inactive schemes.')
+TXT_Click_show_inactive_shifts = _('Click to show or hide inactive shifts.')
+TXT_Click_show_inactive_teams = _('Click to show or hide inactive teams.')
 
 TXT_Print_planning = _('Print planning')
 TXT_Preview_planning = _('Preview planning')
@@ -1201,15 +1233,12 @@ TXT_Upload_payroll_periods = _('Upload payroll periods')
 
 TXT_Email_address = _('Email address')
 
-TXT_Employee = _('Employee')
-TXT_Employees = _('Employees')
 TXT_This_employee = _('This employee')
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
 TXT_Delete_employee = _('Delete employee')
 TXT_Remove_employee = _('Remove employee')
-TXT_No_employees = _('No employees')
-TXT_All_employees = _('All employees')
+
 TXT_Current_teammember = _('Current teammember')
 TXT_Current_teammembers = _('Current teammembers')
 
@@ -1245,7 +1274,7 @@ TXT_Absence_categories = _('Absence categories')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_absence_categories = _('No absence categories')
 TXT_Delete_abscat = _('Delete absence category')
-TXT_Make_abscat_inactive = _('Make absence category inactive.')
+TXT_Make_abscat_inactive = _('Make absence category inactive')
 TXT_Add_abscat = _('Add absence category')
 
 TXT_Add_absence = _('Add absence')
@@ -1274,6 +1303,7 @@ TXT_Priority = _("Priority")
 TXT_The_priority = _("The priority")
 
 TXT_Item_is_inactive = _("This item is inactive.")
+TXT_Inactive = _("Inactive")
 
 TXT_With_restshifts = _('With restshifts')
 TXT_Without_restshifts = _("Without restshifts")
@@ -1285,7 +1315,7 @@ TXT_Shift_outside_display_period = _("Shift outside display period")
 
 TXT_This_payrollperiod = _('This payroll period')
 TXT_Add_payrollperiod = _('Add payroll period')
-TXT_Make_payrollperiod_inactive = _('Make payroll period inactive.')
+TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
 TXT_Delete_payrollperiod = _('Delete payroll period')
 
 TXT_Function = _("Function")
@@ -1293,21 +1323,21 @@ TXT_Functions = _("Functions")
 TXT_No_functions = _('No functions')
 TXT_This_function = _('This function')
 TXT_Add_function= _('Add function')
-TXT_Make_function_inactive = _('Make function inactive.')
+TXT_Make_function_inactive = _('Make function inactive')
 TXT_Delete_function = _('Delete function')
 
 TXT_Wage_code = _('Wage code')
 TXT_Hourly_wage = _('Hourly wage')
 TXT_This_wagecode = _('This wage code')
 TXT_Add_wagecode= _('Add wage code')
-TXT_Make_wagecode_inactive = _('Make wage code inactive.')
+TXT_Make_wagecode_inactive = _('Make wage code inactive')
 TXT_Delete_wagecode = _('Delete wage code')
 
 TXT_Wage_factor = _('Wage factor')
 TXT_Percentage = _('Percentage')
 TXT_This_wagefactor = _('This wage factor')
 TXT_Add_wagefactor= _('Add wage factor')
-TXT_Make_wagefactor_inactive = _('Make wage factor inactive.')
+TXT_Make_wagefactor_inactive = _('Make wage factor inactive')
 TXT_Delete_wagefactor = _('Delete wage factor')
 
 TXT_one = _('one')
@@ -1351,7 +1381,7 @@ TXT_nextweek = _('Next week')
 TXT_lastweek = _('Last week')
 TXT_thismonth = _('This month')
 TXT_lastmonth = _('Last month')
-TXT_nextmonth = _('Next month')
+
 TXT_customperiod = _('Custom period...')
 TXT_All_customers = _('All customers')
 TXT_All_orders = _('All orders')
@@ -1494,7 +1524,9 @@ TXT_Period_planning_list = (
     ('nweek', TXT_nextweek),
     ('tmonth', TXT_thismonth),
     ('lmonth', TXT_lastmonth),
-    ('nmonth', TXT_nextmonth),
+    ('nmonth', _('Next month')),
+    ('tyear', _('This year')),
+    ('lyear', _('Last year')),
     ('other', TXT_customperiod)
 )
 

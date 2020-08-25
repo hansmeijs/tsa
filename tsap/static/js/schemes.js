@@ -104,12 +104,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_tags:  ["div", "div", "input", "input", "div", "div"],
                         field_width: ["120", "150", "150", "150", "150", "032"],
                         field_align: ["l", "l", "l", "l", "l", "r"]},
-            absence: { tbl_col_count: 8,
-                        field_caption: ["Employee", "Absence_category", "Start_date", "End_date", "Start_time", "End_time", "Hours", ""],
-                        field_names: ["employee", "order", "datefirst", "datelast", "offsetstart", "offsetend", "timeduration", "delete"],
-                        field_tags:  ["div", "div", "div", "div", "div", "div", "div", "div"],
-                        field_width: ["2200", "180", "120", "120", "090", "090", "090", "032"],
-                        field_align: ["l", "l", "r", "r", "r", "r", "r", "r"]},
+            absence: { tbl_col_count: 9,
+                        field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
+                        field_names: ["", "employee", "order", "datefirst", "datelast", "timestart", "timeend", "timeduration", "delete"],
+                        filter_tags: ["", "text", "text", "text", "text", "text", "text", "text", "text","duration"],
+                        field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "032"],
+                        field_align: ["c", "l", "l", "r", "r", "r", "r", "r", "c"]},
             }
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===================== EventListener for MODAL ===================================
 
 // ---  MOD SELECT CUSTOMER / ORDER ------------------------------
-        let el_MSCO_tblbody_custorder = document.getElementById("id_MSCO_tbody_custorder");
+        let el_MSCO_tblbody_custorder = document.getElementById("id_MSCO_tbody_select");
         let el_MSCO_input_custorder = document.getElementById("id_MSCO_input_custorder")
             el_MSCO_input_custorder.addEventListener("keyup", function(event){
                 setTimeout(function() {MSCO_FilterCustOrder()}, 50)});
@@ -198,10 +198,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MDAL SELECT EMPLOYEE
         let el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
-        document.getElementById("id_ModSelEmp_input_employee").addEventListener("keyup", function(event){
+        document.getElementById("id_MSE_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() {MSE_filter_employee("filter", event.key)}, 50)});
         document.getElementById("id_ModSelEmp_btn_save").addEventListener("click", function() {MSE_Save("save")}, false )
-        document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {MSE_Save("remove")}, false )
+        document.getElementById("id_MSE_btn_remove").addEventListener("click", function() {MSE_Save("remove")}, false )
 
 // ---  MODAL SCHEME
         // form-control is a bootstrap class, tsa_input_checkbox is a TSA class only used to select input checkboxes
@@ -341,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
+
                 console.log("response")
                 console.log(response)
 // ---  hide loader
@@ -408,13 +409,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
         if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
-        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
+        if ("shift_list" in response) {
+            refresh_datamap(response.shift_list, shift_map)
+    console.log("response.shift_list", response.shift_list)
+    console.log("shift_map", shift_map)
+        }
         if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
         if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
         if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
         if ("employee_list" in response) {refresh_datamap(response["employee_list"], employee_map)}
-        if ("abscat_list" in response) {refresh_datamap(response["abscat_list"], abscat_map)}
-        if ("absence_list" in response) {refresh_datamap(response["absence_list"], absence_map, "absence")}
+        if ("abscat_rows" in response) {refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
+        if ("absence_rows" in response) {refresh_datamap(response["absence_rows"], absence_map, "absence")}
         if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
 
         if ("scheme_list" in response) {
@@ -452,12 +457,10 @@ document.addEventListener('DOMContentLoaded', function() {
         //>>>>>>>>>sidebar_tblBody_scheme.innerText = null;
         SBR_FillSelectTable("UpdateTablesAfterResponse")
 
-        FillTableRows(tblName);
+        //FillTableRows(tblName);
         HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
     };  //  UpdateTablesAfterResponse
-
-
 
 //=========  selected_item_exists_in_map  === PR2020-05-01
     function selected_item_exists_in_map(data_map, tblName, selected_pk) {
@@ -606,8 +609,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  show only the elements that are used in this tab
         show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 // +++  when is_absence_mode
-        if (is_absence_mode){
-            FillAbsenceTableRows();
+        if (selected_btn === "btn_absence"){
+            CreateAbsenceTblHeader();
+            FillAbsenceTblRows();
         } else {
 // +++  when is normal_mode / template mode
     // ---  fill TableRows, resets when tblName=null (when btn_grid)
@@ -1455,7 +1459,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  CreateTblHeaderFilter  ================ PR2019-09-15 PR2020-05-22
     function CreateTblHeaderFilter(tblName, column_count) {
-        //console.log("=========  CreateTblHeaderFilter =========");
+        console.log("=========  CreateTblHeaderFilter =========");
+        console.log("tblName", tblName);
 
 //+++ insert tblRow ino thead_datatable
         let tblRow = tblHead_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -1504,41 +1509,186 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
              td.appendChild(el);
         }  // for (let j = 0;
     };  //function CreateTblHeaderFilter
+//##################################################################################
+// +++++++++++++++++ ABSENCE TABLE ROWS +++++++++++++++++++++++++++++++++++++++
 
-//========= FillAbsenceTableRows  ====================================
-    function FillAbsenceTableRows() {
-        //console.log( "===== FillAbsenceTableRows  ========= ");
-        //console.log( "tblName:", tblName);
-        // tblNames are: "shift", "teammember", "scheme", "absence" (=teamemmber", "schemeitem" : null;
+//=========  CreateAbsenceTblHeader  === PR2020-08-12
+    function CreateAbsenceTblHeader() {
+        console.log("===  CreateAbsenceTblHeader ==");
+        const sel_btn = "absence";
+// ---  reset table
+        tblHead_datatable.innerText = null
+        tblBody_datatable.innerText = null
+// +++  insert header row and filter row ++++++++++++++++++++++++++++++++
+        const header_row = tblHead_datatable.insertRow (-1);
+        const filter_row = tblHead_datatable.insertRow (-1);
+//--- insert th's
+        const col_count = field_settings[sel_btn].tbl_col_count
+        const field_captions =  field_settings[sel_btn].field_caption
+        const field_names =  field_settings[sel_btn].field_names
+        for (let i = 0; i < col_count; i++) {
+            const caption = (field_captions[i]) ? loc[field_captions[i]] : null;
+            const fldName = (field_names[i]) ? field_names[i] : null;
+// --- add th and div to header_row.
+            let th = document.createElement("th");
+                const el_div = document.createElement("div");
+// --- add innerText to el_div
+                el_div.innerText = caption;
+// --- add width, text_align and left margin to first column
+                const class_width = "tw_" + field_settings[sel_btn].field_width[i] ;
+                const class_align = "ta_" + field_settings[sel_btn].field_align[i] ;
+                el_div.classList.add(class_width, class_align);
+// add right padding to date and number fields
+                if([3,4,5,6,7].indexOf(i) > -1) {el_div.classList.add("pr-2")};
+                th.appendChild(el_div);
+            header_row.appendChild(th);
+// +++  insert filter row ++++++++++++++++++++++++++++++++
+            th = document.createElement("th");
+// --- add input element
+                const el_tag = (i === 0 ) ? "div" : "input"
+                const el_input = document.createElement(el_tag);
+                if(i > 0 ) {
+// --- add EventListener
+                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event.which)});
+    // --- add attributes
+                    if(fldName) {el_input.setAttribute("data-field", fldName)};
+                    el_input.setAttribute("autocomplete", "off");
+                    el_input.setAttribute("ondragstart", "return false;");
+                    el_input.setAttribute("ondrop", "return false;");
+// --- add width, text_align and left margin to first column
+                }
+                el_input.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
+// --- append th
+            th.appendChild(el_input);
+            filter_row.appendChild(th);
+        };
+    };  //  CreateAbsenceTblHeader
+
+//========= FillAbsenceTblRows === PR2020-08-12
+    function FillAbsenceTblRows() {
+        console.log( "===== FillAbsenceTblRows  ========= ");
 // --- reset tblBody
-        tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
-        tblFoot_datatable.innerText = null;
+
         selected.tblRow_id = null;
         selected.tblRow_rowIndex = null;
-// --- create header row and footer
-        const tblName = "absence"
-        CreateTblHeader(tblName);
-        CreateTblFooter(tblName)
-// --- loop through absence_map
-        for (const [map_id, item_dict] of absence_map.entries()) {
-            const pk_int = get_dict_value(item_dict, ["id", "pk"]);
-            const ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
-// --- get 'order_by'. This contains the number / string that must be used in ordering rows
-            const order_by = get_orderby("absence", item_dict)
-// --- get row_index
-            const row_index = t_get_rowindex_by_orderby(tblBody_datatable, order_by)
-// --- add item if row_scheme_pk = selected_ppk_int (list contains items of all parents)
-            const tblRow = CreateTblRow(tblBody_datatable, tblName, false, pk_int, ppk_int, null, row_index, order_by);
-            UpdateAbsenceTableRow(tblRow, item_dict);
-        }  // for (const [pk_int, item_dict] of data_map.entries())
-    }  // FillAbsenceTableRows
 
+// --- loop through absence_map
+        for (const [map_id, map_dict] of absence_map.entries()) {
+// TODO: add filter
+            let add_Row = map_dict.c_isabsence;
+            if (add_Row){
+            const tblRow = CreateAbsenceTblRow(map_id, map_dict.id, map_dict.t_id, map_dict.e_id, -1);
+            UpdateAbsenceTblRow(tblRow, map_id, map_dict);
+            //if (map_dict.id === selected_teammember_pk) { tblRow.classList.add(cls_selected)}
+             }  // if (add_Row)
+        }  // for (const [pk_int, map_dict] of data_map.entries())
+    }  // FillAbsenceTblRows
+
+//=========  CreateAbsenceTblRow  ================ PR2019-08-29 PR2020-08-10
+    function CreateAbsenceTblRow(map_id, pk_str, ppk_str, employee_pk, row_index) {
+        //console.log("=========  CreateAbsenceTblRow =========");
+        const tblName = "teammember";
+        const sel_btn = "absence";
+        let tblRow = null;
+        if(field_settings[sel_btn]){
+// --- insert tblRow into tblBody
+            tblRow = tblBody_datatable.insertRow(row_index)
+            tblRow.id = map_id;
+            tblRow.setAttribute("data-table", tblName);
+            tblRow.setAttribute("data-pk", pk_str);
+            if(employee_pk){tblRow.setAttribute("data-employee_pk", employee_pk)};
+// --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
+//+++ insert td's into tblRow
+            const column_count = field_settings[sel_btn].tbl_col_count;
+            for (let j = 0; j < column_count; j++) {
+                let td = tblRow.insertCell(-1);
+// --- create element
+                let el = document.createElement("div");
+    // --- add field_name in data-field Attribute
+                el.setAttribute("data-field", field_settings[sel_btn].field_names[j]);
+    // --- add img delete to col_delete
+                if (j === column_count - 1) {
+                    AppendChildIcon(el, imgsrc_delete)
+    //- add hover
+                    el.addEventListener("mouseenter", function() {el.children[0].setAttribute("src", imgsrc_deletered)});
+                    el.addEventListener("mouseleave", function() {el.children[0].setAttribute("src", imgsrc_delete)});
+    // --- add EventListeners
+                    el.addEventListener("click", function() {ModConfirmOpen("delete", tblRow)}, false )
+                } else if (j){
+                    el.addEventListener("click", function() {MAB_Open(el)}, false)
+                }
+                if(j){add_hover(el)};
+    // --- add field_width and text_align
+                el.classList.add("tw_" + field_settings[sel_btn].field_width[j],
+                                 "ta_" + field_settings[sel_btn].field_align[j]);
+    // add right padding to date and number fields
+                if([3,4,5,6,7].indexOf(j) > -1) {el.classList.add("pr-2")};
+    // --- add element to td.
+                td.appendChild(el);
+            }  // for (let j = 0; j < 8; j++)
+        }  // if(field_settings[sel_btn])
+        return tblRow
+    };  // CreateAbsenceTblRow
+
+//========= UpdateAbsenceTblRow  ============= PR2020-08-08
+    function UpdateAbsenceTblRow(tblRow, map_id, map_dict){
+        //console.log("========= UpdateAbsenceTblRow  =========");
+        //console.log("map_dict", map_dict);
+        if (tblRow && !isEmpty(map_dict)) {
+            const update_status = get_dict_value(map_dict, ["status", "updated"])
+            //console.log("update_status", update_status);
+// --- loop through cells of tablerow
+            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                // el_input is first child of td, td is cell of tblRow
+                let el_input = tblRow.cells[i].children[0];
+                if(el_input){
+                    const fldName = get_attr_from_el(el_input, "data-field");
+                //  absence: ["employee", "order", "datefirst", "datelast", "workminutesperday", "delete"],
+                    if (fldName === "employee"){
+                        el_input.innerText = map_dict.e_code
+                    } else if (fldName === "replacement"){
+                        el_input.innerText = map_dict.rpl_code;
+                    } else if (fldName === "order"){
+                        const inner_text = ( (selected_btn === "shifts") ?  map_dict.c_code + " - " : "" ) + map_dict.o_code
+                        el_input.innerText = inner_text;
+                    } else if (fldName === "team"){
+                        el_input.innerText = map_dict.t_code
+                    } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
+                        let date_iso = null;
+                        if (selected_btn === "absence") {
+                            // absence gets datefirst / datelast from scheme table
+                            date_iso = (fldName === "datefirst") ? map_dict.s_df : map_dict.s_dl;
+                        } else {
+                            date_iso = (fldName === "datefirst") ? map_dict.tm_df : map_dict.tm_dl;
+                        }
+                        const date_formatted = format_dateISO_vanilla (loc, date_iso, true, false);
+                        // add linebreak on empty cell, otherwise eventlistener does not work
+                        el_input.innerText = (date_formatted) ? date_formatted : "\n";
+                    } else if (fldName === "timeduration"){
+                        let time_duration = (map_dict.sh_td_arr) ? map_dict.sh_td_arr[0] : 0;
+                        el_input.innerText = display_duration (time_duration, loc.user_lang);
+                    }
+// ---  make _updated el_input green for 2 seconds
+// make changed fields green
+                    if(update_status) {
+                        const is_updated = update_status.includes(fldName);
+                        if(is_updated){
+                           ShowOkElement(el_input, "border_bg_valid")
+                        }
+                    }
+                };  // if(!!el_input)
+            }  //  for (let j = 0; j < 8; j++)
+        };  // if (!!map_dict && !!tblRow)
+    }  // UpdateAbsenceTblRow
+
+//##################################################################################
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, is_absence_mode) {
-        //console.log( "===== FillTableRows  ========= ");
-        //console.log( "tblName:", tblName);
+        console.log( "===== FillTableRows  ========= ");
+        console.log( "tblName:", tblName);
         // tblNames are: "shift", "teammember", "scheme", "absence" (=teamemmber", "schemeitem" : null;
 
 // --- reset tblBody
@@ -1568,7 +1718,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             } else if (tblName === "schemeitem"){
                 data_map = schemeitem_map;
             };
-            //console.log( "data_map ", data_map);
+            console.log( "data_map ", data_map);
 
             rosterdate_dict = {};
             let tblRow, row_count = 0;
@@ -2040,7 +2190,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  UploadSchemeOrShiftOrTeam  ================ PR2019-08-08
     function UploadSchemeOrShiftOrTeam(tblRow, action) {
-        //console.log("========= UploadSchemeOrShiftOrTeam ===", action );
+        console.log("========= UploadSchemeOrShiftOrTeam ===", action );
         //console.log(" tblRow", tblRow);   // tblRow is SelectTableRow
         // selecttable scheme, shift, team; action 'inactive, create
         let tblName = get_attr_from_el(tblRow, "data-table");
@@ -2106,14 +2256,17 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log ("response:");
+                    console.log ("UploadSchemeOrShiftOrTeam response:");
                     console.log (response);
 
                     if ("scheme_list" in response) {
                         refresh_datamap(response["scheme_list"], scheme_map)
                         // >>>> SBR_FillSelectTable("UploadSchemeOrShiftOrTeam scheme_list");
                     }
-                    if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map) }
+                    if ("shift_list" in response) {
+                        refresh_datamap(response.shift_list, shift_map)
+                    console.log ("shift_map:", shift_map);
+                    }
                     if ("team_list" in response) {refresh_datamap(response["team_list"], team_map) }
                     if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map) }
 
@@ -3616,7 +3769,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 upload_dict.team = {id: id_dict}
                 // function 'update_instance_from_item_dict' uses "code: {value: 'Ploeg A'} .
                 // Tag 'update' is not used, instead it detects changed values
-                const is_update =  get_dict_value(team_dict, ["code", "update"], false);
+                const is_update = get_dict_value(team_dict, ["code", "update"], false);
                 if (is_update) {
                     const code = get_dict_value(team_dict, ["code", "value"]);
                     upload_dict.team.code = (!!code) ? {value: code, update: true} : {update: true};
@@ -3636,8 +3789,10 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         // keys in mod_MGT_dict are: mode, team and tm_pk's
                         if(["team", "mode"].indexOf(key) === -1){
                             const tm_dict = mod_MGT_dict[key]
+        console.log("tm_dict: ", tm_dict)
                             if(!isEmpty(tm_dict)){
                                 const mode = get_dict_value(tm_dict, ["id", "mode"]);
+        console.log("mode: ", mode)
                                 // add only teammembers with mode 'create, 'delete' or 'update'
                                 if(["create", "delete", "update"].indexOf(mode) > -1){
                                     let teammember_dict = {id: get_dict_value(tm_dict, ["id"])}
@@ -4188,8 +4343,8 @@ if(selected_btn === "btn_absence"){
         } else if (mode === "grid_si") {
             header_text = header_text;
         } else if (tblName === "schemeitem") {
-            const rosterdate = get_dict_value(map_dict, ["rosterdate", "value"])
-            let rosterdate_text = format_date_iso (rosterdate, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
+            const rosterdate_iso = get_dict_value(map_dict, ["rosterdate", "value"])
+            let rosterdate_text = format_dateISO_vanilla (loc, rosterdate_iso, false, true);
             if(!rosterdate_text){ rosterdate_text = "-"}
             const shift_text = get_dict_value(mod_dict, ["shift", "code"], "-")
             header_text = loc.Shift + " '" + shift_text + "' " + loc.of + " " + rosterdate_text;
@@ -4336,7 +4491,7 @@ if(selected_btn === "btn_absence"){
 //========= MSCO_Open ====================================  PR2020-05-21
     function MSCO_Open () {
         console.log(" ===  MSCO_Open  =====") ;
-        //console.log("selected.order_pk:", selected.order_pk) ;
+        console.log("selected.order_pk:", selected.order_pk) ;
 
         // do not update selected_period.order_pk until MSCO_Save
 // ---  reset mod_MSCO_dict
@@ -4355,8 +4510,8 @@ if(selected_btn === "btn_absence"){
 
 //=========  MSCO_FillSelectTableCustOrder  ================ PR2020-07-02
     function MSCO_FillSelectTableCustOrder(mod_name) {
-        //console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
-        const tbl_id = (mod_name === "msco") ? "id_MSCO_tbody_custorder" :
+        console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
+        const tbl_id = (mod_name === "msco") ? "id_MSCO_tbody_select" :
                        (mod_name === "mcft") ? "id_mod_copyfrom_tblbody" : null
         let tableBody = document.getElementById(tbl_id);
 
@@ -4366,9 +4521,12 @@ if(selected_btn === "btn_absence"){
             let row_count = 0;
             if (data_map) {
 
+        console.log( "data_map", data_map);
         //--- loop through data_map
-                for (const [map_id, item_dict] of data_map.entries()) {
-                    const add_to_list = MSCO_FillSelectRow(tableBody, item_dict, mod_name)
+                for (const [map_id, map_dict] of data_map.entries()) {
+
+        console.log( "map_dict", map_dict);
+                    const add_to_list = MSCO_FillSelectRow(tableBody, map_dict, mod_name)
                     if (add_to_list) { row_count += 1 };
                 };
                 if(row_count === 0){
@@ -4392,26 +4550,26 @@ if(selected_btn === "btn_absence"){
     }  // MSCO_FillSelectTableCustOrder
 
 //=========  MSCO_FillSelectRow  ================ PR2020-05-21 cleaned
-    function MSCO_FillSelectRow(tableBody, item_dict, mod_name) {
+    function MSCO_FillSelectRow(tableBody, map_dict, mod_name) {
         //console.log( "===== MSCO_FillSelectRow ========= ", tblName);
 
 //--- check if item must be added to list
         let add_to_list = false, is_selected_pk = false;
-        const is_absence = get_dict_value(item_dict, ["id", "isabsence"], false);
+        const is_absence = get_dict_value(map_dict, ["id", "isabsence"], false);
         if (is_absence === show_absence_FOR_TESTING_ONLY || show_absence_FOR_TESTING_ONLY == null){
             add_to_list = true
         } else {
-            const customer_inactive = get_dict_value(item_dict, ["customer", "inactive"], false);
-            const order_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
+            const customer_inactive = get_dict_value(map_dict, ["customer", "inactive"], false);
+            const order_inactive = get_dict_value(map_dict, ["inactive", "value"], false);
             add_to_list = (!customer_inactive && !order_inactive);
         }
 // ---  add item to list
         if (add_to_list){
-// ---  get info from item_dict
-            const pk_int = get_dict_value(item_dict, ["id", "pk"]);
-            const ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
-            const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-            const order_code = get_dict_value(item_dict, ["code", "value"], "");
+// ---  get info from map_dict
+            const pk_int = get_dict_value(map_dict, ["id", "pk"]);
+            const ppk_int = get_dict_value(map_dict, ["id", "ppk"]);
+            const customer_code = get_dict_value(map_dict, ["customer", "code"], "");
+            const order_code = get_dict_value(map_dict, ["code", "value"], "");
             const code_value = customer_code + " - " + order_code;
 // ---  insert tblRow  //index -1 results in that the new row will be inserted at the last position.
             let tblRow = tableBody.insertRow(-1);
@@ -4575,8 +4733,8 @@ if(selected_btn === "btn_absence"){
             const empl_or_repl_code = get_dict_value(mod_MGT_dict, [tm_pk_str, fldName, "code"], "---");
             let label_text = ((is_replacement) ? loc.Select_replacement_employee : loc.Select_employee ) + ":";
             let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
-            let el_label_input = document.getElementById("id_ModSelEmp_lbl_input_employee")
-            let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
+            let el_label_input = document.getElementById("id_MSE_label_employee")
+            let el_div_remove = document.getElementById("id_MSE_div_btn_remove")
             if (!!pk){
                 el_header.innerText = empl_or_repl_code
                 el_div_remove.classList.remove(cls_hide)
@@ -4585,9 +4743,9 @@ if(selected_btn === "btn_absence"){
                 el_header.innerText = label_text;
                 el_div_remove.classList.add(cls_hide)
             }
-            document.getElementById("id_ModSelEmp_lbl_input_employee").innerText = label_text
+            document.getElementById("id_MSE_label_employee").innerText = label_text
 // ---  remove values from el_mod_employee_input
-            let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
+            let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
             el_mod_employee_input.value = null
 // ---  fill selecttable employee
             MSE_FillSelectTableEmployee(pk, is_replacement)
@@ -4695,7 +4853,7 @@ if(selected_btn === "btn_absence"){
                 MSE_put_employee_in_MGT_dict(employee_dict);
 // ---  put employee_code in el_input_employee
                 const employee_code = get_dict_value(employee_dict, ["code", "value"])
-                document.getElementById("id_ModSelEmp_input_employee").value = employee_code // null value is ok, will show placeholder
+                document.getElementById("id_MSE_input_employee").value = employee_code // null value is ok, will show placeholder
 // ---  save selected employee
                 MSE_Save("save")
             }  // if (!isEmpty(employee_dict)){
@@ -4724,7 +4882,7 @@ if(selected_btn === "btn_absence"){
         console.log( "===== MSE_filter_employee  ========= ", option);
         console.log( "event_key", event_key);
 
-        let el_input = document.getElementById("id_ModSelEmp_input_employee")
+        let el_input = document.getElementById("id_MSE_input_employee")
 
         let new_filter = el_input.value;
         let skip_filter = false
@@ -5326,7 +5484,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= MAB_FillSelectTable  ============= PR2020-05-17
     function MAB_FillSelectTable(tblName, selected_pk) {
-        //console.log( "=== MAB_FillSelectTable ", tblName);
+        console.log( "=== MAB_FillSelectTable ", tblName);
 
         let tblBody = document.getElementById("id_MAB_tblbody_select");
         tblBody.innerText = null;
@@ -5338,15 +5496,31 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         el_MAB_hdr_select.innerText = hdr_text;
 
         const data_map = (is_tbl_employee) ? employee_map : abscat_map;
+
+        console.log( "data_map", data_map);
         let row_count = 0
         if (data_map.size){
-//--- loop through employee_map
+//--- loop through data_map
             for (const [map_id, item_dict] of data_map.entries()) {
-                const pk_int = get_dict_value (item_dict, ["id", "pk"])
-                const ppk_int = get_dict_value (item_dict, ["id", "ppk"])
-                const code_value = get_dict_value(item_dict, ["code", "value"], "");
+                console.log( "map_id", map_id);
+                console.log( "item_dict", item_dict);
+
+                let pk_int = null, ppk_int = null, code_value = null, is_inactive = false;
+                if(tblName === "employee"){
+                    pk_int = get_dict_value (item_dict, ["id", "pk"])
+                    ppk_int = get_dict_value (item_dict, ["id", "ppk"])
+                    code_value = get_dict_value(item_dict, ["code", "value"], "");
+                    is_inactive = get_dict_value(item_dict, ["inactive", "value"])
+                } else  if(tblName === "order"){
+                    pk_int = item_dict.id;
+                    ppk_int = item_dict.c_id;
+                    code_value = item_dict.o_code;
+                    is_inactive = item_dict.o_inactive;
+                }
+
+                console.log( "code_value", code_value);
 // --- validate if employee can be added to list
-                const is_inactive = get_dict_value(item_dict, ["inactive", "value"])
+
                 if (!is_inactive){
 //- insert tblBody row
                     let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -5452,8 +5626,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             if (tblName === "employee") {
 // ---  put value of data-pk in mod_dict
                 MAB_SetEmployeeDict(selected_pk);
-        console.log( "selected_pk", selected_pk);
-        console.log( "mod_dict.employee", deepcopy_dict(mod_dict.employee));
+        //console.log( "selected_pk", selected_pk);
+        //console.log( "mod_dict.employee", deepcopy_dict(mod_dict.employee));
 // ---  put code_value in el_input_employee
                 el_MAB_input_employee.value = mod_dict.employee.code
 // ---  update min max in date fields (
@@ -5518,14 +5692,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
         console.log( "mod_dict.datefirst", mod_dict.datefirst);
         console.log( "mod_dict.datelast", mod_dict.datelast);
+
 // set mesg when employee has last last day in service
         const el_msg = document.getElementById("id_MAB_msg_input_datefirstlast")
         add_or_remove_class(el_msg, cls_hide, !employee_datelast)
         el_msg.innerText = (employee_datelast) ? employee_code + loc.is_in_service_thru +
-                    format_date_iso (employee_datelast, loc.months_long, loc.weekdays_long,
-                    false, false, loc.user_lang) + "." : null;
+                    format_dateISO_vanilla (loc, employee_datelast, false, false) + "." : null;
 
-        console.log( "mmmmmmmmmmmmmmmmmmmmmmmmmmel_msg.innerText", el_msg.innerText);
         el_MAB_datefirst.value = mod_dict.datefirst;
         el_MAB_datelast.value = mod_dict.datelast;
 // set datelast = datefirst when  datelast  < datefirst
@@ -6482,10 +6655,10 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         if (!!tblName){
 
 // reset filter of tblHead
-            f_reset_tblHead_filter(tblHead_datatable);
+            t_reset_tblHead_filter(tblHead_datatable);
 
 //--- reset filter of select table
-            //f_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
+            //t_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
 
            // t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             //t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
@@ -7047,7 +7220,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  Grid_CreateTblShifts  === PR2020-03-13 PR2020-07-08
     function Grid_CreateTblShifts(col_index) {
-        //console.log("===  Grid_CreateTblShifts == ")
+        console.log("===  Grid_CreateTblShifts == ")
         //console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         let hide_btns_grid =  get_dict_value(grid_dict, ["nocycle"], false);
@@ -7070,7 +7243,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 // ---  clicked on col_index = 3 (today) or when opening grid table
                 // -- new Date(); also has current time. Convert to date without time
-                // -- function: get_dateJS_from_dateISO (get_today_iso()) gives date from UTC time,
+                // -- function: get_dateJS_from_dateISO (get_today_ISO()) gives date from UTC time,
                 //    instead of '2020-05-02 T 20-12' it gives '2020-05-03 T 00-12' GMT-0400 (Bolivia Time)
                 //    use today_JS_from_arr instead, remember month_index =   today_arr[1] - 1
 // --- get today if no value for grid_dict.first_rosterdate_iso
@@ -7080,7 +7253,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             // PR2020-07-17 debug.  today_JS = new Date(); gives Fri Jul 17 2020 11:16:23 GMT-0400 (Bolivia Time)
             // this messes up the lookup dates in the grid.
             // instead use:  today_JS = get_dateJS_from_dateISO(today_iso)
-            const today_iso = get_today_iso();
+            const today_iso = get_today_ISO();
             const today_JS = get_today_JS()
 
             const today_weekday = (today_JS.getDay()) ? today_JS.getDay() : 7; // Sunday = 0 in JS, Sunday = 7 in ISO
@@ -7106,7 +7279,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 } else {
                     // range is 1 - 4 weeks
                     grid_dict.col_count = 7 * grid_dict.grid_range;
-                    grid_dict.last_rosterdate_JS = addDaysJS(grid_dict.first_rosterdate_JS, grid_dict.col_count - 1);
+                    grid_dict.last_rosterdate_JS = add_daysJS(grid_dict.first_rosterdate_JS, grid_dict.col_count - 1);
                 }
                 grid_dict.last_rosterdate_iso = get_dateISO_from_dateJS(grid_dict.last_rosterdate_JS);
             } else {
@@ -7115,7 +7288,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 } else  {
                     // first rosterdate is this week Monday, unless cycle < 7 and weekday > cycle. In that case Thursday is first day
                     const add_days = (grid_dict.cycle < 7 && today_weekday > grid_dict.cycle) ? 4 : 1;
-                    grid_dict.first_rosterdate_JS = addDaysJS(today_JS, + add_days - today_weekday);
+                    grid_dict.first_rosterdate_JS = add_daysJS(today_JS, + add_days - today_weekday);
                 }
                 grid_dict.first_rosterdate = get_dateISO_from_dateJS(grid_dict.first_rosterdate_JS);
             }
@@ -7142,8 +7315,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
         // also add th's to footer row
             let first_month_index = -1, last_month_index = -1, first_year = 0, last_year = 0;
-            // first_rosterdate_JS changes when date_JS changes. addDaysJS creates copy
-            let date_JS = addDaysJS(grid_dict.first_rosterdate_JS, 0)
+            // first_rosterdate_JS changes when date_JS changes. add_daysJS creates copy
+            let date_JS = add_daysJS(grid_dict.first_rosterdate_JS, 0)
             let cell_weekday, cell_date;
 
             for (let col_index = 0, td; col_index < grid_dict.col_count + 1 ; col_index++) {
@@ -7222,9 +7395,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // +++++++++++++++++++++++++++++++++++  add shift rows  ++++++++++++++++++++++++++++++++
             let row_index = 2;
             let shifts_dict = {}
+        console.log("?? shift_map ", shift_map)
 // ---  loop through shift_map
             for (const [map_id, shift_dict] of shift_map.entries()) {
                 const ppk_int = get_dict_value(shift_dict, ["id", "ppk"], 0);
+
+        console.log("shift_dict ", shift_dict)
+        console.log("ppk_int ", ppk_int)
+        console.log("grid_dict.scheme_pk ", grid_dict.scheme_pk)
 // ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
                 if (!!ppk_int && grid_dict.scheme_pk === ppk_int) {
                     const shift_pk_int = get_dict_value(shift_dict, ["id", "pk"], 0);
@@ -7333,7 +7511,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     const day_diff = get_days_diff_JS(rosterdate_JS, grid_dict.first_rosterdate_JS)
                     let days_add = (day_diff % grid_dict.cycle) // % is remainder: -1 % 2 = -1,  1 % 2  = 1
                     if (days_add < 0 ) {days_add += grid_dict.cycle }
-                    const cell_date_JS = addDaysJS(grid_dict.first_rosterdate_JS, days_add)
+                    const cell_date_JS = add_daysJS(grid_dict.first_rosterdate_JS, days_add)
                     const cell_date_iso = get_dateISO_from_dateJS(cell_date_JS)
 // ---  convert rosterdate and shift_pk to cell_id, use "si_onph_" when on_publicholiday
                     const cell_date = (on_publicholiday) ? "onph" : cell_date_iso
@@ -7567,7 +7745,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 if([2,4].indexOf(col_index) > -1){
                     // back / forward 1 week
                     const days_add = (col_index === 2) ? -7 : 7;
-                    first_rosterdate_JS = addDaysJS(old_first_rosterdate_JS, days_add);
+                    first_rosterdate_JS = add_daysJS(old_first_rosterdate_JS, days_add);
                 } else if([1,5].indexOf(col_index) > -1){
                     if(col_index === 1){
                         first_rosterdate_JS = get_previousmonth_firstJS_from_dateJS(old_first_rosterdate_JS)
@@ -7638,8 +7816,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             console.log("on_ph ", on_ph);
             if(!grid_selected_team.pk) {
 // ---  show message in ModConfirm when there is no team selected
-                let rosterdate_text = (on_ph) ? loc.Public_holidays :
-                                    format_date_iso (rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
+                // PR2020-08-12 was: let rosterdate_text = (on_ph) ? loc.Public_holidays :
+                                        //format_date_iso (rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
+                let rosterdate_text = (on_ph) ? loc.Public_holidays : format_dateISO_vanilla (loc, rosterdate_iso, false, true);
                 if (rosterdate_text){ rosterdate_text = loc.of + " " + rosterdate_text};
                 const shift_text =  get_dict_value(cell_dict, ["shift", "code"]);
                 const header_text = loc.Shift + " '" + shift_text + "' " + rosterdate_text;

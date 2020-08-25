@@ -32,6 +32,15 @@
         </div>
 
         <div class="tw_200 mx-2 mt-2 mb-4">
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Shifts' %}:</h6>
+           <select id="id_SBR_select_shift"
+                type="text"
+                class="tw_200 border_none px-2"
+                autocomplete="off" ondragstart="return false;" ondrop="return false;"
+           ></select>
+        </div>
+
+        <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
             <input id="id_SBR_select_employee"
                 type="text"
@@ -47,6 +56,8 @@
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
         </div>
+
+
         <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Rest shifts' %}:</h6>
            <select id="id_SBR_select_restshift"
@@ -66,7 +77,7 @@
     <div class="tsa_margin_top48_left24 mx-4">
 
     {% if user.is_authenticated %}
-    {% if user.is_perm_planner %}
+    {% if user.is_perm_planner or user.is_perm_supervisor %}
 
 <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
@@ -116,12 +127,13 @@
                         </div>
                          <div class="modal_container">
                             <div class="modal_body_left">
-                                <h6 id="id_mod_status_time_label"class="modal-title mx-2" >{% trans 'Time' %}:</h6>
+                                <div class="form-group">
+                               <label id="id_mod_status_time_label" for="id_mod_status_time" class="mx-2 mt-4"></label>
+                                <input id="id_mod_status_time" type="text"
+                                       autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="modal_body_right">
-                                <h6 id="id_mod_status_time" class="modal-title mx-2" ></h6>
-                            </div>
-                        </div>
 
                         <div class="modal_container">
                             <div class="modal_body_left">
@@ -134,10 +146,8 @@
                                         ondrop="return false;"
                                         class="form-control">
                                 </div>
-
                             </div>
                         </div>
-
                         <div class="modal_container">
                             <h6 id="id_mod_status_ftr_msg" class="modal-title mx-2"></h6>
                         </div>
@@ -155,8 +165,7 @@
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modselectperiod.html' %}
 <!-- =================== MODAL TIMEPICKER  =================== -->
-    {% include 'includes/modtimepicker.html' %}
-
+        {% include 'includes/modtimepicker.html' %}
 <!-- =================== MODAL ROSTERDATE  =================== -->
         {% include 'includes/modrosterdate.html' %}
 <!-- =================== MODAL ROSTER ORDER  =================== -->
@@ -209,83 +218,14 @@
 <!-- =================== END CONTAINER =================== -->
 
         <div id="id_data"
-            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
-            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
-            data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
-            data-imgsrc_delete="{% static 'img/delete.gif' %}"
-            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
-            data-imgsrc_warning="{% static 'img/warning.gif' %}"
-            data-imgsrc_questionmark="{% static 'img/questionmark.gif' %}"
-            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
-            data-imgsrc_stat01="{% static 'img/stat01.png' %}"
-            data-imgsrc_stat02="{% static 'img/stat02.png' %}"
-            data-imgsrc_stat03="{% static 'img/stat03.png' %}"
-            data-imgsrc_stat04="{% static 'img/stat04.png' %}"
-            data-imgsrc_stat05="{% static 'img/stat05.png' %}"
-            data-imgsrc_real03="{% static 'img/real03.png' %}"
-            data-imgsrc_status="{% static 'img/status.png' %}"
-
-            data-lang ="{{ lang }}"
-            data-timezone ="{{ timezone }}"
-            data-interval ="{{ interval }}"
-            data-timeformat ="{{ timeformat }}"
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
-            data-today ="{{ today }}"
-
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-emplhour_download_url="{% url 'emplhour_download_url' %}"
             data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
 
-            data-err_msg01= "{% trans 'An error occurred.' %}"
-
-            data-txt_save = "{% trans 'Save' %}"
-            data-txt_quicksave = "{% trans 'Quick save' %}"
-            data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
-
-            data-txt_customer = "{% trans 'Customer' %}"
-            data-txt_select_customer= "{% trans 'Select customer' %}"
-            data-txt_select_customer_none= "{% trans 'No customers' %}"
-            data-txt_order= "{% trans 'Order' %}"
-            data-txt_select_order= "{% trans 'Select order' %}"
-            data-txt_select_order_none= "{% trans 'No orders' %}"
-
-            data-txt_date= "{% trans 'Date' %}"
-            data-txt_scheme= "{% trans 'Scheme' %}"
-            data-txt_scheme_add= "{% trans 'Add new scheme' %}"
-            data-txt_cycle_once= "{% trans 'Once only' %}"
-
-            data-txt_period= "{% trans 'Period' %}"
-            data-txt_period_setting= "{% trans 'Period setting' %}"
-            data-txt_period_all= "{% trans 'all' %}"
-
-            data-txt_period_gotocurr= "{% trans 'Go to current period' %}"
-            data-txt_period_gotonext= "{% trans 'Go to next period' %}"
-            data-txt_period_gotoprev= "{% trans 'Go to previous period' %}"
-
-            data-txt_range = "{% trans 'Range' %}"
-            data-txt_rosterdate= "{% trans 'Rosterdate' %}"
-            data-txt_rosterdate_fill = "{% trans 'Fill roster of' %}"
-            data-txt_rosterdate_remove = "{% trans 'Remove roster of' %}"
-            data-txt_of = "{% trans 'of' %}"
-            data-txt_shift= "{% trans 'Shift' %}"
-
-            data-txt_timestart= "{% trans 'Start time' %}"
-            data-txt_timeend= "{% trans 'End time' %}"
-            data-txt_breakhours= "{% trans 'Break hours' %}"
-            data-txt_workinghours= "{% trans 'Working hours' %}"
-
-            data-txt_employee = "{% trans 'Employee' %}"
-
-            data-txt_datefirst= "{% trans 'Start date' %}"
-            data-txt_datelast= "{% trans 'End date' %}"
-
-            data-txt_hour= "{% trans 'hour' %}"
-            data-txt_hours= "{% trans 'hours' %}"
-
-            data-msg_overlap = "{% trans 'This shift overlaps an other shift of this employee' %}"
         >
         </div>
 

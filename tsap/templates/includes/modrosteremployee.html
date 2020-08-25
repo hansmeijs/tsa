@@ -17,9 +17,12 @@
 
 <!-- modal_body_left contains employee select table -->
                         <div id="id_MRE_div_select_employee" class="modal_body_left">
+                            <div class="mx-2 my-2">
+                                <h6 id="id_MRE_select_header" class="mx-2 my-1"></h6>
+                            </div>
                             <div class="content_subheader_left mx-2 my-1">
                                 <div style="overflow-x:hidden;overflow-y:auto;height:385px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table table-condensed tsa_tbl mx-1 my-1">
+                                    <table class="table tsa_tbl mx-1 my-1">
                                         <tbody id="id_MRE_tblbody_select" data-table="employee">
                                         </tbody>
                                     </table>
@@ -28,10 +31,6 @@
                         </div>
 
                         <div id="id_MRE_body_right"  class="modal_body_right mx-2 my-2">
-                            <div id="id_MRE_btn_container_label" class="mx-2">
-                                <h6>{% trans 'Select an option' %}:</h6>
-                            </div>
-
                             <div id="id_MRE_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                                 <button data-btn="tab_absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
                                 <button data-btn="tab_move" class="btn btn-secondary">{% trans 'Different shift' %}</button>
@@ -43,14 +42,14 @@
                             </div>
                             <div class="mod_flex mx-2 my-2 mod_show tab_absence display_hide">
                                 <div class="form-group">
-                                    <label for="id_MRE_select_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
-                                    <select id="id_MRE_select_abscat"
-                                           data-name="abscat"
-                                           autocomplete="off"
-                                           ondragstart="return false;"
-                                           ondrop="return false;"
-                                           class="form-control">
-                                    </select>
+                                    <label for="id_MRE_input_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
+                                    <input id="id_MRE_input_abscat"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select an absence category in the list ...' %}">
                                 </div>
                             </div>
 
@@ -63,7 +62,7 @@
                                         ondragstart="return false;"
                                         ondrop="return false;"
                                         class="form-control"
-                                        placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
+                                        placeholder="{% trans 'Type a few letters and select an employee in the list ...' %}">
                                 </div>
                             </div>
                             <div id="id_div_mod_switch" class="mod_flex mx-2 my-2 mod_show tab_switch display_hide">

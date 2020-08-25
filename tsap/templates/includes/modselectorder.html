@@ -14,20 +14,20 @@
                 </div>
 
                 <div  id="id_modorder_body" class="modal-body">
-                    <div class="mx-4 my-2">
-                        <h5 id="id_modorder_header">{% trans 'Select customer' %}</h5>
-                    </div>
+
 
                     <div class="modal_container">
-
 <!-- modal_body_left contains customer select table -->
                         <div class="modal_body_left">
+                            <div class="mx-2 my-2">
+                                <h5 id="id_MSO_select_header"></h5>
+                            </div>
                             <div class="mx-2 my-1">
                                  <!-- this div is necessary to get standard structure for FilterTableRows -->
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
                                 <div style="overflow-x:hidden;overflow-y:auto;height:360px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_MSO_tblbody_customer" data-table="customer">
+                                        <tbody id="id_MSO_tblbody_select" data-table="customer">
                                         </tbody>
                                     </table>
                                 </div>
@@ -35,31 +35,31 @@
                         </div>
 
                         <div id="id_modorder_body_right"  class="modal_body_right mx-2 my-2">
+                            <div class="mx-4 my-0">
+                                <h5 id="id_MSO_header">{% trans 'Select customer' %}</h5>
+                            </div>
 
                             <div class="mx-2 my-2">
-                                <h6 class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
                                 <div class="form-group">
+                                    <label class="mx-2 my-1">{% trans 'Select customer' %}:</label>
                                     <input id="id_MSO_input_customer"
                                         type="text"
-                                        autocomplete="off"
-                                        ondragstart="return false;"
-                                        ondrop="return false;"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="form-control"
-                                        placeholder="{% trans 'Type a few letters and select customer in the list ...' %}">
+                                        placeholder="{% trans 'Type a few letters and select a customer in the list ...' %}">
+                                </div>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <div class="form-group">
+                                    <label class="mx-2 my-1">{% trans 'Select order' %}:</label>
+                                    <input id="id_MSO_input_order"
+                                        type="text"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select an order in the list ...' %}">
                                 </div>
                             </div>
 
-                            <div id="id_MSO_div_tblbody_order" class="display_hide mx-2 mt-2">
-                                <h6 id="id_MSO_div_tblbody_header" class="mx-2 my-1">{% trans 'Select order' %}:</h6>
-                                 <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
-                                <div style="overflow-x:hidden;overflow-y:auto;height:240px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_MSO_tblbody_order" data-table="order">
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
