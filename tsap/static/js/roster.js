@@ -731,7 +731,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.setAttribute("data-haschanged", data_haschanged)
 
             const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
-            const is_locked =  (map_dict.stat_locked || map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            const is_locked = (map_dict.stat_locked || map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            const is_pay_or_inv_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
             const is_restshift = map_dict.oh_isrestshift;
             const is_absence = map_dict.c_isabsence;
 
@@ -792,8 +793,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
             } else if (["status"].indexOf(fldName ) > -1){
                 // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
-                const is_enabled = (!is_locked && selected_period.requsr_perm_hrman) ||
-                                   (!is_locked && !status_locked && selected_period.requsr_perm_supervisor)
+                let is_enabled = false;
+                // no changes allowed when is_pay_or_inv_locked
+                if(!is_pay_or_inv_locked) {
+                     // supervisor can only lock roster shift
+                    if(selected_period.requsr_perm_supervisor) {
+                        is_enabled = (!is_locked);
+                     // hr_manager can also unlock roster shift
+                    } else if(selected_period.requsr_perm_hrman) {
+                        is_enabled = true;
+                    }
+                }
                 if ( is_enabled ){
                     add_hover(el)
                     el.classList.add("pointer_show");
@@ -2121,7 +2131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function CheckStatus() {
         //console.log( "=== CheckStatus ")
-        // function loops through emplhours, set questingsmark or warning when toimestrat / enb reached
+        // function loops through emplhours, set questingsmark or warning when timestart / end reached
 
         // this code converts ISO to date
         // var s = '2014-11-03T19:38:34.203Z';
@@ -2166,7 +2176,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow = tblBody_datatable.rows[row_index];
 
                 let item_dict = get_itemdict_from_datamap_by_tblRow(tblRow, emplhour_map);
-
+                // TODO correct
                 const status_sum = get_dict_value(item_dict, ["status", "value"])
                 const start_confirmed = status_found_in_statussum(2, status_sum);//STATUS_004_START_CONFIRMED
                 const end_confirmed = status_found_in_statussum(4, status_sum);//STATUS_016_END_CONFIRMED
