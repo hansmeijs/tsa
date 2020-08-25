@@ -40,6 +40,7 @@ from .models import User, Usersetting
 from accounts import models as am
 from accounts import dicts as ad
 from companies import models as m
+from companies import subscriptions as subscr
 from tsap import constants as c
 from tsap import functions as f
 from tsap import settings as s
@@ -865,17 +866,20 @@ def SignupActivateView(request, uidb64, token):
                     update_wrap['msg_03'] = _('You are now logged in to TSA-secure.')
 
 # - add spare row to Companyinvoice
-                m.entry_create_spare_row(request)
+                subscr.entry_create_spare_row(request)
 
 # - add bonus to Companyinvoice
+                # TODO only when new company is created
+                """
                 comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
-                m.entry_create_bonus(
+                subscr.entry_create_bonus(
                     request=request,
                     entries=c.ENTRY_BONUS_SIGNUP,
                     valid_months=c.ENTRY_VALID_MONTHS_BONUS,
                     note=_('Registration bonus'),
                     comp_timezone=comp_timezone
                 )
+            """
     else:
         form = SetPasswordForm(user)
 

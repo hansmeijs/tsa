@@ -344,8 +344,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request, no_loader) {
-       console.log( "=== DatalistDownload ")
-       console.log("request: ", datalist_request)
+       //console.log( "=== DatalistDownload ")
+       //console.log("request: ", datalist_request)
 
 // ---  Get today's date and time - for elapsed time
         let startime = new Date().getTime();
@@ -368,8 +368,8 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
-                console.log(response)
+                //console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
+                //console.log(response)
 
                 // hide loader
                 el_loader.classList.add(cls_visible_hide)
@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hide loader
                 el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
-                console.log(msg + '\n' + xhr.responseText);
+                //console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
@@ -1918,7 +1918,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        console.log("===  ModalStatusSave =========");
+        //console.log("===  ModalStatusSave =========");
 
         // put values in el_body
         let el_body = document.getElementById("id_mod_status_body")
@@ -1995,8 +1995,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("item_update" in response) {
                         let item_dict =response["item_update"]
@@ -2029,7 +2029,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -2617,8 +2617,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)};
-            console.log("upload_dict");
-            console.log(upload_dict);
+            //console.log("upload_dict");
+            //console.log(upload_dict);
 
 // if delete: make tblRow red
             const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]))
@@ -2634,8 +2634,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log("response");
-                    console.log(response);
+                    //console.log("response");
+                    //console.log(response);
                     // refresh page on open page or when rosetrdate is added or removes
                     if ("emplhour_rows" in response) {
                         refresh_datamap(response.emplhour_rows, emplhour_map)
@@ -2672,7 +2672,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -4894,7 +4894,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let row_index = first_row
             for (const [map_id, map_dict] of emplhour_map.entries()) {
 
-        console.log("map_dict", map_dict)
+        //console.log("map_dict", map_dict)
         //console.log("map_dict", map_dict)
                 const offset_start = format_time_from_offset_JSvanilla( loc, map_dict.rosterdate, map_dict.offsetstart, true, false, false)
                 const offset_end = format_time_from_offset_JSvanilla( loc, map_dict.rosterdate, map_dict.offsetend, true, false, false)

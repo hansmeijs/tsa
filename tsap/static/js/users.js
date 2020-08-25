@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 //=========  HandleBtnSelect  ================ PR2020-07-31
     function HandleBtnSelect(data_btn, skip_upload) {
-        console.log( "===== HandleBtnSelect ========= ");
+        //console.log( "===== HandleBtnSelect ========= ");
         selected_btn = data_btn
         if(!selected_btn){selected_btn = "btn_user_list"}
 
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateTblRow  ================ PR2020-08-01
     function UpdateTblRow(tblRow, tblName, map_dict) {
-        console.log("=========  UpdateTblRow =========");
+        //console.log("=========  UpdateTblRow =========");
         if (tblRow && tblRow.cells){
             for (let i = 0, td; td = tblRow.cells[i]; i++) {
                 UpdateField(td.children[0], map_dict);
@@ -452,13 +452,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         add_or_remove_class (el_icon, "exclamation_0_2", is_expired);
                         add_or_remove_class (el_icon, "tickmark_0_0", !is_activated && !is_expired);
                     }
-// ---  add title
-                    let title = null;
-                    if(is_expired){
+// ---  add EventListener
+                    if(!is_activated){
                         el_div.addEventListener("click", function() {ModConfirmOpen("resend_activation_email", el_div)}, false )
-                         title = loc.Activationlink_expired + "\n" + loc.Resend_activationlink;
                     }
+// ---  add title
+                    const title = (is_expired) ? loc.Activationlink_expired + "\n" + loc.Resend_activationlink : null
                     add_or_remove_attr (el_div, "title", title, title);
+
                 } else if (field_name === "is_active") {
                     const is_inactive = !( (map_dict[field_name]) ? map_dict[field_name] : false );
                     el_div.setAttribute("data-value", ((is_inactive) ? 1 : 0) );
@@ -1027,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2020-08-03
     function ModConfirmOpen(mode, el_input) {
-        console.log(" -----  ModConfirmOpen   ----")
+        //console.log(" -----  ModConfirmOpen   ----")
         // values of mode are : "delete", "inactive" or "resend_activation_email", "permission_sysadm"
 
 // ---  get selected_pk
@@ -1059,10 +1060,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  put text in modal form
-        let dont_show_model = false;
+        let dont_show_modal = false;
         const is_mode_permission_sysadm = (mode === "permission_sysadm");
         const is_mode_resend_activation_email = (mode === "resend_activation_email");
-        console.log("mode", mode)
+        //console.log("mode", mode)
         const inactive_txt = (mod_dict.current_isactive) ? loc.Make_user_inactive : loc.Make_user_active;
         const header_text = (mode === "delete") ? loc.Delete_user :
                             (mode === "inactive") ? inactive_txt :
@@ -1102,15 +1103,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else if (is_mode_resend_activation_email) {
                 const is_expired = activationlink_is_expired(map_dict.date_joined);
-                dont_show_model = (!is_expired || map_dict.activated);
-                if(!dont_show_model){
-                    msg_01_txt = loc.Activationlink_expired
-                    msg_02_txt = loc.We_will_resend_an_email_to_user + " '" + username + "'."
-                    msg_03_txt = loc.Do_you_want_to_continue;
+                dont_show_modal = (map_dict.activated);
+                if(!dont_show_modal){
+                    if(is_expired) {
+                        msg_01_txt = loc.Activationlink_expired
+                        msg_02_txt = loc.We_will_resend_an_email_to_user + " '" + username + "'."
+                        msg_03_txt = loc.Do_you_want_to_continue;
+                    } else {
+                        msg_01_txt = loc.We_will_resend_an_email_to_user + " '" + username + "'."
+                        msg_02_txt = loc.Do_you_want_to_continue;
+                    }
                 }
             }
         }
-        if(!dont_show_model){
+        if(!dont_show_modal){
             el_confirm_header.innerText = header_text;
             el_confirm_loader.classList.add(cls_visible_hide)
             el_confirm_msg_container.classList.remove("border_bg_invalid", "border_bg_valid");
@@ -1135,15 +1141,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
 // show modal
             $("#id_mod_confirm").modal({backdrop: true});
-
         }
 
     };  // ModConfirmOpen
 
 //=========  ModConfirmSave  ================ PR2019-06-23
     function ModConfirmSave() {
-        console.log(" --- ModConfirmSave --- ");
-        console.log("mod_dict: ", mod_dict);
+        //console.log(" --- ModConfirmSave --- ");
+        //console.log("mod_dict: ", mod_dict);
         let close_modal = false;
         let tblRow = document.getElementById(mod_dict.mapid);
 
@@ -1190,8 +1195,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModConfirmResponse  ================ PR2019-06-23
     function ModConfirmResponse(response) {
-        console.log(" --- ModConfirmResponse --- ");
-        console.log("mod_dict: ", mod_dict);
+        //console.log(" --- ModConfirmResponse --- ");
+        //console.log("mod_dict: ", mod_dict);
         // hide loader
         el_confirm_loader.classList.add(cls_visible_hide)
         const mode = get_dict_value(response, ["mode"])
@@ -1322,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleFilterField  ====================================
     function HandleFilterField(el, index, el_key) {
-       console.log( "===== HandleFilterField  ========= ");
+       //console.log( "===== HandleFilterField  ========= ");
         // skip filter if filter value has not changed, update variable filter_text
 
         //console.log( "el_key", el_key);
@@ -1413,7 +1418,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= Filter_TableRows  ==================================== PR2020-08-17
     function Filter_TableRows(tblBody) {
-        console.log( "===== Filter_TableRows  ========= ");
+        //console.log( "===== Filter_TableRows  ========= ");
 
         const tblName_settings = (selected_btn === "btn_user_list") ? "users" : "permissions";
 
@@ -1490,7 +1495,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26 PR2020-06-20
-       console.log( "===== ResetFilterRows  ========= ");
+       //console.log( "===== ResetFilterRows  ========= ");
 
         selected_user_pk = null;
 

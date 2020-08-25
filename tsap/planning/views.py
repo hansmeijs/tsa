@@ -997,7 +997,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
             newtemplate_scheme.save(request=request)
             is_ok = True
         except:
-           logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
+            pass
+            #logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
 
     #logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
     mapping_shifts = {}
@@ -1205,8 +1206,8 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                     new_teammember.save(request=request)
         except:
             is_ok = False
-            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
-                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
+                         #' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
 # - copy template_schemeitems to schemeitems
     if is_ok:
@@ -1242,8 +1243,7 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                 new_schemeitem.save(request=request)
         except:
             is_ok = False
-            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
-                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
     if not is_ok:
         new_scheme_pk = None
     return new_scheme_pk
@@ -1395,7 +1395,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
 class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
+        #logger.debug(' ============= SchemeOrShiftOrTeamUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
@@ -1448,8 +1448,8 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
 
 def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
-    logger.debug(' --- scheme_upload --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- scheme_upload --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     update_wrap = {}
 # - get iddict variables
@@ -2411,8 +2411,8 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourDownloadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourDownloadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2471,8 +2471,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
@@ -2489,7 +2489,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 eplh_update_list = [] # list of emplhour_pk's that must be put in emplhour_rows
                 check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
@@ -2700,8 +2700,8 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
 
 
 def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, request):
-    logger.debug(' --- make_absence_shift --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- make_absence_shift --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     rosterdate_dte = orderhour.rosterdate
 
@@ -2734,8 +2734,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, reque
     if abscat_order:
         absent_employee = emplhour.employee
 
-        logger.debug('abscat_order: ' + str(abscat_order))
-        logger.debug('absent_employee: ' + str(absent_employee))
+        #logger.debug('abscat_order: ' + str(abscat_order))
+        #logger.debug('absent_employee: ' + str(absent_employee))
 
         if absent_employee:
 # - calculate absent_duration: this is workhours per day, in minutes
@@ -2757,7 +2757,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, reque
             elif is_publicholiday and abscat_order.nohoursonpublicholiday:
                 abscat_nohours = True
 
-            logger.debug('abscat_nohours: ' + str(abscat_nohours))
+            #logger.debug('abscat_nohours: ' + str(abscat_nohours))
 # - get absent_duration. Is absent_employee.workminutesperday. If None, use company.workminutesperday
             absent_duration = 0
             if not abscat_nohours:
@@ -2829,8 +2829,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, reque
 
 
 def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # PR2020-04-13
-    logger.debug(' --- change_absence_shift --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- change_absence_shift --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
     # this function changes the absence order in the orderhour.
 
 # - get parent (orderhour is parent of emplhour)
@@ -2951,8 +2951,8 @@ def moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, co
 # --- end of moveto_shift
 
 def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request):
-    logger.debug(' ------------- make_split_shift ------------- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' ------------- make_split_shift ------------- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
     #  a new emplhour record will be created for the selected employee
     # time start of the split shift = upload_dict.timeend (i.e. timeend of current shift)
     # the timeend of the current emplhour will will be replaced in update_emplhour
@@ -3117,8 +3117,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    logger.debug(' --------- update_emplhour -------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --------- update_emplhour -------------')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_changed = False
     if emplhour:
@@ -3487,9 +3487,9 @@ def recalc_orderhour(orderhour): # PR2019-10-11
 def update_scheme(instance, upload_dict, update_dict, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug('   ')
-    logger.debug(' ============= update_scheme')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug('   ')
+    #logger.debug(' ============= update_scheme')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     # FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
     #                  'code', 'datefirst', 'datelast',
@@ -3586,7 +3586,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         new_value = field_dict.get('value', False)
                         saved_value = getattr(instance, field)
 
-                        logger.debug('field: ' + str(field) + ' new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+                        #logger.debug('field: ' + str(field) + ' new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
@@ -3596,7 +3596,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         save_changes = True
                         if update_dict:
                             update_dict[field]['updated'] = True
-                            logger.debug('updated: ' + str(True))
+                            #logger.debug('updated: ' + str(True))
 
 # 5. save changes
         if save_changes:

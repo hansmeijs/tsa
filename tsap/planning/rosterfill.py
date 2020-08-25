@@ -17,7 +17,7 @@ from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as pld
 from planning import views as plv
-from companies import subscriptions as sbscr
+from companies import subscriptions as subscr
 
 from tsap.settings import TIME_ZONE
 
@@ -812,7 +812,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
 
             entries_count = 0
-            entry_balance = sbscr.get_entry_balance(request, comp_timezone)
+            entry_balance = subscr.get_entry_balance(request, comp_timezone)
             entries_employee_list = []
 
             #logger.debug('entry_balance: ' + str(entry_balance))
@@ -923,7 +923,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                         #logger.debug('=-------------- row added to dict ')
 
             # - add duration_sum to Companyinvoice
-            sbscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone,
+            subscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone,
                                              user_lang)  # PR2020-04-07
 
         # except:
@@ -1617,7 +1617,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
 
         # - subtract duration_sum from Companyinvoice
         rosterdate_dte = f.get_date_from_ISO(rosterdate_iso)
-        sbscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone,
+        subscr.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone,
                                          user_lang)  # PR2020-04-07
 
     return return_dict
