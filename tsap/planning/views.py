@@ -823,7 +823,7 @@ class SchemesView(View):
 @method_decorator([login_required], name='dispatch')
 class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
     def post(self, request, *args, **kwargs):
-        logger.debug(' ====== SchemeTemplateUploadView ============= ')
+        #logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
@@ -840,7 +840,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: { Note: 'pk' is pk of scheme that will be copied to template
                 # 'copytotemplate': {'id': {'pk': 1482, 'ppk': 1270, 'istemplate': True, 'table': 'scheme', 'mode': 'copyto'},
                 # 'code': {'value': '4 daags SJABLOON', 'update': True}}}
@@ -941,8 +941,8 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
 
 
 def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
-    logger.debug(' ====== copy_to_template ============= ')
-    logger.debug(upload_dict)
+    #logger.debug(' ====== copy_to_template ============= ')
+    #logger.debug(upload_dict)
 
     newtemplate_customer_pk, copyfrom_scheme, newtemplate_order = None, None, None
 
@@ -969,10 +969,10 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
     newtemplate_scheme = None
     if copyfrom_scheme and newtemplate_order:
 
-        logger.debug('copyfrom_scheme: ' + str(copyfrom_scheme))
-        logger.debug('newtemplate_order: ' + str(newtemplate_order))
-        logger.debug('newtemplate_code: ' + str(newtemplate_code))
-        logger.debug('len: ' + str(len(newtemplate_code)))
+        #logger.debug('copyfrom_scheme: ' + str(copyfrom_scheme))
+        #logger.debug('newtemplate_order: ' + str(newtemplate_order))
+        #logger.debug('newtemplate_code: ' + str(newtemplate_code))
+        #logger.debug('len: ' + str(len(newtemplate_code)))
         if len(newtemplate_code) > c.CODE_MAX_LENGTH:
             newtemplate_code = newtemplate_code[:c.CODE_MAX_LENGTH]
         try:
@@ -999,7 +999,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
         except:
            logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
 
-    logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
+    #logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
     mapping_shifts = {}
     if is_ok and newtemplate_scheme:
 # - copy shifts to template
@@ -1026,10 +1026,9 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                 mapping_shifts[shift.pk] = newtemplate_shift.pk
         except:
             is_ok = False
-            logger.debug('Error copy_to_template create newtemplate_shift: newtemplate_scheme: ' +
-                     str(newtemplate_scheme) + ' ' +str(type(newtemplate_scheme)))
+            #logger.debug('Error copy_to_template create newtemplate_shift: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' +str(type(newtemplate_scheme)))
 
-    logger.debug('mapping_shifts: ' + str(mapping_shifts))
+    #logger.debug('mapping_shifts: ' + str(mapping_shifts))
 # - copy teams to template
     mapping_teams = {}
     if is_ok:
@@ -1065,9 +1064,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                     newtemplate_teammember.save(request=request)
         except:
             is_ok = False
-            logger.debug('Error copy_to_template create newtemplate_team: newtemplate_scheme: ' +
-                         str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
-    logger.debug('mapping_teams: ' + str(mapping_teams))
+            #logger.debug('Error copy_to_template create newtemplate_team: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
+    #logger.debug('mapping_teams: ' + str(mapping_teams))
 # - copy schemeitems to template
     if is_ok:
         try:
@@ -1098,11 +1096,11 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                 newtemplate_schemeitem.save(request=request)
         except:
             is_ok = False
-            logger.debug('Error copy_to_template create newtemplate_schemeitem: newtemplate_scheme: ' +
-                     str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
+            #logger.debug('Error copy_to_template create newtemplate_schemeitem: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
     if not is_ok:
         newtemplate_customer_pk = None
     return newtemplate_customer_pk
+
 
 def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto_order_pk, request):  # PR2019-07-26 PR2020-07-02
     #logger.debug(' ====== copyfrom_template ============= ')
@@ -1144,8 +1142,8 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
             )
             new_scheme.save(request=request)
         except:
-            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
-                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+            pass
+            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
     is_ok = True
     shift_mapping = {}
@@ -1177,8 +1175,7 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
             #logger.debug('template_shifts mapping: ' + str(shift_mapping))
         except:
             is_ok = False
-            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
-                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
 # - copy template_teams to scheme
     team_mapping = {}

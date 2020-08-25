@@ -1468,9 +1468,9 @@ def get_teamcode_abbrev(team_code):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, user_lang, request):   # PR2019-11-16 PR2020-07-15
-    logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' ============== period_get_and_save ================ ')
     #logger.debug(' key: ' + str(key))
-    logger.debug(' request_item: ' + str(request_item))
+    #logger.debug(' request_item: ' + str(request_item))
 
     # rosterdatefirst / rosterdatelast are used in filter: create_employee_planning / create_customer_planning / review_list
     # periodstart (= periodstart_local_withtimezone) / 'periodend'  is used in: emplhour_list
@@ -1478,14 +1478,14 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
 # - period_dict comes from request_item
     period_dict = request_item if request_item else {}
 
-    logger.debug(' period_dict: ' + str(period_dict))
+    #logger.debug(' period_dict: ' + str(period_dict))
 # - check if values must be retrieved from Usersetting
     # {'get': True} not in use any more: get values from saved_period_dict when they are not in period_dict
 
 # - get saved period_dict
     saved_period_dict = Usersetting.get_jsonsetting(key, request.user)
 
-    logger.debug(' saved_period_dict: ' + str(saved_period_dict))
+    #logger.debug(' saved_period_dict: ' + str(saved_period_dict))
 # - get customer_pk, order_pk or employee_pk
     # if key exists in dict: use that value (can be null), get saved otherwise
 
@@ -1627,11 +1627,11 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     if 'daynightshift' in period_dict:
         daynightshift = period_dict.get('daynightshift')
 
-        logger.debug(' daynightshift: ' + str(daynightshift))
+        #logger.debug(' daynightshift: ' + str(daynightshift))
         save_setting = True
     else:
         daynightshift = saved_period_dict.get('daynightshift')
-        logger.debug(' saved_period_dict daynightshift: ' + str(daynightshift))
+        #logger.debug(' saved_period_dict daynightshift: ' + str(daynightshift))
 
 # -  get sel_btn
     if 'sel_btn' in period_dict:
@@ -1691,7 +1691,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             'sel_view': sel_view,
             'period_tag': period_tag
         }
-        logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
+        #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
 
         if period_tag == 'other':
             if period_datefirst_dte:
@@ -1718,7 +1718,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                    'requsr_pk': request.user.pk
                    }
 
-    logger.debug(' update_dict: ' + str(update_dict))
+    #logger.debug(' update_dict: ' + str(update_dict))
     if request.user.is_perm_employee:
         update_dict['requsr_perm_employee'] = request.user.is_perm_employee
     if request.user.is_perm_planner:
@@ -2030,7 +2030,7 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
 
 
         eplh_update_list = period_dict.get('eplh_update_list')
-        logger.debug('eplh_update_list: ' + str(eplh_update_list) + ' ' + str(type(eplh_update_list)))
+        #logger.debug('eplh_update_list: ' + str(eplh_update_list) + ' ' + str(type(eplh_update_list)))
 
         is_absence = period_dict.get('isabsence')
         is_restshift = period_dict.get('isrestshift')
@@ -2193,10 +2193,10 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
 
 def create_emplhour_list(period_dict, is_emplhour_check, request):
     # PR2019-11-16 PR2020-08-06
-    logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug(' ============= create_emplhour_list ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
-    logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
-    logger.debug('request.user: ' + str(request.user.username_sliced))
+    #logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
+    #logger.debug('request.user: ' + str(request.user.username_sliced))
 
     last_emplhour_check = None
     no_updates, no_deletes = False, False
@@ -2205,21 +2205,21 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
 # - get datetime when this user last checked for updates. This is stored in Usersetting key: last_emplhour_check
         key = 'last_emplhour_check'
         last_emplhour_check = Usersetting.get_datetimesetting(key, request.user)
-        logger.debug('last_emplhour_check: ' + str(last_emplhour_check.isoformat()))
+        #logger.debug('last_emplhour_check: ' + str(last_emplhour_check.isoformat()))
 # - set new datetime in last_emplhour_check in Usersetting
         # get now without timezone
         now_utc_naive = datetime.utcnow()
         # convert now to timezone utc
         new_last_emplhour_check = now_utc_naive.replace(tzinfo=pytz.utc)
         Usersetting.set_datetimesetting(key, new_last_emplhour_check, request.user)
-        logger.debug('new_last_emplhour_check: ' + str(new_last_emplhour_check.isoformat()))
+        #logger.debug('new_last_emplhour_check: ' + str(new_last_emplhour_check.isoformat()))
 
 # - get datetime when last emplhour records are updated from Companysetting
     # - is stored in CompanySetting, to mak it faster then checking the emplhour table itself
         key = 'last_emplhour_updated'
         last_emplhour_updated, last_emplhour_deleted = m.Companysetting.get_datetimesetting(key, request.user.company)
-        logger.debug('last_emplhour_updated: ' + str(last_emplhour_updated.isoformat()))
-        logger.debug('last_emplhour_deleted: ' + str(last_emplhour_deleted.isoformat()))
+        #logger.debug('last_emplhour_updated: ' + str(last_emplhour_updated.isoformat()))
+        #logger.debug('last_emplhour_deleted: ' + str(last_emplhour_deleted.isoformat()))
 
 # if there are no updated records since last update: skip create_emplhour_rows,
         # also when last_emplhour_updated has no value yet
@@ -2240,7 +2240,7 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         emplhour_rows = create_emplhour_rows(period_dict, request, last_emplhour_check)
     if not no_deletes:
         emplhours_deleted_rows = create_emplhour_deletedrows(period_dict, request, last_emplhour_check)
-        logger.debug('emplhours_deleted_rows: ' + str(emplhours_deleted_rows))
+        #logger.debug('emplhours_deleted_rows: ' + str(emplhours_deleted_rows))
         if emplhours_deleted_rows:
             emplhour_rows.extend(emplhours_deleted_rows)
     no_changes = no_updates and no_deletes
