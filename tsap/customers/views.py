@@ -71,6 +71,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
 
+
+
 # 3. get iddict variables
                 id_dict = f.get_dict_value(upload_dict, ('id',))
                 logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
@@ -93,8 +95,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                     logger.debug('is_delete: ' + str(is_delete))
 # TODO check identifier for duplicates
 
-# =====  CUSTOMER  ==========
+                    updated_customer_rows = []
+                    updated_order_rows = []
                     update_dict = {}
+
+# =====  CUSTOMER  ==========
                     if table == "customer":
 
 # A. check if parent with ppk_int exists and is same as request.user.company
@@ -119,6 +124,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
+                                        # - create deleted_dict
+                                        deleted_dict = {'pk': pk_int,
+                                                       'mapid': 'customer_' + str(pk_int),
+                                                       'isdeleted': True}
+                                        updated_customer_rows.append(deleted_dict)
                             else:
 # D. Create new customer
                                 if is_create:
@@ -135,21 +145,25 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                             if instance:
                                 cd.create_customer_dict(instance, update_dict)
 
-# H. If new customer has orders_list: list contains new orders, add them to orders
-                                logger.debug('orders_list: '+ str(orders_list))
-                                logger.debug('is_create: ' + str(is_create))
-                                if is_create and orders_list:
-                                    update_orders_list = []
-                                    for new_order_dict in orders_list:
-                                        ppk_str = f.get_dict_value(new_order_dict, ('id', 'ppk'))
-                                        if ppk_str == temp_pk_str:
-                                            update_order_dict = {'id': {'pk': '', 'ppk': '', 'table': 'order'}}
-                                            order = create_order(instance, new_order_dict, update_order_dict, request)
-                                            cd.create_order_dict(order, update_order_dict)
-                                            update_orders_list.append(update_order_dict)
-                                    if update_orders_list:
-                                        update_wrap['update_orders_list'] = update_orders_list
+                                customer_listNIU, customer_rows = cd.create_customer_list(
+                                    company=request.user.company,
+                                    customer_pk=instance.pk)
+                                updated_customer_rows.extend(customer_rows)
 
+# H. If new customer has orders_list: list contains new orders, add them to orders
+                                #logger.debug('orders_list: '+ str(orders_list))
+                                #logger.debug('is_create: ' + str(is_create))
+                                #if is_create and orders_list:
+                                #    update_orders_list = []
+                                #    for new_order_dict in orders_list:
+                                #        ppk_str = f.get_dict_value(new_order_dict, ('id', 'ppk'))
+                                #        if ppk_str == temp_pk_str:
+                                #            update_order_dict = {'id': {'pk': '', 'ppk': '', 'table': 'order'}}
+                                #            order = create_order(instance, new_order_dict, update_order_dict, request)
+                                #            cd.create_order_dict(order, update_order_dict)
+                                #            update_orders_list.append(update_order_dict)
+                                #    if update_orders_list:
+                                #        update_wrap['update_orders_list'] = update_orders_list
 
 # =====  ORDER  ==========
                     elif table == "order":
@@ -161,7 +175,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                         logger.debug('parent: ' + str(parent))
                         logger.debug('is_delete: ' + str(is_delete))
                         if parent:
-
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
                             update_dict = f.create_update_dict(
                                 c.FIELDS_ORDER,
@@ -169,7 +182,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 pk=pk_int,
                                 ppk=parent.pk,
                                 row_index=row_index)
-
 # C. Delete instance
                             if is_delete:
                                 instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
@@ -178,6 +190,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
+                            # - create deleted_dict
+                                        deleted_dict = {'pk': pk_int,
+                                                       'mapid': 'order_' + str(pk_int),
+                                                       'isdeleted': True}
+                                        updated_order_rows.append(deleted_dict)
                             else:
 # D. Create new order
                                 if is_create:
@@ -194,7 +211,14 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                             if instance:
                                 cd.create_order_dict(instance, update_dict)
+
+                                order_listNIU, order_rows = cd.create_order_list(
+                                    company=request.user.company,
+                                    order_pk=instance.pk)
+                                updated_order_rows.extend(order_rows)
+
 # =====  END ORDER  ==========
+
 
 # H. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
@@ -204,6 +228,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                         update_list = []
                         update_list.append(update_dict)
                         update_wrap['update_list'] = update_list
+
+                    if updated_order_rows:
+                        update_wrap['updated_order_rows'] = updated_order_rows
+                    if updated_customer_rows:
+                        update_wrap['updated_customer_rows'] = updated_customer_rows
 
 # J. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))

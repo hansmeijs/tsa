@@ -335,6 +335,23 @@
         }
     }  // set_focus_on_el_with_timeout
 
+
+//========= highlight_BtnSelect  ============= PR2020-02-20
+    function highlight_BtnSelect(btn_container, selected_btn, btns_disabled){
+        //console.log( "//========= highlight_BtnSelect  ============= ")
+        // ---  highlight selected button
+        let btns = btn_container.children;
+        for (let i = 0, btn; btn = btns[i]; i++) {
+            const data_btn = get_attr_from_el(btn, "data-btn")
+            // highlight selected btn
+            add_or_remove_class(btn, "tsa_btn_selected", (data_btn === selected_btn) );
+            // disable btn, except when btn is selected btn
+            btn.disabled = (btns_disabled && !is_highlighted)
+        }
+    }  //  highlight_BtnSelect
+
+
+
 // ================ MAP FUNCTIONS ========================
 
 //========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12

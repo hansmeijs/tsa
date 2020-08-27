@@ -161,11 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_MSO_tblbody_customer = document.getElementById("id_MSO_tblbody_customer");
         const el_modorder_tblbody_order = document.getElementById("id_MSO_tblbody_order");
         const el_MSO_input_customer = document.getElementById("id_MSO_input_customer")
-            el_MSO_input_customer.addEventListener("focus", function() {MRO_MRE_Onfocus("MSO", "customer")}, false )
+            el_MSO_input_customer.addEventListener("focus", function() {MRO_MRE_OnFocus("MSO", "customer")}, false )
             el_MSO_input_customer.addEventListener("keyup", function(){
                 setTimeout(function() {MRO_MRE_InputKeyup("MSO", "customer", el_MSO_input_customer)}, 50)});
         const el_MSO_input_order = document.getElementById("id_MSO_input_order")
-            el_MSO_input_order.addEventListener("focus", function() {MRO_MRE_Onfocus("MSO", "order")}, false )
+            el_MSO_input_order.addEventListener("focus", function() {MRO_MRE_OnFocus("MSO", "order")}, false )
             el_MSO_input_order.addEventListener("keyup", function(){
                 setTimeout(function() {MRO_MRE_InputKeyup("MSO", "order", el_MSO_input_order)}, 50)});
         const el_MSO_btn_save = document.getElementById("id_MSO_btn_save")
@@ -225,12 +225,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 // ---  add 'keyup' event handler to input employee
         const el_MRE_input_employee = document.getElementById("id_MRE_input_employee")
-            el_MRE_input_employee.addEventListener("focus", function() {MRO_MRE_Onfocus("MRE", "employee")}, false )
+            el_MRE_input_employee.addEventListener("focus", function() {MRO_MRE_OnFocus("MRE", "employee")}, false )
             el_MRE_input_employee.addEventListener("keyup", function() {
                 setTimeout(function() {MRO_MRE_InputKeyup("MRE", "employee", el_MRE_input_employee)}, 50)});
 
         const el_MRE_input_abscat = document.getElementById("id_MRE_input_abscat")
-            el_MRE_input_abscat.addEventListener("focus", function() {MRO_MRE_Onfocus("MRE", "abscat")}, false )
+            el_MRE_input_abscat.addEventListener("focus", function() {MRO_MRE_OnFocus("MRE", "abscat")}, false )
             el_MRE_input_abscat.addEventListener("keyup", function() {
                 setTimeout(function() {MRO_MRE_InputKeyup("MRE", "abscat", el_MRE_input_abscat)}, 50)});
 
@@ -244,20 +244,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_MRE_split_time = document.getElementById("id_MRE_split_time");
         el_MRE_split_time.addEventListener("click", function() {MRO_MRE_TimepickerOpen(el_MRE_split_time, "MRE", "MRE_splittime")}, false );
 
-
 // ---  MOD ROSTER ORDER ------------------------------------
         const el_MRO_input_date = document.getElementById("id_MRO_input_date")
             el_MRO_input_date.addEventListener("change", function() {MRO_InputDateChanged()}, false )
         const el_MRO_input_order = document.getElementById("id_MRO_input_order")
-            el_MRO_input_order.addEventListener("focus", function() {MRO_MRE_Onfocus("MRO", "order")}, false )
+            el_MRO_input_order.addEventListener("focus", function() {MRO_MRE_OnFocus("MRO", "order")}, false )
             el_MRO_input_order.addEventListener("keyup", function(){
                 setTimeout(function() {MRO_MRE_InputKeyup("MRO", "order", el_MRO_input_order)}, 50)});
         const el_MRO_input_shift = document.getElementById("id_MRO_input_shift")
-            el_MRO_input_shift.addEventListener("focus", function() {MRO_MRE_Onfocus("MRO", "shift")}, false )
+            el_MRO_input_shift.addEventListener("focus", function() {MRO_MRE_OnFocus("MRO", "shift")}, false )
             el_MRO_input_shift.addEventListener("keyup", function(){
                 setTimeout(function() {MRO_MRE_InputKeyup("MRO", "shift", el_MRO_input_shift)}, 50)});
         const el_MRO_input_employee = document.getElementById("id_MRO_input_employee")
-            el_MRO_input_employee.addEventListener("focus", function() {MRO_MRE_Onfocus("MRO", "employee")}, false )
+            el_MRO_input_employee.addEventListener("focus", function() {MRO_MRE_OnFocus("MRO", "employee")}, false )
             el_MRO_input_employee.addEventListener("keyup", function(){
                 setTimeout(function() {MRO_MRE_InputKeyup("MRO", "employee", el_MRO_input_employee)}, 50)});
         const el_MRO_offsetstart = document.getElementById("id_MRO_input_offsetstart")
@@ -344,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request, no_loader) {
-       //console.log( "=== DatalistDownload ")
+       console.log( "=== DatalistDownload ")
        //console.log("request: ", datalist_request)
 
 // ---  Get today's date and time - for elapsed time
@@ -646,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add data-field Attribute
             const field_name = field_settings.field_names[j];
             el.setAttribute("data-field", field_name);
-// --- add img to confirm_start, confirm_end and status elements
+    // --- add img to confirm_start, confirm_end and status elements
             if ([5, 7, 11].indexOf( j ) > -1){
                 let has_perm = false;
                 if(j === 11) {
@@ -1928,7 +1927,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        //console.log("===  ModalStatusSave =========");
+        console.log("===  ModalStatusSave =========");
 
         // put values in el_body
         let el_body = document.getElementById("id_mod_status_body")
@@ -2237,6 +2236,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+//############################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= MSO_MSE_Filter_SelectRows  ====================================
@@ -2319,7 +2320,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         if(filter_value) {
                             const has_changed = Number(get_attr_from_el(tblRow, "data-haschanged", "0"));
                             hide_row = (filter_value !== has_changed);
-
                         }
                     } else {
                         const filter_value = filter_dict[index];
@@ -2390,21 +2390,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // function ResetFilterRows
 
-
-//========= HandleFilterImage  =============== PR2020-07-21
-    function HandleFilterImage(el_input, index) {
-        //console.log( "===== HandleFilterImage  ========= ");
-        //console.log( "index", index);
-        //console.log( "filter_dict", filter_dict);
-        //filter_dict = [ [], ["", "2", "text"], ["", "z", "text"] ];
-        const value = (filter_dict[index]) ? filter_dict[index] : 0;
-        const new_value = Math.abs(value - 1);
-        filter_dict[index] = new_value
-        add_or_remove_class(el_input, "stat_1_0", (new_value === 1), "stat_0_0")
-        Filter_TableRows();
-
-    };
-
 //========= HandleFilterKeyup  ====================================
     function HandleFilterKeyup(el, index, el_key) {
         //console.log( "===== HandleFilterKeyup  ========= ");
@@ -2427,7 +2412,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             let filter_dict_text = ""
-            if (index in filter_dict) {filter_dict_text = filter_dict[index];}
+            if (index in filter_dict) {filter_dict_text = filter_dict[index]};
             //if(!filter_dict_text){filter_dict_text = ""}
             //console.log( "filter_dict_text: <" + filter_dict_text + ">");
 
@@ -2456,6 +2441,20 @@ document.addEventListener('DOMContentLoaded', function() {
             Filter_TableRows();
         } //  if (!skip_filter) {
     }; // function HandleFilterKeyup
+
+//========= HandleFilterImage  =============== PR2020-07-21
+    function HandleFilterImage(el_input, index) {
+        //console.log( "===== HandleFilterImage  ========= ");
+        //console.log( "index", index);
+        //console.log( "filter_dict", filter_dict);
+        //filter_dict = [ [], ["", "2", "text"], ["", "z", "text"] ];
+        const value = (filter_dict[index]) ? filter_dict[index] : 0;
+        const new_value = Math.abs(value - 1);
+        filter_dict[index] = new_value
+        add_or_remove_class(el_input, "stat_1_0", (new_value === 1), "stat_0_0")
+        Filter_TableRows();
+
+    };
 
 
 // +++++++++++++++++ END FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2544,7 +2543,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadTblrowTimepickerResponse  ============= PR2019-10-12 PR2020-08-13
     function UploadTblrowTimepickerResponse(tp_dict) {
-        //console.log("=== UploadTblrowTimepickerResponse");
+        console.log("=== UploadTblrowTimepickerResponse");
         //console.log("tp_dict", tp_dict);
         // this function uploads TimepickerResponse from tblRow
         let upload_dict = { id: {pk: tp_dict.pk, ppk: tp_dict.ppk, table: tp_dict.table},
@@ -2651,7 +2650,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         refresh_datamap(response.emplhour_rows, emplhour_map)
                         FillTblRows();
                     };
-                    // update changes rows only
+                    // update changed rows only
                     if ("updated_rows" in response) {
                         RefreshEmplhourMap (response.updated_rows, false)
                     }
@@ -2711,7 +2710,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  RefreshEmplhourMap  ================ PR2020-08-14
     function RefreshEmplhourMap(updated_rows, is_update_check) {
-        //console.log(" --- RefreshEmplhourMap  ---");
+        console.log(" --- RefreshEmplhourMap  ---");
         if (updated_rows) {
             for (let i = 0, update_dict; update_dict = updated_rows[i]; i++) {
                 RefreshEmplhourMapItem(update_dict, is_update_check)
@@ -2721,14 +2720,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  RefreshEmplhourMapItem  ================ PR2020-08-14
     function RefreshEmplhourMapItem(update_dict, is_update_check) {
-        //console.log(" --- RefreshEmplhourMapItem  ---");
+        console.log(" --- RefreshEmplhourMapItem  ---");
         //console.log("is_update_check", is_update_check);
-        //console.log("update_dict", update_dict);
+        console.log("update_dict", update_dict);
 
 // ---  update or add emplhour_dict in emplhour_map
         const map_id = update_dict.mapid;
         const old_map_dict = emplhour_map.get(map_id);
-        //console.log("old_map_dict", old_map_dict);
+        console.log("old_map_dict", old_map_dict);
 
         const is_deleted = update_dict.isdeleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
@@ -2763,7 +2762,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             };
-
+            // check haschanges, update status field when changed
+            if ("haschanged" in old_map_dict && "haschanged" in update_dict){
+                if (old_map_dict.haschanged !== update_dict.haschanged ) {
+                    updated_columns.push("status")
+                }
+            }
 // ---  update item in emplhour_map
             emplhour_map.set(map_id, update_dict)
         }
@@ -3346,10 +3350,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // get_rowindex_by_code_excelstart
 
 
-
-
-
-
 //??????????????????????????????????????????????????????
 // ++++++++++++  MOD ROSTER +++++++++++++++++++++++++++++++++++++++
     "use strict";
@@ -3490,11 +3490,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }  // MRO_MRE_InputKeyup
 
-//=========  MRO_MRE_Onfocus  ================ PR2020-08-19
-    function MRO_MRE_Onfocus(pgeName, tblName) {
-        //console.log("===  MRO_MRE_Onfocus  =====") ;
+//=========  MRO_MRE_OnFocus  ================ PR2020-08-19
+    function MRO_MRE_OnFocus(pgeName, tblName) {
+        //console.log("===  MRO_MRE_OnFocus  =====") ;
         MRE_MRO_FillSelectTable(pgeName, tblName, null)
-    }  // MRO_MRE_Onfocus
+    }  // MRO_MRE_OnFocus
 
 //=========  MRE_MRO_FillSelectTable  ================ PR2020-08-21
     function MRE_MRO_FillSelectTable(pgeName, tblName, selected_pk) {
@@ -3908,8 +3908,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 may_open_timepicker = (["breakduration", "timeduration"].indexOf(fldName) > -1) ? !is_restshift : true;
             }
         //console.log("st_dict", st_dict)
-
-            if (may_open_timepicker) { mtp_TimepickerOpen(loc, el_input, UploadTblrowTimepickerResponse, tp_dict, st_dict) };
+            if (may_open_timepicker) {
+                mtp_TimepickerOpen(loc, el_input, UploadTblrowTimepickerResponse, tp_dict, st_dict);
+            };
         } else {
 
         //console.log("pgeName", pgeName)
@@ -4493,7 +4494,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ---  highlight selected button, disable when absence (restshift can't open this modal form)
             let btn_container = document.getElementById("id_MRE_btn_container");
-            t_HighlightBtnSelect(btn_container, selected_btn, mod_dict.isabsence);
+            highlight_BtnSelect(btn_container, selected_btn, mod_dict.isabsence);
 
     // hide select buttons when is_absence and when is_add_employee
             const show_btns = (!mod_dict.isabsence && !mod_dict.is_add_employee)
@@ -4764,9 +4765,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ##############################################  END MODROSTER EMPLOYEE  ############################################## PR2019-11-23
 //###########################################################################
 // +++++++++++++++++ VALIDATE +++++++++++++++++++++++++++++++++++++++++++++++
-
-//############################################################################
-// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //############################################################################
 // +++++++++++++++++ FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -6,11 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const cls_active = "active";
         const cls_hover = "tr_hover";
-        const cls_highl = "tr_highlighted";
         const cls_hide = "display_hide";
-
         const cls_visible_hide = "visibility_hide";
-        const cls_visible_show = "visibility_show";
 
         const cls_bc_transparent = "tsa_bc_transparent";
         const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
@@ -105,9 +102,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let mod_MSE_dict = {};
 
         let filter_select = "";
-        let filter_mod_employee = "";
         let filter_show_inactive = false;
         let filter_dict = {};
+        let filter_mod_employee = "";
         let filter_checked = false; // not a filter, but sets employee selected
 
 // ---  id_new assigns fake id to new records
@@ -197,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
              if (event.key === "Escape") { ResetFilterRows()}
         });
 
-// --- buttons in btn_container
+// ---  buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
         for (let i = 0, btn; btn = btns[i]; i++) {
             const data_btn = get_attr_from_el(btn,"data-btn")
@@ -1496,21 +1493,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         const data_text = field_settings[tblName].field_caption[j];
                         const caption = (tblName === "payroll") ? data_text : loc[data_text]
                         if(caption) {el_div.innerText = caption};
-                        if (j === 0 ){
-                              // el_div.classList.add("ml-2");
-                        }
                     }
 // --- add width, text_align
                     el_div.classList.add("tw_" + field_settings[tblName].field_width[j],
                                          "ta_" + field_settings[tblName].field_align[j]);
+        // --- append el_div and th to tblRow
                     th.appendChild(el_div)
                     tblRow.appendChild(th);
                 }  // for (let j = 0; j < column_count; j++)
                 //if ( ["employee", "paydatecode"].indexOf(tblName) > -1){
                     CreateTblHeaderFilter(tblHead, tblName, column_count);
                 //}
-            }   // if(field_settings[tblName])
-        }  // iif(column_count)
+            }  // if(column_count)
+        }  // if(field_settings[tblName])
     };  //  CreateTblHeader
 
 //=========  CreateTblHeaderFilter  ================ PR2019-09-15 PR2020-05-22

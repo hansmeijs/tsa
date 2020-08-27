@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set btntext 'Add scheme / Delete scheme', enable/disable delete btn
         RefreshSubmenuButtons();
 // ---  highlight selected button
-        t_HighlightBtnSelect(document.getElementById("id_btn_container"), selected_btn);
+        highlight_BtnSelect(document.getElementById("id_btn_container"), selected_btn);
 // ---  show / hide tblBody_datatable or el_div_gridlayout
         const show_grid = (selected_btn === "btn_grid");
         let el_div_datatable = document.getElementById("id_div_datatable");

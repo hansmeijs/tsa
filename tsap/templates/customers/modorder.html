@@ -14,7 +14,7 @@
 
                 <div class="modal-body">
                     <div class="modal_container">
-                        <div class="modal_body_left">
+                        <div id="id_MFO_div_tblbody_select" class="modal_body_left">
                             <div class="mx-2 my-1">
                                 <h6 id="id_MFO_select_header" class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
                             </div>
@@ -29,42 +29,43 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="modal_body_right mx-2 my-0">
+
+                        <div id="id_MFO_input_container"  class="modal_body_right mx-2 my-0">
                             <div class="mx-2 my-1">
-                                <label class="mx-2 my-0">{% trans 'Customer' %}:</label>
-                                <input id="id_MFO_input_customer" type="text" data-field= "customer"
+                                <label for="id_MFO_input_customer" class="mx-2 my-0">{% trans 'Customer' %}:</label>
+                                <input id="id_MFO_input_customer" type="text" data-field= "c_code"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     class="form-control"
                                     placeholder="{% trans 'Type a few letters and select a customer in the list' %}...">
                                 <div class="content_subheader_leftXX mx-2">
-                                    <small id="id_MFO_err_customer"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                    <small id="id_MFO_err_customer"  class="text-danger visibility_hide">xx</small>
                                 </div>
                             </div>
                             <div class="mx-2 my-1">
                                 <label for="id_MFO_code" class="mx-2 my-0">{% trans 'Short name' %}:</label>
                                 <input id="id_MFO_code" type="text" data-field= "code"
                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                       class="tsa_input_text form-control">
+                                       class="form-control">
                                 <div class="content_subheader_leftXX mx-2">
-                                    <small id="id_MFO_err_code"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                    <small id="id_MFO_err_code"  class="text-danger visibility_hide">x</small>
                                 </div>
                             </div>
                             <div class="mx-2 my-1">
                                 <label for="id_MFO_name" class="mx-2 my-0">{% trans 'Name' %}:</label>
                                 <input id="id_MFO_name" type="text" data-field= "name"
                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                       class="tsa_input_text form-control">
+                                       class="form-control">
                                 <div class="content_subheader_left mx-2 ">
-                                    <small id="id_MFO_err_name"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                    <small id="id_MFO_err_name"  class="text-danger visibility_hide">x</small>
                                 </div>
                             </div>
                             <div class="mx-2 my-1">
                                 <label for="id_MFO_identifier" class="mx-2 my-0">{% trans 'Identifier' %}:</label>
                                 <input id="id_MFO_identifier" type="text" data-field= "identifier"
                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                       class="tsa_input_text form-control">
+                                       class="form-control">
                                 <div class="content_subheader_left mx-2 ">
-                                    <small id="id_MFO_err_identifier"  class="text-danger">xxxxxxxxxxxxxxxx</small>
+                                    <small id="id_MFO_err_identifier"  class="text-danger visibility_hide">x</small>
                                 </div>
                             </div>
 
@@ -73,13 +74,13 @@
                                     <label for="id_MFO_datefirst" class="mx-2 my-1">{% trans 'First date' %}:</label>
                                     <input id="id_MFO_datefirst" type="date" data-field= "datefirst"
                                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                            class="tsa_input_date form-control">
+                                            class="form-control">
                                 </div>
                                 <div class="content_subheader_left mx-1">
                                     <label for="id_MFO_datelast" class="mx-2 my-1">{% trans 'Last date' %}:</label>
                                     <input id="id_MFO_datelast" type="date" data-field= "datelast"
                                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                           class="tsa_input_date form-control">
+                                           class="form-control">
                                 </div>
                             </div>
                         </div>

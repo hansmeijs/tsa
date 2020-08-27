@@ -2009,6 +2009,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== ShowBillingRow  ========= ");
         //console.log( "filter_row", filter_row);
         //console.log( "filter_dict", filter_dict);
+        // filter_dict is list of lists, index = col_index, [mode, filter_value, fldType]  [ ["gte", 455 ,"amount"] ]
         let hide_row = false;
         if (!!filter_row){
 // ---  show all rows if filter_name = ""

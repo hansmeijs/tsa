@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     // ---  highlight selected button
             let btn_container = document.getElementById("id_btn_container")
-            t_HighlightBtnSelect(btn_container, selected_btn);
+            highlight_BtnSelect(btn_container, selected_btn);
 
     // ---  show orderlist in selecttable when clicked on planning, otherwise: customer_list
 

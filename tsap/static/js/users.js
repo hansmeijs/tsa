@@ -367,43 +367,40 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++  insert td's into tblRow
             for (let j = 0; j < column_count; j++) {
                 const field_name = field_names[j];
-                //let td = tblRow.insertCell(-1);
-// --- create div element, or other tag when field_tags existst
-                //let el_div = document.createElement("div");
-
-                let el_div = tblRow.insertCell(-1);
+// --- insert td element,
+                let el_td = tblRow.insertCell(-1);
 // --- add data-field attribute
-                el_div.setAttribute("data-field", field_name);
+                el_td.setAttribute("data-field", field_name);
 
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
                 } else if (["username", "last_name", "email", "employee_code"].indexOf(field_name) > -1){
-                    el_div.addEventListener("click", function() {MSU_Open("update", el_div)}, false)
-                    el_div.classList.add("pointer_show");
-                    add_hover(el_div);
+                    el_td.addEventListener("click", function() {MSU_Open("update", el_td)}, false)
+                    el_td.classList.add("pointer_show");
+                    add_hover(el_td);
                 } else if (field_name.slice(0, 4) === "perm") {
-                    el_div.addEventListener("click", function() {UploadToggle(el_div)}, false)
-                    let el_icon = document.createElement("div");
-                        el_div.appendChild(el_icon);
-                    add_hover(el_div);
+                    el_td.addEventListener("click", function() {UploadToggle(el_td)}, false)
+                    let el_div = document.createElement("div");
+                        el_td.appendChild(el_div);
+                    add_hover(el_td);
                 } else if ( field_name === "activated") {
-                    el_div.addEventListener("click", function() {ModConfirmOpen("resend_activation_email", el_div)}, false )
-                    let el_icon = document.createElement("div");
-                        el_div.appendChild(el_icon);
-                    add_hover(el_div)
+                    el_td.addEventListener("click", function() {ModConfirmOpen("resend_activation_email", el_td)}, false )
+                    let el_div = document.createElement("div");
+                        el_td.appendChild(el_div);
+                    add_hover(el_td)
                 } else if (field_name === "is_active") {
-                    el_div.addEventListener("click", function() {ModConfirmOpen("inactive", el_div)}, false )
-                    let el_icon = document.createElement("div");
-                        el_icon.classList.add("inactive_0_2")
-                        el_div.appendChild(el_icon);
-                    add_hover(el_div)
+                    el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_td)}, false )
+                    let el_div = document.createElement("div");
+                        el_div.classList.add("inactive_0_2")
+                        el_td.appendChild(el_div);
+                    add_hover(el_td)
                 } else if ( field_name === "last_login") {
                     // pass
                 }
 // --- add  text_align
-               el_div.classList.add("ta_" + field_align[j]);
+               el_td.classList.add("ta_" + field_align[j]);
 // --- put value in field
-               UpdateField(el_div, map_dict)
+               UpdateField(el_td, map_dict)
             }  // for (let j = 0; j < 8; j++)
         }  // if(field_settings_table)
         return tblRow

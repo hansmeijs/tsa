@@ -96,7 +96,7 @@ def create_companyinvoice_dict(companyinvoice):
     return item_dict
 
 
-def create_customer_list(company, is_absence=None, is_template=None, is_inactive=None):
+def create_customer_list(company, customer_pk=None, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
@@ -107,7 +107,7 @@ def create_customer_list(company, is_absence=None, is_template=None, is_inactive
     sql_list.append(""" 
         SELECT c.id, 
         c.company_id AS comp_id,
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS code, 
         c.name, c.contactname, c.address, c.zipcode,  c.city,  c.country,  c.email, c.telephone,
         c.identifier, c.interval,
         c.invoicecode_id AS c_invc_id,  
@@ -118,29 +118,32 @@ def create_customer_list(company, is_absence=None, is_template=None, is_inactive
         FROM companies_customer AS c   
         WHERE c.company_id = %(compid)s
         """)
+    if customer_pk:
+        sql_list.append('AND (c.id = %(cid)s)')
+        sql_keys['cid'] = customer_pk
+    else:
+        if is_absence is not None:
+            if is_absence:
+                sql_list.append('AND c.isabsence')
+            else:
+                sql_list.append('AND NOT c.isabsence')
+            sql_keys['isabsence'] = is_absence
 
-    if is_absence is not None:
-        if is_absence:
-            sql_list.append('AND c.isabsence')
-        else:
-            sql_list.append('AND NOT c.isabsence')
-        sql_keys['isabsence'] = is_absence
+        if is_template is not None:
+            if is_template:
+                sql_list.append('AND c.istemplate')
+            else:
+                sql_list.append('AND NOT c.istemplate')
+            sql_keys['istemplate'] = is_template
 
-    if is_template is not None:
-        if is_template:
-            sql_list.append('AND c.istemplate')
-        else:
-            sql_list.append('AND NOT c.istemplate')
-        sql_keys['istemplate'] = is_template
+        if is_inactive is not None:
+            if is_inactive:
+                sql_list.append('AND c.inactive')
+            else:
+                sql_list.append('AND NOT c.inactive')
+            sql_keys['inactive'] = is_inactive
 
-    if is_inactive is not None:
-        if is_inactive:
-            sql_list.append('AND c.inactive')
-        else:
-            sql_list.append('AND NOT c.inactive')
-        sql_keys['inactive'] = is_inactive
-
-    sql_list.append('ORDER BY LOWER(c.code)')
+        sql_list.append('ORDER BY LOWER(c.code)')
     sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()
@@ -251,7 +254,7 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, is_absence=None, is_template=None, is_inactive=None):
+def create_order_list(company, order_pk=None, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # absence orders are loaded in create_abscat_list
@@ -267,7 +270,7 @@ def create_order_list(company, is_absence=None, is_template=None, is_inactive=No
         SELECT o.id, 
         c.id AS c_id, 
 
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (o.code, '~', ''),'') AS code, 
         COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
         
         CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
@@ -296,37 +299,40 @@ def create_order_list(company, is_absence=None, is_template=None, is_inactive=No
 
         WHERE c.company_id = %(compid)s
         """)
+    if order_pk:
+        sql_list.append('AND (o.id = %(oid)s)')
+        sql_keys['oid'] = order_pk
+    else:
+        if period_datefirst:
+            sql_list.append('AND (o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL)')
+            sql_keys['rdf'] = period_datefirst
 
-    if period_datefirst:
-        sql_list.append('AND (o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL)')
-        sql_keys['rdf'] = period_datefirst
+        if period_datelast:
+            sql_list.append('AND (o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL)')
+            sql_keys['rdl'] = period_datelast
 
-    if period_datelast:
-        sql_list.append('AND (o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL)')
-        sql_keys['rdl'] = period_datelast
+        if is_absence is not None:
+            if is_absence:
+                sql_list.append('AND c.isabsence')
+            else:
+                sql_list.append('AND NOT c.isabsence')
+            sql_keys['isabsence'] = is_absence
 
-    if is_absence is not None:
-        if is_absence:
-            sql_list.append('AND c.isabsence')
-        else:
-            sql_list.append('AND NOT c.isabsence')
-        sql_keys['isabsence'] = is_absence
+        if is_template is not None:
+            if is_template:
+                sql_list.append('AND c.istemplate')
+            else:
+                sql_list.append('AND NOT c.istemplate')
+            sql_keys['istemplate'] = is_template
 
-    if is_template is not None:
-        if is_template:
-            sql_list.append('AND c.istemplate')
-        else:
-            sql_list.append('AND NOT c.istemplate')
-        sql_keys['istemplate'] = is_template
+        if is_inactive is not None:
+            if is_inactive:
+                sql_list.append('AND o.inactive')
+            else:
+                sql_list.append('AND NOT o.inactive')
+            sql_keys['inactive'] = is_inactive
 
-    if is_inactive is not None:
-        if is_inactive:
-            sql_list.append('AND o.inactive')
-        else:
-            sql_list.append('AND NOT o.inactive')
-        sql_keys['inactive'] = is_inactive
-
-    sql_list.append('ORDER BY LOWER(c.code), LOWER(o.code)')
+        sql_list.append('ORDER BY LOWER(c.code), LOWER(o.code)')
     sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()

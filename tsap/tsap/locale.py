@@ -443,6 +443,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Cick_show_inactive_customers'] = TXT_Click_show_inactive_customers
         dict['Make_customer_inactive'] = TXT_Make_customer_inactive
         dict['Make_order_inactive'] = TXT_Make_order_inactive
+        dict['Make_customer_active'] = TXT_Make_customer_active
+        dict['Make_order_active'] = TXT_Make_order_active
 
         dict['Print_planning'] = TXT_Print_planning
         dict['Preview_planning'] = TXT_Preview_planning
@@ -1148,6 +1150,8 @@ TXT_Upload_customers_and_orders = _('Upload customers and orders')
 TXT_Make_customer_inactive = _('Make customer inactive')
 TXT_Make_order_inactive = _('Make order inactive')
 TXT_Make_planned_shifts_inactive = _('Make planned shifts inactive')
+TXT_Make_customer_active = _('Make customer active')
+TXT_Make_order_active = _('Make order active')
 
 TXT_Click_show_inactive_customers = _('Click to show or hide inactive customers.')
 TXT_Click_show_inactive_orders = _('Click to show or hide inactive orders.')

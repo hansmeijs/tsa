@@ -558,12 +558,13 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                         #logger.debug('subkey: ' + str(subkey))
                         #logger.debug('value: ' + str(value))
                         # 'page_scheme': {'sel_btn': 'grid'}
-                        # if  subkey has value in  new_setting_dict: replace saved value with new value
-                        if value:
-                            saved_settings_dict[subkey] = value
-                        else:
-                        # if  subkey has no value in new_setting_dict: remove key from dict
-                            saved_settings_dict.pop(subkey)
+                        # if  subkey has value in new_setting_dict: replace saved value with new value
+                        if subkey in saved_settings_dict:
+                            if value:
+                                saved_settings_dict[subkey] = value
+                            else:
+                            # if  subkey has no value in new_setting_dict: remove key from dict
+                                saved_settings_dict.pop(subkey)
                     #logger.debug('Usersetting.set_jsonsetting from UserSettingsUploadView')
                     Usersetting.set_jsonsetting(key, saved_settings_dict, request.user)
 

@@ -1751,17 +1751,19 @@
         return time_formatted
     }  // format_datetime_from_datetimeJS
 
-//=========  ShowOkRow  ================ PR2020-05-26
+//=========  ShowOkRow  ================ PR2020-05-26 PR2020-08-26
     function ShowErrorRow(tblRow, cls_selected ) {
         // make row red, / --- remove class 'error' after 2 seconds
-        const has_cls_selected = (tblRow.classList.contains(cls_selected));
-        if (has_cls_selected) { tblRow.classList.remove(cls_selected)};
+        if(tblRow){
+            const has_cls_selected = (tblRow.classList.contains(cls_selected));
+            if (has_cls_selected) { tblRow.classList.remove(cls_selected)};
 
-        tblRow.classList.add("tsa_tr_error");
-        setTimeout(function (){
-            tblRow.classList.remove("tsa_tr_error");
-            if (has_cls_selected) { tblRow.classList.add(cls_selected)};
-        }, 2000);
+            tblRow.classList.add("tsa_tr_error");
+            setTimeout(function (){
+                tblRow.classList.remove("tsa_tr_error");
+                if (has_cls_selected) { tblRow.classList.add(cls_selected)};
+            }, 2000);
+        }
     }
 //=========  ShowOkRow  ================ PR2019-05-31
     function ShowOkRow(tblRow ) {

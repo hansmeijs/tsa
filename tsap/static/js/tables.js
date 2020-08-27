@@ -1351,24 +1351,6 @@
     }  // ChangeBackgroundRows
 
 
-//========= t_HighlightBtnSelect  ============= PR2020-02-20
-    function t_HighlightBtnSelect(btn_container, selected_btn, btns_disabled){
-        //console.log( "//========= t_HighlightBtnSelect  ============= ")
-        // ---  highlight selected button
-        let btns = btn_container.children;
-        for (let i = 0, btn, len = btns.length; i < len; i++) {
-            btn = btns[i]
-            const data_mode = get_attr_from_el(btn, "data-btn")
-            const is_highlighted = (data_mode === selected_btn)
-            btn.disabled = (!!btns_disabled);
-            if (is_highlighted){
-                btn.disabled = false;
-                btn.classList.add("tsa_btn_selected")
-            } else {
-                btn.classList.remove("tsa_btn_selected")
-            }
-        }
-    }  //  t_HighlightBtnSelect
 
 //========= found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
