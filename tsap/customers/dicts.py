@@ -381,7 +381,7 @@ def create_order_dict_from_sql(instance, item_dict):
                 field_dict['code'] = instance.get('c_code')
 
             elif field == 'code':
-                field_dict['value'] = instance.get('o_code')
+                field_dict['value'] = instance.get('code')
                 field_dict['cust_ordr_code'] = instance.get('c_o_code')
 
             elif field in ('name', 'identifier','contactname', 'address', 'zipcode',  'city',  'country'):

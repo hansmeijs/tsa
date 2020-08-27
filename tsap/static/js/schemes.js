@@ -4551,7 +4551,8 @@ if(selected_btn === "btn_absence"){
 
 //=========  MSCO_FillSelectRow  ================ PR2020-05-21 cleaned
     function MSCO_FillSelectRow(tableBody, map_dict, mod_name) {
-        //console.log( "===== MSCO_FillSelectRow ========= ", tblName);
+        console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
+        console.log( "map_dict ", map_dict);
 
 //--- check if item must be added to list
         let add_to_list = false, is_selected_pk = false;
