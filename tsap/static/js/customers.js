@@ -1587,7 +1587,13 @@ let planning_list = [] // for export and printing - can replace map?
                       };
             }
         }
-        mod_dict.create = is_addnew;
+        if(is_addnew){
+            const company_pk = get_dict_value(company_dict, ["id", "pk"])
+            mod_dict.create = is_addnew;
+            mod_dict.comp_id = company_pk;
+        }
+        console.log( "mod_dict: ", mod_dict);
+        console.log( "company_dict: ", company_dict);
 
 // ---  dont_show_err_msg when opened in addnew mode
         mod_dict.dont_show_err_msg = is_addnew
@@ -1633,6 +1639,7 @@ let planning_list = [] // for export and printing - can replace map?
         upload_dict.id.ppk = mod_dict.ppk;
         if(mod_dict.create) {
             upload_dict.id.create = true;
+            upload_dict.id.ppk = mod_dict.comp_id;
         } else {
             upload_dict.id.pk = mod_dict.id;
             upload_dict.id.ppk = mod_dict.comp_id;
