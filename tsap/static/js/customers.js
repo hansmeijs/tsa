@@ -69,20 +69,21 @@ let planning_list = [] // for export and printing - can replace map?
 
         let filter_select = "";
         let filter_dict = {};
+        let filter_inactive = true;
         let filter_mod_employee = "";
 
         const field_settings = {
             customer: { tbl_col_count: 5,
                 field_caption: ["", "Short_name", "Customer_name", "Identifier", ""],
                 field_names:  ["select", "code", "name", "identifier", "inactive"],
-                filter_tags: ["select", "text", "text", "text", ""],
+                filter_tags: ["select", "text", "text", "text", "inactive"],
                 field_width: ["016", "180", "220", "120", "032"],
                 field_align:  ["c", "l", "l", "l", "r"]
                 },
             order: { tbl_col_count: 8,
                 field_caption: ["", "Customer", "Order_code", "Order_name", "Start_date", "End_date", "Identifier", ""],
                 field_names: ["select", "c_code", "code", "name", "datefirst", "datelast", "identifier", "inactive"],
-                filter_tags: ["select","input", "input", "input", "input", "input", "input", "a"],
+                filter_tags: ["select","input", "input", "input", "input", "input", "input", "inactive"],
                 field_width: ["016", "180", "180", "180", "120", "120", "120", "032"],
                 field_align: ["c", "l", "l","l", "l", "l", "l", "r", "r"]
                 },
@@ -464,7 +465,6 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  set text or hide submenu btns add/deletes
         const el_submenu_add = document.getElementById("id_submenu_add");
         const el_submenu_delete = document.getElementById("id_submenu_delete");
-        const el_submenu_import = document.getElementById("id_submenu_import");
 
         console.log( "el_submenu_add", el_submenu_add);
         let has_btn_add_delete = (["customer", "order"].indexOf(selected_btn) > -1 );
@@ -472,7 +472,6 @@ let planning_list = [] // for export and printing - can replace map?
         el_submenu_delete.innerText  = (has_btn_add_delete) ? (selected_btn === "customer") ? loc.Delete_customer : loc.Delete_order : "-";
         add_or_remove_class(el_submenu_add, cls_hide, !has_btn_add_delete)
         add_or_remove_class(el_submenu_delete, cls_hide, !has_btn_add_delete)
-        add_or_remove_class(el_submenu_import, cls_hide, selected_btn !== "customer");
 
 // ---  show / hide elements of selected button
         show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
@@ -577,12 +576,12 @@ let planning_list = [] // for export and printing - can replace map?
         const customer_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true
+            add_shifts_without_employee: true
         };
         const employee_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true,
+            add_shifts_without_employee: true,
             skip_restshifts: true,
             orderby_rosterdate_customer: true
         };
@@ -893,7 +892,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         const url_order_import = get_attr_from_el(el_data, "data-order_import_url");
 
-        //console.log("url_order_import: ", url_order_import);
+        console.log("url_order_import: ", url_order_import);
 
         AddSubmenuButton(el_div, loc.Add_customer, function() {Mod_Open()}, ["mx-2"], "id_submenu_add")
         AddSubmenuButton(el_div, loc.Delete_customer, function() {ModConfirmOpen("delete")}, ["mx-2"], "id_submenu_delete")
@@ -950,9 +949,11 @@ let planning_list = [] // for export and printing - can replace map?
                     el.setAttribute("data-filtertag", field_settings[tblName].filter_tags[j]);
                     //if ([5, 7, 11].indexOf(j) > -1) {
                     if (field_name === "inactive") {
-                        el.addEventListener("click", function(event){HandleFilterImage(el, j)});
+                        el.addEventListener("click", function(event){HandleFilterInactive(el, j)});
+                        el.title = (tblName === "customer") ? loc.Cick_show_inactive_customers : loc.Cick_show_inactive_orders;
                         // --- add div for image inactive
                         let el_div = document.createElement("div");
+                            el_div.classList.add("inactive_0_2")
                             el.appendChild(el_div);
                         el.classList.add("pointer_show");
                     } else {
@@ -1077,8 +1078,10 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log("tblRow", tblRow);
 
         if (tblRow && !isEmpty(map_dict)) {
-            const is_inactive = (map_dict.inactive) ? map_dict.inactive : false;
-            tblRow.setAttribute("data-inactive", is_inactive)
+        // ---  set tblRow attr data-inactive, hide tblRow when inactive and filter_inactive
+            const inactive_int = (map_dict.inactive) ? 1 : 0;
+            tblRow.setAttribute("data-inactive", inactive_int)
+            add_or_remove_class(tblRow, cls_hide, filter_inactive && map_dict.inactive)
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 // el_input is first child of td, td is cell of tblRow
                 let el_input = tblRow.cells[i]; //.children[0];
@@ -2381,7 +2384,7 @@ let planning_list = [] // for export and printing - can replace map?
 // ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++
 
     // ---  put order name in left header
-            const order_text = (!!order_code) ? customer_code + " - " + order_code : loc.Select_order + "...";
+            const order_text = (!!order_code) ? customer_code + " - " + order_code : loc.Select_order;
             document.getElementById("id_MOS_header").innerText = order_text;
 
     // ---  put scheme code in left subheader
@@ -2457,7 +2460,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         } else {
 // ---  show modal confirm with message 'First select employee'
-            document.getElementById("id_confirm_header").innerText = loc.Select_order + "...";
+            document.getElementById("id_confirm_header").innerText = loc.Select_order;
             document.getElementById("id_confirm_msg01").innerText = loc.err_open_calendar_01 + loc.an_order + loc.err_open_calendar_02;
             document.getElementById("id_confirm_msg02").innerText = null;
             document.getElementById("id_confirm_msg03").innerText = null;
@@ -4601,12 +4604,12 @@ let planning_list = [] // for export and printing - can replace map?
         let customer_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true
+            add_shifts_without_employee: true
         };
         let employee_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true,
+            add_shifts_without_employee: true,
             skip_restshifts: true,
             orderby_rosterdate_customer: true
         };
@@ -4649,14 +4652,12 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-06-23 PR2020-08-26
     function ModConfirmOpen(mode, tblName, el_input) {
-        console.log(" -----  ModConfirmOpen   ----")
-        console.log("mode", mode, "tblName", tblName)
+        //console.log(" -----  ModConfirmOpen   ----")
+        //console.log("mode", mode, "tblName", tblName)
         // values of mode are : "delete", "inactive"
         if(!tblName) { tblName = selected_btn };
 
-        console.log( "selected_customer_pk: ", selected_customer_pk);
-        console.log( "selected_order_pk: ", selected_order_pk);
-
+// ---  get selected_pk from tblRow or selected_customer_pk / selected_order_pk
         let selected_pk = null;
         mod_dict = {};
 
@@ -4667,7 +4668,7 @@ let planning_list = [] // for export and printing - can replace map?
         } else {
             // // tblRow is undefined when clicked on delete btn in submenu btn or form (no inactive btn)
             selected_pk = (tblName === "customer") ? selected_customer_pk :
-                            (tblName === "order") ? selected_order_pk : null;
+                          (tblName === "order") ? selected_order_pk : null;
         }
 
 // ---  get info from data_map
@@ -4699,6 +4700,7 @@ let planning_list = [] // for export and printing - can replace map?
                                     (map_dict.inactive) ? loc.Make_order_active : loc.Make_order_inactive : null : null;
 
         document.getElementById("id_confirm_header").innerText = header_text;
+
 // ---  put msg text in modal form
         let msg_01_txt = "", msg_02_txt = "";
         if(has_selected_item){
@@ -4719,6 +4721,7 @@ let planning_list = [] // for export and printing - can replace map?
         document.getElementById("id_confirm_msg02").innerText = msg_02_txt;
         document.getElementById("id_confirm_msg03").innerText = null;
 
+// ---  set btn text, color and hide
         let el_btn_save = document.getElementById("id_confirm_btn_save");
         el_btn_save.innerText = (mode === "delete") ? loc.Yes_delete :
                                     (map_dict.inactive) ? loc.Yes_make_active : loc.Yes_make_inactive;
@@ -4730,13 +4733,12 @@ let planning_list = [] // for export and printing - can replace map?
 
         document.getElementById("id_confirm_btn_cancel").innerText = (has_selected_item) ? loc.Cancel : loc.Close;
 
-// set focus to cancel button
+// ---  set focus to cancel button
         setTimeout(function (){
             document.getElementById("id_confirm_btn_cancel").focus();
         }, 50);
 
-        //console.log("mod_dict", mod_dict)
-// show modal
+// ---  show modal
         $("#id_mod_confirm").modal({backdrop: true});
 
     };  // ModConfirmOpen
@@ -4822,16 +4824,14 @@ let planning_list = [] // for export and printing - can replace map?
         }  //  if (!!tblName){
     }  // function ResetFilterRows
 
-//========= HandleFilterImage  =====  PR2020-08-27
-    function HandleFilterImage(el_input, index) {
-        //console.log( "===== HandleFilterImage  ========= ");
-        //console.log( "index", index);
-        //console.log( "filter_dict", filter_dict);
-        //filter_dict = [ [], ["", "2", "text"], ["", "z", "text"] ];
-        const value = (filter_dict[index]) ? filter_dict[index] : 0;
-        const new_value = Math.abs(value - 1);
-        filter_dict[index] = new_value
-        add_or_remove_class(el_input, "stat_1_0", (new_value === 1), "stat_0_0")
+//========= HandleFilterInactive  =====  PR2020-08-30
+    function HandleFilterInactive(el_input, index) {
+        console.log( "===== HandleFilterInactive  ========= ");
+
+        filter_inactive = !filter_inactive;
+        const el_img = el_input.children[0];
+        add_or_remove_class(el_img, "inactive_0_2", filter_inactive, "inactive_1_3")
+
         Filter_TableRows();
     };
 
@@ -4852,20 +4852,15 @@ let planning_list = [] // for export and printing - can replace map?
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(el){
-                    el.value = null
+                    el.value = null;
                 }
             }
         } else {
-            let filter_dict_text = ""
-            if (index in filter_dict) {filter_dict_text = filter_dict[index]};
-            //if(!filter_dict_text){filter_dict_text = ""}
-            //console.log( "filter_dict" , filter_dict);
-            //console.log( "filter_dict_text: <" + filter_dict_text + ">");
-
-            let new_filter = el.value.toString();
-            //console.log( "new_filter: <" + new_filter + ">");
-            if (!new_filter){
-                if (!filter_dict_text){
+            let filter_value = (filter_dict[index]) ? filter_dict[index][1] : 0;
+            let new_value = el.value.toString();
+            //console.log( "new_value: <" + new_value + ">");
+            if (!new_value){
+                if (!filter_value){
                     //console.log( "skip_filter = true");
                     skip_filter = true
                 } else {
@@ -4874,11 +4869,12 @@ let planning_list = [] // for export and printing - can replace map?
                     //console.log( "deleted filter : ", filter_dict);
                 }
             } else {
-                if (new_filter.toLowerCase() === filter_dict_text) {
+                new_value = new_value.toLowerCase()
+                if (new_value === filter_value) {
                     skip_filter = true
                     //console.log( "skip_filter = true");
                 } else {
-                    filter_dict[index] = new_filter.toLowerCase();
+                    filter_dict[index] = ["text", new_value]
                     //console.log( "filter_dict[index]: ", filter_dict[index]);
                 }
             }
@@ -4891,25 +4887,20 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= Filter_TableRows  =====  PR2020-08-27
     function Filter_TableRows() {  // PR2019-06-09
-        console.log( "===== Filter_TableRows=== ");
+        //console.log( "===== Filter_TableRows=== ");
         const len = tblBody_datatable.rows.length;
         if (len){
             for (let i = 0, tblRow, show_row; tblRow = tblBody_datatable.rows[i]; i++) {
                 show_row = ShowTableRow_dict(tblRow)
-        console.log( "show_row", show_row);
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
+                add_or_remove_class(tblRow, cls_hide, !show_row)
             }
         };
     }; // Filter_TableRows
 
 //========= ShowTableRow_dict  =====  PR2020-08-27
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15 PR2020-07-21
-        console.log( "===== ShowTableRow_dict  ========= ");
-        console.log( "filter_dict", filter_dict);
+        //console.log( "===== ShowTableRow_dict  ========= ");
+        //console.log( "filter_dict", filter_dict);
         // function filters by inactive and substring of fields
         //  - iterates through cells of tblRow
         //  - skips filter of new row (new row is always visible)
@@ -4921,24 +4912,20 @@ let planning_list = [] // for export and printing - can replace map?
         //       - hides row if inactive = true
         let hide_row = false;
         if (tblRow){
+            const is_inactive = (!!get_attr_from_el_int(tblRow, "data-inactive"));
+            hide_row = (filter_inactive && is_inactive)
             Object.keys(filter_dict).forEach(function(index_str) {
                 if(!hide_row){
-                    const col_index = (Number(index_str)) ? Number(index_str) : 0;
-                    console.log("col_index", col_index, typeof col_index )
-                    console.log("filter_dict", filter_dict )
-                    if(col_index === 10){
-                        const filter_value = filter_dict[col_index];
-                        if(filter_value) {
-                            const has_changed = Number(get_attr_from_el(tblRow, "data-haschanged", "0"));
-                            hide_row = (filter_value !== has_changed);
-                        }
-                    } else {
-                        const filter_value = filter_dict[col_index];
+                    const col_index = Number(index_str);
+                    const filter_arr = filter_dict[index_str];
+                    const filter_tag = filter_arr[0];
+                    const filter_value = filter_arr[1];
+                    console.log( "filter_arr", filter_arr, typeof filter_arr);
+                    console.log( "filter_tag", filter_tag, typeof filter_tag);
+                    console.log( "filter_value", filter_value, typeof filter_value);
+
+                    if(filter_tag === "text"){
                         const filter_blank = (filter_value ==="#")
-                        const is_img_filter = ([4,6,10].indexOf(col_index) > -1)
-                    console.log("filter_value", filter_value )
-                    console.log("filter_blank", filter_blank )
-                    console.log("is_img_filter", is_img_filter )
                         let tbl_cell = tblRow.cells[col_index];
                         if (tbl_cell){
                             let el = tbl_cell; //.children[0];
@@ -5048,7 +5035,7 @@ let planning_list = [] // for export and printing - can replace map?
         } else {
 
 // ---  show modal confirm with message 'First select employee'
-            document.getElementById("id_confirm_header").innerText = loc.Select_order + "...";
+            document.getElementById("id_confirm_header").innerText = loc.Select_order;
             document.getElementById("id_confirm_msg01").innerText = loc.err_open_calendar_01 + loc.an_order + loc.err_open_planning_preview_02;
             document.getElementById("id_confirm_msg02").innerText = null;
             document.getElementById("id_confirm_msg03").innerText = null;

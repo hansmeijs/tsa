@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  upload settings and download calendar
         const now_arr = get_now_arr();
-        selected_calendar_period = {now: now_arr, add_empty_shifts: false, skip_absence_and_restshifts: false}
+        selected_calendar_period = {now: now_arr, add_shifts_without_employee: false, skip_absence_and_restshifts: false}
         if(mode === "thisweek") {
             selected_calendar_period["period_tag"] = "tweek"
         } else{
@@ -2107,7 +2107,7 @@ if(pgeName === "absence"){
 
         let employee_planning_dict = {
             employee_pk: (!!selected_employee_pk) ? selected_employee_pk : null,
-            add_empty_shifts: false,
+            add_shifts_without_employee: false,
             skip_restshifts: false,
             orderby_rosterdate_customer: false
         };

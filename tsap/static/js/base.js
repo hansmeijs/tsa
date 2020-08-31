@@ -447,7 +447,7 @@
         data_map.clear();
         const data_list_length = data_list.length
         if (data_list && data_list_length) {
-            // tblName ovverrules table in id, necessary for absence_map
+            // tblName overrules table in id, necessary for absence_map
             let table = null;
             if(tblName){
                 table = tblName;
@@ -466,17 +466,20 @@
                 data_map.set(map_id, item_dict);
             }
         }
+        //console.log("data_map", data_map)
     };
 
 //========= update_map_item  ================== PR2020-08-09
     function update_map_items(data_map, update_rows){
-        //console.log(" --- update_map_items ---")
+        console.log(" --- update_map_items ---")
         // data_map must be in format '_rows' with row.mapid
+        console.log("data_map.size before: " + data_map.size)
         if (update_rows) {
             for (let i = 0, row; row = update_rows[i]; i++) {
                 data_map.set(row.mapid, row);
             }
         }
+        console.log("data_map.size after: " + data_map.size)
     }
 
 //========= update_map_item  ================== PR2020-04-22

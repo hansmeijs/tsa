@@ -168,9 +168,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- absence_list used in scheme. TODO change absence_list to absence_rows in scheme page
                     request_item = datalist_request.get('absence_list')
                     if request_item:
-                        dict_list, dict_rows = ed.create_absence_list(filter_dict=request_item, teammember_pk=None, request=request)
-                        datalists['absence_list'] = dict_list
-                        datalists['absence_rows'] = dict_rows
+                        datalists['absence_rows'] = ed.create_absence_rows(filter_dict=request_item, teammember_pk=None, request=request)
+
 # - page_scheme_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
                     request_item = datalist_request.get('page_scheme_list')
                     if request_item:
@@ -264,9 +263,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
                         # roster_period_dict is already retrieved
                         is_emplhour_check = (request_item.get('mode') == "emplhour_check")
-                        emplhour_rows, no_changes = d.create_emplhour_list(period_dict=roster_period_dict,
-                                                                is_emplhour_check=is_emplhour_check,
-                                                                request=request)
+                        emplhour_rows, no_changes, last_emplhour_check, last_emplhour_updated, new_last_emplhour_check = \
+                            d.create_emplhour_list(
+                                period_dict=roster_period_dict,
+                                is_emplhour_check=is_emplhour_check,
+                                request=request)
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         if is_emplhour_check:
                             if no_changes:
@@ -275,6 +276,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists['emplhour_updates'] = emplhour_rows
                         else:
                             datalists['emplhour_rows'] = emplhour_rows
+                        if last_emplhour_check:
+                            datalists['last_emplhour_check'] = last_emplhour_check.isoformat()
+                        if last_emplhour_updated:
+                            datalists['last_emplhour_updated'] = last_emplhour_updated.isoformat()
+                        if new_last_emplhour_check:
+                            datalists['new_last_emplhour_check'] = new_last_emplhour_check.isoformat()
 # ----- overlap
                     request_item = datalist_request.get('overlap')
                     if request_item:
@@ -321,17 +328,19 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['payroll_period_agg_list'] = \
                             ed.create_payroll_agg_list(payroll_period, request)
                         datalists['payroll_period_detail_list'] = \
-                            ed.create_payroll_detail_list(payroll_period, request)
+                            ed.create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request)
+                        #datalists['payroll_period_detail_list'] = \
+                        #    ed.create_payroll_detail_list(payroll_period, request)
                         datalists['paydatecodes_inuse_list'] = \
-                            ed.create_paydatecodes_inuse_list(period_dict=request_item, request=request)
+                            ed.create_paydatecodes_inuse_list(period_dict=payroll_period, request=request)
                         datalists['paydateitems_inuse_list'] = \
-                            ed.create_paydateitems_inuse_list(period_dict=request_item, request=request)
+                            ed.create_paydateitems_inuse_list(period_dict=payroll_period, request=request)
                         datalists['employees_inuse_list'] = \
-                            ed.create_employees_inuse_list(period_dict=request_item, request=request)
+                            ed.create_employees_inuse_list(period_dict=payroll_period, request=request)
                         datalists['customers_inuse_list'] = \
-                            ed.create_customers_inuse_list(period_dict=request_item, request=request)
+                            ed.create_customers_inuse_list(period_dict=payroll_period, request=request)
                         datalists['orders_inuse_list'] = \
-                            ed.create_orders_inuse_list(period_dict=request_item, request=request)
+                            ed.create_orders_inuse_list(period_dict=payroll_period, request=request)
 
 # - paydatecode_list
                     request_item = datalist_request.get('paydatecode_list')
@@ -634,7 +643,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
     #logger.debug('order_pk: ' + str(order_pk))
     # calendar must have customer_pk, order_pk or employee_pk
     if customer_pk or order_pk or employee_pk:
-        add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
+        add_shifts_without_employee = calendar_period_dict.get('add_shifts_without_employee', False)
         skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
 
         datefirst_iso = calendar_period_dict.get('period_datefirst')
@@ -648,7 +657,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
             customer_pk=customer_pk,
             order_pk=order_pk,
             employee_pk=employee_pk,
-            add_empty_shifts=add_empty_shifts,
+            add_shifts_without_employee=add_shifts_without_employee,
             skip_absence_and_restshifts=skip_absence_and_restshifts,
             orderby_rosterdate_customer=orderby_rosterdate_customer,
             comp_timezone=comp_timezone,
@@ -698,14 +707,14 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
     skip_restshifts = False
     orderby_rosterdate_customer = False
 
-    # table_dict{'employee_pk': None, 'add_empty_shifts': False, 'skip_restshifts': False, 'orderby_rosterdate_customer': False}
+    # table_dict{'employee_pk': None, 'add_shifts_without_employee': False, 'skip_restshifts': False, 'orderby_rosterdate_customer': False}
     if table_dict:
         employee_pk = table_dict.get('employee_pk')
         customer_pk = None
         order_pk = table_dict.get('order_pk')
         if order_pk is None:
             customer_pk = table_dict.get('customer_pk')
-        add_empty_shifts = table_dict.get('add_empty_shifts', False)
+        add_shifts_without_employee = table_dict.get('add_shifts_without_employee', False)
         skip_restshifts = table_dict.get('skip_restshifts', False)
         orderby_rosterdate_customer = table_dict.get('orderby_rosterdate_customer', False)
     else:
@@ -714,7 +723,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
         if order_pk is None:
             customer_pk = saved_customer_pk
 
-        add_empty_shifts = True if saved_page == 'page_customer' else False
+        add_shifts_without_employee = True if saved_page == 'page_customer' else False
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
@@ -725,7 +734,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
         customer_pk=customer_pk,
         order_pk=order_pk,
         employee_pk=employee_pk,
-        add_empty_shifts=add_empty_shifts,
+        add_shifts_without_employee=add_shifts_without_employee,
         skip_absence_and_restshifts=skip_restshifts,
         orderby_rosterdate_customer=orderby_rosterdate_customer,
         comp_timezone=comp_timezone,
@@ -2683,10 +2692,12 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
 
 # +++ create emplhour
     if orderhour:
+        exceldate = f.get_Exceldate_from_datetime(orderhour.rosterdate)
         # an added emplhour has always haschanged=True, to see difference with planned emplhours PR20202-07-21
         emplhour = m.Emplhour(
             orderhour=orderhour,
             rosterdate=orderhour.rosterdate,
+            exceldate=exceldate,
             paydate=paydate,
             haschanged=True
         )
@@ -3117,8 +3128,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    #logger.debug(' --------- update_emplhour -------------')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --------- update_emplhour -------------')
+    logger.debug('upload_dict: ' + str(upload_dict))
 
     has_changed = False
     if emplhour:
@@ -3151,16 +3162,16 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         cur_employee = emplhour.employee
                         if cur_employee:
                             old_employee_pk = cur_employee.pk
-                        #logger.debug('cur_employee: ' + str(cur_employee))
+                        logger.debug('cur_employee: ' + str(cur_employee))
                 # - get new employee
                         new_employee = None
                         new_employee_pk = field_dict.get('pk')
-                        #logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+                        logger.debug('field_dict[' + field + ']: ' + str(field_dict))
                         if new_employee_pk:
                             new_employee = m.Employee.objects.filter(company=request.user.company, pk=new_employee_pk).first()
                             if new_employee is None:
                                 new_employee_pk = None
-                        #logger.debug('new_employee: ' + str(new_employee))
+                        logger.debug('new_employee: ' + str(new_employee))
                 # - save field if changed
                         # employee_pk is not required, new_employee_pk may be None
                         if new_employee_pk != old_employee_pk:
@@ -3196,7 +3207,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             # clear_overlap_list contains emplhour_pk's that must be cleared
                             if emplhour.pk not in clear_overlap_list:
                                 clear_overlap_list.append(emplhour.pk)
-                            #logger.debug('save new_employee')
+                            logger.debug('save new_employee')
 # ---   save changes in field 'shift'.
                     #  Note: field 'shift' is in orderhour, not emplhour!!
                     # 'shift': {'code': '08:00 - 1:00', 'update': True}

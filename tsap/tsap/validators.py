@@ -128,15 +128,18 @@ def validate_customer(field, value, company, this_pk = None):
 def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
     #logger.debug ('validate_unique_company_code', value)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
-    # skip companies that are not activated PR2020-04-02
+    # PR2020-08-27 debug: 'Securitas' was added although it already existed and was activated, I have no clue why
+    # PR2020-08-27 removed: skip companies that are not activated PR2020-04-02
     msg_err = None
     if not value:
         msg_err = _('Company name cannot be blank.')
     else:
         if cur_company_id:
-            value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exclude(pk=cur_company_id).exists()
+            # PR2020-08-27 removed:  value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exclude(pk=cur_company_id).exists()
+            value_exists = m.Company.objects.filter(code__iexact=value).exclude(pk=cur_company_id).exists()
         else:
-            value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exists()
+            # PR2020-08-27 removed:  value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exists()
+            value_exists = m.Company.objects.filter(code__iexact=value).exists()
         if value_exists:
             msg_err = _("Company '%(fld)s' already exists.") % {'fld': value}
     return msg_err

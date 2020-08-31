@@ -2200,6 +2200,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
 
     last_emplhour_check = None
     no_updates, no_deletes = False, False
+    #retrun value is temp for testing
+    last_emplhour_updated, new_last_emplhour_check = None, None
 
     if is_emplhour_check:
 # - get datetime when this user last checked for updates. This is stored in Usersetting key: last_emplhour_check
@@ -2244,7 +2246,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         if emplhours_deleted_rows:
             emplhour_rows.extend(emplhours_deleted_rows)
     no_changes = no_updates and no_deletes
-    return emplhour_rows, no_changes
+
+    return emplhour_rows, no_changes, last_emplhour_check, last_emplhour_updated, new_last_emplhour_check
 
 def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
     #logger.debug(' === create_emplhour_itemdict_from_row ==')

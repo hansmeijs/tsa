@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // settings.customer_pk contains saved pk. Remains when switched to template mode.
         // selected.customer_pk can have value of template_cust, is not stored in settings
         let selected_btn = "btn_grid"
-        let selected_tblRow_id = null;  // used in handleEventKey
+
         let selected = {customer_pk: 0, order_pk: 0, scheme_pk: 0,
                         team_pk: 0, shift_pk: 0, employee_pk: 0, teammember_pk: 0,
                         template_pk: 0};
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblHead_datatable = document.getElementById("id_tblHead_datatable");
         const tblBody_datatable = document.getElementById("id_tblBody_datatable");
-        const tblFoot_datatable = document.getElementById("id_tblFoot_datatable");
 
         const el_grid_tbody_team = document.getElementById("id_grid_tbody_team");
         const el_grid_tbody_shift = document.getElementById("id_grid_tbody_shift");
@@ -98,15 +97,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_tags: ["div", "div", "div", "div", "div", "div", "div"],
                         field_width: ["180", "", "120", "120", "120", "120", "032"],
                         field_align: ["l", "c", "r", "r", "r", "r", "c"]},
-            teammember: { tbl_col_count: 6,
+            MGTteammember: { tbl_col_count: 6,
                         field_caption: ["Team", "Employee", "Start_date", "End_date", "Replacement_employee", "-"],
                         field_names: ["team", "employee", "datefirst", "datelast", "replacement", "delete"],
                         field_tags:  ["div", "div", "input", "input", "div", "div"],
                         field_width: ["120", "150", "150", "150", "150", "032"],
                         field_align: ["l", "l", "l", "l", "l", "r"]},
+            teammember: { tbl_col_count: 6,
+                        field_caption: ["Team", "Employee", "Start_date", "End_date", "Replacement_employee", "-"],
+                        field_names: ["t_code", "e_code", "tm_df", "tm_dl", "rpl_code", "delete"],
+                        field_tags:  ["div", "div", "div", "div", "div", "div"],
+                        field_width: ["120", "180", "150", "150", "180", "032"],
+                        field_align: ["l", "l", "l", "l", "l", "r"]},
             absence: { tbl_col_count: 9,
                         field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
-                        field_names: ["", "employee", "order", "datefirst", "datelast", "timestart", "timeend", "timeduration", "delete"],
+                        field_names: ["", "e_code", "o_code", "s_df", "s_dl", "sh_os_arr", "sh_oe_arr", "sh_td_arr", "delete"],
                         filter_tags: ["", "text", "text", "text", "text", "text", "text", "text", "text","duration"],
                         field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "032"],
                         field_align: ["c", "l", "l", "r", "r", "r", "r", "r", "c"]},
@@ -246,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
             el_MAB_btn_save.addEventListener("click", function() {MAB_Save("save")}, false );
         let el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
-            el_MAB_btn_delete.addEventListener("click", function() {MAB_Save("delete")}, false );
+            el_MAB_btn_delete.addEventListener("click", function() {ModConfirmTblrowOpen("delete", "absence")}, false );
 
 // ---  Modal Copyfrom Template
         let el_MCFT_input_order = document.getElementById("id_MCFT_input_order")
@@ -419,7 +424,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
         if ("employee_list" in response) {refresh_datamap(response["employee_list"], employee_map)}
         if ("abscat_rows" in response) {refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
-        if ("absence_rows" in response) {refresh_datamap(response["absence_rows"], absence_map, "absence")}
+        if ("absence_rows" in response) {
+            FillAbsenceMap(response.absence_rows);
+        }
         if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
 
         if ("scheme_list" in response) {
@@ -480,8 +487,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
         // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click)
-        AddSubmenuButton(el_div, loc.Add_scheme, function (){HandleAddNewBtn()}, null, "id_menubtn_add_scheme");
-        AddSubmenuButton(el_div, loc.Delete_scheme, function (){HandleDeleteBtn()}, ["mx-2"], "id_menubtn_delete_scheme");
+        AddSubmenuButton(el_div, loc.Add_scheme, function (){HandleSubmenuBtnAddNew()}, null, "id_menubtn_add_scheme");
+        AddSubmenuButton(el_div, loc.Delete_scheme, function (){HandleSubmenuBtnDelete()}, ["mx-2"], "id_menubtn_delete_scheme");
         AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopyTemplateOpen()}, ["mx-2"], "id_menubtn_copy_template");
         AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, ["mx-2"], "id_menubtn_show_templates");
 
@@ -578,11 +585,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleBtnSelect  ================ PR2019-05-25 PR2020-05-24
     function HandleBtnSelect(data_btn, skip_update) {
-        //console.log( "==== HandleBtnSelect ========= " );
+        console.log( "==== HandleBtnSelect ========= " );
         // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
         selected_btn = (data_btn) ? data_btn : "btn_grid";
-        //console.log( "selected_btn:", selected_btn );
-        //console.log( "settings.scheme_pk:", settings.scheme_pk );
+        console.log( "selected_btn:", selected_btn );
+        console.log( "settings.scheme_pk:", settings.scheme_pk );
 
         settings.scheme_pk
 // ---  upload new selected_btn, not after loading page (then skip_update = true)
@@ -615,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
 // +++  when is normal_mode / template mode
     // ---  fill TableRows, resets when tblName=null (when btn_grid)
-            //FillTableRows(tblName, is_absence_mode)
+            FillTableRows(tblName, is_absence_mode)
     // --- fill grid with selected.scheme, only when btn_grid, reset otherwise
             let scheme_dict = {};
             if (selected_btn === "btn_grid" && selected.scheme_pk){
@@ -672,7 +679,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset tables schemeitems, shift and teammember
         tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
-        tblFoot_datatable.innerText = null;
 
 // ---  get is_absence_mode TODO
         let is_absence_mode = false;
@@ -755,7 +761,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- fill data table
                 tblHead_datatable.innerText = null;
                 tblBody_datatable.innerText = null;
-                tblFoot_datatable.innerText = null;
                 // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
                 const fill_tblName = (selected_btn === "btn_schemeitem") ? "schemeitem" :
                                      (selected_btn === "btn_shift") ? "shift" :
@@ -793,26 +798,19 @@ document.addEventListener('DOMContentLoaded', function() {
                            //  (tblName === "scheme" && selected_btn === "btn_schemeitem") ? "btn_schemeitem" : "btn_grid";
             HandleBtnSelect(btn_mode);
 
-    // put pk and ppk of selected customer in addnew row
-            const sel_scheme_or_team_pk = (tblName === "team") ? selected.team_pk : selected.scheme_pk
-            const item_tblName = (tblName === "team") ? "teammember" :
-                                 (tblName === "shift") ? "shift" : "schemeitem";
-            UpdateAddnewRow(item_tblName, sel_scheme_or_team_pk);
-
         } // if(!!sel_tr_clicked)
 
     }  // HandleSelect_Row
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked, skip_highlight_selectrow) {
-        //console.log("=== HandleTableRowClicked");
-        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
+        console.log("=== HandleTableRowClicked");
+        console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows, highlight selected row
         const tblName = get_attr_from_el(tr_clicked, "data-table");
 
         DeselectHighlightedTblbody(tblBody_datatable, cls_selected)
-        DeselectHighlightedTblbody(tblFoot_datatable, cls_selected)
 
         tr_clicked.classList.add(cls_selected)
 
@@ -820,14 +818,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!tr_clicked) {
             const selected_tblRow_pk = get_datapk_from_element(tr_clicked);
             selected.tblRow_rowIndex = tr_clicked.rowIndex;
-            selected.tblRow_id = tr_clicked.id;
+            selected.mapid = tr_clicked.id;
             selected.teammember_pk = get_attr_from_el(tr_clicked, "data-pk");
         } else {
             selected.tblRow_rowIndex = null;
-            selected.tblRow_id = null;
+            selected.mapid = null;
             selected.teammember_pk = null;
         }
         RefreshSubmenuButtons();
+        console.log( "selected: ", selected);
     }  // HandleTableRowClicked
 
 //========= HandleRestshiftClicked  ============= PR2019-10-01
@@ -999,11 +998,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // this is not an add-new row! (add-new row is in footer)
         let row_index, order_by; // TODO
         const scheme_pk = parent_pk;
-        let tblRow = CreateTblRow(tblBody_datatable, "schemeitem", false, pk_new, parent_pk, scheme_pk, row_index, order_by)
+        let tblRow = CreateTblRow("schemeitem", false, pk_new, parent_pk, scheme_pk, row_index, order_by)
 
 // Update TableRow
         //console.log("eitem_dict", item_dict);
-        UpdateTableRow(tblRow, item_dict, "HandleCreateSchemeItem")
+        UpdateTblRow(tblRow, item_dict, "HandleCreateSchemeItem")
     }  // HandleCreateSchemeItem
 
 //##################################################################################
@@ -1425,38 +1424,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
     };  // CreateTblHeader
 
 
-//=========  CreateTblFooter  ===  PR2019-12-01 PR2020-05-26
-    function CreateTblFooter(tblName) {
-        //console.log("===  CreateTblFooter == ");
-        //console.log("tblName", tblName);
-        // tblName = "schemeitem", "shift", "teammember", absence'
-        tblFoot_datatable.innerText = null
-
-// --- function adds row 'add new' in tfoot
-        if(tblFoot_datatable){
-            id_new += 1;
-            const pk_new = "new" + id_new.toString()
-            // selected.scheme_pk is still 0 when footer is created
-            // this is an add-new row!
-            const scheme_pk = (tblName !== "absence") ? selected.scheme_pk : null
-            let tblRow = CreateTblRow(tblFoot_datatable, tblName, true, pk_new, selected.scheme_pk, scheme_pk);
-            let dict = {id: {pk: pk_new, ppk: selected.scheme_pk, temp_pk: pk_new, table: tblName}};
-
-            if (tblName === "shift"){dict.code = {value: "< " + loc.Add_shift + " >"}
-            } else if (tblName === "teammember") {
-                //const el_div = tblRow.cells[0]
-               // el_div.innerText = "< " + loc.Add_teammember + " >"
-                //el_div.classList.add("mx-2")
-                {dict.teammember = {value: "< " + loc.Add_teammember + " >"}}
-            } else if (tblName === "absence"){dict.employee = {code: "< " + loc.Add_absence + " >"}
-            } else if (tblName === "schemeitem"){
-                // TODO  dict.rosterdate = today_dict
-                }
-
-            UpdateTableRow(tblRow, dict, "CreateTblFooter");
-        }
-    };  // CreateTblFooter
-
 //=========  CreateTblHeaderFilter  ================ PR2019-09-15 PR2020-05-22
     function CreateTblHeaderFilter(tblName, column_count) {
         console.log("=========  CreateTblHeaderFilter =========");
@@ -1570,7 +1537,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // --- reset tblBody
         tblBody_datatable.innerText = null;
 
-        selected.tblRow_id = null;
+        selected.mapid = null;
         selected.tblRow_rowIndex = null;
 
 // --- loop through absence_map
@@ -1615,7 +1582,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     el.addEventListener("mouseenter", function() {el.children[0].setAttribute("src", imgsrc_deletered)});
                     el.addEventListener("mouseleave", function() {el.children[0].setAttribute("src", imgsrc_delete)});
     // --- add EventListeners
-                    el.addEventListener("click", function() {ModConfirmOpen("delete", tblRow)}, false )
+                    el.addEventListener("click", function() {ModConfirmTblrowOpen("delete", "absence", el)}, false )
                 } else if (j){
                     el.addEventListener("click", function() {MAB_Open(el)}, false)
                 }
@@ -1643,10 +1610,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 // el_input is first child of td, td is cell of tblRow
                 let el_input = tblRow.cells[i].children[0];
+                RefreshAbsenceField(el_input, map_dict)
+                /*
                 if(el_input){
                     const fldName = get_attr_from_el(el_input, "data-field");
                 //  absence: ["employee", "order", "datefirst", "datelast", "workminutesperday", "delete"],
-                    if (fldName === "employee"){
+                    if (["o_code"].indexOf( fldName ) > -1){
+                        el_input.innerText = (map_dict[fldName]) ? map_dict[fldName] : "-";
+                    } else if (fldName === "employee"){
                         el_input.innerText = map_dict.e_code
                     } else if (fldName === "replacement"){
                         el_input.innerText = map_dict.rpl_code;
@@ -1657,7 +1628,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         el_input.innerText = map_dict.t_code
                     } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                         let date_iso = null;
-                        if (selected_btn === "absence") {
+                        if (selected_btn === "btn_absence") {
                             // absence gets datefirst / datelast from scheme table
                             date_iso = (fldName === "datefirst") ? map_dict.s_df : map_dict.s_dl;
                         } else {
@@ -1666,6 +1637,13 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         const date_formatted = format_dateISO_vanilla (loc, date_iso, true, false);
                         // add linebreak on empty cell, otherwise eventlistener does not work
                         el_input.innerText = (date_formatted) ? date_formatted : "\n";
+
+                    } else if (["offsetstart", "offsetend"].indexOf( fldName ) > -1){
+                        let value = (fldName === "offsetstart") ? map_dict.sh_os_arr[0] : map_dict.sh_oe_arr[0];
+                        let display_text = display_offset_time (loc, value);
+                        // hard return necessary to display hover or green OK field when it is empty
+                        if (!display_text){display_text = "\n"}
+                        el_input.innerText = display_text;
                     } else if (fldName === "timeduration"){
                         let time_duration = (map_dict.sh_td_arr) ? map_dict.sh_td_arr[0] : 0;
                         el_input.innerText = display_duration (time_duration, loc.user_lang);
@@ -1679,6 +1657,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         }
                     }
                 };  // if(!!el_input)
+                 */
             }  //  for (let j = 0; j < 8; j++)
         };  // if (!!map_dict && !!tblRow)
     }  // UpdateAbsenceTblRow
@@ -1694,8 +1673,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // --- reset tblBody
         tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
-        tblFoot_datatable.innerText = null;
-        selected.tblRow_id = null;
+
+        selected.mapid = null;
         selected.tblRow_rowIndex = null;
 
         if(tblName){
@@ -1725,7 +1704,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             if (sel_scheme_pk || is_absence){
 // --- create header row and footer
                 CreateTblHeader(tblName);
-                CreateTblFooter(tblName)
+                //CreateTblFooter(tblName)
 // --- loop through data_map
                 for (const [map_id, item_dict] of data_map.entries()) {
                     const pk_int = get_dict_value(item_dict, ["id", "pk"]);
@@ -1742,8 +1721,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
     //         also filter istemplate
                     const add_row = (is_absence) || (row_scheme_pk && row_scheme_pk === sel_scheme_pk && is_template === is_template_mode )
                     if (add_row){
-                        tblRow = CreateTblRow(tblBody_datatable, tblName, false, pk_int, ppk_int, row_scheme_pk, row_index, order_by);
-                        UpdateTableRow(tblRow, item_dict, "FillTableRows");
+                        tblRow = CreateTblRow(tblName, false, pk_int, ppk_int, row_scheme_pk, row_index, order_by);
+                        UpdateTblRow(tblRow, item_dict, "FillTableRows");
 // --- get rosterdate to be used in addnew row
                         rosterdate_dict =  get_dict_value(item_dict, ["rosterdate"]);
                         row_count += 1;
@@ -1766,13 +1745,13 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
     }  // FillTableRows
 
 //=========  CreateTblRow  ================ PR2019-04-27  PR2020-05-25
-    function CreateTblRow(tblBody_or_tfoot, tblName, is_addnew_row, pk_int, ppk_int, scheme_pk, row_index, order_by) {
+    function CreateTblRow(tblName, is_addnew_row, pk_int, ppk_int, scheme_pk, row_index, order_by) {
         //console.log("=========  CreateTblRow");
         //console.log("tblName", tblName, typeof tblName);
         //console.log("is_addnew_row", is_addnew_row);
 
 //+++ insert tblRow into tblBody_datatable
-        let tblRow = tblBody_or_tfoot.insertRow(row_index); //index -1 results in that the new row will be inserted at the last position.
+        let tblRow = tblBody_datatable.insertRow(row_index); //index -1 results in that the new row will be inserted at the last position.
         const map_id = get_map_id(tblName, pk_int);
         // rows in datatable have id = map_id = 'shift_1656', rows in grid have id 'gridrow_shift_1656'
         tblRow.setAttribute("id", map_id);
@@ -1806,12 +1785,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // --- add left margin to first column
             if (j === 0 ){
                 el.classList.add("ml-2");
-// --- in addnew row: make text of first column grey for text 'Add shift...'
-                if (is_addnew_row) {
-                    el.classList.add("tsa_color_darkgrey")
-// --- in addnew row: merge firsat 2 rows
-                    td.setAttribute("colspan", 2)
-                };
             }
 
 // ===== SHIFT  =====co
@@ -1840,6 +1813,10 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     el.classList.add("pointer_show");
 // ---  add addEventListener to all columns except last column
                     td.addEventListener("click", function() {MGT_Open("datatable", el, is_addnew_row)}, false)
+
+                    el.classList.add("border_none");
+            //el.classList.add("tsa_transparent");
+            //el.classList.add("tsa_bc_transparent");
                 }
 
 // ===== ABSENCE  =====
@@ -1852,7 +1829,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     add_hover(el);
                     el.classList.add("pointer_show");
 // ---  add addEventListener to all columns except last column
-                    td.addEventListener("click", function() {MAB_Open(is_addnew_row, el)}, false)
+                    td.addEventListener("click", function() {MAB_Open(el)}, false)
                 }
 
 // ===== SCHEMEITEM  =====
@@ -1861,7 +1838,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 if (j === column_count - 1){
                     if (!is_addnew_row){CreateBtnDeleteInactive("delete", false, tblRow, el)};
 // --- add img inactive to second last column,  not when is_new_row
-                } else if (!is_addnew_row && j === column_count - 2){
+                } else if (j === column_count - 2){
                     const is_inactive = false; // is_inactive gives value to btn. Give value later in updateTblRow
                     CreateBtnDeleteInactive("inactive", false, tblRow, el, is_inactive);
                 } else {
@@ -1914,7 +1891,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     // TODO tsa_transparent necessaryfor now, is removed prom input_popup_date becasue of datepicker in scheme box. To be changed
                     //el.classList.add("tsa_transparent")
              //   } else {
-                // el.classList.add("input_text"); // makes background transparent
+             //    el.classList.add("input_text"); // makes background transparent
            //     };
 
             //};
@@ -1980,7 +1957,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 el_input.addEventListener("click", function() {MGT_DeleteTeammember(tblRow)}, false )
             };
         } else {
-            el_input.addEventListener("click", function() {UploadDeleteInactive(mode, el_input)}, false )
+            //el_input.addEventListener("click", function() {UploadDeleteInactive(mode, el_input)}, false )
+            el_input.addEventListener("click", function() {ModConfirmTblrowOpen(mode, tblName, el_input)}, false )
         }
 //- add hover delete img
         if (mode ==="delete") {
@@ -1996,6 +1974,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         const img_src = (mode ==="delete") ? imgsrc_delete : (!!is_inactive) ? imgsrc_inactive_black : imgsrc_inactive_grey;
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
+
 
 //###########################################################################
 // +++++++++++++++++ UPLOAD ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2367,34 +2346,21 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
  }  //UploadTimepickerChanged
 
-//========= HandleDeleteBtn  ============= PR2020-03-12
-    function HandleDeleteBtn() {
-        //console.log( " ==== HandleDeleteBtn ====");
-        const is_absence = (selected_btn === "btn_absence")
-        const tblName = (is_absence) ? "absence" : "scheme";
-        const data_map =  (is_absence) ? absence_map : scheme_map;
-        const data_pk = (is_absence) ? selected.teammember_pk : selected.scheme_pk;
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, data_pk);
+//========= HandleSubmenuBtnDelete  ============= PR2020-08-28
+    function HandleSubmenuBtnDelete() {
+        //console.log( " ==== HandleSubmenuBtnDelete ====");
+        let mode = null;
+        if (selected_btn === "btn_grid"){
+            mode = "scheme_delete";
+            // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
+            MSCH_get_scheme_dict();
+        } else if (selected_btn === "btn_absence") {
+            mode = "absence_delete";
 
-        const selected_pk = get_dict_value(map_dict, ["id", "pk"])
-        const selected_ppk = get_dict_value(map_dict, ["id", "ppk"])
-        const selected_employee = get_dict_value(map_dict, ["employee", "code"])
+        }
 
-    // ---  create upload_dict with id_dict
-        mod_dict = { id: {pk: selected_pk,
-                        ppk: selected_ppk,
-                        table: tblName,
-                        is_absence: is_absence,
-                        delete: true},
-                        table: tblName,
-                    is_absence: is_absence,
-                    selected_pk: selected_pk,
-                    selected_employee: selected_employee,
-                    delete: true};
-        ModConfirmOpen("delete");
-
-    }  // HandleDeleteBtn
-
+        if(mode) {ModConfirmOpen(mode)};
+    }  // HandleSubmenuBtnDelete
 
 //========= UploadDeleteInactive  ============= PR2019-09-23 PR2020-05-31
     function UploadDeleteInactive(mode, el_input) {
@@ -2511,11 +2477,12 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         }
                         SBR_FillSelectTable("MSCH_Save scheme_list");
                     }
+                    if ("updated_absence_rows" in response) {RefreshAbsenceMap(response.updated_absence_rows)};
 
                     if ("shift_update" in response) {UpdateFromResponse_datatable_shift(response["shift_update"])};
                     if ("team_update" in response) {UpdateFromResponse(response["team_update"])};
                     if ("teammember_update" in response) {UpdateFromResponse(response["teammember_update"])};
-                    if ("absence_update" in response) {UpdateFromResponse(response["absence_update"])};
+
                     if ("rosterdate" in response) {ModRosterdateFinished(response["rosterdate"])}
                     if ("copied_from_template" in response) {
                         // only returned by SchemeTemplateUploadView
@@ -2681,13 +2648,13 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     if(!order_by) {order_by = 0}
                     const row_index = t_get_rowindex_by_orderby(tblBody_datatable, order_by)
                     const scheme_pk = ppk_int;
-                    tblRow = CreateTblRow(tblBody_datatable, tblName, false, pk_int, ppk_int, scheme_pk, row_index, order_by);
+                    tblRow = CreateTblRow(tblName, false, pk_int, ppk_int, scheme_pk, row_index, order_by);
                 } else {
                     tblRow = document.getElementById(map_id)
                 }
                 if(tblRow){
                     console.log("tblRow", tblRow);
-                    UpdateTableRow(tblRow, update_dict, "UpdateFromResponse_datatable_shift");
+                    UpdateTblRow(tblRow, update_dict, "UpdateFromResponse_datatable_shift");
 
     //----- replace updated item in map or remove deleted item from map
                     if(is_deleted){
@@ -2751,17 +2718,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ---  when team is created:
                 // set focus to addnew row in table teammember
                 // team has table teammembers, is empty after creating new team
-                let tblFoot_row = tblFoot_datatable.rows[0];
-                if (!!tblFoot_row){
-                    // HandleTableRowClicked sets Hihglight in table and selecttable
-                    HandleTableRowClicked(tblFoot_row, true) // true = skip_highlight_selectrow
-    // ---  in tblFoot_row: set el_input.value = null, set focus to addnew row
-                    let el_input = tblFoot_row.cells[0].children[0];
-                    el_input.value = null
-                    if (!!el_input){
-                        setTimeout(function() {el_input.focus()}, 50);
-                    }
-                }
             } else {
 // ---  create new row
                 // this is not an add-new row! (which is in the footer) but a created row
@@ -2772,8 +2728,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 const row_index = t_get_rowindex_by_orderby(tblBody_datatable, order_by)
                 const scheme_pk = selected.scheme_pk; // scheme_pk will only put value in 'data-scheme_pk when table = teammember
                 //console.log("row_index", row_index)
-                tblRow = CreateTblRow(tblBody_datatable, tblName, false, pk_int, ppk_int, scheme_pk, row_index, order_by)
-                UpdateTableRow(tblRow, update_dict, "UpdateFromResponse 1")
+                tblRow = CreateTblRow(tblName, false, pk_int, ppk_int, scheme_pk, row_index, order_by)
+                UpdateTblRow(tblRow, update_dict, "UpdateFromResponse 1")
 // ---  set focus to code input of new row
                 const index =  0;
                 let el_input = tblRow.cells[index].children[0];
@@ -2809,7 +2765,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ---  update new and existing Row
                 if(tblRow){
                     if (["shift", "teammember", "schemeitem" , "absence"].indexOf( tblName ) > -1){
-                        UpdateTableRow(tblRow, update_dict, "UpdateFromResponse 2")
+                        UpdateTblRow(tblRow, update_dict, "UpdateFromResponse 2")
                     } else if (tblName === "absence") {
                         UpdateAbsenceTableRow(tblRow, update_dict);
                     }
@@ -2950,9 +2906,9 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         };  // if (!isEmpty(update_dict) && !!tblRow)
     }  // UpdateAbsenceTableRow
 
-//========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, update_dict, called_by){
-        //console.log ("--- UpdateTableRow  ------- ", called_by);
+//========= UpdateTblRow  =============
+    function UpdateTblRow(tblRow, update_dict, called_by){
+        //console.log ("--- UpdateTblRow  ------- ", called_by);
         //console.log("update_dict", update_dict);
         //console.log("tblRow", tblRow);
 
@@ -3019,13 +2975,13 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 }  // if(!!tblRow.cells){
             } // if (!!tblRow)
         };  // if (!isEmpty(update_dict) && !!tblRow)
-    }  // UpdateTableRow
+    }  // UpdateTblRow
 
 //========= UpdateField  =============
     function UpdateField(el_input, update_dict, tblName){
         //console.log("--- UpdateField  -------------- ", tblName);
         //console.log("update_dict", update_dict);
-        if(!!el_input){
+        if(el_input){
 // --- lookup field in update_dict, get data from field_dict
             const fldName = get_attr_from_el(el_input, "data-field");
             let field_dict = get_dict_value (update_dict, [fldName]);
@@ -3033,16 +2989,17 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             let is_updated = get_dict_value (field_dict, ["updated"]);
             const is_restshift = (tblName === "schemeitem") ? get_dict_value (update_dict, ["shift", "isrestshift"], false) :
                                                               get_dict_value (update_dict, ["isrestshift", "value"], false);
-
-            let display_text = "";
+            let display_text = null;
             if (fldName === "rosterdate"){
                 const date_JS = get_dateJS_from_dateISO(value);
                 display_text = format_dateJS_vanilla (loc, date_JS,  false, false);
                 // hard return necessary to display green OK field when it is empty
                 //if (!display_text){display_text = "\n"}
                 el_input.innerText = display_text;
-            } else if (["order", "team", "employee", "replacement"].indexOf( fldName ) > -1){
+            } else if (["order", "team"].indexOf( fldName ) > -1){
                 el_input.innerText = get_dict_value(field_dict, ["code"]);
+            } else if (["employee", "replacement"].indexOf( fldName ) > -1){
+                el_input.innerText = get_dict_value(field_dict, ["code"], "---");
             } else if ( (fldName === "code") || (tblName === "schemeitem" && fldName === "shift") ){
                 display_text = (tblName === "shift") ? value : get_dict_value (update_dict, ["shift", "code"]);
                 if (is_restshift){
@@ -3051,11 +3008,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 }
                 el_input.innerText = (display_text) ? display_text : "-";
 
-            } else if (tblName === "teammember" && ["offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(fldName) > -1){
+            } else if (["offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(fldName) > -1){
                 // absence can have multiple shifts (although this should not be the case).
                 // therefore shift has arr_agg ,use only first item of each arr
-                let value = get_dict_value (update_dict, ["shift", fldName, "value"]);
-                is_updated = get_dict_value (update_dict, ["shift", fldName, "updated"], false);
+                const arr_value = (tblName === "schemeitem") ? ["shift", fldName] : [fldName, "value"]
+                const arr_updated = (tblName === "schemeitem") ? ["shift", "updated"] : [fldName, "updated"]
+                let value = get_dict_value (update_dict, arr_value);
+                is_updated = get_dict_value (update_dict, arr_updated, false);
+
                 if (["offsetstart", "offsetend"].indexOf( fldName ) > -1){
                     display_text = display_offset_time (loc, value);
                 } else if (["breakduration", "timeduration"].indexOf( fldName ) > -1){
@@ -3069,6 +3029,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 let date_iso = value
                 const date_JS = get_dateJS_from_dateISO(date_iso);
                 display_text = format_dateJS_vanilla (loc, date_JS, true, false);
+
                 // hard return necessary to display hover or green OK field when it is empty
                 if (!display_text){display_text = "\n"}
                 el_input.innerText = display_text;
@@ -3108,27 +3069,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         };  // if(!!el_input)
     }  // UpdateField
 
-//========= UpdateAddnewRow  ==================================== PR2019-12-01
-    function UpdateAddnewRow(tblName, sel_scheme_or_team_pk) {
-        //console.log(" --- UpdateAddnewRow --- ")
-        // tblNames are: schemitem, shift, teammember
-        if(tblFoot_datatable && tblFoot_datatable.rows.length){
-            let tblRow = tblFoot_datatable.rows[0];
-            if(!!tblRow){
-        // add ppk of selected table in addnew row
-            tblRow.setAttribute("data-ppk", sel_scheme_or_team_pk)
-
- // --- loop through other cells of tablerow, disable / enable tblRow.cells
-                for (let i = 1, len = tblRow.cells.length; i < len; i++) {
-                    // el_input is first child of td, td is cell of tblRow
-                    let el_input = tblRow.cells[i].children[0];
-                    if(!!el_input){
-                        el_input.disabled = (!sel_scheme_or_team_pk);
-                    };
-                }
-            }
-        }
-    }  // UpdateAddnewRow
 
 //========= UpdateSchemeitemOrTeammember  =============
     function UpdateSchemeitemOrTeammember(tblRow, update_dict){
@@ -3247,6 +3187,176 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         document.getElementById("id_menubtn_delete_scheme").disabled = is_reset;
 
     }  // UpdateSchemeInputElementsXXX
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//###########################################################################
+// +++++++++++++++++ UPDATE MAPS AND TABLEROWS +++++++++++++++++
+
+//=========  FillAbsenceMap  ================ PR2020-08-28
+    function FillAbsenceMap(absence_rows) {
+        console.log(" --- FillAbsenceMap  ---");
+        console.log("absence_rows", absence_rows);
+        absence_map.clear();
+        if (absence_rows && absence_rows.length) {
+            for (let i = 0, map_dict; map_dict = absence_rows[i]; i++) {
+                absence_map.set(map_dict.mapid, map_dict);
+            }
+        }
+        console.log("absence_map", absence_map);
+    };  // FillAbsenceMap
+
+//=========  RefreshAbsenceMap  ================ PR2020-08-28
+    function RefreshAbsenceMap(updated_rows) {
+        console.log(" --- RefreshAbsenceMap  ---");
+        if (updated_rows && updated_rows.length) {
+            for (let i = 0, dict; dict = updated_rows[i]; i++) {
+                // remove tilde (~) from abscat o_code  is done in create_abscat_order_list PR2020-08-18
+                //if (map_dict.o_code && map_dict.o_code.includes("~")){map_dict.o_code = map_dict.o_code.replace(/~/g,"")}
+                RefreshAbsence_MapItem(dict)
+            }
+        }
+    } // RefreshAbsenceMap
+
+//=========  RefreshAbsence_MapItem  ================ PR2020-08-28
+    function RefreshAbsence_MapItem(update_dict) {
+        console.log(" =====  RefreshAbsence_MapItem  =====");
+        console.log("update_dict", update_dict);
+
+// ---  update or add absence_dict in absence_map
+        const map_id = update_dict.mapid;
+        const old_map_dict = absence_map.get(map_id);
+
+        const is_deleted = update_dict.isdeleted;
+        const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
+
+        let updated_columns = [];
+        console.log("absence_map.size before: " + absence_map.size);
+        if(is_created){
+// ---  insert new item in alphabetical order
+            //if (absence_map.size){
+                // inserting at index not necessary, only when reloading page the rows are added in order of absence_map
+                // insertInMapAtIndex(absence_map, map_id, update_dict, 0, user_lang)
+            //} else {
+            //    absence_map.set(map_id, update_dict)
+            //}
+            absence_map.set(map_id, update_dict)
+            updated_columns.push("created")
+// ---  delete deleted item
+        } else if(is_deleted){
+            absence_map.delete(map_id);
+        } else {
+// ---  check which fields are updated, add to list 'updated_columns'
+            // new absence has no old_map_dict PR2020-08-19
+            // skip first column (is margin)
+
+        console.log("old_map_dict", old_map_dict);
+        console.log("update_dict", update_dict);
+
+            for (let i = 1, is_diff, col_field, old_value, new_value; col_field = field_settings.absence.field_names[i]; i++) {
+
+                if (col_field in old_map_dict && col_field in update_dict){
+                    is_diff = false;
+                    // "sh_os_arr", "sh_oe_arr", "sh_td_arr" return array with 1 element, check first element
+                    if (Array.isArray(update_dict[col_field])){
+                       is_diff = (old_map_dict[col_field][0] !== update_dict[col_field][0]);
+                    } else {
+                        is_diff = (old_map_dict[col_field] !== update_dict[col_field]);
+                    }
+                    if (is_diff ) { updated_columns.push(col_field)}
+                }
+            };
+// ---  update item in absence_map
+            absence_map.set(map_id, update_dict)
+        }
+        console.log("absence_map.size after: " + absence_map.size);
+        console.log("updated_columns", updated_columns);
+
+// +++  create tblRow when is_created
+        let tblRow = null;
+        if(is_created){
+
+        // get info from update_dict
+            const pk_int = update_dict.id;  // pk_int = teammember_pk
+            const ppk_int = update_dict.t_id;
+// get row_index
+            const search_code = update_dict.e_code;
+            const search_datefirst = update_dict.s_df;
+            let row_index = 0; // get_rowindex_by_code_excelstart(search_code, search_datefirst);
+
+// add new tablerow if it does not exist
+// --- get 'order_by'. This contains the number / string that must be used in ordering rows
+
+            tblRow = CreateAbsenceTblRow(map_id, update_dict.id, update_dict.t_id, update_dict.e_id, -1);
+            UpdateAbsenceTblRow(tblRow, update_dict.mapid, update_dict);
+
+// set new selected_teammember_pk
+            selected.teammember_pk = pk_int
+// highlight new row
+            DeselectHighlightedRows(tblRow, cls_selected);
+            tblRow.classList.add(cls_selected)
+// scrollIntoView
+            tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
+
+//////////////////////
+        } else {
+            tblRow = document.getElementById(map_id);
+        }
+        if(tblRow){
+            if(is_deleted){
+//--- remove deleted tblRow
+                tblRow.parentNode.removeChild(tblRow);
+//--- make tblRow green for 2 seconds
+            } else if(is_created){
+                ShowOkElement(tblRow);
+            } else if(updated_columns){
+// ---  make updated fields green for 2 seconds
+                for (let i = 0, cell, el; cell = tblRow.cells[i]; i++) {
+                    const el = cell.children[0];
+                    if(el){
+                        const el_field = get_attr_from_el(el, "data-field")
+                        if(updated_columns.includes(el_field)){
+                            RefreshAbsenceField(el, update_dict)
+                            ShowOkElement(cell);
+                        }
+                    }
+                }
+            }
+        }
+    }  // RefreshAbsence_MapItem
+
+//=========  RefreshAbsenceField  ================ PR2020-08-28
+    function RefreshAbsenceField(el_input, update_dict) {
+        //console.log(" =====  RefreshAbsence_MapItem  =====");
+        //console.log("update_dict", update_dict);
+
+        if(el_input){
+            const fldName = get_attr_from_el(el_input, "data-field");
+        //  absence: ["employee", "order", "datefirst", "datelast", "workminutesperday", "delete"],
+            if (["o_code", "c_code", "t_code", "e_code", "rpl_code"].indexOf( fldName ) > -1){
+                el_input.innerText = (update_dict[fldName]) ? update_dict[fldName] : "---";
+            } else if (["s_df", "s_dl", "tm_df", "tm_dl"].indexOf( fldName ) > -1){
+                let date_iso = update_dict[fldName];
+                const date_formatted = format_dateISO_vanilla (loc, date_iso, true, false);
+                // add linebreak on empty cell, otherwise eventlistener does not work
+                el_input.innerText = (date_formatted) ? date_formatted : "\n";
+            } else if ([ "sh_os_arr", "sh_oe_arr"].indexOf( fldName ) > -1){
+                let value = (update_dict[fldName]) ? update_dict[fldName][0] : null;
+                let display_text = display_offset_time (loc, value);
+                // hard return necessary to display hover or green OK field when it is empty
+                if (!display_text){display_text = "\n"}
+                el_input.innerText = display_text;
+            } else if (fldName === "sh_td_arr"){
+                let value = (update_dict[fldName]) ? update_dict[fldName][0] : 0;
+                el_input.innerText = display_duration (value, loc.user_lang);
+            }
+        };  // if(!!el_input)
+
+
+    }  // RefreshAbsenceField
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
 //###########################################################################
 // ++++++++++++  MODALS +++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3829,7 +3939,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         tblHead.innerText = null
         let tblRow = tblHead.insertRow (-1);
 //--- insert th's to tblHead
-        const col_count = field_settings.teammember.tbl_col_count;
+        const col_count = field_settings.MGTteammember.tbl_col_count;
         // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
         for (let j = 1; j < col_count; j++) {
 // --- add th to tblRow.
@@ -3838,14 +3948,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // --- add div to th, margin not workign with th
                 let el_div = document.createElement("div");
     // --- add innerText to th
-                const data_text = loc[field_settings.teammember.field_caption[j]];
+                const data_text = loc[field_settings.MGTteammember.field_caption[j]];
                 if(data_text) el_div.innerText = data_text;
     // --- add margin to first column
                 if (j === 1 ){el_div.classList.add("ml-2")}
     // --- add width to el
-                el_div.classList.add("tw_" + field_settings.teammember.field_width[j])
+                el_div.classList.add("tw_" + field_settings.MGTteammember.field_width[j])
     // --- add text_align
-                el_div.classList.add("ta_" + field_settings.teammember.field_align[j])
+                el_div.classList.add("ta_" + field_settings.MGTteammember.field_align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
     };  // MGT_CreateTblTeammemberHeader
@@ -3859,7 +3969,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
         let tblRow = tblFoot.insertRow(-1);
         // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
-        for (let j = 1; j < field_settings.teammember.tbl_col_count; j++) {
+        for (let j = 1; j < field_settings.MGTteammember.tbl_col_count; j++) {
             let td = tblRow.insertCell(-1);
             if(j === 1){
 // --- create element with tag from field_tags
@@ -3922,14 +4032,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         tblRow.setAttribute("data-isgrid", true);
 
 //+++ insert td's into tblRow
-        const column_count = field_settings.teammember.tbl_col_count
+        const column_count = field_settings.MGTteammember.tbl_col_count
         // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
         for (let j = 1; j < column_count; j++) {
             let td = tblRow.insertCell(-1);
 // --- create element with tag from field_tags
-            let el = document.createElement( field_settings.teammember.field_tags[j] );
+            let el = document.createElement( field_settings.MGTteammember.field_tags[j] );
 // --- add data-field Attribute.
-            el.setAttribute("data-field", field_settings.teammember.field_names[j]);
+            el.setAttribute("data-field", field_settings.MGTteammember.field_names[j]);
 // --- add img delete to col_delete
             if (j === column_count - 1) {
                 CreateBtnDeleteInactive("delete", true, tblRow, el);
@@ -3953,9 +4063,9 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 if (j === 1 ){el.classList.add("ml-2")}
             }
 // --- add width to el - not necessary, tblhead has width
-           // el.classList.add("tw_" + field_settings.teammember.field_width[j])
+           // el.classList.add("tw_" + field_settings.MGTteammember.field_width[j])
 // --- add text_align
-            el.classList.add("ta_" + field_settings.teammember.field_align[j])
+            el.classList.add("ta_" + field_settings.MGTteammember.field_align[j])
 // --- add other classes to td
             el.classList.add("border_none");
             //el.setAttribute("autocomplete", "off");
@@ -4225,170 +4335,297 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         add_or_remove_class (el_MGT_btn_delete, cls_hide, btn_delete_hidden) // args: el, classname, is_add
     }  // MGT_BtnSaveDeleteEnable
 
+
+// +++++++++ MOD CONFIRM DELETE TABLEROW ++++++++++++++++++++++++++++++++++++++++++++++++++++
+//=========  ModConfirmTblrowOpen  ======= R2020-08-28
+    function ModConfirmTblrowOpen(mode, tblName, el_input) {
+        console.log(" -----  ModConfirmTblrowOpen   ----")
+        console.log("mode", mode, "tblName", tblName)
+        // values of mode are : "delete", "inactive"
+        // called by submenu btn 'delete', then tblName = 'scheme' or 'absence', el_input=undefined
+
+// ---  get selected_pk from tblRow or selected_customer_pk / selected_order_pk
+        let selected_pk = null;
+        mod_dict = {};
+        // el_input is undefined when clicked on submenu_btn
+        if(el_input){
+            const tblRow = get_tablerow_selected(el_input);
+            if(tblRow){
+                selected_pk = get_attr_from_el(tblRow, "data-pk")
+            }
+        }
+        if (!selected_pk) {
+            // // tblRow is undefined when clicked on delete btn in submenu btn or form (no inactive btn)
+            selected_pk = (tblName === "scheme") ? selected.scheme_pk :
+                          (tblName === "absence") ? selected.teammember_pk :
+                          (tblName === "teammember") ? selected.teammember_pk : null;
+        }
+
+// ---  get info from data_map
+        const data_map = (tblName === "scheme") ? scheme_map :
+                         (tblName === "absence") ? absence_map : null;
+        const map_id = tblName + "_" + selected_pk;
+        const map_dict = get_mapdict_from_datamap_by_id(data_map, map_id)
+        const pk_int = selected_pk;
+        const ppk_int = (tblName === "scheme") ? get_dict_value(map_dict,["id", "ppk"]) :
+                        (tblName === "absence") ? map_dict.t_id : null;
+        const code_value = (tblName === "scheme") ? get_dict_value(map_dict, ["code", "value"]) :
+                          (tblName === "absence") ? map_dict.o_code : null;
+        const employee_code = (tblName === "absence") ? map_dict.e_code : null;
+
+        console.log("map_dict", map_dict)
+        console.log("code_value", code_value)
+
+        const has_selected_item = (!isEmpty(map_dict));
+        console.log("has_selected_item", has_selected_item)
+        if(has_selected_item){
+// ---  create mod_dict
+            mod_dict = {pk: pk_int,
+                        ppk: ppk_int,
+                        mapid: map_id,
+                        table: tblName,
+                        mode: mode,
+                        code: code_value,
+                        employee_code: employee_code,
+                        TEMP_is_ModConfirmTblrow: true
+                        };
+        }
+        console.log("mod_dict", mod_dict)
+
+// ---  put header text in modal form
+        let header_text = null
+        if (mode === "delete") {
+             if (tblName === "scheme") {
+                header_text = loc.Delete_scheme;
+             } else if (tblName === "absence") {
+                header_text = loc.Delete_absence}
+        } else if (mode === "inactive") {
+             if (tblName === "scheme") {
+                 header_text = (map_dict.inactive) ? loc.Make_scheme_active : loc.Make_scheme_inactive;
+             } else if (tblName === "absence") {
+                header_text = (map_dict.inactive) ? loc.Make_shift_active : loc.Make_shift_inactive}}
+        document.getElementById("id_confirm_header").innerText = header_text;
+
+// ---  put msg text in modal form
+        let msg_01_txt = "", msg_02_txt = "", txt_01 = "", txt_02 = "";
+        if(has_selected_item){
+            if (tblName === "scheme") {
+                msg_01_txt = loc.Scheme + " '" + mod_dict.code + "' "
+            } else if (tblName === "absence") {
+                msg_01_txt = loc.Absence + " '" + mod_dict.code + "' " + loc.of + " " + mod_dict.employee_code + " "
+            }
+             if (mode === "delete") {
+                msg_01_txt += loc.will_be_deleted
+             } else if (mode === "inactive") {
+                msg_01_txt +=  (map_dict.inactive) ? loc.will_be_made_active : loc.will_be_made_inactive
+             }
+            msg_02_txt = loc.Do_you_want_to_continue;
+        } else {
+            msg_01_txt = (tblName === "scheme") ? loc.No_scheme_selected :
+                           (tblName === "absence") ? loc.Please_select_absence: "";
+        }
+        document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
+        document.getElementById("id_confirm_msg02").innerText = msg_02_txt;
+        document.getElementById("id_confirm_msg03").innerText = null;
+
+// ---  set btn text, color and hide
+        let el_btn_save = document.getElementById("id_confirm_btn_save");
+        el_btn_save.innerText = (mode === "delete") ? loc.Yes_delete :
+                                    (map_dict.inactive) ? loc.Yes_make_active : loc.Yes_make_inactive;
+
+        add_or_remove_class (el_btn_save, cls_hide, !has_selected_item);
+
+        add_or_remove_class (el_btn_save, "btn-primary", (mode !== "delete"));
+        add_or_remove_class (el_btn_save, "btn-outline-danger", (mode === "delete"));
+
+        document.getElementById("id_confirm_btn_cancel").innerText = (has_selected_item) ? loc.Cancel : loc.Close;
+
+// ---  set focus to cancel button
+        setTimeout(function (){
+            document.getElementById("id_confirm_btn_cancel").focus();
+        }, 50);
+
+// ---  show modal
+        $("#id_mod_confirm").modal({backdrop: true});
+
+    };  // ModConfirmTblrowOpen
+
+// +++++++++ END OF MOD CONFIRM DELETE TABLEROW++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++++++ MOD CONFRIM ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-10-23 PR2020-05-03
     function ModConfirmOpen(mode, el_input, get_text) {
         console.log(" -----  ModConfirmOpen   ----", mode)
         console.log("mode: ", mode)
         console.log("get_text: ", get_text)
+        console.log("el_input: ", el_input)
         // modes are schemeitem_delete, delete, inactive, 'grid_si', 'grid_team_delete', 'gridrow_shift_delete'
+        // modal opens when:
+        // - delete grid scheme, team, shift, teammember (sel_btn =  'grid_si', 'grid_team_delete', 'gridrow_shift_delete'
+        // - delete tblRow absence, teammember, schemeitem, shift (sel btn =
+        // inactive: schemeitem
 
-console.log("mod_dict: ", mod_dict)
+let btn_save_caption = loc.Save, btn_save_style = "btn-primary", btn_save_hidden = false, btn_save_focus = false;
+let btn_cancel_caption = loc.Cancel, btn_cancel_style = "btn-outline-secondary";
+let header_text = null, msg_01_txt = null, msg_02_txt = null, msg_03_txt = null;
+mod_dict = {};
 
-        // tblRow is undefined when el_input = undefined
-        const tblRow = get_tablerow_selected(el_input);
+if(mode === "scheme_delete"){
+    mod_dict = {mode: mode, table: mod_MSCH_dict.table, pk: mod_MSCH_dict.pk, ppk: mod_MSCH_dict.ppk};
+
+    header_text = loc.Delete_scheme;
+    msg_01_txt = loc.Scheme + ": '" + mod_MSCH_dict.code + "'" + loc.will_be_deleted;
+    msg_02_txt = loc.Do_you_want_to_continue;
+    btn_save_caption = loc.Yes_delete
+    btn_cancel_caption = loc.No_cancel
+    btn_save_style = "btn-outline-danger";
+
+} else {
+// ---  get tblRow - tblRow is undefined when clicked on menubtn or modal
+        let tblRow = get_tablerow_selected(el_input);
+        console.log("tblRow: ", tblRow)
+        if(!tblRow && selected_btn === "btn_absence"){
+            tblRow = document.getElementById(selected.mapid)
+        }
         let tblName = get_attr_from_el(tblRow, "data-table")  // can be 'absence' from UploadDeleteInactive
+        console.log("tblName: ", tblName)
         const pk_str = get_attr_from_el(tblRow, "data-pk")
         const map_id =  get_map_id(tblName, pk_str);
         const map_dict = get_mapdict_from_tblRow(tblRow)
 
-        let header_text = null;
-        let msg_01_txt = null, msg_02_txt = null, msg_03_txt = null;
-        let btn_save_caption = loc.Save, btn_save_style = "btn-primary", btn_save_hidden = false, btn_save_focus = false;
-        let btn_cancel_caption = loc.Cancel, btn_cancel_style = "btn-outline-secondary";
 
         console.log("selected_btn: ", selected_btn)
+        console.log("mode: ", mode)
+
+        console.log("map_dict: ", map_dict)
+
+        if( mode === "delete" && selected_btn === "btn_absence"){
+                if(!isEmpty(map_dict)){
+                    header_text = get_dict_value(map_dict, ["employee", "code"])
+                } else {
+                    header_text = mod_dict.selected_employee
+                }
+
+        } else if(mode === "inactive"){
+                // called by sbr_scheme_select, also by schemeitem table
+                btn_save_hidden = (isEmpty(map_dict));
+                if(!btn_save_hidden){
+                    header_text = loc.Make_inactive;
+                    if(tblName === "scheme") {
+                        msg_01_txt = loc.Scheme + " '" + get_dict_value(map_dict, ["code", "value"], "-") + "' "
+                    } else if(tblName === "schemeitem") {
+                        msg_01_txt = loc.Shift + " '" + get_dict_value(map_dict, ["shift", "code"], "-") + "' "
+                    }
+                    msg_01_txt += loc.will_be_made_inactive + "\n" + loc.Do_you_want_to_continue;
+                    btn_save_caption = loc.Yes_make_inactive;
+                    btn_save_focus = true;
+                    btn_cancel_caption =  loc.No_cancel;
+                }
+
+        } else if(mode === "grid_si"){
+                    header_text = get_text;
+                    msg_01_txt = loc.Select_team_first + " " +  loc.before_add_or_remove_a_shift;
+                    msg_02_txt = loc.Click + " \u22BB " + loc.above_teamname_to_select_a_team;
+                    btn_save_hidden = true;
+                    btn_cancel_caption = loc.OK;
 
 
-if(selected_btn === "btn_absence"){
-        if(!isEmpty(map_dict)){
-            header_text = get_dict_value(map_dict, ["employee", "code"])
-        } else {
-            header_text = mod_dict.selected_employee
-        }
-
-} else if(mode === "inactive"){
-        // called by sbr_scheme_select, maybe also by schemeitem table
-        btn_save_hidden = (isEmpty(map_dict));
-        if(!btn_save_hidden){
-            header_text = loc.Scheme + ": " + get_dict_value(map_dict, ["code", "value"], "-")
-            msg_01_txt = loc.Scheme + " '" + get_dict_value(map_dict, ["code", "value"], "-") + "' " +
-                            loc.will_be_made_inactive + "\n" + loc.Do_you_want_to_continue;;
-            btn_save_caption = loc.Yes_make_inactive;
-            btn_save_focus = true;
-            btn_cancel_caption =  loc.No_cancel;
-        }
-
-} else if(mode === "grid_si"){
-            header_text = get_text;
-            msg_01_txt = loc.Select_team_first + " " +  loc.before_add_or_remove_a_shift;
-            msg_02_txt = loc.Click + " \u22BB " + loc.above_teamname_to_select_a_team;
-            btn_save_hidden = true;
-            btn_cancel_caption = loc.OK;
-} else if(mod_dict.table === "scheme"){
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, mod_dict.table, mod_dict.selected_pk )
-        if(!isEmpty(map_dict)){
-            const scheme_code = get_dict_value(map_dict, ["code", "value"])
-            header_text = loc.Scheme + ": " + scheme_code ;
-            msg_01_txt = loc.This_scheme + loc.will_be_deleted;
-            msg_02_txt = loc.Do_you_want_to_continue;
-            btn_save_caption = loc.Yes_delete
-            btn_cancel_caption = loc.No_cancel
-            btn_save_style = "btn-outline-danger";
-        } else {
-            header_text = loc.Delete_scheme + "...";
-            msg_01_txt = loc.No_scheme_selected;
-            btn_save_hidden = true;
-            btn_cancel_caption = loc.OK
-        }
-
-} else if(mode === "gridrow_shift_delete"){
-        if(!isEmpty(mod_MGS_dict)){
-            header_text = get_dict_value(mod_MGS_dict, ["shift", "code", "value"])
-            if (mod_MGS_dict.shift.isrestshift.value) { header_text += " (R)"};
-            msg_01_txt = loc.This_shift + loc.will_be_deleted;
-            msg_02_txt = loc.Do_you_want_to_continue;
-            btn_save_caption = loc.Yes_delete
-            btn_cancel_caption = loc.No_cancel
-            btn_save_style = "btn-outline-danger";
-        } else {
-            header_text = loc.Delete_shift + "...";
-            msg_01_txt = loc.No_shift_selected;
-            btn_save_hidden = true;
-            btn_cancel_caption = loc.OK
-        }
-
-} else {
-        mod_dict.mode = mode //used in ModConfirmSave
-
-        // tblRow is undefined when el_input = undefined
-        if(tblRow){
-
-        } else if (selected_btn === "absence"){
-
-        } else if(mode === "schemeitem_delete"){
-            tblName = "schemeitem";
-            mod_dict = {id: {table: tblName}, schemeitem_delete: true};
-        } else if(mode === "grid_team_delete"){
-            tblName = "team";
-            // get pk_str from mod_MGT_dict
-            const team_pk = get_dict_value(mod_MGT_dict, ["team", "id", "pk"]);
-            pk_str = team_pk.toString();
         } else if(mode === "gridrow_shift_delete"){
-            tblName = "shift";
-            // get pk_str from mod_MGS_dict
-            const shift_pk = mod_MGS_dict.shift.id.pk;
-            pk_str = shift_pk.toString();
-        } else {
-            // get info from mod_dict
-            tblName = get_dict_value(mod_dict, ["id", "table"])
-        }
-
-// ---  create header_text
-        if (mode === "schemeitem_delete") {
-             header_text = loc.Delete_scheme_shifts;
-        } else if (mode === "grid_team_delete") {
-             header_text = loc.Team + ": " + mod_MGT_dict.team.code.value;
-
-        } else if (mode === "grid_si") {
-            header_text = header_text;
-        } else if (tblName === "schemeitem") {
-            const rosterdate_iso = get_dict_value(map_dict, ["rosterdate", "value"])
-            let rosterdate_text = format_dateISO_vanilla (loc, rosterdate_iso, false, true);
-            if(!rosterdate_text){ rosterdate_text = "-"}
-            const shift_text = get_dict_value(mod_dict, ["shift", "code"], "-")
-            header_text = loc.Shift + " '" + shift_text + "' " + loc.of + " " + rosterdate_text;
-        } else if(["teammember", "absence"].indexOf(tblName) > -1){
-            header_text = get_dict_value(mod_dict, ["employee", "code"], "")
+                if(!isEmpty(mod_MGS_dict)){
+                    header_text = get_dict_value(mod_MGS_dict, ["shift", "code", "value"])
+                    if (mod_MGS_dict.shift.isrestshift.value) { header_text += " (R)"};
+                    msg_01_txt = loc.This_shift + loc.will_be_deleted;
+                    msg_02_txt = loc.Do_you_want_to_continue;
+                    btn_save_caption = loc.Yes_delete
+                    btn_cancel_caption = loc.No_cancel
+                    btn_save_style = "btn-outline-danger";
+                } else {
+                    header_text = loc.Delete_shift + "...";
+                    msg_01_txt = loc.No_shift_selected;
+                    btn_save_hidden = true;
+                    btn_cancel_caption = loc.OK
+                }
 
         } else {
-            let code_value = get_dict_value(mod_dict, ["code", "value"]);
-            if(!code_value) {code_value = get_dict_value(map_dict, ["code", "value"], "-")};
-            header_text = code_value;
-        }
+                mod_dict.mode = mode //used in ModConfirmSave
 
-// ---  create msg_txt
-        let msg_01_txtXX = (tblName === "scheme") ? loc.This_scheme :
-                       (tblName === "schemeitem") ? loc.This_shift :
-                       (tblName === "shift") ? loc.This_shift :
-                       (tblName === "teammember") ? loc.This_teammember :
-                       (tblName === "absence") ? loc.Absence + " '" + get_dict_value(map_dict, ["order", "code"], "-") + "'"  :
-                       (tblName === "team") ? loc.This_team : null
-        let msg_02_txt = null, msg_03_txt = loc.Do_you_want_to_continue;
+                // tblRow is undefined when el_input = undefined
+                if(tblRow){
+
+                } else if (selected_btn === "btn_absence"){
+
+                } else if(mode === "schemeitem_delete"){
+                    tblName = "schemeitem";
+                    mod_dict = {id: {table: tblName}, schemeitem_delete: true};
+                } else if(mode === "grid_team_delete"){
+                    tblName = "team";
+                    // get pk_str from mod_MGT_dict
+                    const team_pk = get_dict_value(mod_MGT_dict, ["team", "id", "pk"]);
+                    pk_str = team_pk.toString();
+                } else if(mode === "gridrow_shift_delete"){
+                    tblName = "shift";
+                    // get pk_str from mod_MGS_dict
+                    const shift_pk = mod_MGS_dict.shift.id.pk;
+                    pk_str = shift_pk.toString();
+                } else {
+                    // get info from mod_dict
+                    tblName = get_dict_value(mod_dict, ["id", "table"])
+                }
+
+        // ---  create header_text
+                if (mode === "schemeitem_delete") {
+                     header_text = loc.Delete_scheme_shifts;
+                } else if (mode === "grid_team_delete") {
+                     header_text = loc.Team + ": " + mod_MGT_dict.team.code.value;
+
+                } else if (mode === "grid_si") {
+                    header_text = header_text;
+                } else if (tblName === "schemeitem") {
+                    const rosterdate_iso = get_dict_value(map_dict, ["rosterdate", "value"])
+                    let rosterdate_text = format_dateISO_vanilla (loc, rosterdate_iso, false, true);
+                    if(!rosterdate_text){ rosterdate_text = "-"}
+                    const shift_text = get_dict_value(mod_dict, ["shift", "code"], "-")
+                    header_text = loc.Shift + " '" + shift_text + "' " + loc.of + " " + rosterdate_text;
+                } else if(["teammember", "absence"].indexOf(tblName) > -1){
+                    header_text = get_dict_value(mod_dict, ["employee", "code"], "")
+
+                } else {
+                    let code_value = get_dict_value(mod_dict, ["code", "value"]);
+                    if(!code_value) {code_value = get_dict_value(map_dict, ["code", "value"], "-")};
+                    header_text = code_value;
+                }
+
+        // ---  create msg_txt
+                let msg_01_txtXX = (tblName === "scheme") ? loc.This_scheme :
+                               (tblName === "schemeitem") ? loc.This_shift :
+                               (tblName === "shift") ? loc.This_shift :
+                               (tblName === "teammember") ? loc.This_teammember :
+                               (tblName === "absence") ? loc.Absence + " '" + get_dict_value(map_dict, ["order", "code"], "-") + "'"  :
+                               (tblName === "team") ? loc.This_team : null
+                let msg_02_txt = null, msg_03_txt = loc.Do_you_want_to_continue;
 
 
-        if (mode === "schemeitem_delete"){
-            msg_01_txtXX = loc.All_schemeitems_willbe_deleted;
-        } else if (["delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1){
-            msg_01_txtXX = msg_01_txt + " " + loc.will_be_deleted;
-        }
+                if (mode === "schemeitem_delete"){
+                    msg_01_txtXX = loc.All_schemeitems_willbe_deleted;
+                } else if (["delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1){
+                    msg_01_txtXX = msg_01_txt + " " + loc.will_be_deleted;
+                }
 
 
-// hide ok button when (mode === "grid_si")
-        //add_or_remove_class (el_btn_save, cls_hide, (mode === "grid_si"))
-        //setTimeout(function() {el_btn_save.focus()}, 300);
+        // hide ok button when (mode === "grid_si")
+                //add_or_remove_class (el_btn_save, cls_hide, (mode === "grid_si"))
+                //setTimeout(function() {el_btn_save.focus()}, 300);
 
-// set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
-        //let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
-        //setTimeout(function (){document.getElementById(id_str).focus();}, 500);
-        //const is_delete = (["delete", "schemeitem_delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1)
-        //let btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary";
-        //let btn_class_remove = (is_delete) ? "btn-primary" : "btn-outline-danger";
-        //document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
-        //document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
+        // set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
+                //let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
+                //setTimeout(function (){document.getElementById(id_str).focus();}, 500);
+                //const is_delete = (["delete", "schemeitem_delete", "grid_team_delete", "gridrow_shift_delete"].indexOf(mode) > -1)
+                //let btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary";
+                //let btn_class_remove = (is_delete) ? "btn-primary" : "btn-outline-danger";
+                //document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
+                //document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
 
-}  //if(selected_btn === "btn_absence"){
-
+        }  //if(selected_btn === "btn_absence"){
+}
         document.getElementById("id_confirm_header").innerText = header_text;
 
 // put msg_txt in modal form
@@ -4425,13 +4662,29 @@ if(selected_btn === "btn_absence"){
         console.log("========= ModConfirmSave ===" );
         console.log("mod_dict: ", mod_dict );
 
+// ---  hide modal
+        $('#id_mod_confirm').modal('hide');
+
+let url_str = null, upload_dict = {};
+if(mod_dict.mode === "scheme_delete"){
+    url_str = url_scheme_shift_team_upload
+    upload_dict = {id: {pk: mod_dict.pk,
+                        ppk: mod_dict.ppk,
+                        table: mod_dict.table,
+                        delete: true} }
+    UploadChanges(upload_dict, url_str, "ModConfirmSave")
+
+    // make scheme_container red
+    const el = document.getElementById("id_grid_scheme_container");
+    console.log(el)
+    el.classList.add("tsa_tr_error");
+} else {
+
         const shift_option = get_dict_value(mod_dict, ["id", "shiftoption"]);
         console.log("shift_option: ", shift_option );
         const is_delete = (mod_dict.mode === "delete");
         console.log(">>>>>is_delete: ", is_delete );
 
-// ---  hide modal
-        $('#id_mod_confirm').modal('hide');
 
 // ---  Upload Changes
         const tblName = get_dict_value(mod_dict, ["id", "table"])
@@ -4439,51 +4692,93 @@ if(selected_btn === "btn_absence"){
         if(is_absence_mode){tblName === "absence"}
         const map_id = get_map_id(tblName, pk_int)
 
+        if(mod_dict.TEMP_is_ModConfirmTblrow) {
+                console.log(" --- ModConfirmTblrowSave --- ");
+                console.log("mod_dict: ", mod_dict);
 
-        if(tblName === "schemeitem"){
-            const is_delete_single_si = get_dict_value(mod_dict, ["id", "delete"])
-            console.log("is_delete_single_si: ", is_delete_single_si );
-            if(is_delete_single_si){
-                // this is called by btn_inactive in tblRow
-                let tblRow = document.getElementById(map_id);
-                tblRow.classList.remove(cls_selected);
-                tblRow.classList.add(cls_error);
+                let upload_dict = {};
+                if (mod_dict.mode === "delete") {
+                     if (mod_dict.table === "scheme") {
 
-                // ---  upload upload_list, it can contain multiple upload_dicts (list added because of grid PR2020-03-15)
-                let upload_list = [mod_dict];
-                UploadChanges(upload_list, url_schemeitem_upload, "ModConfirmSave")
-
-            } else {
-                if ("schemeitem_delete" in mod_dict) {
-                    // schemeitem_delete is called by buttongroup schemeitem
-                    const skip_confirm = true;
-                    HandleBtnSchemeitems("delete", skip_confirm);
-                } else if ("delete" in mod_dict) {
-                    // delete is called by btn_delete in tblRow
-                    UploadSchemeitemDelete (mod_dict, "delete")
-                } else {
-                    // this is called by btn_inactive in tblRow
-                    // ---  upload upload_list, it can contain multiple upload_dicts (list added because of grid PR2020-03-15)
-                    let upload_list = [mod_dict];
-                    UploadChanges(upload_list, url_schemeitem_upload, "ModConfirmSave")
+                     } else if (mod_dict.table === "absence") {
+                        upload_dict = {id: {pk: mod_dict.pk,
+                                            ppk: mod_dict.ppk,
+                                            table: 'teammember',
+                                            mapid: mod_dict.mapid,
+                                            isabsence: true,
+                                            delete: true,
+                                            shiftoption: "isabsence"} }
+                        }
+                } else if (mod_dict.mode === "inactive") {
                 }
-            }  //  if(is_delete_single_si){
-        } else if(tblName === "teammember" || ["grid_team", "grid_shift", "datatable_shift_delete"].indexOf(shift_option) > -1){
-            UploadChanges(mod_dict, url_teammember_upload, "ModConfirmSave");
+                const tblRow = document.getElementById(mod_dict.mapid);
+        // ---  when delete: make tblRow red, before uploading
+                if (mod_dict.mode === "delete"){
+                    if (tblRow) { ShowErrorRow(tblRow, cls_selected ) }
+                } else if (mod_dict.mode === "inactive"){
+        // toggle inactive
+                    mod_dict.inactive = !mod_dict.inactive;
+                    upload_dict.inactive = {value: mod_dict.inactive, update: true};
+                    // change inactive icon, before uploading
+        // ---  toggle inactive icon, before uploading
+                    if (tblRow) {
+                        const el_input = tblRow.querySelector("[data-field=inactive]");
+                        const el_img = el_input.children[0];
+                        if (el_img){add_or_remove_class (el_img, "inactive_1_3", mod_dict.inactive, "inactive_0_2")}
+                    }
+              }
+        // ---  hide modal
+                $("#id_mod_confirm").modal("hide");
+        // ---  UploadChanges
+                UploadChanges(upload_dict, url_teammember_upload, "ModConfirmSave");
         } else {
-            // tblName: scheme, shift, team, absence
-            UploadChanges(mod_dict, url_scheme_shift_team_upload, "ModConfirmSave")
-        }
+                if(tblName === "schemeitem"){
+                    const is_delete_single_si = get_dict_value(mod_dict, ["id", "delete"])
+                    console.log("is_delete_single_si: ", is_delete_single_si );
+                    if(is_delete_single_si){
+                        // this is called by btn_inactive in tblRow
+                        let tblRow = document.getElementById(map_id);
+                        tblRow.classList.remove(cls_selected);
+                        tblRow.classList.add(cls_error);
 
-// ---  make selected tblRow red in datatable when delete
-        if (get_dict_value(mod_dict, ["mode"]) === "delete") {
-            const pk_int = get_dict_value(mod_dict, ["id", "pk"]);
-            let tblName = get_dict_value(mod_dict, ["id", "table"]);
-            if(is_absence_mode){tblName = "absence"}
-            const map_id = get_map_id(tblName, pk_int);
-            const tblRow = document.getElementById(map_id);
-            if(!!tblRow){ ShowErrorRow(tblRow, cls_selected)}
+                        // ---  upload upload_list, it can contain multiple upload_dicts (list added because of grid PR2020-03-15)
+                        let upload_list = [mod_dict];
+                        UploadChanges(upload_list, url_schemeitem_upload, "ModConfirmSave")
+
+                    } else {
+                        if ("schemeitem_delete" in mod_dict) {
+                            // schemeitem_delete is called by buttongroup schemeitem
+                            const skip_confirm = true;
+                            HandleBtnSchemeitems("delete", skip_confirm);
+                        } else if ("delete" in mod_dict) {
+                            // delete is called by btn_delete in tblRow
+                            UploadSchemeitemDelete (mod_dict, "delete")
+                        } else {
+                            // this is called by btn_inactive in tblRow
+                            // ---  upload upload_list, it can contain multiple upload_dicts (list added because of grid PR2020-03-15)
+                            let upload_list = [mod_dict];
+                            UploadChanges(upload_list, url_schemeitem_upload, "ModConfirmSave")
+                        }
+                    }  //  if(is_delete_single_si){
+                } else if(tblName === "teammember" || ["grid_team", "grid_shift", "datatable_shift_delete"].indexOf(shift_option) > -1){
+                    UploadChanges(mod_dict, url_teammember_upload, "ModConfirmSave");
+                } else {
+                    // tblName: scheme, shift, team, absence
+                    UploadChanges(mod_dict, url_scheme_shift_team_upload, "ModConfirmSave")
+                }
+
+        // ---  make selected tblRow red in datatable when delete
+                if (get_dict_value(mod_dict, ["mode"]) === "delete") {
+                    const pk_int = get_dict_value(mod_dict, ["id", "pk"]);
+                    let tblName = get_dict_value(mod_dict, ["id", "table"]);
+                    if(is_absence_mode){tblName = "absence"}
+                    const map_id = get_map_id(tblName, pk_int);
+                    const tblRow = document.getElementById(map_id);
+                    if(!!tblRow){ ShowErrorRow(tblRow, cls_selected)}
+                }
         }
+}
+
     } // ModConfirmSave
 
 // +++++++++++++++++ MODAL SELECT CUSTOMER ORDER +++++++++++++++++++++++++++++++++++++++++++
@@ -4635,7 +4930,7 @@ if(selected_btn === "btn_absence"){
         let new_filter = el_MSCO_input_custorder.value;
 // ---  deselect all highlighted rows
         DeselectHighlightedTblbody(el_MSCO_tblbody_custorder, cls_selected)
-// ---  reset selected order.pk
+// ---  reset selected order_pk
         mod_dict.order_pk = 0;
 // ---  filter select_customer rows
         if (!!el_MSCO_tblbody_custorder.rows.length){
@@ -5017,10 +5312,10 @@ if(selected_btn === "btn_absence"){
 
 // +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  HandleAddNewBtn  ================ PR2020-05-31
-    function HandleAddNewBtn() {
+//=========  HandleSubmenuBtnAddNew  ================ PR2020-05-31
+    function HandleSubmenuBtnAddNew() {
         if(is_absence_mode){
-            MAB_Open(true);
+            MAB_Open();
         } else {
             MSCH_Open();
         };
@@ -5029,55 +5324,50 @@ if(selected_btn === "btn_absence"){
 //=========  MOD SCHEME  ================ PR2020-04-19
     function MSCH_Open(el_clicked) {
         console.log("=========  MSCH_Open ========= ");
-        //console.log("selected.scheme_pk:", selected.scheme_pk);
-        const is_addnew = (!el_clicked)
+        console.log("selected.scheme_pk:", selected.scheme_pk);
+        console.log("selected.order_pk:", selected.order_pk);
 
-        mod_MSCH_dict = {};
+        // el_clicked is undefined when clicked on menubtn add_new
+        if(!el_clicked){selected.scheme_pk = 0}
+
+// ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
+        MSCH_get_scheme_dict();
+
+        console.log("selected.order_pk:", selected.order_pk);
+        console.log("mod_MSCH_dict:", mod_MSCH_dict);
         if(selected.order_pk){
-
-// ---  reset mod_MSCH_dict when is_addnew, otherwise: fill with scheme_dict
-            if(is_addnew){selected.scheme_pk = 0}
-            // MSCH_get_scheme_dict creates a new scheme when selected scheme not found
-            const scheme_dict = MSCH_get_scheme_dict(selected.order_pk, selected.scheme_pk);
-            mod_MSCH_dict = {selected_order_pk: selected.order_pk, scheme: scheme_dict}
             console.log("mod_MSCH_dict:", mod_MSCH_dict);
-
-            if(is_addnew || !isEmpty(scheme_dict) ) {
-                let el_field = get_attr_from_el(el_clicked, "data-field")
-                // these field names in scheme box have multiple fields in mod scheme. Set focus to first of them
-                if(el_field === "datefirstlast"){
-                    el_field = "datefirst"
-                } else if(el_field === "dvg_excl_ph"){
-                    el_field = (scheme_dict.divergentonpublicholiday) ? "divergentonpublicholiday" : "excludepublicholiday";
-                } else if(!el_field){
-                    el_field = "code"
-                }
+            let el_field = get_attr_from_el(el_clicked, "data-field")
+            // these field names in scheme box have multiple fields in mod scheme. Set focus to first of them
+            if(el_field === "datefirstlast"){
+                el_field = "datefirst"
+            } else if(el_field === "dvg_excl_ph"){
+                el_field = (mod_MSCH_dict.divergentonpublicholiday) ? "divergentonpublicholiday" : "excludepublicholiday";
+            } else if(!el_field){
+                el_field = "code"
+            }
 
 // ---  set input boxes
-                // form-control is a bootstrap class, tsa_input_checkbox is a TSA class only used to select input checkboxes
-                let form_elements = document.getElementById("id_div_form_controls").querySelectorAll(".tsa_input_text, .tsa_input_checkbox")
-                for (let i = 0, el; el = form_elements[i]; i++) {
-                    const fldName = get_attr_from_el(el, "data-field")
-                    if(el.type === "checkbox") {
-                        el.checked = scheme_dict[fldName]
-                    } else {
-                        el.value = scheme_dict[fldName]
-                    }
-// ---  set focus to selected field
-                    if (el_field && fldName === el_field){
-                        set_focus_on_el_with_timeout(el, 150);
-                    }
+            // form-control is a bootstrap class, tsa_input_checkbox is a TSA class only used to select input checkboxes
+            let form_elements = document.getElementById("id_div_form_controls").querySelectorAll(".tsa_input_text, .tsa_input_checkbox")
+            for (let i = 0, el; el = form_elements[i]; i++) {
+                const fldName = get_attr_from_el(el, "data-field")
+                if(el.type === "checkbox") {
+                    el.checked = mod_MSCH_dict[fldName]
+                } else {
+                    el.value = mod_MSCH_dict[fldName]
                 }
+// ---  set focus to selected field
+                if (el_field && fldName === el_field){
+                    set_focus_on_el_with_timeout(el, 150);
+                }
+            }
 
 // ---  validate values, set save btn enabled
-                MSCH_validate_and_disable();
+            MSCH_validate_and_disable();
 // ---  open Modal Scheme Add
-                $("#id_modscheme").modal({backdrop: true});
+            $("#id_modscheme").modal({backdrop: true});
 
-            } else {
-               // open confirm box 'Please_select_scheme'
-                MSCH_Please_select_msg("scheme");
-            }
         } else {
             // open confirm box 'Please_select_order'
             MSCH_Please_select_msg("order");
@@ -5085,56 +5375,33 @@ if(selected_btn === "btn_absence"){
 
     }  // MSCH_Open
 
-//=========  MSCH_Please_select_msg  ================ PR2020-06-07
-    function MSCH_Please_select_msg(order_or_scheme) {
-        // open confirn box 'Please_select_order' / scheme
-        const header_text = (order_or_scheme === "order") ? loc.Select_order + "..." : loc.Select_scheme + "...";
-        const msg_text = (order_or_scheme === "order") ? loc.Please_select_order : loc.Please_select_scheme;
-        document.getElementById("id_confirm_header").innerText =header_text;
-        document.getElementById("id_confirm_msg01").innerText = msg_text;
-        document.getElementById("id_confirm_msg02").innerText = null;
-        document.getElementById("id_confirm_msg03").innerText = null;
-        // hide save button
-        const el_btn_save =  document.getElementById("id_confirm_btn_save")
-        const el_btn_cancel =  document.getElementById("id_confirm_btn_cancel")
-        el_btn_save. classList.add(cls_hide);
-        el_btn_cancel.classList.remove(cls_hide);
-        el_btn_cancel.innerText =  loc.Close
-        setTimeout(function() {el_btn_save.focus()}, 50);
-// ---  show modal, set focus on save button
-        $("#id_mod_confirm").modal({backdrop: true});
-    }  // MSCH_Please_select_msg
-
 //=========  MSCH_Save  ================ PR2020-04-20
     function MSCH_Save(crud_mode) {
         console.log("=========  MSCH_Save =========");
         console.log( "mod_MSCH_dict: ", mod_MSCH_dict);
-        const is_create = (!!mod_MSCH_dict.scheme.create)
+        const is_create = (!!mod_MSCH_dict.create)
         const is_delete = (crud_mode === "delete")
-        let upload_dict = {id: {table: 'scheme' }};
+        let upload_dict = {id: {table: "scheme"}};
 
         if(is_delete){
-            if(mod_MSCH_dict.scheme.pk) {
-                upload_dict.id.pk = mod_MSCH_dict.scheme.pk;
-                upload_dict.id.ppk = mod_MSCH_dict.scheme.ppk;
-                //upload_dict.id.rowindex = mod_MSCH_dict.scheme.rowindex;
+            if(mod_MSCH_dict.pk) {
+                upload_dict.id.pk = mod_MSCH_dict.pk;
+                upload_dict.id.ppk = mod_MSCH_dict.ppk;
                 upload_dict.id.delete = true
             }
 // make scheme_container red
             const el = document.getElementById("id_grid_scheme_container");
             el.classList.add(cls_error);
 
-            mod_dict = {mode: "delete", table: "scheme", selected_pk: mod_MSCH_dict.scheme.pk}
             ModConfirmOpen("scheme_delete", null)
 
         } else {
             if(is_create) {
-                upload_dict.id.ppk = mod_MSCH_dict.selected_order_pk;
+                upload_dict.id.ppk = mod_MSCH_dict.ppk;
                 upload_dict.id.create = true;
-            } else if(mod_MSCH_dict.scheme.pk) {
-                upload_dict.id.pk = mod_MSCH_dict.scheme.pk;
-                upload_dict.id.ppk = mod_MSCH_dict.scheme.ppk;
-                //upload_dict.id.rowindex = mod_MSCH_dict.scheme.rowindex;
+            } else if(mod_MSCH_dict.pk) {
+                upload_dict.id.pk = mod_MSCH_dict.pk;
+                upload_dict.id.ppk = mod_MSCH_dict.ppk;
             }
     // ---  loop through input elements
             let form_elements = document.getElementById("id_div_form_controls").querySelectorAll(".tsa_input_text, .tsa_input_checkbox")
@@ -5166,45 +5433,67 @@ if(selected_btn === "btn_absence"){
         }
     }  // MSCH_Save
 
-//=========  MSCH_get_scheme_dict  ================ PR2020-04-20
-    function MSCH_get_scheme_dict(order_pk, scheme_pk) {
-        //console.log( "=== MSCH_get_scheme_dict === ")
-        //console.log( "order_pk", order_pk)
-        //console.log( "scheme_pk", scheme_pk)
+//=========  MSCH_Please_select_msg  ================ PR2020-06-07
+    function MSCH_Please_select_msg(order_or_scheme) {
+        // open confirn box 'Please_select_order' / scheme
+        const header_text = (order_or_scheme === "order") ? loc.Select_order : loc.Select_scheme;
+        const msg_text = (order_or_scheme === "order") ? loc.Please_select_order : loc.Please_select_scheme;
+        document.getElementById("id_confirm_header").innerText = header_text;
+        document.getElementById("id_confirm_msg01").innerText = msg_text;
+        document.getElementById("id_confirm_msg02").innerText = null;
+        document.getElementById("id_confirm_msg03").innerText = null;
+        // hide save button
+        const el_btn_save =  document.getElementById("id_confirm_btn_save")
+        const el_btn_cancel =  document.getElementById("id_confirm_btn_cancel")
+        el_btn_save. classList.add(cls_hide);
+        el_btn_cancel.classList.remove(cls_hide);
+        el_btn_cancel.innerText =  loc.Close
+        setTimeout(function() {el_btn_save.focus()}, 50);
+// ---  show modal, set focus on save button
+        $("#id_mod_confirm").modal({backdrop: true});
+    }  // MSCH_Please_select_msg
+
+//=========  MSCH_get_scheme_dict  ================ PR2020-04-20 PR2020-08-30
+    function MSCH_get_scheme_dict() {
+        console.log( "=== MSCH_get_scheme_dict === ")
+        mod_MSCH_dict = {};
+        if(!selected.order_pk){selected.scheme_pk = null};
+
+        if(selected.order_pk){
 // --- GET SCHEME ----------------------------------
-        let scheme_ppk = null, scheme_code = null, scheme_cycle = null;
-        let datefirst = null, datelast = null, excl_ph = false, dvg_onph = false, excl_ch = false;
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", scheme_pk);
-        const is_addnew = (isEmpty(map_dict))
-        let scheme_dict = {};
-        if (is_addnew) {;
-// ---  create new scheme_dict if map_dict is empty, with default cycle = 7
-            //id_new = id_new + 1;
-            scheme_dict = { //pk: "new" + id_new.toString(),
-                    ppk: order_pk,
-                    table: "scheme",
-                    code: get_schemecode_with_sequence(scheme_map, order_pk, loc.Scheme),
-                    cycle: 7,
-                    nocycle: false,
-                    create: true
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
+        console.log( "map_dict", map_dict)
+            if (isEmpty(map_dict)) {
+                selected.scheme_pk = null
+    // ---  create new scheme_dict if map_dict is empty, with default cycle = 7
+                const new_code = get_schemecode_with_sequence(scheme_map, selected.order_pk, loc.Scheme);
+                mod_MSCH_dict = {
+                        ppk: selected.order_pk,
+                        table: "scheme",
+                        code: new_code,
+                        cycle: 7,
+                        nocycle: false,
+                        create: true
+                    };
+            } else {
+                let cycle =  get_dict_value(map_dict, ["cycle", "value"]);
+                if (cycle > 28) {cycle = null};
+                mod_MSCH_dict = { pk: get_dict_value(map_dict, ["id", "pk"]),
+                        ppk: get_dict_value(map_dict, ["id", "ppk"]),
+                        table: "scheme",
+                        code: get_dict_value(map_dict, ["code", "value"]),
+                        cycle: cycle,
+                        nocycle: (!cycle),
+
+                        datefirst: get_dict_value(map_dict, ["datefirst", "value"]),
+                        datelast: get_dict_value(map_dict, ["datelast", "value"]),
+
+                        excludecompanyholiday: get_dict_value(map_dict, ["excludecompanyholiday", "value"], false),
+                        excludepublicholiday: get_dict_value(map_dict, ["excludepublicholiday", "value"], false),
+                        divergentonpublicholiday: get_dict_value(map_dict, ["divergentonpublicholiday", "value"], false)
                 };
-        } else {
-            let cycle =  get_dict_value(map_dict, ["cycle", "value"]);
-            if (cycle > 28) {cycle = null};
-            scheme_dict = { pk: get_dict_value(map_dict, ["id", "pk"]),
-                    ppk: get_dict_value(map_dict, ["id", "ppk"]),
-                    table: "scheme",
-                    code: get_dict_value(map_dict, ["code", "value"]),
-                    cycle: cycle,
-                    nocycle: (!cycle),
-                    datefirst: get_dict_value(map_dict, ["datefirst", "value"]),
-                    datelast: get_dict_value(map_dict, ["datelast", "value"]),
-                    excludepublicholiday: get_dict_value(map_dict, ["excludepublicholiday", "value"], false),
-                    divergentonpublicholiday: get_dict_value(map_dict, ["divergentonpublicholiday", "value"], false),
-                    excludecompanyholiday: get_dict_value(map_dict, ["excludecompanyholiday", "value"], false)
-                };
+            }
         }
-        return scheme_dict
     }  // MSCH_get_scheme_dict
 
 //=========  MSCH_DateChanged  ================ PR2020-01-03
@@ -5359,11 +5648,10 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
     }  // MSCH_validate_and_disable
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 // +++++++++++++++++ MODAL ABSENCE +++++++++++++++++++++++++++++++++++++++++++
 
 //=========  ModAbsence_Open  ================  PR2020-05-14
-    function MAB_Open(is_addnew, el_input) {
+    function MAB_Open(el_input) {
         console.log(" =====  MAB_Open =====")
 
         // when el_input doesn't exist it is a new absence, called by submenu_btn
@@ -5374,48 +5662,65 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         const data_pk = get_attr_from_el(tblRow, "data-pk");
         const tblRow_rowIndex = (tblRow) ? tblRow.rowIndex : null;
         const fldName = get_attr_from_el(el_input, "data-field");
+        const is_addnew = (!tblRow)
 
-        console.log("fldName", fldName)
 // --- get info from data_maps
         // get info from absence_map, not teammember_map
-        const map_dict =  get_mapdict_from_datamap_by_tblName_pk(absence_map, "absence", data_pk)
-        selected.teammember_pk = get_dict_value(map_dict, ["id", "pk"])
+        const map_dict = get_mapdict_from_datamap_by_tblName_pk(absence_map, "absence", data_pk)
+        selected.teammember_pk = map_dict.id;
 
-        mod_dict.page = "modabsence";
-        // mod_dict.skip_focus_event = false;
-        mod_dict.id = get_dict_value(map_dict, ["id"], {});
-        mod_dict.order = get_dict_value(map_dict, ["order"], {});
-        mod_dict.employee = get_dict_value(map_dict, ["employee"], {});
+        console.log("map_dict", map_dict)
 
-        mod_dict.datefirst = get_dict_value(map_dict, ["datefirst", "value"]);
-        mod_dict.datelast = get_dict_value(map_dict, ["datelast", "value"]);
-        mod_dict.offsetstart = get_dict_value(map_dict, ["offsetstart", "value"]);
-        mod_dict.offsetend = get_dict_value(map_dict, ["offsetend", "value"]);
-        mod_dict.breakduration = get_dict_value(map_dict, ["breakduration", "value"], 0);
-        mod_dict.timeduration = get_dict_value(map_dict, ["timeduration", "value"], 0);
+        if(is_addnew) {
+            mod_dict = {create: true, page: "modabsence"}
+        } else {
+            mod_dict = {teammember_pk: map_dict.id,
+                        teammember_ppk: map_dict.t_id,
+                        mapid: map_dict.mapid,
 
-        mod_dict.old_datefirst = mod_dict.datefirst;
-        mod_dict.old_datelast = mod_dict.datelast;
-        mod_dict.old_offsetstart = mod_dict.offsetstart;
-        mod_dict.old_offsetend = mod_dict.offsetend;
-        mod_dict.old_breakduration = mod_dict.breakduration;
-        mod_dict.old_timeduration = mod_dict.timeduration;
+                        employee_pk: map_dict.e_id,
+                        employee_ppk: map_dict.comp_id,
+                        employee_code: map_dict.e_code,
 
-        if(is_addnew) { mod_dict.create = true} ;
+                        order_pk: map_dict.o_id,
+                        order_ppk: map_dict.c_id,
+                        order_code: map_dict.o_code,
+                        datefirst: map_dict.s_df,
+                        datelast: map_dict.s_dl,
+
+                        old_order_pk: mod_dict.order_pk,
+                        old_order_ppk: mod_dict.order_ppk,
+                        old_datefirst: mod_dict.datefirst,
+                        old_datelast: mod_dict.datelast
+                        }
+            if(map_dict.sh_os_arr) {
+                mod_dict.offsetstart = map_dict.sh_os_arr[0];
+                mod_dict.old_offsetstart = map_dict.sh_os_arr[0]}
+            if(map_dict.sh_oe_arr) {
+                mod_dict.offsetend = map_dict.sh_oe_arr[0];
+                mod_dict.old_offsetend = map_dict.sh_oe_arr[0]}
+            if(map_dict.sh_bd_arr) {
+                mod_dict.breakduration = map_dict.sh_bd_arr[0];
+                mod_dict.old_breakduration = map_dict.sh_bd_arr[0]}
+            if(map_dict.sh_td_arr) {
+                mod_dict.timeduration = map_dict.sh_td_arr[0];
+                mod_dict.old_timeduration = map_dict.sh_td_arr[0]}
+        }
+
+        console.log("mod_dict", mod_dict)
 
 // --- when no employee selected: fill select table employee
         // MAB_FillSelectTable("employee") is called in MAB_GotFocus
 // ---  put employee_code in header
-        const header_text = (selected.teammember_pk) ? loc.Absence + " " + loc.of + " " + mod_dict.employee.code : loc.Absence;
+        const header_text = (selected.teammember_pk) ? loc.Absence + " " + loc.of + " " + mod_dict.employee_code : loc.Absence;
         document.getElementById("id_MAB_hdr_absence").innerText = header_text;
 // --- hide input element employee, when employee selected
         show_hide_element_by_id("id_MAB_div_input_employee", !selected.teammember_pk)
 // --- hide delete button when no employee selected
         add_or_remove_class(document.getElementById("id_MAB_btn_delete"), cls_hide, !selected.teammember_pk)
 // ---  update Inputboxes
-        const employee_code = get_dict_value(mod_dict, ["employee", "code"]);
-        el_MAB_input_employee.value = get_dict_value(mod_dict, ["employee", "code"]);
-        el_MAB_input_abscat.value = get_dict_value(mod_dict, ["order", "code"]);
+        el_MAB_input_employee.value = mod_dict.employee_code;
+        el_MAB_input_abscat.value = mod_dict.order_code;
 
         MAB_UpdateDatefirstlastInputboxes();
         //MAB_DateFirstLastChanged();
@@ -5447,24 +5752,22 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log( "mod_dict: ", mod_dict);
         const is_delete = (crud_mode === "delete")
         let upload_dict = {id: {isabsence: true, table: 'teammember', shiftoption: "isabsence"} }
-        const teammember_pk = get_dict_value(mod_dict, ["id", "pk"])
-        if(teammember_pk) {
-            upload_dict.id.pk = teammember_pk;
-            upload_dict.id.ppk = get_dict_value(mod_dict, ["id", "ppk"])
-            upload_dict.id.rowindex = get_dict_value(mod_dict, ["rowindex"])
+        if(mod_dict.teammember_pk) {
+            upload_dict.id.pk = mod_dict.teammember_pk;
+            upload_dict.id.ppk = mod_dict.teammember_ppk;
+            upload_dict.id.mapid = mod_dict.mapid;
             if(is_delete) {upload_dict.id.delete = true}
+            // employee does not change in absence
         } else {
             upload_dict.id.create = true;
+            upload_dict.employee = {pk: mod_dict.employee_pk, ppk: mod_dict.employee_ppk, code: mod_dict.employee_code, update: true};
         }
 
-        const old_order_pk = get_dict_value(mod_dict, ["absence_dict", "order", "pk"], 0);
-        const old_order_ppk = get_dict_value(mod_dict, ["absence_dict", "order", "ppk"], 0);
-        const new_order_pk = get_dict_value(mod_dict, ["order", "pk"], 0);
-        const new_order_ppk = get_dict_value(mod_dict, ["order", "ppk"], 0);
-        const new_order_code = get_dict_value(mod_dict, ["order", "code"]); // just for testing, is not used for update
+        const new_order_pk = mod_dict.order_pk;
+        const new_order_ppk = mod_dict.order_ppk;
+        const new_order_code = mod_dict.order_code; // just for testing, is not used for update
 
-
-        if (new_order_pk !== old_order_pk) {upload_dict.order = {pk: new_order_pk, ppk: new_order_ppk, code: mod_dict.order.code, update: true}}
+        if (new_order_pk !== mod_dict.old_order_pk) {upload_dict.order = {pk: new_order_pk, ppk: new_order_ppk, code: mod_dict.order_code, update: true}}
 
         const new_datefirst = el_MAB_datefirst.value;
         const new_datelast = el_MAB_datelast.value;
@@ -5476,16 +5779,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         if (mod_dict.breakduration !== mod_dict.old_breakduration) {upload_dict.breakduration = {value: mod_dict.breakduration, update: true}}
         if (mod_dict.timeduration !== mod_dict.old_timeduration) {upload_dict.timeduration = {value: mod_dict.timeduration, update: true}}
 
-        if(mod_dict.employee.pk) {
-            upload_dict.employee = {pk: mod_dict.employee.pk, ppk: mod_dict.employee.ppk, code: mod_dict.employee.code, update: true};
-        }
 // ---  UploadChanges
         UploadChanges(upload_dict, url_teammember_upload, "MAB_Save");
     }  // MAB_Save
 
 //========= MAB_FillSelectTable  ============= PR2020-05-17
     function MAB_FillSelectTable(tblName, selected_pk) {
-        console.log( "=== MAB_FillSelectTable ", tblName);
+        //console.log( "=== MAB_FillSelectTable ", tblName);
 
         let tblBody = document.getElementById("id_MAB_tblbody_select");
         tblBody.innerText = null;
@@ -5498,13 +5798,10 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
         const data_map = (is_tbl_employee) ? employee_map : abscat_map;
 
-        console.log( "data_map", data_map);
         let row_count = 0
         if (data_map.size){
 //--- loop through data_map
             for (const [map_id, item_dict] of data_map.entries()) {
-                console.log( "map_id", map_id);
-                console.log( "item_dict", item_dict);
 
                 let pk_int = null, ppk_int = null, code_value = null, is_inactive = false;
                 if(tblName === "employee"){
@@ -5518,8 +5815,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     code_value = item_dict.o_code;
                     is_inactive = item_dict.o_inactive;
                 }
-
-                console.log( "code_value", code_value);
 // --- validate if employee can be added to list
 
                 if (!is_inactive){
@@ -5585,11 +5880,11 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 if(tblName === "employee"){
                     MAB_SetEmployeeDict(only_one_selected_pk);
 // ---  put code_value in el_input_employee
-                    el_MAB_input_employee.value = mod_dict.employee.code;
+                    el_MAB_input_employee.value = mod_dict.employee_code;
 // ---  update date input elements
                     MAB_UpdateDatefirstlastInputboxes();
 // ---  put hours in mod_dict.timeduration and el_MAB_timeduration
-                    if (mod_dict.employee.workminutesperday){
+                    if (mod_dict.employee_workminutesperday){
                         mod_dict.timeduration = get_dict_value(mod_dict, ["employee", "workminutesperday"], 0);
                         const display_text = display_duration (mod_dict.timeduration, loc.user_lang);
                         el_MAB_timeduration.innerText = display_text;
@@ -5602,7 +5897,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     set_focus_on_el_with_timeout(el_MAB_input_abscat, 50)
                 } else {
                     MAB_SetOrderDict(only_one_selected_pk);
-                    el_MAB_input_abscat.value = mod_dict.order.code;
+                    el_MAB_input_abscat.value = mod_dict.order_code;
                     set_focus_on_el_with_timeout(el_MAB_datefirst, 50)
                 }
     // ---  enable btn_save and input elements
@@ -5613,16 +5908,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  MAB_SelectRowClicked  ================ PR2020-05-15
     function MAB_SelectRowClicked(tblRow, tblName) {
-        //console.log( "===== MAB_SelectRowClicked ========= ", tblName);
+        console.log( "===== MAB_SelectRowClicked ========= ", tblName);
 // ---  deselect all highlighted rows
         DeselectHighlightedRows(tblRow, cls_selected)
-        if(!!tblRow) {
+        if(tblRow) {
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
             const selected_pk = get_attr_from_el_str(tblRow, "data-pk");
             // ???? mod_dict.skip_focus_event = true;
-
-        console.log("skip_focus_event: ", mod_dict.skip_focus_event)
 // ---  put value in input box, put employee_pk in mod_dict, set focus to select_abscatselect_abscat
             if (tblName === "employee") {
 // ---  put value of data-pk in mod_dict
@@ -5630,17 +5923,17 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log( "selected_pk", selected_pk);
         //console.log( "mod_dict.employee", deepcopy_dict(mod_dict.employee));
 // ---  put code_value in el_input_employee
-                el_MAB_input_employee.value = mod_dict.employee.code
+                el_MAB_input_employee.value = mod_dict.employee_code
 // ---  update min max in date fields (
                 MAB_UpdateDatefirstlastInputboxes();
 // ---  put hours in mod_dict.timeduration and el_MAB_timeduration
-                if (mod_dict.employee.workminutesperday){
-                    mod_dict.timeduration = mod_dict.employee.workminutesperday;
+                if (mod_dict.employee_workminutesperday){
+                    mod_dict.timeduration = mod_dict.employee_workminutesperday;
                     const display_text = display_duration (mod_dict.timeduration, loc.user_lang);
                     el_MAB_timeduration.innerText = display_duration (mod_dict.timeduration, loc.user_lang);
                  }
 // ---  put employee_code in header
-                const header_text = (mod_dict.employee.code) ? loc.Absence + " " + loc.of + " " + mod_dict.employee.code : loc.Absence;
+                const header_text = (mod_dict.employee_code) ? loc.Absence + " " + loc.of + " " + mod_dict.employee_code : loc.Absence;
                 document.getElementById("id_MAB_hdr_absence").innerText = header_text
 // --- fill select table abscat
                 MAB_FillSelectTable("order");
@@ -5650,7 +5943,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // ---  put value of data-pk in mod_dict and update selected.teammember_pk
                 MAB_SetOrderDict(selected_pk);
 // ---  put code_value in el_input_employee
-                el_MAB_input_abscat.value = mod_dict.order.code;
+                el_MAB_input_abscat.value = mod_dict.order_code;
                 //set_focus_on_el_with_timeout(el_MAB_btn_save, 50)
             }
 // ---  enable btn_save and input elements
@@ -5672,8 +5965,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 // reset select table when input order got focus
                 MAB_FillSelectTable(tblName);
             } else if (tblName === "order") {
-                el_MAB_input_abscat.value =  (mod_dict.order.code) ? mod_dict.order.code : null;
-                MAB_FillSelectTable(tblName, mod_dict.order.pk);
+                el_MAB_input_abscat.value =  (mod_dict.order_code) ? mod_dict.order_code : null;
+                MAB_FillSelectTable(tblName, mod_dict.order_pk);
             }
         }
         console.log("skip_focus_event: ", mod_dict.skip_focus_event)
@@ -5684,9 +5977,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log( " --- MAB_UpdateDatefirstlastInputboxes --- ");
         // absence datefirst / datelast are stored in scheme.datefirst / datelast
         console.log( "mod_dict.employee", mod_dict.employee);
-        const employee_datefirst = get_dict_value(mod_dict, ["employee", "datefirst"]);
-        const employee_datelast = get_dict_value(mod_dict, ["employee", "datelast"]);
-        const employee_code = get_dict_value(mod_dict, ["employee", "code"]);
+        const employee_datefirst = mod_dict.employee_datefirst;
+        const employee_datelast = mod_dict.employee_datelast;
+        const employee_code = mod_dict.employee_code;
         console.log( "employee_datefirst", employee_datefirst);
         console.log( "employee_datelast", employee_datelast);
         console.log( "employee_code", employee_code);
@@ -5694,9 +5987,10 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log( "mod_dict.datefirst", mod_dict.datefirst);
         console.log( "mod_dict.datelast", mod_dict.datelast);
 
-// set mesg when employee has last last day in service
+// set msg when employee has last last day in service
         const el_msg = document.getElementById("id_MAB_msg_input_datefirstlast")
         add_or_remove_class(el_msg, cls_hide, !employee_datelast)
+        add_or_remove_class(el_msg, "text-danger", employee_datelast)
         el_msg.innerText = (employee_datelast) ? employee_code + loc.is_in_service_thru +
                     format_dateISO_vanilla (loc, employee_datelast, false, false) + "." : null;
 
@@ -5747,7 +6041,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log("=== MAB_TimepickerOpen ===");
         //console.log("mod_dict", mod_dict);
         // disabled when no employee or no abscaet selected
-        const is_disabled = (!mod_dict.employee.pk || !mod_dict.order.pk);
+        const is_disabled = (!mod_dict.employee_pk || !mod_dict.order_pk);
         if(!is_disabled){
 // ---  create tp_dict
             const fldName = get_attr_from_el(el_input, "data-field");
@@ -5825,11 +6119,12 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  MAB_BtnSaveEnable  ================ PR2020-05-15
     function MAB_BtnSaveEnable(){
-        //console.log( " --- MAB_BtnSaveEnable --- ");
+        console.log( " --- MAB_BtnSaveEnable --- ");
+        console.log( "mod_dict", mod_dict);
 
 // --- make input abscat readOnly, only when no employee selected
-        const no_employee = (!get_dict_value(mod_dict, ["employee", "pk"]));
-        const no_abscat = (!get_dict_value(mod_dict, ["order", "pk"]));
+        const no_employee = (!mod_dict.employee_pk);
+        const no_abscat = (!mod_dict.order_pk);
 
         el_MAB_input_abscat.readOnly = no_employee;
 // --- enable save button
@@ -5858,45 +6153,25 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= MAB_SetEmployeeDict  ============= PR2020-07-01
     function MAB_SetEmployeeDict(data_pk){
-        //console.log( "=== MAB_SetEmployeeDict ===");
-        const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", data_pk)
-        const employee_pk = get_dict_value(employee_dict, ["id", "pk"])
-        mod_dict.employee = {
-            pk: employee_pk,
-            ppk: get_dict_value(employee_dict, ["id", "ppk"]),
-            code: get_dict_value(employee_dict, ["code", "value"]),
-            datefirst: get_dict_value(employee_dict, ["datefirst", "value"]),
-            datelast: get_dict_value(employee_dict, ["datelast", "value"]),
-            workminutesperday: get_dict_value(employee_dict, ["workminutesperday", "value"])
-        }
+        console.log( "=== MAB_SetEmployeeDict ===");
+        const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", data_pk);
+        mod_dict.employee_pk = get_dict_value(employee_dict, ["id", "pk"]);
+        mod_dict.employee_ppk = get_dict_value(employee_dict, ["id", "ppk"]);
+        mod_dict.employee_code = get_dict_value(employee_dict, ["code", "value"]);
+        mod_dict.employee_datefirst = get_dict_value(employee_dict, ["datefirst", "value"]);
+        mod_dict.employee_datelast = get_dict_value(employee_dict, ["datelast", "value"]);
+        mod_dict.employee_workminutesperday = get_dict_value(employee_dict, ["workminutesperday", "value"]);
+        console.log( "mod_dict", mod_dict);
     }  // MAB_SetEmployeeDict
 
-//========= MAB_SetOrderDict  ============= PR2020-07-01
-    function MAB_SetOrderDict(data_pk){
-        //console.log( "=== MAB_SetOrderDict ===", data_pk);
-        const abscat_dict = get_mapdict_from_datamap_by_tblName_pk(abscat_map, "order", data_pk)
-        const order_pk = get_dict_value(abscat_dict, ["id", "pk"])
-        mod_dict.order = { pk: order_pk,
-            ppk: get_dict_value(abscat_dict, ["id", "ppk"]),
-            code: get_dict_value(abscat_dict, ["code", "value"])
-        }
+//========= MAB_SetOrderDict  ============= PR2020-08-27
+    function MAB_SetOrderDict(order_pk){
+        //console.log( "=== MAB_SetOrderDict ===", order_pk);
+        const abscat_dict = get_mapdict_from_datamap_by_tblName_pk(abscat_map, "abscat", order_pk)
+        mod_dict.order_pk = abscat_dict.id;
+        mod_dict.order_ppk = abscat_dict.c_id;
+        mod_dict.order_code = abscat_dict.o_code;
     }  // MAB_SetOrderDict
-
-//========= MAB_SetOrderDictXXX  ============= PR2020-05-17
-    function MAB_SetOrderDictXXX(teammember_pk){
-        //console.log( "=== MAB_SetOrderDictXXX ===");
-        const teammember_dict = get_mapdict_from_datamap_by_tblName_pk(teammember_map, "teammember", teammember_pk)
-        const order_pk = get_dict_value(teammember_dict, ["order", "pk"])
-        mod_dict.order = {
-            pk: order_pk,
-            ppk: get_dict_value(teammember_dict, ["order", "ppk"]),
-            code: get_dict_value(teammember_dict, ["order", "code"]),
-            display: get_dict_value(teammember_dict, ["order", "display"]),
-            datefirst: get_dict_value(teammember_dict, ["order", "datefirst"]),
-            datelast: get_dict_value(teammember_dict, ["order", "datelast"])
-        }
-        return order_pk
-    }  // MAB_SetOrderDictXXX
 
 //========= MAB_SetShiftDict  ============= PR2020-05-17
     function MAB_SetShiftDict(teammember_pk){
@@ -5914,9 +6189,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         return shift_pk
     }  // MAB_SetShiftDict
 
-
 // +++++++++++++++++ MODAL COPYFROM TEMPLATE  +++++++++++++++++++++++++++++++
-
 //========= ModCopyTemplateOpen======= PR2020-05-31
     function ModCopyTemplateOpen () {
         if(is_template_mode){
@@ -6022,7 +6295,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         }
     }  // MCFT_SelectOrder
 
-
 //=========  MCFT_InputElementKeyup  ================ PR2020-05-15
     function MCFT_InputElementKeyup(el_input) {
         console.log( "=== MCFT_InputElementKeyup  ")
@@ -6050,9 +6322,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             }  //  if (!!selected_pk) {
         }
     }  // MCFT_InputElementKeyup
-
-
-
 
  function ModCopyfromTemplateValidateBlank(){
     let el_err = document.getElementById("id_mod_copyfrom_template_select_err");
@@ -6679,10 +6948,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
            // }
 
            // UpdateHeaderText();
-            // reset customer name and pk in addnew row of tBody_order
-            //if(tblName === "order"){
-                //UpdateAddnewRow_Order();
-            //}
+
         }  //  if (!!tblName){
 
     }  // function ResetFilterRows
@@ -6712,10 +6978,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         } else  if (event_key === "Enter") {
             const skip_while_modal = (mod_dict.page === "modabsence")
             if(!skip_while_modal){
-            const tblRow = document.getElementById(selected.tblRow_id)
+            const tblRow = document.getElementById(selected.mapid)
                 if(tblRow){
-                    const is_addnew = get_attr_from_el(tblRow, "data-is_addnew");
-                    MAB_Open(is_addnew, tblRow);
+                    MAB_Open(tblRow);
                 }
             }
         }
@@ -6886,7 +7151,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
     }  // update_map_item_local
 
 
-
 //========= DatetimeWithinRange  ====================================
     function DatetimeWithinRange(cur_datetime, min_datetime, max_datetime) {
     // PR2019-07-07
@@ -6906,9 +7170,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         }
         return within_range
     }  // DatetimeWithinRange
+
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 //grid layout
-
 
 //========= Grid_Reset  ==================== PR2020-07-02
     function Grid_Reset() {
@@ -7021,7 +7285,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
         //console.log("mode", mode)
         //console.log("selected.grid_range", selected.grid_range)
-        console.log("selected.scheme_pk", selected.scheme_pk)
+        //console.log("selected.scheme_pk", selected.scheme_pk)
 
 // ---  reset grid_dict
         Grid_Reset();
@@ -7396,14 +7660,11 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // +++++++++++++++++++++++++++++++++++  add shift rows  ++++++++++++++++++++++++++++++++
             let row_index = 2;
             let shifts_dict = {}
-        console.log("?? shift_map ", shift_map)
+
 // ---  loop through shift_map
             for (const [map_id, shift_dict] of shift_map.entries()) {
                 const ppk_int = get_dict_value(shift_dict, ["id", "ppk"], 0);
 
-        console.log("shift_dict ", shift_dict)
-        console.log("ppk_int ", ppk_int)
-        console.log("grid_dict.scheme_pk ", grid_dict.scheme_pk)
 // ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
                 if (!!ppk_int && grid_dict.scheme_pk === ppk_int) {
                     const shift_pk_int = get_dict_value(shift_dict, ["id", "pk"], 0);
@@ -7481,7 +7742,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // --- fill grid table shifts
         Grid_FillTblShifts();
     }  // Grid_CreateTblShifts
-
 
 //=========  Grid_FillTblShifts  === PR2020-03-14
     function Grid_FillTblShifts() {
@@ -7725,7 +7985,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             add_or_remove_class(el, cls_bc_yellow_light,is_selected_team )
         };
     }  // Grid_SelectTeam
-
 
 //=========  Grid_Nocycle_Goto  === PR2020-03-14
     function Grid_Nocycle_Goto(event) {

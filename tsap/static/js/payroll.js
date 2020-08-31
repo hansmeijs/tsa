@@ -133,9 +133,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_width: ["016", "090",  "180", "100", "100", "100", "032"],
                         field_align: ["c", "l", "l","r", "r", "r", "c"]},
             payroll_tabular: { tbl_col_count: 14,
-                        field_caption: ["", "Employee", "Date", "Order", "Start_time", "End_time", "Total_hours_2lines", "Planned_hours_2lines", "Worked_hours_2lines", "Absence_2lines", "Wage_factor", "Function", "Payroll_period"],
-                        field_names: ["", "employee_code", "rosterdate", "c_o_code", "offsetstart", "offsetend", "totaldur", "plandur", "timedur", "absdur", "totaldur", "wagefactor", "functioncode", "paydatecode", ""],
-                        filter_tags: ["", "text", "text", "text", "text", "text", "duration", "duration", "duration", "duration", "text", "text", "text", ""],
+                        field_caption: ["", "Employee", "Date", "Order", "Start_time", "End_time", "Total_hours_2lines", "Planned_hours_2lines", "Worked_hours_2lines", "Absence_2lines", "Wage_factor", "Function", "Payroll_period", ""],
+                        field_names: ["roster", "employee_code", "rosterdate", "c_o_code", "offsetstart", "offsetend", "totaldur", "plandur", "timedur", "absdur", "totaldur", "wagefactor", "functioncode", "paydatecode", ""],
+                        field_tags: ["div", "input", "input", "input", "input", "input", "input", "input", "input", "input", "input", "input", "input", "div"],
+                        filter_tags: ["boolean", "text", "text", "text", "text", "text", "duration", "duration", "duration", "duration", "text", "text", "text", ""],
                         field_width: ["016", "150", "090",  "180", "090", "090", "090", "090", "090", "090", "100", "100", "100", "032"],
                         field_align: ["c", "l", "l", "l", "r", "r", "r", "r", "r", "r", "l", "l", "l", "c"]},
             employee: { tbl_col_count: 4,
@@ -272,7 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {MSE_FilterEmployee()}, 50)});
         let el_modemployee_btn_save = document.getElementById("id_ModSelEmp_btn_save")
             el_modemployee_btn_save.addEventListener("click", function() {MSE_Save()}, false )
-
 
 // ---  MODAL ABSENCE CATEGORY
         let form_elements = document.getElementById("id_MAC_input_container").querySelectorAll(".tsa_input_text")
@@ -498,11 +498,11 @@ document.addEventListener('DOMContentLoaded', function() {
         t_CreateTblModSelectPeriod(loc, ModPeriodSelectPeriod);
 
         if("paydatecodes_inuse_list" in response){
-            paydatecodes_inuse_list = response["paydatecodes_inuse_list"] };
+            paydatecodes_inuse_list = response.paydatecodes_inuse_list};
         if("paydateitems_inuse_list" in response){
-            paydateitems_inuse_list = response["paydateitems_inuse_list"] };
+            paydateitems_inuse_list = response.paydateitems_inuse_list};
         if("employees_inuse_list" in response){
-            employees_inuse_list = response["employees_inuse_list"] };
+            employees_inuse_list = response.employees_inuse_list};
 
 //----------------------------
 // --- reset table
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (detail_rows) {
             for (let i = 0, item, tblRow, row_data, filter_row, show_row; item = detail_rows[i]; i++) {
                 // filter selected employee when is_payroll_detail_mode
-                show_row =(!is_payroll_detail_mode || item[1] === selected_employee_pk)
+                show_row = (!is_payroll_detail_mode || item[1] === selected_employee_pk)
                 if(show_row){
                     filter_row = item[2];
                     row_data = item[3];
@@ -855,9 +855,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // UpdatePayrollTotalrow
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-//========= CreateHTML_period_tabular_list  ==================================== PR2020-06-15
+//========= CreateHTML_period_tabular_list  ==================================== PR2020-06-15 PR2020-08-29
     function CreateHTML_period_tabular_list(payroll_period_detail_list) {
-        //console.log("==== CreateHTML_period_tabular_list  ========= ");
+        console.log("==== CreateHTML_period_tabular_list  ========= ");
 
         // payroll_period_detail_list = [ 0: emplhour_id, 1:rosterdate, 2:employee_id, 3: employee_code,
         //                                4: order_id, 5: custorder_code, 6: plannedduration, 7: timeduration
@@ -879,7 +879,8 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0, item; item = payroll_period_detail_list[i]; i++) {
                 let col_index = 0, td_html = [], filter_data = [], excel_data = [];
     // add margin first column
-                td_html[col_index] =  "<td><div></div></td>"
+                const class_bg_img = (item.emplhour_id) ? " class=\"stat_0_4\"" : "";
+                td_html[col_index] = "<td><div" + class_bg_img + "></div></td>"
     // ---  add employee_code
                 col_index += 1;
                 const employee_code = (item.employee_code) ? item.employee_code : "";
@@ -937,7 +938,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(item){row_html += item};
                 }
                 //  detail_row = [ 0: show, 1: employee_id, 2: filter_data, 3: excel_data, 4: row_html 5: emplhour_id]
-                const row = [true, item[2], filter_data, excel_data, row_html, item[0]];
+                const row = [true, item.employee_id, filter_data, excel_data, row_html, item.emplhour_id];
                 detail_rows.push(row);
                 //console.log("filter_data:", filter_data )
 
@@ -1170,6 +1171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             payroll_header_row.push(caption)
 
             const field_name = field_settings[tblName].field_names[j];
+            const field_tag = field_settings[tblName].field_tags[j];
             const filter_tag = field_settings[tblName].filter_tags[j];
             const class_width = "tw_" + field_settings[tblName].field_width[j] ;
             const class_align = "ta_" + field_settings[tblName].field_align[j];
@@ -1186,18 +1188,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++ add th to tblFilterRow +++
             th = document.createElement("th");
-                const el_input = document.createElement("input");
-                    el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, j, event.which)});
-                    el_input.setAttribute("data-field", field_name);
-                    el_input.setAttribute("data-filtertag", filter_tag);
+                const el = document.createElement(field_tag);
+                    el.setAttribute("data-field", field_name);
+                    el.setAttribute("data-filtertag", filter_tag);
+// --- add Event Listener
+                    if (j === 0) {
+                        el.addEventListener("click", function(event){HandleFilterToggleRoster(el, j)});
+                        el.classList.add("stat_0_0")
+                        el.classList.add("pointer_show");
+                    } else {
+                        el.addEventListener("keyup", function(event){HandlePayrollFilter(el, j, event.which)});
+                        el.setAttribute("autocomplete", "off");
+                        el.setAttribute("ondragstart", "return false;");
+                        el.setAttribute("ondrop", "return false;");
+                        el.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
+                    }
 // --- add other attributes
-                    el_input.setAttribute("autocomplete", "off");
-                    el_input.setAttribute("ondragstart", "return false;");
-                    el_input.setAttribute("ondrop", "return false;");
-                    el_input.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
             // also add margin ml-2 to column wagefactor
                     if (j === 8) {el_div.classList.add("ml-2")};
-                th.appendChild(el_input);
+                th.appendChild(el);
             tblFilterRow.appendChild(th);
 
 // +++ add th to tblTotalRow +++
@@ -1217,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillTabularRows  ====================================
     function FillTabularRows() {
-       //console.log( "====== FillTabularRows  === ");
+       console.log( "====== FillTabularRows  === ");
 
 // --- reset table, except for header
         tblBody_datatable.innerText = null
@@ -2218,10 +2227,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //###########################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
+//========= HandleFilterToggleRoster  =============== PR2020-09-29
+    function HandleFilterToggleRoster(el_input, index) {
+        console.log( "===== HandleFilterToggleRoster  ========= ");
+        console.log( "index", index);
+        //filter_dict = [ [], ["", "2", "text"], ["", "z", "text"] ];
+        const value = (filter_dict[index]) ? filter_dict[index] : 0;
+        const new_value = Math.abs(value - 1);
+        console.log( "new_value", new_value);
+        filter_dict[index] = new_value
+        console.log( "filter_dict", filter_dict);
+        add_or_remove_class(el_input, "stat_0_4", (new_value === 1), "stat_0_0")
+        Filter_TableRows();
+    };  // HandleFilterToggleRoster
 //========= HandlePayrollFilter  ====================================
     function HandlePayrollFilter(el, col_index, el_key) {
-       //console.log( "===== HandlePayrollFilter  ========= ");
+       console.log( "===== HandlePayrollFilter  ========= ");
         const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
         if ( !skip_filter) {
             if(selected_btn === "payrolltabular"){
@@ -2230,6 +2251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 FillCrosstabRows();
             }
         };
+        console.log("filter_dict",filter_dict)
     }  // HandlePayrollFilter
 
 //========= HandleFilterChecked  ==================================== PR2020-06-26
@@ -3313,8 +3335,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         console.log("employee_agg_map", employee_agg_map)
-
-
 
         t_Fill_SelectTable(tblBody_select, tblHead, employee_agg_map, "employee", selected_period.employee_pk, null,
             MSO_MSE_Filter_SelectRows, null, MSE_SelectEmployee, null, false,

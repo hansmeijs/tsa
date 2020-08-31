@@ -272,7 +272,6 @@ def create_order_list(company, order_pk=None, is_absence=None, is_template=None,
 
         COALESCE(REPLACE (o.code, '~', ''),'') AS code, 
         COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-        
         CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
 
         o.name,

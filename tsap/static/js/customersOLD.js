@@ -660,12 +660,12 @@ let planning_list = [] // for export and printing - can replace map?
         const customer_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true
+            add_shifts_without_employee: true
         };
         const employee_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true,
+            add_shifts_without_employee: true,
             skip_restshifts: true,
             orderby_rosterdate_customer: true
         };
@@ -4903,12 +4903,12 @@ let planning_list = [] // for export and printing - can replace map?
         let customer_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true
+            add_shifts_without_employee: true
         };
         let employee_planning_dict = {
             customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
             order_pk: (!!selected_order_pk) ? selected_order_pk : null,
-            add_empty_shifts: true,
+            add_shifts_without_employee: true,
             skip_restshifts: true,
             orderby_rosterdate_customer: true
         };

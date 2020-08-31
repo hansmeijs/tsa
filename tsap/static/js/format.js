@@ -1742,10 +1742,10 @@
             const ampm_str = (isAmPm) ?  ( (is_pm) ? " pm" : " am" ) : "";
 
             if (isEN) {
-                time_formatted = [weekday_str + ",", month_str + date + ",", year, hour_str + ":" + minute_str].join(' ');
+                time_formatted = [weekday_str + ",", month_str + date + ",", year + ",", hour_str + ":" + minute_str].join(' ');
                 if(ampm_str) { time_formatted += ampm_str};
             } else {
-                time_formatted = [weekday_str, date, month_str, year, hour_str + "." + minute_str, "u"].join(' ');
+                time_formatted = [weekday_str, date, month_str, year + ",", hour_str + "." + minute_str, "u"].join(' ');
             }
         }
         return time_formatted

@@ -69,8 +69,9 @@ class TsaBaseModel(Model):
         # put now_utc in Companysettings (only when table is emplhour) PR2020-08-12
                 key = 'last_emplhour_updated'
                 if key in kwargs:
-                    self.request = kwargs.pop('last_emplhour_updated', None)
-                    Companysetting.set_datetimesetting(key, now_utc, self.company)
+                    self.set_datetimesetting = kwargs.pop('last_emplhour_updated', False)
+                    if self.set_datetimesetting:
+                        Companysetting.set_datetimesetting(key, now_utc, self.company)
 
             self.modifiedat = now_utc
 
@@ -1149,30 +1150,30 @@ class Companysetting(Model):  # PR2019-03-09
 
 
 def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
-    logger.debug('-----  delete_emplhour  -----')
+    #logger.debug('-----  delete_emplhour  -----')
     # function first saves record in log  with isdeleted=True
     # adds datetime seleted in Companysettings
     # then deletes emplhour record
     # also deletes orderhour record, when it has no other emplhour records
     deleted_row = None
     if emplhour:
-        logger.debug('emplhour: ' + str(emplhour))
+        #logger.debug('emplhour: ' + str(emplhour))
         orderhour = emplhour.orderhour
         other_emplhours_exist = Emplhour.objects.filter(orderhour=orderhour).exclude(pk=emplhour.pk).exists()
-        logger.debug('other_emplhours_exist: ' + str(other_emplhours_exist))
+        #logger.debug('other_emplhours_exist: ' + str(other_emplhours_exist))
 
 # - first delete history of this emplhour
         Emplhourlog.objects.filter(emplhour_id=emplhour.pk).delete()
-        logger.debug('Emplhourlog count: ' + str(Emplhourlog.objects.filter(emplhour_id=emplhour.pk).count()))
+        #logger.debug('Emplhourlog count: ' + str(Emplhourlog.objects.filter(emplhour_id=emplhour.pk).count()))
 # -  save emplhour to log before deleting - to be able to upate other logged in computers
         # get now without timezone
         now_utc_naive = datetime.utcnow()
         # convert now to timezone utc
         modified_at = now_utc_naive.replace(tzinfo=pytz.utc)
-        logger.debug('emplhour modified_at: ' + str(modified_at))
+        #logger.debug('emplhour modified_at: ' + str(modified_at))
 
         save_to_emplhourlog(emplhour.pk, request, True, modified_at)  # is_deleted = True
-        logger.debug('saved_to_emplhourlog count: ')
+        #logger.debug('saved_to_emplhourlog count: ')
 
 # -  put date_deleted (=now_utc) in Companysetting.datetimesetting2
         key = 'last_emplhour_updated'
@@ -1197,13 +1198,12 @@ def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
 
 def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None):
     # PR2020-07-26 PR2020-08-22
-    logger.debug('  ----- save_to_emplhourlog -----')
-    logger.debug('is_deleted: ' + str(is_deleted))
-    logger.debug('request.user: ' + str(request.user))
+   #.debug('  ----- save_to_emplhourlog -----')
+    #logger.debug('is_deleted: ' + str(is_deleted))
+    #logger.debug('request.user: ' + str(request.user))
 
     # when is_delete: set modified_date to now, use emplhour modified_date
 
-    sql_keys = {'ehid': emplhour_pk}
     sql_list = []
     sql_list.append("""
         INSERT INTO companies_emplhourlog (
@@ -1249,11 +1249,11 @@ def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None
         """)
 
     sql = ' '.join(sql_list)
-    logger.debug('sql: ' + str(sql))
-    logger.debug('sql_keys: ' + str(sql_keys))
+    #logger.debug('sql: ' + str(sql))
+    #logger.debug('sql_keys: ' + str(sql_keys))
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
-    logger.debug('  ----- save_to_emplhourlog done ')
+    #logger.debug('  ----- save_to_emplhourlog done ')
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

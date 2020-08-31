@@ -283,29 +283,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
     // ---  show / hide submenu print planning and Excel
-            const show_submenu_print_planning = (["calendar", "planning"].indexOf(selected_btn) > -1);
-            let el_submenu_print_planning = document.getElementById("id_submenu_customer_planning_print")
-            let el_submenu_exportExcel = document.getElementById("id_submenu_customer_exportExcel")
-            if (show_submenu_print_planning) {
-                el_submenu_print_planning.classList.remove(cls_hide);
-                el_submenu_exportExcel.classList.remove(cls_hide);
-            } else {
-                el_submenu_print_planning.classList.add(cls_hide);
-                el_submenu_exportExcel.classList.add(cls_hide);
-            }
 
     // ---  show / hide elements of selected button
             show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
-            //let list = document.getElementsByClassName("tab_show");
-            //for (let i=0, len = list.length; i<len; i++) {
-            //    let el = list[i];
-            //    const is_show = el.classList.contains("tab_" + selected_btn)
-            //    show_hide_element(el, is_show)
-            //    // class 'display_hide' is necessary to prevent showing all tables when page opens
-            //}
+
 
     // ---  update header text -- >  cant update header text until customer- and order_map are filled
-            UpdateHeaderText();
+            //UpdateHeaderText();
 
         }  //  if(!isEmpty(loc))
     }  // HandleBtnSelect

@@ -9,7 +9,7 @@ from tsap import functions as f
 from tsap import constants as c
 from companies import models as m
 from planning import views as plv
-from planning import rosterfill as rf
+from planning import rosterfill as plrf
 
 import logging
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
 
             if field == 'id':
                 field_dict['pk'] = instance.get('id')
-                field_dict['ppk'] = instance.get('company_id')
+                field_dict['ppk'] = instance.get('comp_id')
                 field_dict['table'] = 'employee'
 
             elif field == 'company':
@@ -656,15 +656,18 @@ def create_teammember_dict_from_model(teammember, update_dict):
 # === end of create_teammember_dict_from_model
 
 
-def create_absence_list(filter_dict, teammember_pk, request):
-    #logger.debug(' ----- create_absence_list  -----  ')
+def create_absence_rows(filter_dict, teammember_pk, request):
+    #logger.debug(' ----- create_absence_rows  -----  ')
     #logger.debug('filter_dict: ' + str(filter_dict) )
-    # create list of all absence teammembers and teammemebers with shift  PR2020-06-30
+    # create list of all absence teammembers and teammemebers with shift  PR2020-06-30 PR2020-08-28
 
-    company_pk = request.user.company_id
     is_template = False # not in use yet
     period_datefirst = filter_dict.get('period_datefirst')
     period_datelast = filter_dict.get('period_datelast')
+
+    sql_keys = {'compid': request.user.company_id}
+
+    sql_list = []
 
     sql_schemeitem_shift = """
         SELECT si.team_id AS t_id, 
@@ -682,10 +685,10 @@ def create_absence_list(filter_dict, teammember_pk, request):
             INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
             GROUP BY si.team_id
         """
-    # TODO replace tm_id by id in scheme page
-    sql_teammmember = """ SELECT tm.id, tm.id AS tm_id, t.id AS t_id, s.id AS s_id, o.id AS o_id, c.id AS c_id,
-        CONCAT('teammember_', tm.id::TEXT) AS mapid,
-                
+
+    sql_list.append(""" SELECT tm.id, t.id AS t_id, s.id AS s_id, o.id AS o_id, c.id AS c_id,
+        CONCAT('absence_', tm.id::TEXT) AS mapid,
+        'teammember' AS table,
         c.company_id AS comp_id,
         e.id AS e_id,
 
@@ -735,102 +738,30 @@ def create_absence_list(filter_dict, teammember_pk, request):
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
         INNER JOIN companies_employee AS e ON (e.id = tm.employee_id) 
         LEFT JOIN companies_employee AS rpl ON (rpl.id = tm.replacement_id) 
-
         LEFT JOIN (""" + sql_schemeitem_shift + """) AS si_sh_sub ON (si_sh_sub.t_id = t.id)    
 
         WHERE (c.company_id = %(compid)s::INT) 
-        AND (c.istemplate = %(istmpl)s )"""
+        AND (c.isabsence)""")
 
     if teammember_pk:
-        sql_filter = """AND tm.id = CAST(%(tm_id)s AS INTEGER) """
+        sql_list.append('AND tm.id = CAST(%(tm_id)s AS INTEGER)')
+        sql_keys['tm_id'] = teammember_pk
     else:
-        sql_filter = """AND (s.datelast >= CAST(%(df)s AS DATE) OR %(df)s IS NULL)
-                        AND (s.datefirst <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL) """
-    sql_order_by = """ORDER BY LOWER(e.code), tm.datefirst NULLS LAST, s.datefirst NULLS LAST """
+        sql_list.append("""
+            AND (s.datelast >= CAST(%(df)s AS DATE) OR %(df)s IS NULL)
+            AND (s.datefirst <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL)
+            ORDER BY LOWER(e.code), tm.datefirst NULLS LAST, s.datefirst NULLS LAST
+            """)
+        sql_keys['df'] = period_datefirst
+        sql_keys['dl'] = period_datelast
+
+    sql = ' '.join(sql_list)
+
     newcursor = connection.cursor()
-    newcursor.execute(sql_teammmember + sql_filter + sql_order_by, {
-        'compid': company_pk,
-        'istmpl': is_template,
-        'tm_id': teammember_pk,
-        'df': period_datefirst,
-        'dl': period_datelast
-    })
+    newcursor.execute(sql, sql_keys)
     absence_rows = f.dictfetchall(newcursor)
 
-    absence_list = []
-
-    for absence_row in absence_rows:
-        item_dict = {}
-        create_absence_dict_from_sql(absence_row, item_dict)
-        if item_dict:
-            absence_list.append(item_dict)
-
-    return absence_list, absence_rows
-
-
-def create_absence_dict_from_sql(tm, item_dict):
-    # --- create dict of this teammember PR2019-07-26
-    #logger.debug ('--- create_teammember_dict ---')
-    #logger.debug ('tm: ' + str(tm))
-    #logger.debug ('item_dict: ' + str(item_dict))
-
-    # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
-    # FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
-    #                      'scheme', 'order',
-    #                      'cat', 'isabsence', 'issingleshift', 'istemplate',
-    #                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
-
-    if tm:
-        fields = ('id', 'team','scheme', 'order', 'employee', 'cycle', 'datefirst', 'datelast',
-                'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-                'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday')
-        # only when is_absence, and there is only 1 shift (should always be the case
-        si_id_arr = tm.get('si_id_arr')
-        arr_key = {'cycle': 's_cycle', 'datefirst': 's_df', 'datelast': 's_dl',
-                   'offsetstart': 'sh_os_arr', 'offsetend': 'sh_oe_arr', 'breakduration': 'sh_bd_arr', 'timeduration': 'sh_td_arr',
-                   'nopay': 'o_nopay',  'nohoursonsaturday': 'o_nosat', 'nohoursonsunday': 'o_nosun', 'nohoursonpublicholiday': 's_noph'}
-        for field in fields:
-# --- get field_dict from  item_dict if it exists
-        # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-            field_dict = item_dict[field] if field in item_dict else {}
-            if field == 'id':
-                field_dict['pk'] = tm.get('tm_id')
-                field_dict['ppk'] = tm.get('t_id')
-                field_dict['table'] = 'teammember'
-                field_dict['isabsence'] = True
-            elif field == 'team':
-                field_dict['pk'] = tm.get('t_id')
-                field_dict['ppk'] = tm.get('s_id')
-                field_dict['code'] = tm.get('t_code')
-            elif field == 'scheme':
-                field_dict['pk'] = tm.get('s_id')
-                field_dict['ppk'] = tm.get('o_id')
-                field_dict['code'] = tm.get('s_code')
-            elif field == 'order':
-                field_dict['pk'] = tm.get('o_id')
-                field_dict['ppk'] = tm.get('c_id')
-                field_dict['code'] = tm.get('o_code')
-            elif field in ('cycle', 'datefirst', 'datelast'):
-                field_dict['value'] = tm.get(arr_key[field])
-            elif field in ('nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
-                field_dict['value'] = tm.get(arr_key[field], False)
-            elif field in ('offsetstart', 'offsetend', 'breakduration', 'timeduration'):
-                if si_id_arr and len(si_id_arr) == 1:
-                    field_dict['value'] = tm.get(arr_key[field])[0]
-            elif field == 'employee':
-                field_dict['pk'] = tm.get('e_id')
-                field_dict['code'] = tm.get('e_code')
-                field_dict['workminutesperday'] = tm.get('e_workminutesperday')
-                field_dict['datefirst'] = tm.get('e_df')
-                field_dict['datelast'] = tm.get('e_dl')
-
-            item_dict[field] = field_dict
-# 7. remove empty attributes from item_update
-        f.remove_empty_attr_from_dict(item_dict)
-    return item_dict
-# === end of create_teammember_dict_from_sql
-
-
+    return absence_rows
 
 
 def create_employee_pricerate_list(company, user_lang):
@@ -1035,11 +966,15 @@ def create_paydateitems_inuse_list(period_dict, request):
 
 
 def create_employees_inuse_list(period_dict, request):
-    #logger.debug(' ----------- create_employees_inuse_list ----------- ')
+    logger.debug(' ----------- create_employees_inuse_list ----------- ')
     # create list of employees that are in table emplhour, filtered by period datefirst / datelast PR2020-08-15
 
+    logger.debug('period_dict: ' + str(period_dict))
     period_datefirst = f.get_dict_value(period_dict, ('period_datefirst',))
     period_datelast = f.get_dict_value(period_dict, ('period_datelast',))
+
+    logger.debug('period_datefirst: ' + str(period_datefirst))
+    logger.debug('period_datelast: ' + str(period_datelast))
 
     company_pk = request.user.company.pk
     sql_keys = {'compid': company_pk}
@@ -1070,6 +1005,8 @@ def create_employees_inuse_list(period_dict, request):
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     employees_inuse_list = f.dictfetchall(newcursor)
+    logger.debug('employees_inuse_list: ' + str(employees_inuse_list))
+
     return employees_inuse_list
 # ---  end of create_employees_inuse_list
 
@@ -1227,7 +1164,68 @@ def create_payroll_abscat_period_list(period_datefirst, period_datelast, request
     return payroll_abscat_list
 # --- end of create_payroll_abscat_paydatecode_list-
 
-####################
+####################===============@@@@@@@@@@@@@@@@@@@@@@@
+def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request):
+    #logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
+    payrollperiod_detail_list = []
+    if request.user.company:
+        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
+        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
+        if paydatecode_pk and paydate_iso:
+            payrollperiod_detail_list = create_paydate_detail_list(
+                paydatecode_pk=paydatecode_pk,
+                paydate_iso=paydate_iso,
+                request=request)
+        else:
+            period_datefirst = f.get_dict_value(payroll_period, ('period_datefirst',))
+            period_datelast = f.get_dict_value(payroll_period, ('period_datelast',))
+
+    # - get list of rosterdates that are in emplhour in selected period
+            rosterdate_rows = get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, request)
+
+###############################
+# +++++ loop through dates of selected period
+            datefirst_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datefirst)
+            datelast_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datelast)
+
+            rosterdate_dte = datefirst_dte
+            while rosterdate_dte <= datelast_dte:
+                rosterdate_iso = rosterdate_dte.isoformat()
+                if rosterdate_dte in rosterdate_rows:
+# - when emplhour records of this rosterdate exist: add them to payrollperiod_detail_list
+                    detail_listONEDAY = create_payrollperiod_detail_listONDEDAY(
+                        rosterdate=rosterdate_iso,
+                        request=request)
+                    if detail_listONEDAY:
+                        payrollperiod_detail_list.extend(detail_listONEDAY)
+                else:
+# - if not: add planning day of this rosterdate
+                    dict_list, short_list, logfile = plrf.create_employee_planning(
+                        datefirst_iso=rosterdate_iso,
+                        datelast_iso=rosterdate_iso,
+                        customer_pk=None,
+                        order_pk=None,
+                        employee_pk=None,
+                        add_shifts_without_employee=True,
+                        skip_absence_and_restshifts=False,
+                        orderby_rosterdate_customer=False,
+                        comp_timezone=comp_timezone,
+                        timeformat=timeformat,
+                        user_lang=user_lang,
+                        request=request)
+
+                    # - add rows to all_rows
+                    payrollperiod_detail_list.extend(short_list)
+                # - add one day to rosterdate
+                rosterdate_dte = rosterdate_dte + timedelta(days=1)
+        # +++++ end of loop
+            #################################
+
+
+    return payrollperiod_detail_list
+# --- end of create_payroll_detail_list
+
+####################===============@@@@@@@@@@@@@@@@@@@@@@@
 
 def create_payroll_detail_list(payroll_period, request):
     #logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
@@ -1249,8 +1247,8 @@ def create_payroll_detail_list(payroll_period, request):
                 request=request)
     # - get list of rosterdates that are in payrollperiod_detail_list
             # TODO add planning to payrollperiod_detail_list
-            """
-            rosterdate_rows = get_rosterdates_of_payrollperiod_detail_list(period_datefirst, period_datelast, request)
+
+            rosterdate_rows = get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, request)
             logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
 
             ###############################
@@ -1267,22 +1265,23 @@ def create_payroll_detail_list(payroll_period, request):
                         rosterdate_dte, request)
                     # - create list with all teammembers of this_rosterdate
                     # this functions retrieves a list of tuples with data from the database
-                    rows = rf.get_employee_calendar_rows(rosterdate_dte,
+                    rows = plrf.get_employee_calendar_rows(rosterdate_dte,
                                                     is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                                                     None, None, None, request.user.company.pk)
+
                     # - add rows to all_rows
                     payrollperiod_detail_list.extend(rows)
                 # - add one day to rosterdate
                 rosterdate_dte = rosterdate_dte + timedelta(days=1)
         # +++++ end of loop
             #################################
-            """
+
 
     return payrollperiod_detail_list
 # --- end of create_payroll_detail_list
 
-def get_rosterdates_of_payrollperiod_detail_list(period_datefirst, period_datelast, request):
-    #logger.debug(' ============= create_payrollperiod_detail_list ============= ')
+def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, request):
+    #logger.debug(' ============= get_rosterdates_of_emplhour_period ============= ')
     # create list of rosterdates that are in  payrollperiod_detail_list PR2020-08-27
     sql_rosterdates = """
             SELECT eh.rosterdate
@@ -1293,7 +1292,6 @@ def get_rosterdates_of_payrollperiod_detail_list(period_datefirst, period_datela
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
 
             WHERE c.company_id = %(compid)s 
-            AND NOT oh.isrestshift
             AND (eh.rosterdate >= CAST(%(df)s AS DATE) OR %(df)s IS NULL )
             AND (eh.rosterdate <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL )
             GROUP BY eh.rosterdate
@@ -1302,10 +1300,67 @@ def get_rosterdates_of_payrollperiod_detail_list(period_datefirst, period_datela
     newcursor = connection.cursor()
     newcursor.execute(sql_rosterdates, sql_keys)
     rosterdate_rows = newcursor.fetchall()
-    return rosterdate_rows
+    rosterdate_list = []
+    for row in rosterdate_rows:
+        rosterdate_list.append(row[0])
+    return rosterdate_list
+# - end of get_rosterdates_of_emplhour_period
 
 
-# - end of create_payrollperiod_detail_list
+def create_payrollperiod_detail_listONDEDAY(rosterdate, request):
+    logger.debug(' ============= create_payrollperiod_detail_listONDEDAY ============= ')
+    # create crosstab list of employees with absence hours PR2020-06-12
+
+    logger.debug('rosterdate' + str(rosterdate))
+    # see https://postgresql.verite.pro/blog/2018/06/19/crosstab-pivot.html
+    # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
+
+    sql_detail = """
+        SELECT eh.id AS emplhour_id, eh.rosterdate, eh.employee_id, e.code AS employee_code, 
+        CASE WHEN o.isabsence THEN o.id ELSE 0 END AS order_id,
+        CONCAT(c.code,' - ',o.code) AS c_o_code, 
+        eh.offsetstart,
+        eh.offsetend,
+
+        eh.exceldate,
+        eh.excelstart,
+        eh.excelend,               
+
+        CASE WHEN c.isabsence THEN 0 ELSE eh.plannedduration END AS plandur, 
+        CASE WHEN NOT c.isabsence THEN eh.timeduration ELSE 0 END AS timedur,
+        CASE WHEN c.isabsence THEN eh.timeduration ELSE 0 END AS absdur, 
+        eh.timeduration AS totaldur, 
+
+        fc.code AS functioncode,
+        wf.code AS wagefactor,
+        pdc.code AS paydatecode
+
+        FROM companies_emplhour AS eh
+        LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
+        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        LEFT JOIN companies_wagecode AS fc ON (fc.id = eh.functioncode_id) 
+        LEFT JOIN companies_wagecode AS wf ON (wf.id = eh.wagefactorcode_id) 
+        LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id) 
+
+        WHERE c.company_id = %(compid)s 
+        AND NOT oh.isrestshift
+        AND (eh.rosterdate = CAST(%(rd)s AS DATE) )
+
+        ORDER BY e.code, o.code
+        """
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql_detail, {
+        'compid': request.user.company_id,
+        'rd': rosterdate
+    })
+    payroll_list_detail = f.dictfetchall(newcursor)
+    return payroll_list_detail
+
+
+# - end of create_payrollperiod_detail_listONDEDAY
 
 def create_payrollperiod_detail_list(period_datefirst, period_datelast, request):
     #logger.debug(' ============= create_payrollperiod_detail_list ============= ')
@@ -1317,7 +1372,8 @@ def create_payrollperiod_detail_list(period_datefirst, period_datelast, request)
     sql_detail = """
         SELECT eh.id AS emplhour_id, eh.rosterdate, eh.employee_id, e.code AS employee_code, 
         CASE WHEN o.isabsence THEN o.id ELSE 0 END AS order_id,
-        CONCAT(c.code,' - ',o.code) AS c_o_code, 
+        CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
+        
         eh.offsetstart,
         eh.offsetend,
          

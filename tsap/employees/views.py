@@ -309,9 +309,9 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     update_wrap = grid_shift_upload(request, upload_dict, user_lang)
 
                 elif shift_option == 'isabsence':
-                    update_dict, absence_row = absence_upload(request, upload_dict, user_lang)
-                    update_wrap['absence_update'] = update_dict
-                    update_wrap['absence_row'] = absence_row
+                    absence_rows = absence_upload(request, upload_dict, user_lang)
+                    #update_wrap['absence_update'] = update_dict
+                    update_wrap['updated_absence_rows'] = absence_rows
                 else:
                     # TODO change to shift_option
                     table = f.get_dict_value(upload_dict, ('id','table'), '')
@@ -864,13 +864,13 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
     if employee_pk is not None and datefirst is not None and datelast is not None:
         #logger.debug('employee_pk is not None and datefirst is not None and datelast is not None: ')
         customer_id, order_id = None, None
-        add_empty_shifts = False
+        add_shifts_without_employee = False
         skip_restshifts = False
         orderby_rosterdate_customer = False
 
         calendar_dictlist, short_list, logfile = \
             plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
-                                               add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
+                                               add_shifts_without_employee, skip_restshifts, orderby_rosterdate_customer,
                                                 comp_timezone, timeformat, user_lang, request)
         #logger.debug('calendar_dictlist: ' + str(calendar_dictlist))
 
@@ -1290,380 +1290,310 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
 
 #######################################
 
-def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
+def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28
     #logger.debug(' --- absence_upload ---')
     #logger.debug('upload_dict: ' + str(upload_dict))
 
-    absence_row = {}
-    update_dict = {} # tobe deprecated
-    # PR2020-08-09 new approach: updated_dict only contains update status , values are in absence_rows
-    update_status = {'updated': []}
-
-# 1. get iddict variables
-    id_dict = upload_dict.get('id')
-    if id_dict:
-        table = id_dict.get('table', '')
-        pk_int = id_dict.get('pk')
-        ppk_int = id_dict.get('ppk')
-        row_index = id_dict.get('rowindex', '')
-        is_create = ('create' in id_dict)
-        is_delete = ('delete' in id_dict)
-
-# 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-        update_dict = f.create_update_dict(
-            c.FIELDS_TEAMMEMBER,
-            table=table,
-            pk=pk_int,
-            ppk=ppk_int,
-            row_index=row_index)
+    absence_rows = []
+# - get id  variables
+    teammember_pk = f.get_dict_value (upload_dict, ('id', 'pk'), False)
+    is_create = f.get_dict_value (upload_dict, ('id', 'create'), False)
+    is_delete = f.get_dict_value (upload_dict, ('id', 'delete'), False)
 
 # A. Delete teammember and its schemeitems, team and scheme
-        if is_delete:
-            teammember = m.Teammember.objects.get_or_none(
-                id=pk_int,
-                team__scheme__order__customer__company=request.user.company)
-            if teammember:
-                update_status['mapid'] = 'teammember_' + str(teammember.pk)
-                team = teammember.team
-                if team:
-                    scheme = team.scheme
-                    if scheme:
-                        order = scheme.order
-                        order_code = ''
-                        if order:
-                            order_code = getattr(order, 'code','')
-                        this_text = _("Absence '%(tbl)s'") % {'tbl': order_code}
-                        # delete_instance adds 'deleted' or 'error' to id_dict
-                        # teammember, team, shift and schemeitem all have 'on_delete=CASCADE'
-                        # therefore deleting scheme also deletes the other records
-                        deleted_ok, msg_errNIU = m.delete_instance(scheme, update_dict, request, this_text)
-                        update_status['deleted'] = deleted_ok
-        else:
-
+    if is_delete:
+        teammember = m.Teammember.objects.get_or_none(
+            id=teammember_pk,
+            team__scheme__order__customer__company=request.user.company)
+        if teammember:
+            team = teammember.team
+            if team:
+                scheme = team.scheme
+                if scheme:
+                    order = scheme.order
+                    order_code = ''
+                    if order:
+                        order_code = getattr(order, 'code','')
+                    this_text = _("Absence '%(tbl)s'") % {'tbl': order_code}
+                    # delete_instance adds 'deleted' or 'error' to id_dict
+                    # teammember, team, shift and schemeitem all have 'on_delete=CASCADE'
+                    # therefore deleting scheme also deletes the other records
+                    deleted_ok, msg_errNIU = m.delete_instance(scheme, {'id': {}}, request, this_text)
+    # - add deleted_row to absence_rows
+                    if deleted_ok:
+                        absence_rows.append( {'pk': teammember_pk,
+                                                'mapid': 'absence_' + str(teammember_pk),
+                                                'isdeleted': True} )
+    else:
 # - get absence category info from order: new_order_pk
-            new_order = None
-            is_order_update = False
-            new_order_dict = upload_dict.get('order')
-            #logger.debug('new_order_dict: ' + str(new_order_dict))
-
-            if new_order_dict:
-                is_order_update = new_order_dict.get('update', False)
-                if is_order_update:
-                    new_order_pk = new_order_dict.get('pk', 0)
-                    if new_order_pk:
-                        new_order = m.Order.objects.get_or_none(
-                            id=new_order_pk,
-                            customer__company=request.user.company
-                        )
-                    if new_order is None:
-                        is_order_update = False
-            #logger.debug('new_order: ' + str(new_order))
-
+        new_order = None
+        is_order_update = False
+        new_order_dict = upload_dict.get('order')
+        if new_order_dict:
+            is_order_update = new_order_dict.get('update', False)
+            if is_order_update:
+                new_order_pk = new_order_dict.get('pk', 0)
+                if new_order_pk:
+                    new_order = m.Order.objects.get_or_none(
+                        id=new_order_pk,
+                        customer__company=request.user.company
+                    )
+                if new_order is None:
+                    is_order_update = False
 # B. get info from scheme: datefirst, datelast
-            is_datefirst_update = False
-            datefirst_dte = None
-            field_dict = upload_dict.get('datefirst')
-            if field_dict:
-                is_datefirst_update = field_dict.get('update', False)
-                datefirst_iso = field_dict.get('value')
-                datefirst_dte = f.get_date_from_ISO(datefirst_iso)
-                #logger.debug('datefirst_iso: ' + str(datefirst_iso))
+        is_datefirst_update = False
+        datefirst_dte = None
+        field_dict = upload_dict.get('datefirst')
+        if field_dict:
+            is_datefirst_update = field_dict.get('update', False)
+            datefirst_iso = field_dict.get('value')
+            datefirst_dte = f.get_date_from_ISO(datefirst_iso)
 
-            is_datelast_update = False
-            datelast_dte = None
-            field_dict = upload_dict.get('datelast')
-            if field_dict:
-                is_datelast_update = field_dict.get('update', False)
-                datelast_iso = field_dict.get('value', '')
-                datelast_dte = f.get_date_from_ISO(datelast_iso)
-                #logger.debug('datelast_iso: ' + str(datelast_iso))
+        is_datelast_update = False
+        datelast_dte = None
+        field_dict = upload_dict.get('datelast')
+        if field_dict:
+            is_datelast_update = field_dict.get('update', False)
+            datelast_iso = field_dict.get('value', '')
+            datelast_dte = f.get_date_from_ISO(datelast_iso)
 
 # - get shift_code
-            # leave shiftcode always '-'
-            #shift_code, is_shiftcode_update = None, False
-            #field_dict = upload_dict.get('shiftcode')
-            #if field_dict:
-            #    is_shiftcode_update = field_dict.get('update', False)
-            #    shift_code = field_dict.get('value')
-            #    logger.debug('shift_code: ' + str(shift_code))
+        # leave shiftcode always '-'
+        #shift_code, is_shiftcode_update = None, False
+        #field_dict = upload_dict.get('shiftcode')
+        #if field_dict:
+        #    is_shiftcode_update = field_dict.get('update', False)
+        #    shift_code = field_dict.get('value')
+        #    logger.debug('shift_code: ' + str(shift_code))
 
 # - get offset_start, offset_end, time_duration
-            offset_start = f.get_dict_value(upload_dict, ('offsetstart', 'value'))
-            is_offsetstart_update = f.get_dict_value(upload_dict, ('offsetstart', 'update'), False)
-            offset_end = f.get_dict_value(upload_dict, ('offsetend', 'value'))
-            is_offsetend_update = f.get_dict_value(upload_dict, ('offsetend', 'update'), False)
-            break_duration = f.get_dict_value(upload_dict, ('breakduration', 'value'), 0)
-            is_breakduration_update = f.get_dict_value(upload_dict, ('breakduration', 'update'), False)
-            time_duration = f.get_dict_value(upload_dict, ('timeduration', 'value'), 0)
-            is_timeduration_update = f.get_dict_value(upload_dict, ('timeduration', 'update'), False)
+        offset_start = f.get_dict_value(upload_dict, ('offsetstart', 'value'))
+        is_offsetstart_update = f.get_dict_value(upload_dict, ('offsetstart', 'update'), False)
+        offset_end = f.get_dict_value(upload_dict, ('offsetend', 'value'))
+        is_offsetend_update = f.get_dict_value(upload_dict, ('offsetend', 'update'), False)
+        break_duration = f.get_dict_value(upload_dict, ('breakduration', 'value'), 0)
+        is_breakduration_update = f.get_dict_value(upload_dict, ('breakduration', 'update'), False)
+        time_duration = f.get_dict_value(upload_dict, ('timeduration', 'value'), 0)
+        is_timeduration_update = f.get_dict_value(upload_dict, ('timeduration', 'update'), False)
 
-            nopay, is_nopay_update = False, False
-            field_dict = upload_dict.get('nopay')
-            if field_dict:
-                is_nopay_update = field_dict.get('update', False)
-                nopay = field_dict.get('value', False)
-            nohoursonsaturday, is_nohoursonsaturday_update = False, False
-            field_dict = upload_dict.get('nohoursonsaturday')
-            if field_dict:
-                is_nohoursonsaturday_update = field_dict.get('update', False)
-                nohoursonsaturday = field_dict.get('value', False)
-            nohoursonsunday, is_nohoursonsunday_update = False, False
-            field_dict = upload_dict.get('nohoursonsunday')
-            if field_dict:
-                is_nohoursonsunday_update = field_dict.get('update', False)
-                nohoursonsunday = field_dict.get('value', False)
-            nohoursonpublicholiday, is_nohoursonpublicholiday_update = False, False
-            field_dict = upload_dict.get('nohoursonpublicholiday')
-            if field_dict:
-                is_nohoursonpublicholiday_update = field_dict.get('update', False)
-                nohoursonpublicholiday = field_dict.get('value', False)
+        nopay, is_nopay_update = False, False
+        field_dict = upload_dict.get('nopay')
+        if field_dict:
+            is_nopay_update = field_dict.get('update', False)
+            nopay = field_dict.get('value', False)
+        nohoursonsaturday, is_nohoursonsaturday_update = False, False
+        field_dict = upload_dict.get('nohoursonsaturday')
+        if field_dict:
+            is_nohoursonsaturday_update = field_dict.get('update', False)
+            nohoursonsaturday = field_dict.get('value', False)
+        nohoursonsunday, is_nohoursonsunday_update = False, False
+        field_dict = upload_dict.get('nohoursonsunday')
+        if field_dict:
+            is_nohoursonsunday_update = field_dict.get('update', False)
+            nohoursonsunday = field_dict.get('value', False)
+        nohoursonpublicholiday, is_nohoursonpublicholiday_update = False, False
+        field_dict = upload_dict.get('nohoursonpublicholiday')
+        if field_dict:
+            is_nohoursonpublicholiday_update = field_dict.get('update', False)
+            nohoursonpublicholiday = field_dict.get('value', False)
 
 # C: if is_create: create new scheme, shift, team, teammember and schemeitem
-            teammember = None
-            if is_create:
-                #logger.debug('is_create: ' + str(is_create))
+        teammember = None
+        if is_create:
+            #logger.debug('is_create: ' + str(is_create))
 # D. get absence order
-                if new_order is not None:
-                    # employee is required
-                    employee = None
-                    employee_dict = upload_dict.get('employee')
-                    #logger.debug('employee_dict: ' + str(employee_dict))
-                    if employee_dict:
-                        employee_pk = employee_dict.get('pk')
-                        if employee_pk:
-                            employee = m.Employee.objects.get_or_none(
-                                pk=employee_pk,
-                                company=request.user.company)
-                    #logger.debug('employee: ' + str(employee))
+            if new_order is not None:
+                # employee is required
+                employee = None
+                employee_dict = upload_dict.get('employee')
+                #logger.debug('employee_dict: ' + str(employee_dict))
+                if employee_dict:
+                    employee_pk = employee_dict.get('pk')
+                    if employee_pk:
+                        employee = m.Employee.objects.get_or_none(
+                            pk=employee_pk,
+                            company=request.user.company)
 
-                    if employee is not None:
-        # - create new scheme with cycle = 1
-                        # NOTE: do not set excludepublicholiday=True etc , set timeduration=0 instead PR2020-04-26
-                        scheme_code = employee.code if employee.code else c.SCHEME_TEXT[user_lang]
-                        # absence schemes have cycle 1
-                        cycle_one = 1
-                        scheme = m.Scheme(
-                            order=new_order,
-                            code=scheme_code,
-                            isabsence=True,
-                            cycle=cycle_one,
-                            datefirst=datefirst_dte,
-                            datelast=datelast_dte,
-                            nopay=nopay,
-                            nohoursonsaturday=nohoursonsaturday,
-                            nohoursonsunday=nohoursonsunday,
-                            nohoursonpublicholiday=nohoursonpublicholiday)
-                        scheme.save(request=request)
-                        #logger.debug('scheme: ' + str(scheme))
+                if employee is not None:
+    # - create new scheme with cycle = 1
+                    # NOTE: do not set excludepublicholiday=True etc , set timeduration=0 instead PR2020-04-26
+                    scheme_code = employee.code if employee.code else c.SCHEME_TEXT[user_lang]
+                    # absence schemes have cycle 1
+                    cycle_one = 1
+                    scheme = m.Scheme(
+                        order=new_order,
+                        code=scheme_code,
+                        isabsence=True,
+                        cycle=cycle_one,
+                        datefirst=datefirst_dte,
+                        datelast=datelast_dte,
+                        nopay=nopay,
+                        nohoursonsaturday=nohoursonsaturday,
+                        nohoursonsunday=nohoursonsunday,
+                        nohoursonpublicholiday=nohoursonpublicholiday)
+                    scheme.save(request=request)
 
-                        if scheme:
-        # - create new shift
-                            # TODO upload shifts_list with code, timestrat-end duration
-                            shift = m.Shift(
-                                scheme=scheme,
-                                code='-',
-                                isrestshift=False,
-                                istemplate=False,
-                                offsetstart=offset_start,
-                                offsetend=offset_end,
-                                breakduration=break_duration,
-                                timeduration=time_duration
-                            )
-                            shift.save(request=request)
-                            #logger.debug('shift: ' + str(shift))
-                # create new team
-                            team_code = employee.code if employee.code else c.TEAM_TEXT[user_lang]
-                            team = m.Team(
-                                scheme=scheme,
-                                code=team_code,
-                                isabsence=True)
-                            team.save(request=request)
-                            #logger.debug('team: ' + str(team))
+                    if scheme:
+    # - create new shift
+                        # TODO upload shifts_list with code, timestart-end duration
+                        shift = m.Shift(
+                            scheme=scheme,
+                            code='-',
+                            isrestshift=False,
+                            istemplate=False,
+                            offsetstart=offset_start,
+                            offsetend=offset_end,
+                            breakduration=break_duration,
+                            timeduration=time_duration
+                        )
+                        shift.save(request=request)
+                        #logger.debug('shift: ' + str(shift))
+            # create new team
+                        team_code = employee.code if employee.code else c.TEAM_TEXT[user_lang]
+                        team = m.Team(
+                            scheme=scheme,
+                            code=team_code,
+                            isabsence=True)
+                        team.save(request=request)
+                        #logger.debug('team: ' + str(team))
 
-                # create new teammember
-                            # datefirst is saved in scheme, not in teammember
-                            try:
-                                teammember = m.Teammember(
-                                    team=team,
-                                    employee=employee,
-                                    isabsence=True)
-                                teammember.save(request=request)
-                                #logger.debug('teammember: ' + str(teammember))
-                                update_dict['id']['created'] = True
-                                update_status['mapid'] = 'teammember_' + str(teammember.pk)
-                                update_status['created'] = True
-                            except:
-                                update_dict['id']['created'] = False
-                                update_status['created'] = False
+            # create new teammember
+                        # datefirst is saved in scheme, not in teammember
+                        teammember = m.Teammember(
+                            team=team,
+                            employee=employee,
+                            isabsence=True)
+                        teammember.save(request=request)
 
-                # create new schemeitem
-                            # create only one schemeitem
-                            # get the monday date of this week
-                            this_date = date.today()
-                            # add schemeitem for each day of the week, except for weekends (isoweekday = 6 or 7)
-                            schemeitem = m.Schemeitem(
-                                scheme=scheme,
-                                shift=shift,
-                                team=team,
-                                rosterdate=this_date,
-                                isabsence=True
-                            )
-                            schemeitem.save(request=request)
-                            #logger.debug('schemeitem rosterdate: ' + str(schemeitem.rosterdate))
+            # create new schemeitem
+                        # create only one schemeitem
+                        # get the monday date of this week
+                        this_date = date.today()
+                        # add schemeitem for each day of the week, except for weekends (isoweekday = 6 or 7)
+                        schemeitem = m.Schemeitem(
+                            scheme=scheme,
+                            shift=shift,
+                            team=team,
+                            rosterdate=this_date,
+                            isabsence=True
+                        )
+                        schemeitem.save(request=request)
+                        #logger.debug('schemeitem rosterdate: ' + str(schemeitem.rosterdate))
 
 # C. If not is_create: get existing teammember
-            else:
-                scheme = None
-                shift = None
-                team = None
-                teammember = m.Teammember.objects.get_or_none(
-                    id=pk_int,
-                    team__scheme__order__customer__company=request.user.company)
-                if teammember:
-                    team = teammember.team
-                    if team:
-                        scheme= team.scheme
-                    update_status['mapid'] = 'teammember_' + str(teammember.pk)
-
-                #logger.debug('teammember: ' + str(teammember))
-                #logger.debug('scheme: ' + str(scheme))
+        else:
+            scheme = None
+            shift = None
+            team = None
+            teammember = m.Teammember.objects.get_or_none(
+                id=teammember_pk,
+                team__scheme__order__customer__company=request.user.company)
+            if teammember:
+                team = teammember.team
+                if team:
+                    scheme= team.scheme
 
 # upate order in table scheme if it has changed
-                if scheme is not None:
-                    if is_order_update:
-                        if new_order != scheme.order:
-                            scheme.order = new_order
-                            update_dict['order']['updated'] = True
-                            update_status['updated'].append('order')
-                    if is_datefirst_update:
-                        if datefirst_dte != scheme.datefirst:
-                            scheme.datefirst = datefirst_dte
-                            update_dict['datefirst']['updated'] = True
-                            update_status['updated'].append('datefirst')
-                    if is_datelast_update:
-                        if datelast_dte != scheme.datelast:
-                            scheme.datelast = datelast_dte
-                            update_dict['datelast']['updated'] = True
-                            update_status['updated'].append('datelast')
-                    if is_nopay_update:
-                        if nopay != scheme.nopay:
-                            scheme.nopay = nopay
-                            update_dict['nopay']['updated'] = True
-                            update_status['updated'].append('nopay')
-                    if is_nohoursonsaturday_update:
-                        if nohoursonsaturday != scheme.nohoursonsaturday:
-                            scheme.nohoursonsaturday = nohoursonsaturday
-                            update_dict['nohoursonsaturday']['updated'] = True
-                            update_status['updated'].append('nohoursonsaturday')
-                    if is_nohoursonsunday_update:
-                        if nohoursonsunday != scheme.nohoursonsunday:
-                            scheme.nohoursonsunday = nohoursonsunday
-                            update_dict['nohoursonsunday']['updated'] = True
-                            update_status['updated'].append('nohoursonsunday')
-                    if is_nohoursonpublicholiday_update:
-                        if nohoursonpublicholiday != scheme.nohoursonpublicholiday:
-                            scheme.nohoursonpublicholiday = nohoursonpublicholiday
-                            update_dict['nohoursonpublicholiday']['updated'] = True
-                            update_status['updated'].append('nohoursonpublicholiday')
+            if scheme is not None:
+                if is_order_update:
+                    if new_order != scheme.order:
+                        scheme.order = new_order
+                if is_datefirst_update:
+                    if datefirst_dte != scheme.datefirst:
+                        scheme.datefirst = datefirst_dte
+                if is_datelast_update:
+                    if datelast_dte != scheme.datelast:
+                        scheme.datelast = datelast_dte
+                if is_nopay_update:
+                    if nopay != scheme.nopay:
+                        scheme.nopay = nopay
+                if is_nohoursonsaturday_update:
+                    if nohoursonsaturday != scheme.nohoursonsaturday:
+                        scheme.nohoursonsaturday = nohoursonsaturday
+                if is_nohoursonsunday_update:
+                    if nohoursonsunday != scheme.nohoursonsunday:
+                        scheme.nohoursonsunday = nohoursonsunday
+                if is_nohoursonpublicholiday_update:
+                    if nohoursonpublicholiday != scheme.nohoursonpublicholiday:
+                        scheme.nohoursonpublicholiday = nohoursonpublicholiday
 
-                    if is_order_update or is_datefirst_update or is_datelast_update or is_nopay_update or \
-                            is_nohoursonsaturday_update or is_nohoursonsunday_update or is_nohoursonpublicholiday_update:
-                        scheme.save(request=request)
+                if is_order_update or is_datefirst_update or is_datelast_update or is_nopay_update or \
+                        is_nohoursonsaturday_update or is_nohoursonsunday_update or is_nohoursonpublicholiday_update:
+                    scheme.save(request=request)
 
 # update shift - absence can only have one shift: delete the rest if multiple are found, create one if none found
-                if not m.Shift.objects.filter(scheme=scheme).exists():
-                    # - create new shift if none exists
-                    shift = m.Shift(
-                        scheme=scheme,
-                        code='-',
-                        isrestshift=False,
-                        istemplate=False,
-                        offsetstart=offset_start,
-                        offsetend=offset_end,
-                        breakduration=break_duration,
-                        timeduration=time_duration
-                    )
-                    shift.save(request=request)
-                    #logger.debug('created shift: ' + str(shift))
-                else:
-                    shifts = m.Shift.objects.filter(scheme=scheme)
-                    # absence can only have obe shift: delete the rest if multiple are found, create one if none found
-                    shift_count = 0
-                    for shift in shifts:
-                        shift_count += 1
-                        if shift_count < 2:
-                            if is_offsetstart_update or is_offsetend_update \
-                                    or is_breakduration_update or is_timeduration_update:
-
-                                #logger.debug('offset_start: ' + str(offset_start))
-                                #logger.debug('offset_end: ' + str(offset_end))
-                                #logger.debug('break_duration: ' + str(break_duration))
-                                #logger.debug('time_duration: ' + str(time_duration))
-
-                                if is_offsetstart_update and offset_start != shift.offsetstart:
-                                    shift.offsetstart = offset_start
-                                    update_dict['shift']['offsetstart'] = {'updated': True}
-                                    update_status['updated'].append('offsetstart')
-                                if is_offsetend_update and offset_end != shift.offsetend:
-                                    shift.offsetend = offset_end
-                                    update_dict['shift']['offsetend'] = {'updated': True}
-                                    update_status['updated'].append('offsetend')
-                                if is_breakduration_update and break_duration != shift.breakduration:
-                                    shift.breakduration = break_duration
-                                    update_dict['shift']['breakduration'] = {'updated': True}
-                                    update_status['updated'].append('breakduration')
-                                if is_timeduration_update and time_duration != shift.timeduration:
-                                    shift.timeduration = time_duration
-                                    update_dict['shift']['timeduration'] = {'updated': True}
-                                    update_status['updated'].append('timeduration')
-                                shift.save(request=request)
-                                #logger.debug('updated shift: ' + str(shift))
-                        else:
-                            # delete rest of the shifts
-                            #logger.debug('deleted shift: ' + str(shift))
-                            shift.delete()
+            if not m.Shift.objects.filter(scheme=scheme).exists():
+                # - create new shift if none exists
+                shift = m.Shift(
+                    scheme=scheme,
+                    code='-',
+                    isrestshift=False,
+                    istemplate=False,
+                    offsetstart=offset_start,
+                    offsetend=offset_end,
+                    breakduration=break_duration,
+                    timeduration=time_duration
+                )
+                shift.save(request=request)
+                #logger.debug('created shift: ' + str(shift))
+            else:
+                shifts = m.Shift.objects.filter(scheme=scheme)
+                # absence can only have obe shift: delete the rest if multiple are found, create one if none found
+                shift_count = 0
+                for shift in shifts:
+                    shift_count += 1
+                    if shift_count < 2:
+                        if is_offsetstart_update or is_offsetend_update \
+                                or is_breakduration_update or is_timeduration_update:
+                            if is_offsetstart_update and offset_start != shift.offsetstart:
+                                shift.offsetstart = offset_start
+                            if is_offsetend_update and offset_end != shift.offsetend:
+                                shift.offsetend = offset_end
+                            if is_breakduration_update and break_duration != shift.breakduration:
+                                shift.breakduration = break_duration
+                            if is_timeduration_update and time_duration != shift.timeduration:
+                                shift.timeduration = time_duration
+                            shift.save(request=request)
+                            #logger.debug('updated shift: ' + str(shift))
+                    else:
+                        # delete rest of the shifts
+                        #logger.debug('deleted shift: ' + str(shift))
+                        shift.delete()
 
 # update schemitem - absence can only have one schemitem: delete the rest if multiple are found, create one if none found
-                schemeitem_count = m.Schemeitem.objects.filter(scheme=scheme).count()
-                if not schemeitem_count:
-                    # create new schemeitem
-                    # create only one schemeitem
-                    # get the monday date of this week
-                    this_date = date.today()
-                    # add schemeitem for each day of the week, except for weekends (isoweekday = 6 or 7)
-                    schemeitem = m.Schemeitem(
-                        scheme=scheme,
-                        team=team,
-                        shift=shift,
-                        rosterdate=this_date,
-                        isabsence=True
-                    )
-                    schemeitem.save(request=request)
-                    # #logger.debug('schemeitem rosterdate: ' + str(schemeitem.rosterdate))
+            schemeitem_count = m.Schemeitem.objects.filter(scheme=scheme).count()
+            if not schemeitem_count:
+                # create new schemeitem
+                # create only one schemeitem
+                # get the monday date of this week
+                this_date = date.today()
+                # add schemeitem for each day of the week, except for weekends (isoweekday = 6 or 7)
+                schemeitem = m.Schemeitem(
+                    scheme=scheme,
+                    team=team,
+                    shift=shift,
+                    rosterdate=this_date,
+                    isabsence=True
+                )
+                schemeitem.save(request=request)
+                # #logger.debug('schemeitem rosterdate: ' + str(schemeitem.rosterdate))
 
-                elif schemeitem_count > 1:
-                    schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
-                    # absence can only have obe shift: delete the rest if multiple are found, create one if none found
-                    count = 0
-                    for schemeitem in schemeitems:
-                        count += 1
-                        if count > 1:
-                            #logger.debug('deleted schemeitem: ' + str(schemeitem))
-                            schemeitem.delete()
+            elif schemeitem_count > 1:
+                schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
+                # absence can only have obe shift: delete the rest if multiple are found, create one if none found
+                count = 0
+                for schemeitem in schemeitems:
+                    count += 1
+                    if count > 1:
+                        #logger.debug('deleted schemeitem: ' + str(schemeitem))
+                        schemeitem.delete()
 
 # f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
-            if teammember:
-                ed.create_teammember_dict_from_model(teammember, update_dict)
-                # PR2020-08-08 new approach: create dict_row
-                absence_listNIU, absence_rows = ed.create_absence_list(filter_dict={}, teammember_pk=teammember.pk, request=request)
-                if absence_rows:
-                    absence_row = absence_rows[0]
-# h. remove empty attributes from update_dict
-        f.remove_empty_attr_from_dict(update_dict)
+        if teammember:
+            absence_rows = ed.create_absence_rows(filter_dict={}, teammember_pk=teammember.pk, request=request)
 
-    absence_row['status'] = update_status
 # J. return update_dict
-    return update_dict, absence_row
+    return absence_rows
 
 
 def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25

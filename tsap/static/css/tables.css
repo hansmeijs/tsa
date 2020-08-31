@@ -378,6 +378,18 @@
 .tsa_color_error {
     color: orange; /* #f1b5b5; /* licht rood; */
 }
+
+.tsa_tr_lightblue {
+    /*background-color: #4A7DBB; /* 'TextboxBackColor Default Schema Blauw medium blauw */
+    background-color: #d7e4f3; /*#d7e4f3 is even lighter blueish   */
+   /* background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
+    /*background: #F5FAFF; */ /*licht licht blauw; */
+
+   /* background: #d7e4f3;/* is even lighter blueish */
+   /* background:  #bacee6; geyish blue*/
+}
+
+
 .tsa_ellipsis {
     white-space: nowrap;
     overflow: hidden;

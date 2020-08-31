@@ -441,6 +441,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Upload_customers_and_orders'] = TXT_Upload_customers_and_orders
 
         dict['Cick_show_inactive_customers'] = TXT_Click_show_inactive_customers
+
+        dict['Cick_show_inactive_orders'] = TXT_Click_show_inactive_orders
         dict['Make_customer_inactive'] = TXT_Make_customer_inactive
         dict['Make_order_inactive'] = TXT_Make_order_inactive
         dict['Make_customer_active'] = TXT_Make_customer_active
@@ -536,6 +538,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Cick_show_inactive_schemes'] = TXT_Click_show_inactive_schemes
         dict['Cick_show_inactive_orders'] = TXT_Click_show_inactive_orders
         dict['Cick_show_inactive_teams'] = TXT_Click_show_inactive_teams
+
+        dict['Make_scheme_inactive'] = _('Make scheme inactive')
+        dict['Make_scheme_active'] = _('Make scheme active')
+        dict['Make_shift_inactive'] = _('Make shift inactive')
+        dict['Make_shift_active'] = _('Make shift active')
 
         dict['Absence'] = TXT_Absence
         dict['Add_absence'] = TXT_Add_absence
@@ -640,6 +647,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['err_msg_template_blank'] = _('Please enter a template name.')
 
+
 # ====== PAGE PRICE =========================
     elif page == 'price':
 
@@ -707,8 +715,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Date'] = TXT_Date
 
         # mod rosterdate
-        dict['TXT_Create_another_roster'] = TXT_Create_another_roster
-        dict['TXT_Delete_another_roster'] = TXT_Delete_another_roster
+        dict['Create_another_roster'] = TXT_Create_another_roster
+        dict['Delete_another_roster'] = TXT_Delete_another_roster
+        dict['Not_a_valid_date'] = _('Not a valid date.')
 
         # mod confirm
         dict['err_msg_select_shift'] = TXT_err_msg_select_shift
@@ -772,6 +781,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['rosterdate_deleted_success'] = _('Shift roster was successfully deleted.')
 
         dict['rosterdate_checking'] = _('Checking shifts of this rosterdate')
+        dict['rosterdate_checking_cannot'] = _('Shifts of this rosterdate cannot be checked.')
         dict['rosterdate_checked_has'] = _('This rosterdate has ')
         dict['rosterdate_checked_one'] = _('one shift')
         dict['rosterdate_checked_multiple'] = _(' shifts')

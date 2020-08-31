@@ -358,17 +358,19 @@
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
 
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
-//========= t_SetExtendedFilterDict  ======================== PR2020-07-12
+//========= t_SetExtendedFilterDict  ======================== PR2020-07-12 PR2020-08-29
     function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
-        //console.log( "===== t_SetExtendedFilterDict  ========= ");
-        //console.log( "col_index ", col_index, "el_key ", el_key);
+        console.log( "===== t_SetExtendedFilterDict  ========= ");
+        console.log( "col_index ", col_index, "el_key ", el_key);
+        console.log( "filter_dict ", filter_dict);
+        // filter_dict = [ ["", "m", "text"], ["gt", 180, "duration"] ]
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
         const filter_tag = get_attr_from_el(el, "data-filtertag")
 
         const col_count = tblRow.cells.length
-        let skip_filter = false;
+        let mode = "", filter_value = null, skip_filter = false;
 // --- reset filter row when clicked on 'Escape'
         if (el_key === 27) {
             filter_dict = {};
@@ -376,22 +378,29 @@
                 let el = tblRow.cells[i].children[0];
                 if(el){ el.value = null};
             }
+        } else if (filter_tag === "boolean") {
+            let value = (filter_dict[col_index] && filter_dict[col_index][1]) ? filter_dict[col_index][1] : 0
+
+            let filter_dict_value = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
+
+            filter_dict[col_index] = [mode, filter_value, filter_tag]
         } else {
-            let filter_dict_text = ""
-            if (col_index in filter_dict) {filter_dict_text = filter_dict[col_index]}
+            let filter_dict_value = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
             let el_value_str = (el.value) ? el.value.toString() : "";
             let filter_text = el_value_str.trim().toLowerCase();
             if (!filter_text){
-                if (filter_dict_text){
+                if (filter_dict_value){
                     delete filter_dict[col_index];
                 }
-            } else if (filter_text !== filter_dict_text) {
-                let mode = "", filter_value = null;
+            } else if (filter_text !== filter_dict_value) {
                 // filter text is already trimmed and lowercase
                 if(filter_text === "#"){
                     mode = "blanks_only";
                 } else if(filter_text === "@" || filter_text === "!"){
                     mode = "no_blanks";
+                } else if (filter_tag === "boolean") {
+                    // toggle show / hide planned items, no special mode on these columns
+                    filter_value = filter_text;
                 } else if (filter_tag === "text") {
                     // employee/rosterdate and order columns, no special mode on these columns
                     filter_value = filter_text;
@@ -401,10 +410,7 @@
                         [">", ">=", "<", "<="].indexOf(filter_text) > -1 ) {
                        skip_filter = true;
                     }
-                    if (filter_tag === "text"){
-                    // employee/rosterdate and order columns, no special mode on these columns
-                        filter_value = filter_text;
-                    } else if(!skip_filter) {
+                   if(!skip_filter) {
                         const first_two_char = filter_text.slice(0, 2);
                         const remainder = filter_text.slice(2);
                         mode = (first_two_char === "<=" && remainder) ? "lte" : (first_two_char === ">="  && remainder) ? "gte" : "";
@@ -459,8 +465,8 @@
 //========= t_ShowPayrollRow  ==================================== PR2020-07-12
     function t_ShowPayrollRow(filter_row, filter_dict, col_count) {
         // only called by FillPayrollRows
-        //console.log( "===== t_ShowPayrollRow  ========= ");
-        //console.log( "filter_dict", filter_dict);
+        console.log( "===== t_ShowPayrollRow  ========= ");
+        console.log( "filter_dict", filter_dict);
         let hide_row = false;
         if (!!filter_row){
 // ---  show all rows if filter_name = ""
