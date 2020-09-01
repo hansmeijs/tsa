@@ -2430,14 +2430,22 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-               #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 if 'shiftdict' in upload_dict:
                     shift_dict = upload_dict.get('shiftdict')
+                    logger.debug('shift_dict: ' + str(shift_dict))
                     rosterdate_iso = shift_dict.get('rosterdate')
                     emplhour_pk = f.get_dict_value(shift_dict, ('emplhour_pk',), 0)
                     rosterdate_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_iso)
+                    logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
+                    logger.debug('emplhour_pk: ' + str(emplhour_pk))
                     if rosterdate_dte:
-                        sql_emplhour = """ SELECT o.id, CONCAT(c.code,' - ',o.code), COALESCE(oh.shiftcode, '---'), eh.id, e.id, COALESCE(e.code, '---') 
+                        sql_emplhour = """ SELECT o.id, 
+                            CONCAT(c.code,' - ',o.code), 
+                            COALESCE(oh.shiftcode, '---'), 
+                            eh.id, e.id, 
+                            COALESCE(e.code, '---') 
+                            
                             FROM companies_emplhour AS eh 
                             LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
                             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
@@ -2863,8 +2871,9 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # P
             isabsence=True)
         if abscat_order and abscat_order != cur_order:
             # change order in orderhour PR2020-07-21
-            new_customer_code = abscat_order.customer.code
-            new_order_code = abscat_order.code
+            #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-31
+            new_customer_code = abscat_order.customer.code.replace('~', '') if abscat_order.customer.code else None
+            new_order_code = abscat_order.code.replace('~', '') if abscat_order.code else None
 
             # add emplohour log records before updating PR2020-07-26
             # also set haschanged=True in emplhour records  PR2020-07-21

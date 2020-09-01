@@ -33,9 +33,9 @@
                         <div id="id_MRE_body_right"  class="modal_body_right mx-2 my-2">
                             <div id="id_MRE_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                                 <button data-btn="tab_absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                                <button data-btn="tab_move" class="btn btn-secondary">{% trans 'Different shift' %}</button>
+                                <button data-btn="tab_move" class="btn btn-secondary  display_hide">{% trans 'Different shift' %}</button>
                                 <button data-btn="tab_split" class="btn btn-secondary ">{% trans 'Split shift' %}</button>
-                                <button data-btn="tab_switch" class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
+                                <button data-btn="tab_switch" class="btn btn-secondary display_hide">{% trans 'Switch shift' %}</button>
                             </div>
                             <div class="ta_c">
                                 <img id="id_modroster_employee_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
@@ -53,10 +53,10 @@
                                 </div>
                             </div>
 
-                            <div id="id_MRE_div_input_employee" class="mod_flex mx-2 my-2">
+                            <div id="id_MRE_div_input_replacement" class="mod_flex mx-2 my-2">
                                 <div class="form-group">
-                                    <label  id="id_MRE_label_employee" for="id_MRE_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
-                                    <input id="id_MRE_input_employee"
+                                    <label id="id_MRE_label_replacement" for="id_MRE_input_replacement" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
+                                    <input id="id_MRE_input_replacement"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"

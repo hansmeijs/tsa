@@ -465,8 +465,8 @@
 //========= t_ShowPayrollRow  ==================================== PR2020-07-12
     function t_ShowPayrollRow(filter_row, filter_dict, col_count) {
         // only called by FillPayrollRows
-        console.log( "===== t_ShowPayrollRow  ========= ");
-        console.log( "filter_dict", filter_dict);
+        //console.log( "===== t_ShowPayrollRow  ========= ");
+        //console.log( "filter_dict", filter_dict);
         let hide_row = false;
         if (!!filter_row){
 // ---  show all rows if filter_name = ""

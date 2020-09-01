@@ -1200,7 +1200,7 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
                         payrollperiod_detail_list.extend(detail_listONEDAY)
                 else:
 # - if not: add planning day of this rosterdate
-                    dict_list, short_list, logfile = plrf.create_employee_planning(
+                    dict_listNIU, short_list, logfileNIU = plrf.create_employee_planning(
                         datefirst_iso=rosterdate_iso,
                         datelast_iso=rosterdate_iso,
                         customer_pk=None,
@@ -1316,9 +1316,15 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, request):
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
     sql_detail = """
-        SELECT eh.id AS emplhour_id, eh.rosterdate, eh.employee_id, e.code AS employee_code, 
-        CASE WHEN o.isabsence THEN o.id ELSE 0 END AS order_id,
-        CONCAT(c.code,' - ',o.code) AS c_o_code, 
+        SELECT eh.id AS emplhour_id, 
+        eh.rosterdate, 
+        eh.employee_id, 
+        e.code AS employee_code, 
+        o.id AS order_id,
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
+
         eh.offsetstart,
         eh.offsetend,
 

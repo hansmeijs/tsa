@@ -223,11 +223,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const data_btn = get_attr_from_el(btn,"data-btn")
             btn.addEventListener("click", function() {MRE_btn_SelectAndDisable(data_btn)}, false )
         }
-// ---  add 'keyup' event handler to input employee
-        const el_MRE_input_employee = document.getElementById("id_MRE_input_employee")
-            el_MRE_input_employee.addEventListener("focus", function() {MRO_MRE_OnFocus("MRE", "employee")}, false )
-            el_MRE_input_employee.addEventListener("keyup", function() {
-                setTimeout(function() {MRO_MRE_InputKeyup("MRE", "employee", el_MRE_input_employee)}, 50)});
+// ---  add 'keyup' event handler to input new employee / replacement
+        const el_MRE_input_replacement = document.getElementById("id_MRE_input_replacement")
+            el_MRE_input_replacement.addEventListener("focus", function() {MRO_MRE_OnFocus("MRE", "employee")}, false )
+            el_MRE_input_replacement.addEventListener("keyup", function() {
+                setTimeout(function() {MRO_MRE_InputKeyup("MRE", "employee", el_MRE_input_replacement)}, 50)});
 
         const el_MRE_input_abscat = document.getElementById("id_MRE_input_abscat")
             el_MRE_input_abscat.addEventListener("focus", function() {MRO_MRE_OnFocus("MRE", "abscat")}, false )
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-        //let intervalID = window.setInterval(CheckForUpdates, 15000);  // every 15 seconds
+        let intervalID = window.setInterval(CheckForUpdates, 15000);  // every 15 seconds
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_rost"));
@@ -648,9 +648,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const field_name = field_settings.field_names[j];
             el.setAttribute("data-field", field_name);
     // --- add img to confirm_start, confirm_end and status elements
-            if ([5, 7, 11].indexOf( j ) > -1){
+            if (["stat_start_conf", "stat_end_conf", "status"].indexOf(field_name) > -1){
                 let has_perm = false;
-                if(j === 11) {
+                if(field_name === "status") {
                     // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
                     has_perm = (selected_period.requsr_perm_supervisor || selected_period.requsr_perm_hrman)
                 } else {
@@ -668,12 +668,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 //el.classList.add("input_text"); // makes background transparent
     // --- add EventListeners, only when has PERMITS supervisor
                 if(selected_period.requsr_perm_supervisor){
-                    if ([1, 3].indexOf( j ) > -1){
+                    if (["rosterdate", "shiftcode"].indexOf(field_name) > -1){
                         el.disabled = true;
-                    } else if ([2, 4].indexOf( j ) > -1){
+                        el.classList.add("tsa_color_darkgrey");
+                    } else if (["c_o_code", "employeecode"].indexOf(field_name) > -1){
                         el.addEventListener("click", function() {MRE_Open(el)}, false )
                         add_hover(el)
-                    } else if ([6, 8, 9, 10].indexOf( j ) > -1){
+                    } else if (["offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(field_name) > -1){
                         el.addEventListener("click", function() {MRO_MRE_TimepickerOpen(el, "tblRow", "tblRow")}, false)
                         add_hover(el)
                     };
@@ -746,7 +747,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.innerText = map_dict.c_o_code
                 // PERMITS enable field when it is absence
                 const is_disabled = (!selected_period.requsr_perm_supervisor || is_locked || !is_absence);
-                add_or_remove_class(el, "tsa_color_darkgrey",is_disabled )
+                el.disabled = is_disabled
+                add_or_remove_class(el, "tsa_color_darkgrey", is_disabled )
                 // hover doesn't show when el is disabled PR2020-07-22
                 add_or_remove_class (el, "pointer_show", selected_period.requsr_perm_supervisor && !is_locked && is_absence)
             } else if (fldName === "shiftcode") {
@@ -1470,22 +1472,41 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL SELECT SHIFT +++++++++++++++++++++++++++++++++++++++++++
 //========= MSS_Open ====================================  PR2020-05-07
     function MSS_Open () {
-       //console.log(" ===  MSS_Open  =====") ;
-       //console.log("mod_upload_dict: ", mod_upload_dict) ;
-
+       console.log(" ===  MSS_Open  =====") ;
+       console.log("mod_dict: ", mod_dict) ;
+/*
+breakduration: 30
+btn_select: "tab_absence"
+cur_employee_code: "Martis SAdd"
+cur_employee_pk: 2612
+cur_employee_ppk: 3
+emplhour_pk: 11610
+emplhour_ppk: 11069
+is_add_employee: false
+isabsence: false
+isrestshift: false
+mapid: "emplhour_11610"
+offsetend: 1020
+offsetsplit: 1020
+offsetstart: 150
+order_code: "ZRO"
+order_pk: 1541
+rosterdate: "2020-08-01"
+rowcount: 11
+*/
 // ---  put rosterdate in input box
-        document.getElementById("id_MSS_input_date").value = mod_upload_dict.rosterdate;
+        document.getElementById("id_MSS_input_date").value = mod_dict.rosterdate;
 
 // ---  reset other input box, disable
-        mod_upload_dict.is_switch = false;
+        mod_dict.is_switch = false;
 
         MSS_Reset_TableAndInputBoxes();
-        MSS_DisableInputBoxes(isEmpty(mod_upload_dict.emplh_shift_dict))
+        MSS_DisableInputBoxes(isEmpty(mod_dict.emplh_shift_dict))
 // ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
-        // TODO hass error
-        if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
+        // TODO has error
+        if(mod_dict.rosterdate && mod_dict.emplhour_pk){
             add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
-            const upload_dict =  {shiftdict: {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}}
+            const upload_dict =  {shiftdict: {rosterdate: mod_dict.rosterdate, emplhour_pk: mod_dict.emplhour_pk}}
             UploadChanges(upload_dict, url_emplhour_download);
             // response handled in MSS_UploadResponse
         }
@@ -1498,29 +1519,29 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MSS_Save  ================ PR2020-05-09
     function MSS_Save() {
        //console.log("===  MSS_Save =========");
-       //console.log("mod_upload_dict", mod_upload_dict);
-       //console.log("========mod_upload_dict.is_switch", mod_upload_dict.is_switch);
+       //console.log("mod_dict", mod_dict);
+       //console.log("======== mod_dict.is_switch", mod_dict.is_switch);
 
 // ---  create id_dict of current emplhour record
         let other_employee_dict = {};
-        const employee_pk = (mod_upload_dict.is_switch && mod_upload_dict.employee_pk) ? mod_upload_dict.employee_pk : null;
-        const employee_ppk = (mod_upload_dict.is_switch && mod_upload_dict.employee_ppk) ? mod_upload_dict.employeep_pk : null;
+        const employee_pk = (mod_dict.is_switch && mod_dict.cur_employee_pk) ? mod_dict.cur_employee_pk : null;
+        const employee_ppk = (mod_dict.is_switch && mod_dict.cur_employee_ppk) ? mod_dict.cur_employee_ppk : null;
         other_employee_dict = {pk: employee_pk, ppk: employee_ppk, table: "employee", update: true};
 
         let upload_dict = {period_datefirst: selected_period.period_datefirst,
                             period_datelast: selected_period.period_datelast,
-                            id: {pk: mod_upload_dict.emplhour.pk,
-                                ppk: mod_upload_dict.emplhour.ppk,
+                            id: {pk: mod_dict.emplhour_pk,
+                                ppk: mod_dict.emplhour_ppk,
                                 table: "emplhour",
                                 shiftoption: "moveto_shift",
-                                rowindex: mod_upload_dict.rowindex},
+                                rowindex: mod_dict.rowindex},
                             employee: other_employee_dict,
-                            moveto_emplhour_pk: mod_upload_dict.selected_emplhour_pk
+                            moveto_emplhour_pk: mod_dict.selected_emplhour_pk
                            }
 
 // ---  remove employee from current emplhour
-        //let tr_changed = document.getElementById(mod_upload_dict.map_id);
-        //console.log("mod_upload_dict.map_id", mod_upload_dict.map_id)
+        //let tr_changed = document.getElementById(mod_dict.map_id);
+        //console.log("mod_dict.map_id", mod_dict.map_id)
         //console.log("tr_changed", tr_changed)
         //set_fieldvalue_in_tblRow(tr_changed, "employee", "bingo!!");
 
@@ -1534,11 +1555,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSS_UploadResponse (response_emplh_shift_dict) {
         //console.log(" =====  MSS_UploadResponse  ===== ", tblName)
         //console.log(el_input)
-        mod_upload_dict.emplh_shift_dict = deepcopy_dict(response_emplh_shift_dict)
+        mod_dict.emplh_shift_dict = deepcopy_dict(response_emplh_shift_dict)
         const row_count = MRO_MRE_MSS_FillSelectTable ("MSS", "order", null);
         el_MSS_input_order.readOnly = (!row_count);
         if(row_count){
-            mod_upload_dict.skip_focus_event = true;
+            mod_dict.skip_focus_event = true;
             el_MSS_input_order.readOnly = false;
             set_focus_on_el_with_timeout(el_MSS_input_order, 50)
         }
@@ -1549,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function() {
        //console.log(" =====  MSS_RosterdateEdit =====")
 
 // ---  get new rosterdate
-        mod_upload_dict.rosterdate = el_input.value
+        mod_dict.rosterdate = el_input.value
 // ---  disable input boxes
         MSS_DisableInputBoxes(true)
         MSS_Reset_TableAndInputBoxes();
@@ -1557,8 +1578,8 @@ document.addEventListener('DOMContentLoaded', function() {
         add_or_remove_class( document.getElementById("id_MSS_loader"), cls_hide, false);
 // ---  reset table and input field
 // ---  download shifts for Modal Select Shift (is put here to save time when opening MSS)
-        if(mod_upload_dict.rosterdate && mod_upload_dict.emplhour.pk){
-            const upload_dict =  {shiftdict: {rosterdate: mod_upload_dict.rosterdate, emplhour_pk: mod_upload_dict.emplhour.pk}};
+        if(mod_dict.rosterdate && mod_dict.emplhour_pk){
+            const upload_dict =  {shiftdict: {rosterdate: mod_dict.rosterdate, emplhour_pk: mod_dict.emplhour_pk}};
             UploadChanges(upload_dict, url_emplhour_download);
             // response handled in  MSS_UploadResponse
         }
@@ -1570,11 +1591,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkbox_replace = document.getElementById("id_MSS_replace")
         const checkbox_switch = document.getElementById("id_MSS_switch")
         if ( fldName === "replace") {
-              mod_upload_dict.is_switch = !checkbox_replace.checked
-              checkbox_switch.checked = mod_upload_dict.is_switch
+              mod_dict.is_switch = !checkbox_replace.checked
+              checkbox_switch.checked = mod_dict.is_switch
         } else if ( fldName === "switch") {
-            mod_upload_dict.is_switch = checkbox_switch.checked
-            checkbox_replace.checked = !mod_upload_dict.is_switch
+            mod_dict.is_switch = checkbox_switch.checked
+            checkbox_replace.checked = !mod_dict.is_switch
         }
 // ---  Set focus to btn_save
         el_MSS_btn_save.focus()
@@ -1597,17 +1618,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const selected_value = get_dict_value(filter_dict, ["selected_value"])
             if (selected_pk) {
                 el_input.value = selected_value
-// ---  put pk of selected row in mod_upload_dict
+// ---  put pk of selected row in mod_dict
                 const pk_int = selected_pk;
                 if (tblName === "order") {
-                    mod_upload_dict.selected_order_pk = selected_pk;
+                    mod_dict.selected_order_pk = selected_pk;
                     MRO_MRE_MSS_SelecttableUpdateAfterSelect("MSS", tblName, selected_pk, null, selected_value)
                 } else if (tblName === "shift") {
-                    mod_upload_dict.selected_shift_pk = selected_pk;
+                    mod_dict.selected_shift_pk = selected_pk;
                     MRO_MRE_MSS_SelecttableUpdateAfterSelect("MSS", tblName, selected_pk, null, selected_value)
                 } else if (tblName === "employee") {
-                    mod_upload_dict.selected_emplhour_pk = selected_pk;
-                   //console.log("mod_upload_dict.selected_emplhour_pk: ", mod_upload_dict.selected_emplhour_pk)
+                    mod_dict.selected_emplhour_pk = selected_pk;
+                   //console.log("mod_dict.selected_emplhour_pk: ", mod_dict.selected_emplhour_pk)
                     el_MSS_input_employee.value = selected_value;
                     el_MSS_btn_save.disabled = false;
                     set_focus_on_el_with_timeout(el_MSS_btn_save , 50)
@@ -1636,11 +1657,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MSS_Reset_TableAndInputBoxes  ================ PR2020-05-09
     function MSS_Reset_TableAndInputBoxes() {
        //console.log( "===== MSS_Reset_TableAndInputBoxes ========= ");
-       //console.log( "mod_upload_dict", mod_upload_dict);
+       //console.log( "mod_dict", mod_dict);
 
 // set header text
         const el_header = document.getElementById("id_MSS_header");
-        const employee_code = get_dict_value(mod_upload_dict, ["employee", "code"])
+        const employee_code = get_dict_value(mod_dict, ["employee", "code"])
         const header_text = (employee_code) ? loc.Select_shift + " " + loc.for_txt + " " + employee_code : loc.Select_shift + ":"
         el_header.innerText = header_text;
 // ---  reset input boxes
@@ -1661,20 +1682,20 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MSS_GotFocus  ================ PR2020-05-09
     function MSS_GotFocus (tblName, el_input) {
        //console.log(" =====  MSS_GotFocus  ===== ", tblName)
-       //console.log("mod_upload_dict.skip_focus_event", mod_upload_dict.skip_focus_event)
-        if(mod_upload_dict.skip_focus_event){
-            mod_upload_dict.skip_focus_event = false;
+       //console.log("mod_dict.skip_focus_event", mod_dict.skip_focus_event)
+        if(mod_dict.skip_focus_event){
+            mod_dict.skip_focus_event = false;
         } else {
             if (tblName === "order") {
                 el_MSS_input_order.value = null
                 el_MSS_input_shift.value = null;
                 el_MSS_input_employee.value = null;
                 // reset select table when input order got focus
-                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_upload_dict.selected_order_pk);
+                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_dict.selected_order_pk);
             } else if (tblName === "shift") {
                 el_MSS_input_shift.value = null;
                 el_MSS_input_employee.value = null;
-                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_upload_dict.selected_shift_pk);
+                MRO_MRE_MSS_FillSelectTable("MSS", tblName, mod_dict.selected_shift_pk);
             } else if (tblName === "employee") {
                 el_MSS_input_employee.value = null;
                 MRO_MRE_MSS_FillSelectTable("MSS", tblName, null);
@@ -3740,7 +3761,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pgeName === "MRE"){
                 // TODO check, els not on this page
                 el_MRE_input_shift.value = mod_dict.shift_code
-                setTimeout(function (){el_MRE_input_employee.focus()}, 50);
+                setTimeout(function (){el_MRE_input_replacement.focus()}, 50);
             } else  if (pgeName === "MRO"){
                 el_MRO_input_shift.value = mod_dict.shift_code
                 el_MRO_offsetstart.innerText = display_offset_time (loc, mod_dict.offsetstart, false, false);
@@ -3749,7 +3770,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_MRO_timeduration.innerText = display_duration (mod_dict.timeduration, loc.user_lang);
             }
 
-            el_focus = (pgeName === "MRE") ? el_MRE_input_employee : el_MRO_input_employee;
+            el_focus = (pgeName === "MRE") ? el_MRE_input_replacement : el_MRO_input_employee;
 
         } else if (tblName === "abscat") {
             mod_dict.abscat_pk = map_dict.id;
@@ -3759,7 +3780,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             el_MRE_input_abscat.value = mod_dict.abscat_code;
 
-            el_focus = el_MRE_input_employee;
+            el_focus = el_MRE_input_replacement;
 
         } else if (tblName === "employee") {
             mod_dict.selected_employee_pk = map_dict.id;
@@ -3767,7 +3788,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mod_dict.selected_employee_code = (mod_dict.selected_employee_pk) ? map_dict.code : loc.All_employees;
 
             const el_input = (pgeName === "MRO") ? el_MRO_input_employee :
-                             (pgeName === "MRE") ? el_MRE_input_employee :
+                             (pgeName === "MRE") ? el_MRE_input_replacement :
                              (pgeName === "MSE") ? el_MSE_input_employee : null;
             el_input.value = mod_dict.selected_employee_code;
 
@@ -4234,7 +4255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ++++ MOD ROSTER EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // =========  MRE_Open  ================ PR2019-06-23 PR2020-08-22
     function MRE_Open(el_input) {
-        //console.log(" =========  MRE_Open  ==========")
+        console.log(" =========  MRE_Open  ==========")
 
 // reset mod_dict
         mod_dict = {};
@@ -4243,9 +4264,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // MRE_Open is only called by CreateTblRow - there should always be a tblRow and map_dict
         const tblRow = get_tablerow_selected(el_input);
         const map_dict = get_mapdict_from_datamap_by_id(emplhour_map, tblRow.id);
-        //console.log("tblRow.id", tblRow.id)
-        //console.log("map_dict", map_dict)
-        if(tblRow && !isEmpty(map_dict)){
+        const fldName = get_attr_from_el(el_input, "data-field")
+        console.log("tblRow.id", tblRow.id)
+        console.log("map_dict", map_dict)
+
+        mod_dict = {};
+        if(!isEmpty(map_dict)){
             mod_dict = {rosterdate: map_dict.rosterdate,
                         mapid: map_dict.mapid,
                         isabsence: map_dict.c_isabsence,
@@ -4253,6 +4277,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         emplhour_pk: map_dict.id,
                         emplhour_ppk: map_dict.oh_id,
                         order_pk: map_dict.o_id,
+                        order_code: map_dict.ordercode,
 // ---  get cur_employee from map_dict
                         cur_employee_pk: map_dict.employee_id,
                         cur_employee_ppk: map_dict.comp_id,
@@ -4263,60 +4288,77 @@ document.addEventListener('DOMContentLoaded', function() {
                         breakduration: map_dict.breakduration,
                         offsetsplit: map_dict.offsetend
                       };
-        //console.log("mod_dict", mod_dict)
+        }
+        console.log("mod_dict", mod_dict)
+
+// ---  set dont_show_modal:
+        let dont_show_modal = false;
+        if (mod_dict.isrestshift){
+            dont_show_modal = true;
+        } else if (mod_dict.isabsence){
+            dont_show_modal = (fldName === "employeecode" || !mod_dict.cur_employee_pk)
+        } else if (!mod_dict.isabsence){
+            dont_show_modal = ( fldName === "c_o_code");
+        }
+        if(!dont_show_modal){
 
 // ---  get btn_select and 'is_add_employee'
             // default btn_select is 'absence' when there is a cur_employee,
             // also when emplhour is absence without employee: to be able to delete absence emplhour without employee
             // otherwise btn_select is 'add_employee'
-
             mod_dict.is_add_employee = (!mod_dict.cur_employee_pk && !mod_dict.isabsence);
             mod_dict.btn_select = (mod_dict.is_add_employee) ? "add_employee" : "tab_absence";
 
-// ---  give modconfirm message when restshift - skip MRE form, rest shift cannot open this form
-            if (!mod_dict.isrestshift){
-        // set header text
-                const header_text = (mod_dict.cur_employee_code) ? mod_dict.cur_employee_code : loc.Select_employee + ":";
-                document.getElementById("id_MRE_header").innerText = header_text
+// ---  set header text
+            let header_text = null;
+            if(mod_dict.isabsence){
+                header_text = loc.Absence + " " + loc.of + " " + mod_dict.cur_employee_code;
+            } else {
+                header_text = (mod_dict.cur_employee_pk) ? mod_dict.cur_employee_code : loc.Select_employee + ":";
+            }
+            document.getElementById("id_MRE_header").innerText = header_text
 
-        // reset values in mod_employee
-                el_MRE_input_employee.value = null;
-                el_MRE_input_abscat.value = null;
+// ---  reset values of input elemnet employee /replacement
+            el_MRE_input_replacement.value = null;
+// ---  in abscat: set value of input_abscat
+            el_MRE_input_abscat.value = (mod_dict.isabsence && mod_dict.order_code) ? mod_dict.order_code: null;
 
-                document.getElementById("id_MRE_switch_date").innerText = null;
-                document.getElementById("id_MRE_select_shift").innerText = null;
+            document.getElementById("id_MRE_switch_date").innerText = null;
+            document.getElementById("id_MRE_select_shift").innerText = null;
 
-                const display_offset = display_offset_time (loc, mod_dict.offsetsplit, false, false);
-                document.getElementById("id_MRE_split_time").innerText = display_offset;
+            const display_offset = display_offset_time (loc, mod_dict.offsetsplit, false, false);
+            document.getElementById("id_MRE_split_time").innerText = display_offset;
 
-        // put values in el_modemployee_body
-                //el_modemployee_body.setAttribute("data-pk", mod_dict.emplhour_pk);
-                //el_modemployee_body.setAttribute("data-mapid", mod_dict.mapid);
+// ---  select table abscat when teher is a current employee
+            MRE_MRO_FillSelectTable("MRE", "abscat", mod_dict.cur_employee_pk);
 
-        // fill select table abscat
-                MRE_MRO_FillSelectTable("MRE", "abscat", mod_dict.cur_employee_pk);
+// ---  change label 'replacement' to 'select_employee' if no employee, hide right panel, hide 'replacement' when absence
+            if(mod_dict.isabsence){
 
-        // change label 'replacement' to 'select_employee' if no employee, hide right panel
-                let el_body_right = document.getElementById("id_MRE_body_right")
-                const data_text = (mod_dict.cur_employee_pk) ? loc.Replacement_employee : loc.Select_employee;
-                let el_MRE_label_employee = document.getElementById("id_MRE_label_employee")
-                el_MRE_label_employee.innerText = data_text + ":"
+            } else {
+            }
+            id_MRE_div_input_replacement
+            let el_body_right = document.getElementById("id_MRE_body_right")
+            const data_text = (mod_dict.cur_employee_pk) ? loc.Replacement_employee : loc.Select_employee;
+            let el_MRE_label_employee = document.getElementById("id_MRE_label_replacement")
+            el_MRE_label_employee.innerText = data_text + ":"
 
-        // set button when opening form: absence when cur_employee found, add_employee when no cur_employee
-                MRE_btn_SelectAndDisable(mod_dict.btn_select)
+// ---  set button when opening form: absence when cur_employee found, add_employee when no cur_employee
+            MRE_btn_SelectAndDisable(mod_dict.btn_select)
 
-        // if 'add_employee': hide select_btns, Set focus to el_mod_employee_input
-                //Timeout function necessary, otherwise focus wont work because of fade(300)
-                if (mod_dict.is_add_employee){
-                    setTimeout(function (){el_MRE_input_employee.focus()}, 50);
-                } else if (mod_dict.btn_select === "tab_absence"){
-                    setTimeout(function (){ el_MRE_input_abscat.focus()}, 50);
-                }
+// ---  if 'add_employee': hide select_btns, Set focus to el_mod_employee_input
+            //Timeout function necessary, otherwise focus wont work because of fade(300)
+            if (mod_dict.is_add_employee){
+                setTimeout(function (){el_MRE_input_replacement.focus()}, 50);
+            } else if (mod_dict.btn_select === "tab_absence"){
+                setTimeout(function (){ el_MRE_input_abscat.focus()}, 50);
+            }
 
-        // ---  show modal
-                $("#id_modroster_employee").modal({backdrop: true});
-            }  // if (!mod_dict.isrestshift)
-        }
+    // ---  show modal
+            $("#id_modroster_employee").modal({backdrop: true});
+
+
+        }  // if(!dont_show_modal)
     };  // MRE_Open
 
 //=========  MRE_Save  ================ PR2019-06-23 PR2020-08-22
@@ -4376,18 +4418,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
 // ---  create employee_dict
-            // when absence or split_shift: selected_employee is replacement employee
-            if(mod_dict.selected_employee_pk){
-                 upload_dict.employee = {field: "employee",
-                                            pk: mod_dict.selected_employee_pk,
-                                            ppk: mod_dict.selected_employee_ppk,
-                                            code: mod_dict.selected_employee_code,
-                                            update: true}
-            } else {
-                 upload_dict.employee = {field: "employee",
-                                            pk: null,
-                                            code: null, // necessary to make tblRow field blank
-                                            update: true}
+            // when make_absent or split_shift: selected_employee is replacement employee
+            if(["enter_employee", "make_absent", "split_shift"].indexOf(shift_option) > -1)
+                if(mod_dict.selected_employee_pk){
+                     upload_dict.employee = {field: "employee",
+                                                pk: mod_dict.selected_employee_pk,
+                                                ppk: mod_dict.selected_employee_ppk,
+                                                code: mod_dict.selected_employee_code,
+                                                update: true}
+                } else {
+                     upload_dict.employee = {field: "employee",
+                                                pk: null,
+                                                code: null, // necessary to make tblRow field blank
+                                                update: true}
             }
 // ---  put new selected_employee_code in tblRow,
             // - only when  selected_employee_pk has value
@@ -4490,7 +4533,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MRE_btn_SelectAndDisable  ============= PR2020-02-20
     function MRE_btn_SelectAndDisable(selected_btn) {
-        //console.log( "=== MRE_btn_SelectAndDisable === ", selected_btn);
+        console.log( "=== MRE_btn_SelectAndDisable === ", selected_btn);
         if(selected_btn === "tab_move" ) {
             $('#id_modroster_employee').modal('hide');
             MSS_Open ();
@@ -4513,11 +4556,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  show only the elements that are used in this selected_btn
             show_hide_selected_elements_byClass("mod_show", selected_btn)
 
-    // ---  hide 'select employee' and 'input employee' only when isabsence (restshift can't open this modal form)
-            show_hide_element_by_id("id_MRE_div_input_employee", !mod_dict.isabsence);
-            show_hide_element_by_id("id_MRE_div_select_employee", !mod_dict.isabsence);
+    // ---  hide 'replacement employee' and 'input employee' only when isabsence (restshift can't open this modal form)
+            show_hide_element_by_id("id_MRE_div_input_replacement", !mod_dict.isabsence);
+            //show_hide_element_by_id("id_MRE_div_select_employee", !mod_dict.isabsence);
 
-            let el_MRE_label_employee = document.getElementById("id_MRE_label_employee")
+            let el_MRE_label_employee = document.getElementById("id_MRE_label_replacement")
 
             switch (selected_btn) {
             case "tab_absence":
@@ -4525,11 +4568,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             case "tab_switch":
                 el_MRE_label_employee.innerText = loc.Employee_tobe_switched_with + ":"
-                el_MRE_input_employee.focus()
+                el_MRE_input_replacement.focus()
                 break;
             case "tab_split":
                 el_MRE_label_employee.innerText =  loc.Replacement_employee + ":"
-                el_MRE_input_employee.focus()
+                el_MRE_input_replacement.focus()
             }
         }
     }  // MRE_btn_SelectAndDisable

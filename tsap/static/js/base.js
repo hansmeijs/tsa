@@ -335,8 +335,7 @@
         }
     }  // set_focus_on_el_with_timeout
 
-
-//========= highlight_BtnSelect  ============= PR2020-02-20
+//========= highlight_BtnSelect  ============= PR2020-02-20 PR2020-08-31
     function highlight_BtnSelect(btn_container, selected_btn, btns_disabled){
         //console.log( "//========= highlight_BtnSelect  ============= ")
         // ---  highlight selected button
@@ -346,7 +345,7 @@
             // highlight selected btn
             add_or_remove_class(btn, "tsa_btn_selected", (data_btn === selected_btn) );
             // disable btn, except when btn is selected btn
-            btn.disabled = (btns_disabled && !is_highlighted)
+            btn.disabled = (btns_disabled && data_btn !== selected_btn)
         }
     }  //  highlight_BtnSelect
 

@@ -438,8 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_sidebar_select_absence.value = sel_value_absence;
                     Sidebar_DisplayCustomerOrder();
                     Sidebar_DisplayEmployee()
-
-
                 }
 // --- refresh maps and fill tables
                 refresh_maps(response);
@@ -519,12 +517,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fill_datatable = true;
         }
         if ("payroll_period_detail_list" in response) {
-            payroll_period_detail_list = response["payroll_period_detail_list"]};
+            payroll_period_detail_list = response.payroll_period_detail_list;
+
+            create_payroll_agg_list(payroll_period_detail_list);
+
             payroll_period_detail_rows = CreateHTML_period_detail_list(payroll_period_detail_list);
             payroll_period_tabular_rows = CreateHTML_period_tabular_list(payroll_period_detail_list);
 
             fill_datatable = true;
-
+        }
         if(fill_datatable) {
             HandleBtnSelect(selected_btn, true)  // true = skip_upload
         }
@@ -854,6 +855,43 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }  // UpdatePayrollTotalrow
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//========= CreateHTML_period_tabular_list  ============= PR2020-08-31
+    function create_payroll_agg_list(payroll_period_detail_list) {
+        console.log("==== create_payroll_agg_list  ========= ");
+
+        let agg_dict = {};
+        let employees_inuse = {};
+        let abscat_inuse = {};
+        if (payroll_period_detail_list){
+            for (let i = 0, row; row = payroll_period_detail_list[i]; i++) {
+                console.log("row", row)
+                const employee_pk = (row.employee_id) ? row.employee_id : 0;
+                const employee_code = (row.employee_code) ? row.employee_code : "---";
+// ---  lookup employee in employees_inuse, create if not found
+                if(!(employee_pk in employees_inuse)) {
+                    employees_inuse[employee_pk] = {code: employee_code,
+                                                    absdur: row.absdur,
+                                                    totaldur: row.totaldur};
+                } else {
+                    employees_inuse[employee_pk].totaldur += row.totaldur
+                    employees_inuse[employee_pk].absdur += row.absdur
+                }
+
+
+// ---  lookup employee_dict in agg_dict, create if not found
+                const empl_key = (employee_pk) ? "empl_" + employee_pk : "empl_0000";
+                if(!(empl_key in agg_dict)) {
+                    agg_dict[empl_key] = {total: [row.employee_code,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0]}
+                }
+                let employee_dict = agg_dict[empl_key] ;
+
+
+            }  //  for (let i = 0, item; item = payroll_period_detail_list[i]; i++)
+        }
+        console.log("employees_inuse", employees_inuse)
+    }
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 //========= CreateHTML_period_tabular_list  ==================================== PR2020-06-15 PR2020-08-29
     function CreateHTML_period_tabular_list(payroll_period_detail_list) {
@@ -1044,6 +1082,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return detail_rows;
     }  // CreateHTML_period_agg_list
+
+
 
 //========= CreateHTML_period_detail_list  ==================================== PR2020-06-15
     function CreateHTML_period_detail_list(payroll_period_detail_list) {
