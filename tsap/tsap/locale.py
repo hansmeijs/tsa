@@ -274,7 +274,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Choose_payroll_period'] = TXT_Choose_payroll_period
         dict['Choose_closingdate'] = TXT_Choose_closingdate
 
-        dict['Upload_payroll_periods'] = TXT_Upload_payroll_periods
+        dict['Show_hide_columns'] = _('Show or hide columns')
+        dict['Upload_payroll_periods'] = _('Upload payroll periods')
+
+        dict['payroll_columns_list'] = TXT_payroll_columns_list
 
         dict['Absence'] = TXT_Absence
         dict['Absence_category'] = TXT_Absence_category
@@ -395,14 +398,20 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         #overview
         dict['Total_hours'] = TXT_Total_hours
-        dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
+        #dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
         dict['Total_hours_2lines'] = TXT_Total_hours_2lines
         dict['Planned_hours_2lines'] = TXT_Planned_hours_2lines
+
+        dict['Total_worked_2lines'] = TXT_Total_worked_2lines
+        dict['Total_absence_2lines'] = TXT_Total_absence_2lines
+
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
-        dict['Absence_2lines'] = TXT_Absence_2lines
+        #dict['Absence_2lines'] = TXT_Absence_2lines
 
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
+
+        dict['This_is_rostershift'] = _('This is a roster shift.')
 
         # excel
         dict['Overview_rosterhours'] = _("Overview of roster hours")
@@ -1106,6 +1115,7 @@ TXT_Planned_hours = _('Planned hours')
 TXT_Break_hours = _('Break hours')
 TXT_Worked_hours = _('Worked hours')
 TXT_Billing_hours = _('Billing hours')
+TXT_Total_hours = _('Total hours')
 
 TXT_Contract_hours = _('Contract hours')
 TXT_Contract_hours_2lines = _('Contract\nhours')
@@ -1116,6 +1126,8 @@ TXT_Break_hours_2lines = _('Break\nhours')
 TXT_Worked_hours_2lines = _('Worked\nhours')
 TXT_Absence_2lines = pgettext_lazy('2 lines', 'Absence')
 TXT_Total_hours_2lines = _('Total\nhours')
+TXT_Total_worked_2lines = _('Total\nworked')
+TXT_Total_absence_2lines = _('Total\nabsence')
 
 TXT_Billing_hours_2lines = _('Billing\nhours')
 
@@ -1242,11 +1254,10 @@ TXT_Delete_teammember  = _('Delete teammember')
 
 TXT_This_item = _('This item')
 TXT_Upload_employees = _('Upload employees')
-TXT_Upload_payroll_periods = _('Upload payroll periods')
-
 
 TXT_Email_address = _('Email address')
 
+TXT_Employee = _('Employee')
 TXT_This_employee = _('This employee')
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
@@ -1543,6 +1554,21 @@ TXT_Period_planning_list = (
     ('lyear', _('Last year')),
     ('other', TXT_customperiod)
 )
+
+TXT_payroll_columns_list = (
+    ('offsetstart', TXT_Start_time),
+    ('offsetend', TXT_End_time),
+    ('plandur',  TXT_Planned_hours),
+    ('totaldur', TXT_Total_hours),
+    ('timedur',  _('Total worked hours')),
+    ('orderdetail', _('Worked hours per order')),
+    ('absdur', _('Total absence hours')),
+    ('absdetail', _('Absence per category')),
+    ('wagefactorcode', TXT_Wage_factor),
+    ('functioncode', TXT_Function),
+    ('paydatecode', TXT_Payroll_period)
+)
+
 
 """
 data-err_msg01= "{% trans 'An error occurred.' %}"

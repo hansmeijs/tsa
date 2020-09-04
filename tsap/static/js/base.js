@@ -101,9 +101,9 @@
 
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
-        //console.log("=== UploadSettings");
-        //console.log("url_str", url_str);
-        //console.log("upload_dict", upload_dict);
+        console.log("=== UploadSettings");
+        console.log("url_str", url_str);
+        console.log("upload_dict", upload_dict);
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
             let response = "";
@@ -113,8 +113,8 @@
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
+                    console.log( "response");
+                    console.log( response);
                 },  // success: function (response) {
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -507,6 +507,47 @@
         }  // if(!isEmpty(id_dict))
         //console.log(data_map) // PR2019-11-26
     }  // update_map_item
+
+//========= b_comparator_employeecode  =========  PR2020-09-03
+// PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
+// function used in Array.sort to sort by key 'code', null or '---' last
+    function b_comparator_employeecode(a, b) {
+        const max_len = 24 // CODE_MAX_LENGTH = 24;
+        const z_str = "z".repeat(max_len);
+        const a_lc = (a.employee_code && a.employee_code !== "---" && a.employee_code !== "-") ? a.employee_code.toLowerCase() : z_str;
+        const b_lc = (b.employee_code && b.employee_code !== "---" && b.employee_code !== "-") ? b.employee_code.toLowerCase() : z_str;
+        if (a_lc < b_lc) return -1;
+        if (a_lc > b_lc) return 1;
+        return 0;
+    }  // b_comparator_employeecode
+
+    function b_comparator_code(a, b) {
+        const max_len = 24 // CODE_MAX_LENGTH = 24;
+        const z_str = "z".repeat(max_len);
+        const a_lc = (a.code && a.code !== "---" && a.code !== "-") ? a.code.toLowerCase() : z_str;
+        const b_lc = (b.code && b.code !== "---" && b.code !== "-") ? b.code.toLowerCase() : z_str;
+        if (a_lc < b_lc) return -1;
+        if (a_lc > b_lc) return 1;
+        return 0;
+    }  // b_comparator_code
+//========= b_comparator_c_o_code  =========  PR2020-09-01
+// PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
+// function used in Array.sort to sort by key 'code', null or '---' last
+    function b_comparator_c_o_code(a, b) {
+        const max_len = 24 // CODE_MAX_LENGTH = 24;
+        const z_str = "z".repeat(max_len);
+        const a_c_code = (a.c_code && a.c_code !== "---" && a.c_code !== "-") ? a.c_code.toLowerCase() + " ".repeat(max_len) : z_str;
+        const a_o_code = (a.o_code && a.o_code !== "---" && a.o_code !== "-") ? a.o_code.toLowerCase() : z_str;
+        const a_c_o_code = a_c_code.slice(0, max_len) +  a_o_code.slice(0, max_len);
+
+        const b_c_code = (b.c_code && b.c_code !== "---" && b.c_code !== "-") ? b.c_code.toLowerCase() + " ".repeat(max_len) : z_str;
+        const b_o_code = (b.o_code && b.o_code !== "---" && b.o_code !== "-") ? b.o_code.toLowerCase() : z_str;
+        const b_c_o_code = b_c_code.slice(0, max_len) +  b_o_code.slice(0, max_len);
+
+        if (a_c_o_code < b_c_o_code) return -1;
+        if (a_c_o_code > b_c_o_code) return 1;
+        return 0;
+    }  // b_comparator_c_o_code
 
 //========= insertAtIndex  ================== PR2020-01-20 PR2020-08-11
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map

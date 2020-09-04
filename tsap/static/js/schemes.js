@@ -1465,7 +1465,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 //el.setAttribute("ondrop", "return false;");
             }  //if (j === 0)
 // --- add EventListener to td
-            el.addEventListener("keyup", function(event){HandleFilterName(el, j, event.which)});
+            el.addEventListener("keyup", function(event){HandleFilterName(el, j, event)});
             td.appendChild(el);
 
 // --- add width and textalign to el
@@ -1516,7 +1516,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 const el_input = document.createElement(el_tag);
                 if(i > 0 ) {
 // --- add EventListener
-                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event.which)});
+                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event)});
     // --- add attributes
                     if(fldName) {el_input.setAttribute("data-field", fldName)};
                     el_input.setAttribute("autocomplete", "off");
@@ -6725,18 +6725,16 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // +++++++++++++++++ FILTER +++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= HandleFilterName  ====================================
-    function HandleFilterName(el, index, el_key) {
+    function HandleFilterName(el, index, event) {
         //console.log( "===== HandleFilterName  ========= ");
 
         //console.log( "el.value", el.value, index, typeof index);
         //console.log( "el.filter_dict", filter_dict, typeof filter_dict);
         // skip filter if filter value has not changed, update variable filter_text
 
-        //console.log( "el_key", el_key);
-
 // --- reset filter when clicked on 'Escape'
         let skip_filter = false
-        if (el_key === 27) {
+        if (event.key === "Escape") {
             filter_dict = {}
 
             let tblRow = get_tablerow_selected(el);

@@ -550,6 +550,7 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                 for key, new_setting_dict in upload_dict.items():
                     # key = page_scheme, dict = {'grid_range': 2}
                     # key = selected_pk, dict = {'sel_customer_pk': 749, 'sel_order_pk': 1521}
+                    # key = 'payroll_period': {'col_hidden': ['functioncode', 'paydatecode', 'offsetstart']}}
                     saved_settings_dict = Usersetting.get_jsonsetting(key, request.user)
                     #logger.debug('new_setting_dict: ' + str(new_setting_dict))
                     #logger.debug('saved_settings_dict: ' + str(saved_settings_dict))
@@ -565,6 +566,9 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                             else:
                             # if  subkey has no value in new_setting_dict: remove key from dict
                                 saved_settings_dict.pop(subkey)
+                        else:
+                            if value:
+                                saved_settings_dict[subkey] = value
                     #logger.debug('Usersetting.set_jsonsetting from UserSettingsUploadView')
                     Usersetting.set_jsonsetting(key, saved_settings_dict, request.user)
 
@@ -900,8 +904,8 @@ class UserUploadView(View):
     #  when ok: it also sends an email to the user
 
     def post(self, request):
-        logger.debug('  ')
-        logger.debug(' ========== UserUploadView ===============')
+        #logger.debug('  ')
+        #logger.debug(' ========== UserUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
@@ -911,7 +915,7 @@ class UserUploadView(View):
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 # upload_dict: {'mode': 'validate', 'company_pk': 3, 'pk_int': 114, 'user_ppk': 3,
                 # 'employee_pk': None, 'employee_code': None, 'username': 'Giterson_Lisette', 'last_name': 'Lisette Sylvia enzo Giterson', 'email': 'hmeijs@gmail.com'}
@@ -939,7 +943,7 @@ class UserUploadView(View):
                     elif mode == 'delete':
                         if pk_int:
                             instance = am.User.objects.get_or_none(id=pk_int, company=company)
-                            logger.debug('instance: ' + str(instance))
+                            #logger.debug('instance: ' + str(instance))
                             if instance:
                                 deleted_instance_list = ad.create_user_list(request, instance.pk)
                                 if deleted_instance_list:
@@ -1003,7 +1007,7 @@ class UserUploadView(View):
 
 # === get_new_permit_sum ==== PR2020-08-16
 def get_new_permit_sum_NIU(user, upload_dict, request):
-    logger.debug('-----  get_permit_changes  ----- ')
+    #logger.debug('-----  get_permit_changes  ----- ')
 
     new_permit_sum = 0
     if user:
@@ -1040,9 +1044,9 @@ def get_new_permit_sum_NIU(user, upload_dict, request):
 
 # === create_or_validate_user_instance ========= PR2020-08-16
 def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, user_lang, request):
-    logger.debug('-----  create_user_instance  -----')
-    logger.debug('upload_dict: ' + str(upload_dict))
-    logger.debug('user_pk: ' + str(user_pk))
+    #logger.debug('-----  create_user_instance  -----')
+    #logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug('user_pk: ' + str(user_pk))
 
     company = request.user.company
     has_error = False
@@ -1054,7 +1058,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
     # user_pk is pk of user that will be validated when the user already exist.
     # user_pk is None when new user is created or validated
     username = f.get_dict_value(upload_dict, ('username', 'value'))
-    logger.debug('username: ' + str(username))
+    #logger.debug('username: ' + str(username))
     msg_err = v.validate_unique_username(username, company.companyprefix, user_pk)
     if msg_err:
         err_dict['username'] = msg_err
@@ -1062,7 +1066,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
 # - check if namelast is blank
     last_name = f.get_dict_value(upload_dict, ('last_name', 'value'))
-    logger.debug('last_name: ' + str(last_name))
+    #logger.debug('last_name: ' + str(last_name))
     msg_err = v.validate_notblank_maxlength(last_name, c.NAME_MAX_LENGTH, _('The name'))
     if msg_err:
         err_dict['last_name'] = msg_err
@@ -1070,7 +1074,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
 # - check if this is a valid email address:
     email = f.get_dict_value(upload_dict, ('email', 'value'))
-    logger.debug('email: ' + str(email))
+    #logger.debug('email: ' + str(email))
     msg_err = v.validate_email_address(email)
     if msg_err:
         err_dict['email'] = msg_err
@@ -1089,7 +1093,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
     if employee_pk:
         employee = m.Employee.objects.get_or_none(id=employee_pk, company=company)
 
-    logger.debug('employee: ' + str(employee))
+    #logger.debug('employee: ' + str(employee))
 
     if not is_validate_only and not has_error:
         # - get now without timezone
@@ -1113,7 +1117,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
             modifiedat=now_utc)
         new_user.save()
 
-        logger.debug('new_user: ' + str(new_user))
+        #logger.debug('new_user: ' + str(new_user))
         if new_user:
             new_user_pk = new_user.pk
 
@@ -1132,7 +1136,7 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
             })
             # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
             mails_sent = send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
-            logger.debug('mails sent: ' + str(mails_sent))
+            #logger.debug('mails sent: ' + str(mails_sent))
             # - return message 'We have sent an email to user'
             msg01 = _("User '%(usr)s' is registered successfully.") % {'usr': new_user.username_sliced}
             msg02 = _("We have sent an email to the email address '%(email)s'.") % {'email': new_user.email}
@@ -1148,8 +1152,8 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
 # === update_user_instance ========== PR2020-08-16
 def update_user_instance(instance, user_pk, upload_dict, is_validate_only, request):
-    logger.debug('-----  update_user_instance  -----')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug('-----  update_user_instance  -----')
+    #logger.debug('upload_dict: ' + str(upload_dict))
     has_error = False
     err_dict = {}
     ok_dict = {}
@@ -1261,7 +1265,7 @@ def resend_activation_email(user_pk, update_wrap, err_dict, request):
     #  it returns a HttpResponse, with ok_msg or err-msg
 
     user = am.User.objects.get_or_none(id=user_pk, company= request.user.company)
-    logger.debug('user: ' + str(user))
+    #logger.debug('user: ' + str(user))
     has_error = False
     if user:
         update_wrap['user'] = {'pk': user.pk, 'username': user.username}

@@ -1467,7 +1467,7 @@ def get_teamcode_abbrev(team_code):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, user_lang, request):   # PR2019-11-16 PR2020-07-15
+def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, user_lang, request):   # PR2019-11-16 PR2020-07-15 PR2020-09-02
     #logger.debug(' ============== period_get_and_save ================ ')
     #logger.debug(' key: ' + str(key))
     #logger.debug(' request_item: ' + str(request_item))
@@ -1497,7 +1497,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     customer_pk = None
     order_code = None
     customer_code = None
-    # check if order_pk exists in period_dict
+
+# +++  check if order_pk exists in period_dict
     if 'order_pk' in period_dict:
         new_order_pk = period_dict.get('order_pk')
         if new_order_pk:
@@ -1538,8 +1539,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                 order_code = order.code
                 customer_pk = order.customer.pk
                 customer_code = order.customer.code
-
-    # if order_pk doesn't exist in period_dict: check if order_pk exists in saved period
+# - if order_pk doesn't exist in period_dict: check if order_pk exists in saved period
         if order is None:
             saved_customer_pk = saved_period_dict.get('customer_pk')
             if saved_customer_pk:
@@ -1548,7 +1548,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                     customer_pk = customer.pk
                     customer_code = customer.code
 
-# - check if employee_pk exists in period_dict
+# +++  check if employee_pk exists in period_dict
     employee_pk = None
     employee_code = None
     if 'employee_pk' in period_dict:
@@ -1563,8 +1563,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         else:
             # when employee_pk = 0 in period_dict: means show all employees, therefore make save_setting = True
             save_setting = True
-
-    # if employee_pk doesn't exist in period_dict, check if employee_pk exists in saved period
+# - if employee_pk doesn't exist in period_dict, check if employee_pk exists in saved period
     else:
         saved_employee_pk = saved_period_dict.get('employee_pk')
         if saved_employee_pk:
@@ -1573,11 +1572,11 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                 employee_pk = employee.pk
                 employee_code = employee.code
 
-# -  get emplhour_pk - emplhour_pk is not saved in settings PR2020-06-28
+# +++  get emplhour_pk - emplhour_pk is not saved in settings PR2020-06-28
     # emplhour_pk is to be used in review page
     emplhour_pk = period_dict.get('emplhour_pk')
 
-# -  get paydatecode_pk
+# +++  get paydatecode_pk
     paydatecode_pk = None
     paydatecode_code = None
     paydate_iso = None
@@ -1593,8 +1592,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         else:
             # when paydatecode_pk = 0 in period_dict: means show all paydatecodes, therefore make save_setting = True
             save_setting = True
-
-    # if paydatecode_pk doesn't exist in period_dict, check if paydatecode_pk exists in saved period
+# - if paydatecode_pk doesn't exist in period_dict, check if paydatecode_pk exists in saved period
     else:
         saved_paydatecode_pk = saved_period_dict.get('paydatecode_pk')
         if saved_paydatecode_pk:
@@ -1605,7 +1603,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     if paydatecode_pk:
         paydate_iso = period_dict.get('paydate_iso')
 
-# -  get is_absence - None: all records, True: absence only, False: absence excluded, None: all records
+# +++  get is_absence - None: all records, True: absence only, False: absence excluded, None: all records
     is_absence = None
     if 'isabsence' in period_dict:
         is_absence = period_dict.get('isabsence')
@@ -1613,7 +1611,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     else:
         is_absence = saved_period_dict.get('isabsence')
 
-# -  get is_restshift - None  # None: all records, True: restshift only, False: restshift excluded, None: all records
+# +++  get is_restshift - None  # None: all records, True: restshift only, False: restshift excluded, None: all records
     is_restshift = None
     if 'isrestshift' in period_dict:
         is_restshift = period_dict.get('isrestshift')
@@ -1621,9 +1619,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     else:
         is_restshift = saved_period_dict.get('isrestshift')
 
-# -  get daynightshift
+# +++  get daynightshift
     # value 0: AllShifts, 1: 'NightshiftsOnly', 2: 'DayshiftsOnly', 3: 'EveningshiftsOnly
-
     if 'daynightshift' in period_dict:
         daynightshift = period_dict.get('daynightshift')
 
@@ -1633,21 +1630,28 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         daynightshift = saved_period_dict.get('daynightshift')
         #logger.debug(' saved_period_dict daynightshift: ' + str(daynightshift))
 
-# -  get sel_btn
+# +++  get sel_btn
     if 'sel_btn' in period_dict:
         sel_btn = period_dict.get('sel_btn')
         save_setting = True
     else:
         sel_btn = saved_period_dict.get('sel_btn')
 
-# -  get sel_view
+# +++  get col_hidden - col_hidden ia a tuple of the fieldnames that must be hidden
+    if 'col_hidden' in period_dict:
+        col_hidden = period_dict.get('col_hidden')
+        save_setting = True
+    else:
+        col_hidden = saved_period_dict.get('col_hidden')
+
+# +++  get sel_view
     if 'sel_view' in period_dict:
         sel_view = period_dict.get('sel_view')
         save_setting = True
     else:
         sel_view = saved_period_dict.get('sel_view')
 
-# - get period tag
+# +++  get period tag
     period_tag = period_dict.get('period_tag')
     save_period_setting = False
     if period_tag:
@@ -1659,7 +1663,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         if not period_tag:
             period_tag = 'tweek' if key == 'calendar_period' else 'tmonth'
 
-# - get extend_offset
+# +++  get extend_offset
     extend_offset = period_dict.get('extend_offset', 0)
 
 # - calculate periodstart_datetimelocal, periodend_datetimelocal
@@ -1688,6 +1692,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             'isrestshift': is_restshift,
             'daynightshift': daynightshift,
             'sel_btn': sel_btn,
+            'col_hidden': col_hidden,
             'sel_view': sel_view,
             'period_tag': period_tag
         }
@@ -1707,6 +1712,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
 # 5. create update_dict
     update_dict = {'key': key,
                    'sel_btn': sel_btn,
+                   'col_hidden': col_hidden,
                    'sel_view': sel_view,
                    'comp_timezone': comp_timezone,
                    'timeformat': timeformat,

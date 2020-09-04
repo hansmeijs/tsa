@@ -957,7 +957,7 @@ let planning_list = [] // for export and printing - can replace map?
                             el.appendChild(el_div);
                         el.classList.add("pointer_show");
                     } else {
-                        el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event.which)});
+                        el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event)});
                         el.setAttribute("autocomplete", "off");
                         el.setAttribute("ondragstart", "return false;");
                         el.setAttribute("ondrop", "return false;");
@@ -4836,7 +4836,7 @@ let planning_list = [] // for export and printing - can replace map?
     };
 
 //========= HandleFilterKeyup  =====  PR2020-08-27
-    function HandleFilterKeyup(el, index, el_key) {
+    function HandleFilterKeyup(el, index, event) {
         //console.log( "===== HandleFilterKeyup  ========= ");
         //console.log( "el_key", el_key);
 
@@ -4845,7 +4845,7 @@ let planning_list = [] // for export and printing - can replace map?
         // skip filter if filter value has not changed, update filter_dict[index]
 
         let skip_filter = false
-        if (el_key === 27) {
+        if (event.key === "Escape") {
             filter_dict = {}
 
             let tblRow = get_tablerow_selected(el);

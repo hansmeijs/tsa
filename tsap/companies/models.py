@@ -874,10 +874,11 @@ class Emplhour(TsaBaseModel):
     excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-    wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
+
+    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)

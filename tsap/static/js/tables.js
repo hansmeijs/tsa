@@ -359,11 +359,10 @@
 
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12 PR2020-08-29
-    function t_SetExtendedFilterDict(el, col_index, el_key, filter_dict) {
-        console.log( "===== t_SetExtendedFilterDict  ========= ");
-        console.log( "col_index ", col_index, "el_key ", el_key);
-        console.log( "filter_dict ", filter_dict);
-        // filter_dict = [ ["", "m", "text"], ["gt", 180, "duration"] ]
+    function t_SetExtendedFilterDict(el, col_index, event_key, filter_dict) {
+        //console.log( "===== t_SetExtendedFilterDict  ========= ");
+        //console.log( "col_index ", col_index, "event_key ", event_key);
+        // filter_dict = [ ["text", "m", ""], ["duration", 180, "gt"] ]
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
@@ -372,18 +371,26 @@
         const col_count = tblRow.cells.length
         let mode = "", filter_value = null, skip_filter = false;
 // --- reset filter row when clicked on 'Escape'
-        if (el_key === 27) {
+        // PR2020-09-03 don't use event.which = 27. Is deprecated. Use event_key === "Escape" instead
+        if (event_key === "Escape") {
             filter_dict = {};
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(el){ el.value = null};
             }
         } else if (filter_tag === "boolean") {
-            let value = (filter_dict[col_index] && filter_dict[col_index][1]) ? filter_dict[col_index][1] : 0
-
-            let filter_dict_value = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
-
-            filter_dict[col_index] = [mode, filter_value, filter_tag]
+            // //filter_dict = [ ["boolean", "1"] ];
+            // toggle value 0 / 1 when boolean
+            let arr = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
+            const value = (arr && arr[1] ) ? arr[1] : 0;
+            const new_value = Math.abs(value - 1);
+            if (!new_value){
+                if (filter_dict[col_index]){
+                    delete filter_dict[col_index];
+                }
+            } else {
+                filter_dict[col_index] = [filter_tag, new_value]
+            }
         } else {
             let filter_dict_value = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
             let el_value_str = (el.value) ? el.value.toString() : "";
@@ -398,9 +405,6 @@
                     mode = "blanks_only";
                 } else if(filter_text === "@" || filter_text === "!"){
                     mode = "no_blanks";
-                } else if (filter_tag === "boolean") {
-                    // toggle show / hide planned items, no special mode on these columns
-                    filter_value = filter_text;
                 } else if (filter_tag === "text") {
                     // employee/rosterdate and order columns, no special mode on these columns
                     filter_value = filter_text;
@@ -410,7 +414,7 @@
                         [">", ">=", "<", "<="].indexOf(filter_text) > -1 ) {
                        skip_filter = true;
                     }
-                   if(!skip_filter) {
+                    if(!skip_filter) {
                         const first_two_char = filter_text.slice(0, 2);
                         const remainder = filter_text.slice(2);
                         mode = (first_two_char === "<=" && remainder) ? "lte" : (first_two_char === ">="  && remainder) ? "gte" : "";
@@ -453,12 +457,12 @@
                         }
                     }
                 }; // other
-                //console.log( "skip_filter ", skip_filter);
                 if (!skip_filter) {
-                    filter_dict[col_index] = [mode, filter_value, filter_tag]
+                    filter_dict[col_index] = [filter_tag, filter_value, mode]
                 };
             }
         }
+        //console.log( "filter_dict ", filter_dict);
         return skip_filter;
     }  // t_SetExtendedFilterDict
 
@@ -478,21 +482,21 @@
                         const arr = filter_dict[index_str];
                         const col_index = Number(index_str);
                         // filter text is already trimmed and lowercase
-                        const mode = arr[0];
+                        const filter_tag = arr[0];
                         const filter_value = arr[1];
-                        const fldName = arr[2];
+                        const filter_mode = arr[2];
 
-        //console.log( "filter_value", filter_value);
-        //console.log( "fldName", fldName);
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
-        //console.log( "filter_row", filter_row);
-        //console.log( "cell_value", cell_value);
+
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
-                        if(mode === "blanks_only"){  // # : show only blank cells
+
+                        if( filter_tag === "boolean") {
+                            // skip, filter is set outside this function
+                        } else if(filter_mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
-                        } else if(mode === "no_blanks"){  // # : show only non-blank cells
+                        } else if(filter_mode === "no_blanks"){  // # : show only non-blank cells
                             if(!cell_value){hide_row = true};
-                       } else if( fldName === "text") {
+                        } else if( filter_tag === "text") {
                         // employee / rosterdate and order column
                             // filter_row text is already trimmed and lowercase
                             const cell_value = filter_row[col_index];
@@ -506,19 +510,20 @@
                         } else {
                             // duration columns or numeric columns, make blank cells zero
                             cell_value = (cell_value) ? cell_value : 0;
-                            if ( mode === "lte") {
+                            if ( filter_mode === "lte") {
                                 if (cell_value > filter_value) {hide_row = true};
-                            } else if ( mode === "lt") {
+                            } else if ( filter_mode === "lt") {
                                 if (cell_value >= filter_value) {hide_row = true};
-                            } else if (mode === "gte") {
+                            } else if (filter_mode === "gte") {
                                 if (cell_value < filter_value) {hide_row = true};
-                            } else if (mode === "gt") {
+                            } else if (filter_mode === "gt") {
                                 if (cell_value <= filter_value) {hide_row = true};
                             } else {
                                 if (cell_value !== filter_value) {hide_row = true};
                             }
                            //console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         }
+
                     };
                 });  // Object.keys(filter_dict).forEach(function(col_index) {
             }  // if (!hide_row)
@@ -1874,8 +1879,6 @@
         if (!isEmpty(selected_period)){
             const period_tag = get_dict_value(selected_period, ["period_tag"]);
             const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
-
-        //console.log( "loc.period_select_list: " , loc.period_select_list);
             let default_text = null, extend_text = null;
             for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
                 item = loc.period_select_list[i];  // item = ('today', TXT_today)
@@ -1883,7 +1886,7 @@
                 if (item[0] === 'today'){ default_text = item[1] }
             }
             if(!period_text){period_text = default_text}
-        //console.log( "period_text: " , period_text);
+
         //console.log( "loc.period_extension: " , loc.period_extension);
             if(loc.period_extension){
                let extend_default_text = null
@@ -1903,7 +1906,7 @@
                 period_text += " +- " + extend_text;
             }
         }
-        //console.log( "period_text: " , period_text);
+
         return period_text
     }; // t_Sidebar_DisplayPeriod
 

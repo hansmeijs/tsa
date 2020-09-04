@@ -1856,7 +1856,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //if (j === 0 && tblName === "employee"){
             //    el.addEventListener("click", function(event){HandleFilterChecked(el)});
             //} else {
-                el_input.addEventListener("keyup", function(event){HandleBillingFilter(el_input, j, event.which)});
+                el_input.addEventListener("keyup", function(event){HandleBillingFilter(el_input, j, event)});
             //}
 
 // --- add attributes
@@ -2590,11 +2590,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ///////////////////
 //========= HandleBillingFilter  ====================================
-    function HandleBillingFilter(el, col_index, el_key) {
+    function HandleBillingFilter(el, col_index, event) {
         console.log( "===== HandleBillingFilter  ========= ");
-        console.log( "el_key", el_key);
+        console.log( "event.key", event.key);
         console.log( "filter_dict", filter_dict);
-        const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, event.key, filter_dict);
         console.log( "skip_filter", skip_filter);
         if (!skip_filter) {
             if(selected_btn === "payrolltabular"){

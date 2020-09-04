@@ -325,8 +325,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         payroll_period = f.get_dict_value(datalists, ('payroll_period',))
                         datalists['payroll_abscat_list'] = \
                             ed.create_payroll_abscat_list(payroll_period, request)
-                        datalists['payroll_period_agg_list'] = \
-                            ed.create_payroll_agg_list(payroll_period, request)
+                        #datalists['payroll_period_agg_list'] = \
+                        #    ed.create_payroll_agg_list(payroll_period, request)
                         datalists['payroll_period_detail_list'] = \
                             ed.create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request)
                         #datalists['payroll_period_detail_list'] = \

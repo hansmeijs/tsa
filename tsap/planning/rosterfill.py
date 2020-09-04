@@ -42,91 +42,94 @@ idx_comp_id = 9
 
 idx_e_id = 10  # is e_id_arr in customer_calendar
 idx_e_code = 11  # is e_code_arr in customer_calendar
-idx_e_nl = 12  # is null in customer_calendar
-idx_e_nf = 13  # is null in customer_calendar
 
-idx_rpl_id = 14  # is r_id_arr in customer_calendar
-idx_rpl_code = 15  # is r_code_arr in customer_calendar
+idx_rpl_id = 12  # is r_id_arr in customer_calendar
+idx_rpl_code = 13  # is r_code_arr in customer_calendar
 
-idx_si_id = 16
-idx_sh_id = 17
-idx_sh_code = 18
+idx_si_id = 14
+idx_sh_id = 15
+idx_sh_code = 16
 
-idx_sh_isbill = 19
-idx_o_seq = 20
-idx_si_mod = 21
+idx_sh_isbill = 17
+idx_o_seq = 18
+idx_si_mod = 19
 
-idx_tm_df = 22  # is null in customer_calendar
-idx_tm_dl = 23  # is null in customer_calendar
-idx_s_df = 24
-idx_s_dl = 25
-idx_s_cycle = 26
+idx_tm_df = 20 # is null in customer_calendar
+idx_tm_dl = 21  # is null in customer_calendar
+idx_s_df = 22
+idx_s_dl = 23
+idx_s_cycle = 24
 
-idx_s_exph = 27
-idx_s_exch = 28
-idx_s_dvgph = 29
+idx_s_exph = 25
+idx_s_exch = 26
+idx_s_dvgph = 27
 
-idx_o_s_nosat = 30
-idx_o_s_nosun = 31
-idx_o_s_noph = 32
-idx_o_s_noch = 33
+idx_o_s_nosat = 28
+idx_o_s_nosun = 29
+idx_o_s_noph = 30
+idx_o_s_noch = 31
 
-idx_sh_os = 34
-idx_sh_oe = 35
-idx_sh_os_nonull = 36  # non zero os for sorting when creating rosterdate
-idx_sh_oe_nonull = 37  # non zero os for sorting when creating rosterdate
-idx_sh_bd = 38
-idx_sh_td = 39
+idx_sh_os = 32
+idx_sh_oe = 33
+idx_sh_os_nonull = 34  # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 35  # non zero os for sorting when creating rosterdate
+idx_sh_bd = 36
+idx_sh_td = 37
 
-idx_tm_rd = 40
-idx_tm_count = 41
+idx_tm_rd = 38
+idx_tm_count = 39
 
-idx_e_tm_id_arr = 42
-idx_e_si_id_arr = 43
-idx_e_mod_arr = 44  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_os_arr = 45
-idx_e_oe_arr = 46
-idx_e_o_seq_arr = 47
+idx_e_tm_id_arr = 40
+idx_e_si_id_arr = 41
+idx_e_mod_arr = 42  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_os_arr = 43
+idx_e_oe_arr = 44
+idx_e_o_seq_arr = 45
 
-idx_r_tm_id_arr = 48
-idx_r_si_id_arr = 49
-idx_r_mod_arr = 50
-idx_r_os_arr = 51
-idx_r_oe_arr = 52
-idx_r_o_seq_arr = 53
+idx_r_tm_id_arr = 46
+idx_r_si_id_arr = 47
+idx_r_mod_arr = 48
+idx_r_os_arr = 49
+idx_r_oe_arr = 50
+idx_r_o_seq_arr = 51
 
-idx_isreplacement = 54  # gets value not in sql but in calculate_add_row_to_dict
+idx_isreplacement = 52  # gets value not in sql but in calculate_add_row_to_dict
 
-idx_tm_ovr = 55
-idx_tm_prc_id = 56
-
+idx_tm_ovr = 53
+idx_tm_prc_id = 54
+idx_sh_prc_id = 55
+idx_e_prc_id = 56
 idx_r_prc_id = 57
-idx_e_prc_id = 58
-idx_sh_prc_id = 59
 
-idx_tm_adc_id = 60
+idx_tm_adc_id = 58
+idx_sh_adc_id = 59
+idx_e_adc_id = 60
 idx_r_adc_id = 61
-idx_e_adc_id = 62
-idx_sh_adc_id = 63
-idx_sh_txc_id = 64
 
-idx_o_inv_id = 65
+idx_sh_txc_id = 62
+idx_o_inv_id = 63
 
-idx_e_fnc_id = 66
-idx_e_wgc_id = 67
+idx_e_fnc_id = 64
+idx_e_fnc_code = 65
+idx_e_wgc_id = 66
+idx_e_wgc_code = 67
 idx_e_pdc_id = 68
-idx_e_pdc_dte = 69
-idx_e_wmpd = 70
+idx_e_pdc_code = 69
+idx_e_pdc_dte = 70
+idx_e_wmpd = 71
 
-idx_r_fnc_id = 71
-idx_r_wgc_id = 72
-idx_r_pdc_id = 73
-idx_r_pdc_dte = 74
-idx_r_wmpd = 75
+idx_r_fnc_id = 72
+idx_r_fnc_code = 73
+idx_r_wgc_id = 74
+idx_r_wgc_code = 75
+idx_r_pdc_id = 76
+idx_r_pdc_code = 77
+idx_r_pdc_dte = 78
+idx_r_wmpd = 79
 
-idx_sh_wfc_id = 76
+idx_sh_wfc_id = 80
 
-idx_o_nopay = 77
+idx_o_nopay = 81
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -470,10 +473,14 @@ sql_employee_with_aggr_sub07 = """
             e.namefirst AS e_nf,
             e.workminutesperday AS e_wmpd,
 
-            e.functioncode_id AS e_fnc_id,
-            e.wagecode_id AS e_wgc_id,
-            e.paydatecode_id AS e_pdc_id,
+            fnc.id AS e_fnc_id,
+            fnc.code AS e_fnc_code,
+            wgc.id AS e_wgc_id,
+            wgc.code AS e_wgc_code,
+            pdc.id AS e_pdc_id,
+            pdc.code AS e_pdc_code,       
             pdc.datelast AS e_pdc_dte,
+            
             e.pricecode_id AS e_prc_id,
             e.additioncode_id AS e_adc_id,
 
@@ -488,7 +495,11 @@ sql_employee_with_aggr_sub07 = """
 
         FROM companies_employee AS e 
         LEFT JOIN (""" + sql_teammember_aggr_sub06 + """) AS tm_sub ON (tm_sub.tm_eid = e.id) 
+        
+        LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id) 
+        LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id) 
         LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
+        
         WHERE (e.company_id = %(cid)s) 
         AND (e.datefirst <= CAST(%(rd)s AS DATE) OR e.datefirst IS NULL) 
         AND (e.datelast  >= CAST(%(rd)s AS DATE) OR e.datelast IS NULL)
@@ -509,15 +520,13 @@ sql_teammember_sub08 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,       
+        COALESCE(o.code,'') AS o_code,       
         c.id AS c_id, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        COALESCE(c.code, '') AS c_code, 
         c.company_id AS comp_id, 
 
         e_sub.e_id AS e_id,
         COALESCE(e_sub.e_code,'') AS e_code,
-        COALESCE(e_sub.e_nl,'') AS e_nl,
-        COALESCE(e_sub.e_nf,'') AS e_nf,
 
         r_sub.e_id AS rpl_id,
         COALESCE(r_sub.e_code,'') AS rpl_code,
@@ -585,46 +594,48 @@ sql_teammember_sub08 = """
 
         tm.override AS tm_ovr,
         tm.pricecode_id AS tm_prc_id,
-        r_sub.e_prc_id AS r_prc_id,
-        e_sub.e_prc_id,
         CASE WHEN si_sub.sh_prc_id IS NULL THEN 
             CASE WHEN o.pricecode_id IS NULL THEN 
                 comp.pricecode_id 
             ELSE o.pricecode_id END
-        ELSE si_sub.sh_prc_id END
-        AS sh_prc_id,
+        ELSE si_sub.sh_prc_id END AS sh_prc_id,
+        e_sub.e_prc_id,
+        r_sub.e_prc_id AS r_prc_id,
 
         tm.additioncode_id AS tm_adc_id,
-        r_sub.e_adc_id AS r_adc_id,
-        e_sub.e_adc_id,
         CASE WHEN si_sub.sh_adc_id IS NULL THEN 
             CASE WHEN o.additioncode_id IS NULL THEN 
                 comp.additioncode_id 
             ELSE o.additioncode_id END
-        ELSE si_sub.sh_adc_id END
-        AS sh_adc_id,
+        ELSE si_sub.sh_adc_id END AS sh_adc_id,
+        e_sub.e_adc_id,
+        r_sub.e_adc_id AS r_adc_id,
 
         CASE WHEN si_sub.sh_txc_id IS NULL THEN 
             CASE WHEN o.taxcode_id IS NULL THEN 
                 comp.taxcode_id 
             ELSE o.taxcode_id END
-        ELSE si_sub.sh_txc_id END
-        AS sh_txc_id,
+        ELSE si_sub.sh_txc_id END AS sh_txc_id,
 
         CASE WHEN o.invoicecode_id IS NULL THEN 
             c.invoicecode_id 
-        ELSE o.invoicecode_id END
-        AS o_inv_id,
+        ELSE o.invoicecode_id END AS o_inv_id,
 
         e_sub.e_fnc_id,
+        e_sub.e_fnc_code,
         e_sub.e_wgc_id,
+        e_sub.e_wgc_code,
         e_sub.e_pdc_id,
+        e_sub.e_pdc_code,
         e_sub.e_pdc_dte,
         CASE WHEN e_sub.e_wmpd IS NULL OR e_sub.e_wmpd = 0 THEN comp.workminutesperday ELSE e_sub.e_wmpd END AS e_wmpd,
 
         r_sub.e_fnc_id AS r_fnc_id,
+        r_sub.e_fnc_code AS r_fnc_code,
         r_sub.e_wgc_id AS r_wgc_id,
+        r_sub.e_wgc_code AS r_wgc_code,
         r_sub.e_pdc_id AS r_pdc_id,
+        r_sub.e_pdc_code AS r_pdc_code,
         r_sub.e_pdc_dte AS r_pdc_dte,
         CASE WHEN r_sub.e_wmpd IS NULL THEN comp.workminutesperday ELSE r_sub.e_wmpd END AS r_wmpd,
 
@@ -1225,8 +1236,8 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
 
                 functioncode_id=functioncode_id,
                 wagecode_id=wagecode_id,
-                wagefactorcode_id=wagefactorcode_id,
                 wagerate=wagerate,
+                wagefactorcode_id=wagefactorcode_id,
                 wagefactor=wagefactor,
                 wage=wage,
 
@@ -2171,8 +2182,6 @@ def replace_employee_info_by_replacement(row):
 
     row[idx_e_id] = row[idx_rpl_id]
     row[idx_e_code] = row[idx_rpl_code]
-    row[idx_e_nl] = None
-    row[idx_e_nf] = None
 
     row[idx_e_tm_id_arr] = row[idx_r_tm_id_arr]
     row[idx_e_si_id_arr] = row[idx_r_si_id_arr]
@@ -2181,16 +2190,17 @@ def replace_employee_info_by_replacement(row):
     row[idx_e_oe_arr] = row[idx_r_oe_arr]
     row[idx_e_o_seq_arr] = row[idx_r_o_seq_arr]
 
-    row[idx_e_pdc_id] = row[idx_r_pdc_id]
+    row[idx_e_prc_id] = row[idx_r_prc_id]
     row[idx_e_adc_id] = row[idx_r_adc_id]
 
     row[idx_e_fnc_id] = row[idx_r_fnc_id]
+    row[idx_e_fnc_code] = row[idx_r_fnc_code]
     row[idx_e_wgc_id] = row[idx_r_wgc_id]
+    row[idx_e_wgc_code] = row[idx_r_wgc_code]
     row[idx_e_pdc_id] = row[idx_r_pdc_id]
+    row[idx_e_pdc_code] = row[idx_r_pdc_code]
     row[idx_e_pdc_dte] = row[idx_r_pdc_dte]
-
     row[idx_e_wmpd] = row[idx_r_wmpd]
-
 
 def remove_employee_info_From_row(row):
     # replace employee info by info of replacement employee
@@ -2198,8 +2208,6 @@ def remove_employee_info_From_row(row):
 
     row[idx_e_id] = None
     row[idx_e_code] = None
-    row[idx_e_nl] = None
-    row[idx_e_nf] = None
 
     row[idx_e_tm_id_arr] = None
     row[idx_e_si_id_arr] = None
@@ -2208,14 +2216,16 @@ def remove_employee_info_From_row(row):
     row[idx_e_oe_arr] = None
     row[idx_e_o_seq_arr] = None
 
-    row[idx_e_pdc_id] = None
+    row[idx_e_prc_id] = None
     row[idx_e_adc_id] = None
 
     row[idx_e_fnc_id] = None
+    row[idx_e_fnc_code] = None
     row[idx_e_wgc_id] = None
+    row[idx_e_wgc_code] = None
     row[idx_e_pdc_id] = None
+    row[idx_e_pdc_code] = None
     row[idx_e_pdc_dte] = None
-
     row[idx_e_wmpd] = None
 
 
@@ -2810,9 +2820,7 @@ def create_planning_dict(row, is_saturday, is_sunday, is_publicholiday, timeform
             planning_dict['employee'] = {
                 'pk': row[idx_e_id],
                 'ppk': row[idx_comp_id],
-                'code': row[idx_e_code],
-                'namelast': row[idx_e_nl],
-                'namefirst': row[idx_e_nf]
+                'code': row[idx_e_code]
             }
         else:
             # empty dict to show '---' in customer palnning when shift has no employee
@@ -2925,9 +2933,9 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
                 row[idx_o_s_nosat], row[idx_o_s_nosun], row[idx_o_s_noph], row[idx_o_s_noch],
                 row[idx_e_id], row[idx_e_wmpd], comp_timezone)
 
-        plandur = 0 if is_absence else time_duration
-        timedur =  0 if is_absence else time_duration
         absdur =  time_duration if is_absence else 0
+        plandur = 0 if is_absence else time_duration
+        timedur = 0 if is_absence else time_duration
         totaldur = time_duration
 
         planning_dict_short = {
@@ -2935,8 +2943,10 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
                     'employee_pk': row[idx_e_id],
                     'employee_code': row[idx_e_code],
                     'order_pk': row[idx_o_id],
-                    'order_code': row[idx_o_code],
-                    'customer_code': row[idx_c_code],
+                    'o_code': row[idx_o_code],
+                    'c_code': row[idx_c_code],
+                    'c_o_code': ' '.join( (row[idx_c_code], '-', row[idx_o_code])),
+
                     'shift_code': row[idx_sh_code],
                     'rosterdate': rosterdate_dte.isoformat(),
                     'offsetstart': row[idx_sh_os],
@@ -2946,20 +2956,24 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
                     'isrestshift': is_restshift,
                     'isabsence': is_absence,
 
-                    'c_o_code': ' '.join( (row[idx_c_code], row[idx_o_code])),
                     'emplhour_id': None,
                     'employee_id': row[idx_e_id],
                     'exceldate': excel_date,
                     'excelstart': excel_start,
                     'excelend': excel_end,
-                    'functioncode': '-',
                     'order_id': row[idx_o_id],
-                    'paydatecode': '-',
                     'plandur': plandur,
                     'timedur': timedur,
                     'absdur': absdur,
                     'totaldur': totaldur,
-                    'wagefactor': '-',
+
+                    'fnc_id': row[idx_e_fnc_id],
+                    'functioncode': row[idx_e_fnc_code],
+                    'wfc_id': row[idx_e_wgc_id],
+                    'wagefactor': row[idx_e_wgc_code],
+                    'pdc_id': row[idx_e_pdc_id],
+                    'paydatecode': row[idx_e_pdc_code],
+
         }
 
     return planning_dict_short
@@ -3429,9 +3443,9 @@ sql_customer_calendar_team_sub11 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(o.code,'') AS o_code, 
         c.id AS c_id, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        COALESCE(c.code, '') AS c_code, 
         c.company_id AS comp_id,
 
         tm_sub.e_id_arr AS e_id,

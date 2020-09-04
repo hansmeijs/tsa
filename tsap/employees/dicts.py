@@ -1321,33 +1321,46 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, request):
         eh.employee_id, 
         e.code AS employee_code, 
         o.id AS order_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-        CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
+        
+        o.code AS o_code,
+        c.code AS c_code,
+        CONCAT(c.code, ' - ', o.code) AS c_o_code,
 
         eh.offsetstart,
         eh.offsetend,
 
         eh.exceldate,
         eh.excelstart,
-        eh.excelend,               
-
+        eh.excelend, 
+                      
+        c.isabsence,
         CASE WHEN c.isabsence THEN 0 ELSE eh.plannedduration END AS plandur, 
         CASE WHEN NOT c.isabsence THEN eh.timeduration ELSE 0 END AS timedur,
         CASE WHEN c.isabsence THEN eh.timeduration ELSE 0 END AS absdur, 
         eh.timeduration AS totaldur, 
 
-        fc.code AS functioncode,
-        wf.code AS wagefactor,
-        pdc.code AS paydatecode
+        eh.functioncode_id AS fnc_id,
+        fnc.code AS functioncode,
+        
+        eh.wagefactorcode_id AS wfc_id,
+        wfc.code AS wagefactorcode,
+        eh.wagefactor, 
+        
+        eh.wagecode_id AS wgc_id,
+        eh.wagerate,
+        eh.wage, 
 
+        pdc.id AS pdc_id,
+        pdc.code AS paydatecode,
+        eh.wagecode_id AS wgc_id
+        
         FROM companies_emplhour AS eh
         LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
         INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
         INNER JOIN companies_order AS o ON (o.id = oh.order_id)
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        LEFT JOIN companies_wagecode AS fc ON (fc.id = eh.functioncode_id) 
-        LEFT JOIN companies_wagecode AS wf ON (wf.id = eh.wagefactorcode_id) 
+        LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id) 
+        LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id) 
         LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id) 
 
         WHERE c.company_id = %(compid)s 
@@ -1618,7 +1631,7 @@ def create_paydatecode_agg_listNIU(payroll_period, request):
 # - end of create_paydatecode_agg_list
 
 
-def create_payroll_agg_list(period_dict, request):
+def create_payroll_agg_listXXX(period_dict, request):
     #logger.debug(' ============= create_payrollperiod_agg_list ============= ')
     # create crosstab list of worked- and absence hours, of selected period, grouped by employee PR2020-07-15 PR2020-08-14
 

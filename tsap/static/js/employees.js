@@ -700,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++ add th to tblFilterRow +++
             th = document.createElement("th");
                 const el_input = document.createElement("input");
-                    el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, j, event.which)});
+                    el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, j, event)});
                     el_input.setAttribute("data-field", field_name);
                     el_input.setAttribute("data-filtertag", filter_tag);
 // --- add other attributes
@@ -898,7 +898,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (tblName === "planning"){
                 el.setAttribute("overflow-wrap", "break-word");
             } else {
-                el.addEventListener("keyup", function(event){HandleFilterName(el, j, event.which)});
+                el.addEventListener("keyup", function(event){HandleFilterName(el, j, event)});
             }
 // --- add left margin to first column
             if (j === 0 ){el.classList.add("ml-2")};
@@ -4749,11 +4749,11 @@ console.log( "reset mod_dict: ");
     }; // function HandleSelect_Filter
 
 //========= HandleFilterName  ====================================
-    function HandleFilterName(el, index, el_key) {
+    function HandleFilterName(el, index, event) {
         console.log( "===== HandleFilterName  ========= ");
         console.log( "el", el, typeof el);
         console.log( "index", index, typeof index);
-        console.log( "el_key", el_key, typeof el_key);
+        console.log( "event.key", event.key, typeof event.key);
 
         // skip filter if filter value has not changed, update variable filter_text
 
@@ -4763,7 +4763,7 @@ console.log( "reset mod_dict: ");
 
 // --- reset filter when clicked on 'Escape'
         let skip_filter = false
-        if (el_key === 27) {
+        if (event.key === "Escape") {
             filter_dict = {}
 
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
@@ -5084,7 +5084,7 @@ console.log( "reset mod_dict: ");
                 const el_input = document.createElement(el_tag);
                 if(i > 0 ) {
 // --- add EventListener
-                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event.which)});
+                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event)});
     // --- add attributes
                     if(fldName) {el_input.setAttribute("data-field", fldName)};
                     el_input.setAttribute("autocomplete", "off");
@@ -5273,7 +5273,7 @@ console.log( "reset mod_dict: ");
                 const el_input = document.createElement(el_tag);
                 if(i > 0 ) {
 // --- add EventListener
-                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event.which)});
+                    el_input.addEventListener("keyup", function(event){HandleFilterName(el_input, i, event)});
     // --- add attributes
                     if(fldName) {el_input.setAttribute("data-field", fldName)};
                     el_input.setAttribute("autocomplete", "off");
@@ -5775,7 +5775,7 @@ console.log( "reset mod_dict: ");
                 const el_input = document.createElement(el_tag);
                 if(i > 0 ) {
 // --- add EventListener
-                    el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, i, event.which)});
+                    el_input.addEventListener("keyup", function(event){HandlePayrollFilter(el_input, i, event)});
     // --- add attributes
                     if(fldName) {el_input.setAttribute("data-field", fldName)};
                     el_input.setAttribute("autocomplete", "off");
@@ -5843,11 +5843,11 @@ console.log( "reset mod_dict: ");
     }  // HandleAggRowClicked
 
 //========= HandlePayrollFilter  ====================================
-    function HandlePayrollFilter(el, col_index, el_key) {
+    function HandlePayrollFilter(el, col_index, event) {
         console.log( "===== HandlePayrollFilter  ========= ");
-        console.log( "col_index ", col_index, "el_key ", el_key);
+        console.log( "col_index ", col_index, "event.key ", event.key);
 
-        const skip_filter = t_SetExtendedFilterDict(el, col_index, el_key, filter_dict);
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, event.key, filter_dict);
         if ( !skip_filter) {FillPlanningRows()};
     }  // HandlePayrollFilter
 
