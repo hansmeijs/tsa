@@ -142,15 +142,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_width:  ["016", "180", "120", "120", "120", "120", "120", "120", "032"],
                         field_align: ["c", "l", "c",  "c", "c", "c", "l", "r", "c"]},
             payroll_agg: { field_caption: ["", "Employee", "ID_number_2lines",  "Payroll_code_abbrev","Planned_hours_2lines", "Total_hours_2lines", "Total_worked_2lines", "", "Total_absence_2lines", "", "Wage_factor", "Function", "Payroll_period", ""],
-                        field_names: ["back", "employee_code", "identifier",  "payrollcode", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactorcode", "functioncode", "paydatecode", "margin_end"],
+                        field_names: ["back", "employee_code", "e_identifier",  "payrollcode", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactorcode", "functioncode", "paydatecode", "margin_end"],
                         filter_tags: ["back", "text", "text", "text", "duration", "duration", "duration", "duration", "duration", "duration", "text", "text", "text", "-"],
                         field_width: ["020", "180", "100", "100", "090", "090", "090", "090", "090", "090", "120", "120", "120", "032"],
                         field_align: ["c", "l", "l", "l", "r", "r", "r", "r", "r", "r", "l", "l", "l", "c"]},
-            payroll_detail: { field_caption: ["", "Employee", "ID_number_2lines",  "Payroll_code_abbrev","Date", "Order", "Start_time", "End_time", "Planned_hours_2lines", "Total_hours_2lines", "Total_worked_2lines", "", "Total_absence_2lines", "", "Wage_factor", "Function", "Payroll_period", "margin_end"],
-                        field_names: ["status", "employee_code", "identifier",  "payrollcode", "rosterdate", "c_o_code", "offsetstart", "offsetend", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactorcode", "functioncode", "paydatecode", "margin_end"],
-                        filter_tags: ["boolean", "text", "text", "text", "text", "text", "text", "text", "duration", "duration", "duration", "duration", "duration", "duration", "text", "text", "text", ""],
-                        field_width: ["020", "180", "100",  "100",  "090",  "180", "090", "090", "090", "090", "090", "090", "090", "090", "100", "100", "100", "032"],
-                        field_align: ["c", "l", "l", "l", "l", "l", "r", "r", "r", "r", "r", "r", "r", "r", "l", "l", "l", "c"]},
+            payroll_detail: { field_caption: ["", "Employee", "ID_number_2lines",  "Payroll_code_abbrev","Date", "Order", "Identifier_2lines", "Start_time", "End_time", "Planned_hours_2lines", "Total_hours_2lines", "Total_worked_2lines", "", "Total_absence_2lines", "", "Wage_factor", "Function", "Payroll_period", "margin_end"],
+                        field_names: ["status", "employee_code", "e_identifier",  "payrollcode", "rosterdate", "c_o_code", "o_identifier", "offsetstart", "offsetend", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactorcode", "functioncode", "paydatecode", "margin_end"],
+                        filter_tags: ["boolean", "text", "text", "text", "text", "text", "text", "text", "text", "duration", "duration", "duration", "duration", "duration", "duration", "text", "text", "text", ""],
+                        field_width: ["020", "180", "100",  "100",  "090",  "180", "100", "090", "090", "090", "090", "090", "090", "090", "090", "100", "100", "100", "032"],
+                        field_align: ["c", "l", "l", "l", "l", "l", "l", "r", "r", "r", "r", "r", "r", "r", "r", "l", "l", "l", "c"]},
             employee: { field_caption: ["", "Employee", "Function", "Payroll_period"],
                         field_names: ["select", "code", "functioncode", "paydatecode"],
                         field_tags: ["div", "div", "div", "div"],
@@ -632,12 +632,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleAggRowClicked  ================ PR2019-06-24
     function HandleAggRowClicked(tr_clicked) {
-        console.log("=== HandleAggRowClicked");
+        //console.log("=== HandleAggRowClicked");
         if(is_payroll_detail_mode){
             MEP_Open(tr_clicked);
         } else {
             selected_employee_pk = (Number(tr_clicked.id)) ? Number(tr_clicked.id) : null;
-        console.log("selected_employee_pk", selected_employee_pk);
+        //console.log("selected_employee_pk", selected_employee_pk);
             //console.log( "selected_employee_pk: ", selected_employee_pk, typeof selected_employee_pk);
             if(selected_employee_pk){
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ WAGE FACTOR  WAGE CODE +++++++++++++++++++++++++++++++++++++++++++++++++
 //========= FillWagefactorWagecodeRows  =================== PR2020-07-13 PR2020-09-05
     function FillWagefactorWagecodeRows(tblName) {
-       console.log( "===== FillWagefactorWagecodeRows  === ");
+       //console.log( "===== FillWagefactorWagecodeRows  === ");
 
         tblHead_paydatecode.innerText = null;
         tblBody_paydatecode.innerText = null;
@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_map = (tblName === "wagefactor") ? wagefactor_map :
                          (tblName === "wagecode") ? wagecode_map : null;
 
-       console.log( "data_map", data_map);
+       //console.log( "data_map", data_map);
         if (data_map.size){
         //--- loop through data_map or data_dict
             for (const [map_id, map_dict] of data_map.entries()) {
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ PAYDATECODE  +++++++++++++++++++++++++++++++++++++++++++++++++
 //========= FillFunctioncodeOrPaydatecodeRows  ====================================
     function FillFunctioncodeOrPaydatecodeRows(sel_btn) {
-        console.log( "===== FillFunctioncodeOrPaydatecodeRows  === ");
+        //console.log( "===== FillFunctioncodeOrPaydatecodeRows  === ");
 
         const text_add = (sel_btn === "paydatecode") ? loc.Link_payrollperiod_to_employees :
                          (sel_btn === "functioncode") ? loc.Add_function_to_employees : null;
@@ -761,8 +761,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!data_map){
     // --- loop through data_map
                 for (const [map_id, item_dict] of data_map.entries()) {
-        console.log( "map_id", map_id);
-        console.log( "item_dict", item_dict);
+        //console.log( "map_id", map_id);
+        //console.log( "item_dict", item_dict);
                     const pk_int = item_dict.id;
                     const ppk_int = item_dict.comp_id;
                     const row_index = -1;
@@ -784,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 //========= create_payroll_agg_list  ============= PR2020-08-31
     function create_payroll_agg_list(detail_list) {
-        console.log("==== create_payroll_agg_list  ========= ");
+        //console.log("==== create_payroll_agg_list  ========= ");
 
         let agg_dict = {};
         let employees_inuse = {};
@@ -800,9 +800,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 let order_code = (row.o_code) ? row.o_code : "-";
                 let cust_code = (row.c_code) ? row.c_code : "-";
 
-        console.log("++++++++++++row", row);
-        console.log("employee_pk", employee_pk);
-        console.log("employee_code", employee_code);
                 // remove tilde from order_code and cust_code
                 //if (order_code && order_code.includes("~")){order_code = order_code.replace(/~/g,"")}
                 //if (cust_code && cust_code.includes("~")){cust_code = cust_code.replace(/~/g,"")}
@@ -898,7 +895,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dict.index = i;
             abscats_inuse_dict[dict.pk] = dict
         }
-        console.log("payroll_agg_list_sorted", payroll_agg_list_sorted);
+        //console.log("payroll_agg_list_sorted", payroll_agg_list_sorted);
 
     }  // create_payroll_agg_list
 
@@ -1084,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= CreateHTML_list  ==================================== PR2020-09-01
     function CreateHTML_list(tblName) {
         //console.log("==== CreateHTML_list  ========= ");
-       // console.log("payroll_agg_list_sorted", payroll_agg_list_sorted);
+       // //console.log("payroll_agg_list_sorted", payroll_agg_list_sorted);
 
         let header_row = "";
         let filter_row = [];
@@ -1131,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 filter_value = (inner_text) ? inner_text.toLowerCase() : null
                                 excel_value = (item.e_code) ? item.e_code : "---";
 
-                            } else if(field_name === "identifier") {
+                            } else if(field_name === "e_identifier") {
                                 inner_text = (item.e_identifier) ? item.e_identifier : "";
                                 filter_value = (inner_text) ? inner_text.toLowerCase() : null
                                 excel_value = (item.e_identifier) ? item.e_identifier : "";
@@ -1151,6 +1148,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 inner_text = (item.c_o_code) ? item.c_o_code : "";
                                 // remove tilde
                                 if (inner_text.includes("~")){inner_text = inner_text.replace(/~/g,"")}
+                                filter_value = (inner_text) ? inner_text.toLowerCase() : null
+                                excel_value = inner_text;
+
+                            } else if(field_name === "o_identifier") {
+                                inner_text = (item[field_name]) ? item[field_name] : "";
                                 filter_value = (inner_text) ? inner_text.toLowerCase() : null
                                 excel_value = inner_text;
 
@@ -1191,7 +1193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (tblName === "payroll_agg") {
                                     const field_dict = item[field_name];
 
-                                    console.log("field_dict", field_dict)
                                     // functioncode: { 23: {pk: 23, code: "nico"} }
                                     // wagefactorcode: {13: {pk: 13, code: "O200", rate: 2000000}, 73: {pk: 73, code: "W55", rate: 7550000} }
                                     let first_item = "", title_list = "", excel_list = null;
@@ -1285,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillPayrollRows  ====================================
     function FillPayrollRows(tblName) {
         // called by HandleBtnSelect and HandleFilterKeyup
-        console.log( "====== FillPayrollRows  === ", tblName);
+        //console.log( "====== FillPayrollRows  === ", tblName);
         //console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
         //console.log( "filter_dict", filter_dict);
 
@@ -1299,13 +1300,11 @@ document.addEventListener('DOMContentLoaded', function() {
         //  payroll_period_detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: excel_data, 4: row_html, 5: emplhour_pk, 6: isabsence]
         const detail_rows = (is_payroll_detail_mode) ? payroll_period_detail_rows : payroll_period_agg_rows;
         if (detail_rows) {
+        //console.log( "detail_rows", detail_rows);
             for (let i = 0, item, tblRow, excel_data, filter_row, show_row; item = detail_rows[i]; i++) {
 // ---  filter selected employee when is_payroll_detail_mode
                 show_row = (!is_payroll_detail_mode || item[1] === selected_employee_pk)
 
-        console.log( "selected_employee_pk", selected_employee_pk, typeof selected_employee_pk);
-        console.log( "item", item);
-        console.log( "show_row", show_row);
 // ---  filter emplhour_pk exists when filtered on status (column 0)
                 if(show_row && (is_payroll_detail_mode || tblName === "payroll_detail") ){
                     const col_index = 0;
@@ -1318,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     show_row = t_ShowTableRowExtended(filter_row, filter_dict);
                 }
                 item[0] = show_row;
-        console.log( ">> show_row+ " +  show_row);
+        //console.log( ">> show_row " +  show_row);
                 if (show_row){
                     tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         // --- add empoyee_pk as id to tblRow
@@ -1435,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillAbscatTableRows  ====================================
     function FillAbscatTableRows(called_by) {
         // called by HandleBtnSelect
-        console.log( "===== FillAbscatTableRows  === ", called_by);
+        //console.log( "===== FillAbscatTableRows  === ", called_by);
 
 // ---  Get today's date and time - for elapsed time
         //let startime = new Date().getTime();
@@ -1468,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblHeader  === PR2019-10-25 PR2020-06-18
     function CreateTblHeader(tblName) {
-        console.log("===  CreateTblHeader == tblName: ", tblName);
+        //console.log("===  CreateTblHeader == tblName: ", tblName);
         const tblHead = (tblName === "employee") ? tblHead_employee :
                         (["paydatecode", "functioncode", "wagefactor"].indexOf(tblName) > -1) ? tblHead_paydatecode :
                         tblHead_datatable;
@@ -1571,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblRow  ================ PR2020-06-09
     function CreateTblRow(tblBody, tblName, pk_str, ppk_str, order_by, employee_pk, row_index, is_disabled) {
-        console.log("=========  CreateTblRow =========", tblName);
+        //console.log("=========  CreateTblRow =========", tblName);
 
         let tblRow = null;
         const field_setting = field_settings[tblName];
@@ -1771,7 +1770,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //###########################################################################
 // +++++++++++++++++ UPLOAD CHANGES +++++++++++++++++ PR2020-06-10
     function UploadChanges(upload_dict, url_str) {
-        console.log("=== UploadChanges");
+        //console.log("=== UploadChanges");
         console.log("url_str: ", url_str);
         console.log("upload_dict: ", upload_dict);
 
@@ -2046,8 +2045,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-       console.log(" --- UpdateSettings ---")
-       console.log("setting_dict", setting_dict)
+       //console.log(" --- UpdateSettings ---")
+       //console.log("setting_dict", setting_dict)
 
         selected_btn = get_dict_value(setting_dict, ["sel_btn"], "payroll_agg");
 
@@ -2149,8 +2148,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateWagefactorRowFromResponseNEW  ================ PR2020-08-28 PR2020-09-10
     function UpdateWagefactorRowFromResponseNEW(update_dict) {
-        console.log(" =====  UpdateWagefactorRowFromResponseNEW  =====");
-        console.log("update_dict", update_dict);
+        //console.log(" =====  UpdateWagefactorRowFromResponseNEW  =====");
+        //console.log("update_dict", update_dict);
 
         if(!isEmpty(update_dict)){
             const map_id = update_dict.mapid;
@@ -2160,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++  create list of updated fields, before updating data_map, to make them green later
             const updated_fields = b_get_updated_fields_list(field_settings.wagefactor.field_names, wagefactor_map, update_dict);
-            console.log("updated_fields", updated_fields);
+            //console.log("updated_fields", updated_fields);
 
 // +++  update or add wagefactor_dict in wagefactor_map
             //console.log("data_map.size before: " + data_map.size);
@@ -2179,9 +2178,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if(is_created){
     //--- get new row_index
                 const search_orderby = (update_dict.code) ? update_dict.code.toLowerCase() : "";
-            console.log("search_orderby", search_orderby);
+            //console.log("search_orderby", search_orderby);
                 let row_index = t_get_rowindex_by_orderby(tblBody_paydatecode, search_orderby)
-            console.log("row_index", row_index);
+            //console.log("row_index", row_index);
                 // headerrow has index 0, filerrow has index 1. Deduct 1 for filterrow.
                 //row_index -= 1;
 
@@ -2271,8 +2270,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponse  ================ PR2020-06-10
     function UpdateFromResponse(update_dict) {
-       console.log(" --- UpdateFromResponse  ---");
-       console.log("update_dict", deepcopy_dict(update_dict));
+       //console.log(" --- UpdateFromResponse  ---");
+       //console.log("update_dict", deepcopy_dict(update_dict));
 
 //--- get info from updated item
         const tblName = get_dict_value(update_dict, ["id", "table"]);
@@ -2385,9 +2384,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  refresh_datamap_itemNEW  ================PR2020-09-08
     function refresh_datamap_itemNEW(tblName, data_map, update_dict, skip_show_ok) {
-        console.log(" --- refresh_datamap_itemNEW  ---");
-        console.log("update_dict", update_dict);
-        console.log("skip_show_ok", skip_show_ok);
+        //console.log(" --- refresh_datamap_itemNEW  ---");
+        //console.log("update_dict", update_dict);
+        //console.log("skip_show_ok", skip_show_ok);
 
 // ---  update or add update_dict in data_map
         const map_id = update_dict.mapid;
@@ -2398,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  refresh fields in tblRow
         refresh_tblRowNEW(update_dict, data_map, is_created, is_deleted, skip_show_ok);
 
-        console.log("data_map.size before: " + data_map.size);
+        //console.log("data_map.size before: " + data_map.size);
         const tblBody = tblBody_datatable;
         if(is_created){
 // ---  insert new item in alphabetical order
@@ -2417,7 +2416,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  update item in data_map
             data_map.set(map_id, update_dict)
         }
-        console.log("data_map.size after: " + data_map.size);
+        //console.log("data_map.size after: " + data_map.size);
 
 // +++  create tblRow when is_created
         let tblRow = null;
@@ -2452,7 +2451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  refresh_tblRowNEW  ================PR2020-09-08
     function refresh_tblRowNEW(update_dict, data_map, is_created, is_deleted, skip_show_ok) {
-        console.log(" --- refresh_tblRowNEW  ---");
+        //console.log(" --- refresh_tblRowNEW  ---");
 
         const tblRow = document.getElementById(update_dict.mapid);
         if(tblRow){
@@ -2500,7 +2499,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= HandleFilterToggle  =============== PR2020-09-29
     function HandleFilterToggle(el_input) {
-        console.log( "===== HandleFilterToggle  ========= ");
+        //console.log( "===== HandleFilterToggle  ========= ");
         const field_name = get_attr_from_el(el_input, "data-field")
         const filter_tag = get_attr_from_el(el_input, "data-filtertag")
         const col_index = get_attr_from_el_int(el_input, "data-colindex")
@@ -2647,7 +2646,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26 PR2020-06-20
-        console.log( "===== ResetFilterRows  ========= ");
+        //console.log( "===== ResetFilterRows  ========= ");
 
         filter_select = "";
         filter_mod_employee = "";
@@ -2884,8 +2883,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ModPeriodOpen=================== PR2020-07-12 PR2020-09-07
     function ModPeriodOpen () {
-        console.log("===  ModPeriodOpen  =====") ;
-        console.log("selected_period", selected_period) ;
+        //console.log("===  ModPeriodOpen  =====") ;
+        //console.log("selected_period", selected_period) ;
         mod_dict = selected_period;
 
 // ---  select btn  calendarperiod
@@ -2897,7 +2896,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModPeriodSave  ================ PR2020-07-15
     function ModPeriodSave() {
-        console.log("===  ModPeriodSave  =====") ;
+        //console.log("===  ModPeriodSave  =====") ;
 
 // --- reset table
         //tblHead_datatable.innerText = null
@@ -2969,7 +2968,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModPeriodSelectPeriod  ================ PR2020-09-07
     function MSPP_BtnSelect(selected_btn) {
-        console.log( "===== MSPP_BtnSelect ========= ");
+        //console.log( "===== MSPP_BtnSelect ========= ");
 
         mod_dict = {selected_btn: selected_btn,
                     paydatecode_pk: selected_paydatecode_pk,  // value '0' is used for blank payrollperiods
@@ -2980,7 +2979,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     period_datefirst: selected_period.period_datefirst,
                     period_datelast: selected_period.period_datelast,
                     };
-        console.log("mod_dict", deepcopy_dict(mod_dict))
+        //console.log("mod_dict", deepcopy_dict(mod_dict))
 
 // ---  highlight selected button
         let btns = document.getElementById("id_MSPP_btn_container").children;
@@ -2990,7 +2989,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 // fill select table
         if (selected_btn === "btn_calendarperiod"){
-             console.log( "=>>>> MSPP_FillSelectTable ========= calendarperiod");
+             //console.log( "=>>>> MSPP_FillSelectTable ========= calendarperiod");
             MSPP_FillSelectTable("calendarperiod");
 
     // ---  highligh selected period in table, put period_tag in data-tag of tblRow
@@ -3025,7 +3024,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // table will also be filled when input_payrollperiod got focus, but let this one stay
             // otherwise table stays blank until after input_payrollperiod got focus
             //const tblName = "payrollperiod";
-            // console.log( "=>>>> MSPP_FillSelectTable ========= ", tblName);
+            // //console.log( "=>>>> MSPP_FillSelectTable ========= ", tblName);
              // select table is filled by OnFocus event
            // MSPP_FillSelectTable(tblName);
             MSP_headertext();
@@ -3042,7 +3041,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSPP_SelectPeriod  ================ PR2020-07-12
     function MSPP_SelectPeriod(tr_clicked, selected_index) {
-        console.log( "===== MSPP_SelectPeriod ========= ", selected_index);
+        //console.log( "===== MSPP_SelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
 // ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
@@ -3090,7 +3089,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSPP_FillSelectTable  ================ PR2020-06-22
     function MSPP_FillSelectTable(tblName) {
-       console.log( "===== MSPP_FillSelectTable ========= ", tblName);
+       //console.log( "===== MSPP_FillSelectTable ========= ", tblName);
         const tblBody_select = el_MSPP_tblbody;
         tblBody_select.innerText = null;
 
@@ -3174,7 +3173,7 @@ if (tblName === "calendarperiod") {
 // --- select first row if table contains only one row td from selectRow.
             first_row.classList.add(cls_selected)
 
-        console.log( ">>>>>>>= MSP_SelectItem ========= ");
+        //console.log( ">>>>>>>= MSP_SelectItem ========= ");
             MSP_SelectItem(tblName, first_row);
             MSP_headertext();
             MSP_DisableBtnSave();
@@ -3193,7 +3192,7 @@ if (tblName === "calendarperiod") {
 //=========  MSPP_InputOnfocus  ================ PR2020-06-23 PR2020-09-07
     function MSPP_InputOnfocus(tblName) {
         // tblNames are 'payrollperiod', 'datelast'
-             console.log( "=>>>> MSPP_InputOnfocus ========= ", tblName);
+             //console.log( "=>>>> MSPP_InputOnfocus ========= ", tblName);
         MSPP_FillSelectTable(tblName)
         MSP_headertext();
         MSP_DisableBtnSave();
@@ -3201,8 +3200,8 @@ if (tblName === "calendarperiod") {
 
 //=========  MSPP_InputElementKeyup  ================ PR2020-06-22
     function MSPP_InputElementKeyup(tblName, el_input) {
-        console.log( "===== MSPP_InputElementKeyup ========= ");
-        console.log( "el_input", el_input);
+        //console.log( "===== MSPP_InputElementKeyup ========= ");
+        //console.log( "el_input", el_input);
         let new_filter = el_input.value;
 // ---  deselect all highlighted rows
         DeselectHighlightedTblbody(el_MSPP_tblbody, cls_selected)
@@ -3224,7 +3223,7 @@ if (tblName === "calendarperiod") {
                 // ---  highlight clicked row
                 tblRow.classList.add(cls_selected)
 
-        console.log( "===== MSP_SelectItem ========= ");
+        //console.log( "===== MSP_SelectItem ========= ");
 
 
                 MSP_SelectItem(tblName, tblRow);
@@ -3237,7 +3236,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MSP_SelecttableClicked  ================ PR2020-06-23
     function MSP_SelecttableClicked(tblName, tblRow) {
-        console.log( "===== MSP_SelecttableClicked ========= ");
+        //console.log( "===== MSP_SelecttableClicked ========= ");
         if(tblRow) {
 // ---  deselect all highlighted rows
             DeselectHighlightedRows(tblRow, cls_selected)
@@ -3257,7 +3256,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MSP_SelectItem  ================ PR2020-06-23
     function MSP_SelectItem(tblName, tblRow ) {
-        console.log( "===== MSP_SelectItem ========= ", tblName);
+        //console.log( "===== MSP_SelectItem ========= ", tblName);
         let selected_pk = null, selected_ppk = null, selected_caption = null;
         if(tblRow){
             selected_pk = get_attr_from_el(tblRow, "data-pk");
@@ -3265,10 +3264,10 @@ if (tblName === "calendarperiod") {
             selected_caption = get_attr_from_el(tblRow, "data-value");
         }
 
-        console.log( "??filter_dict", filter_dict);
-        console.log( "??selected_pk", selected_pk, typeof selected_pk);
-        console.log( "selected_ppk", selected_ppk, typeof selected_ppk);
-        console.log( "selected_caption", selected_caption);
+        //console.log( "??filter_dict", filter_dict);
+        //console.log( "??selected_pk", selected_pk, typeof selected_pk);
+        //console.log( "selected_ppk", selected_ppk, typeof selected_ppk);
+        //console.log( "selected_caption", selected_caption);
 
         if (tblName === "payrollperiod") {
             mod_dict.paydate_iso = null;
@@ -3304,7 +3303,7 @@ if (tblName === "calendarperiod") {
 
 // ---  fill table paydate when payrollperiod
         if (tblName === "payrollperiod") {
-             console.log( "=>>>> MSPP_FillSelectTable ========= datelast");
+             //console.log( "=>>>> MSPP_FillSelectTable ========= datelast");
             MSPP_FillSelectTable("datelast")
         };
     }  // MSP_SelectItem
@@ -3535,7 +3534,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MSO_FillSelectTableCustomer  ================ PR2020-02-07
     function MSO_FillSelectTableCustomer() {
-       console.log( "===== MSO_FillSelectTableCustomer ========= ");
+       //console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
         const tblHead = null, filter_ppk_int = null, filter_show_inactive = false, filter_include_inactive = false, filter_include_absence = false, filter_istemplate = false;
         const addall_to_list_txt = "<" + loc.All_customers + ">";
@@ -3571,7 +3570,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MSO_FillSelectTableOrder  ================ PR2020-02-07
     function MSO_FillSelectTableOrder() {
-       console.log( "===== MSO_FillSelectTableOrder ========= ");
+       //console.log( "===== MSO_FillSelectTableOrder ========= ");
        //console.log( "mod_MSO_dict.customer_pk: ", mod_MSO_dict.customer_pk);
        //console.log( "mod_MSO_dict.order_pk: ", mod_MSO_dict.order_pk);
 
@@ -3645,13 +3644,13 @@ if (tblName === "calendarperiod") {
         const employee_agg_map = new Map();
         if(employees_inuse_list) {
             for(let i = 0, row_dict; row_dict = employees_inuse_list[i]; i++){
-                console.log("row_dict", row_dict)
+                //console.log("row_dict", row_dict)
                 const map_dict = {id: {pk: row_dict.id, table: "employee"}, code: {value: row_dict.code }}
                 employee_agg_map.set("emplyee_" + row_dict.id, map_dict)
-                console.log("map_dict", map_dict)
+                //console.log("map_dict", map_dict)
             }
         }
-        console.log("employee_agg_map", employee_agg_map)
+        //console.log("employee_agg_map", employee_agg_map)
 
         t_Fill_SelectTable(tblBody_select, tblHead, employee_agg_map, "employee", selected_period.employee_pk, null,
             MSO_MSE_Filter_SelectRows, null, MSE_SelectEmployee, null, false,
@@ -3674,7 +3673,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MSE_Save  ================ PR2020-01-29
     function MSE_Save() {
-        console.log("===  MSE_Save =========");
+        //console.log("===  MSE_Save =========");
         const datalist_request = {
             payroll_period: {employee_pk: mod_MSE_dict.employee_pk},
             payroll_list: {get: true}
@@ -3982,7 +3981,7 @@ if (tblName === "calendarperiod") {
 // +++++++++++++++++ MODAL WAGEFACTOR ++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MWF_Open  ================ PR2020-07-13
     function MWF_Open(el_clicked) {
-        console.log("========= MWF_Open  ========= ");
+        //console.log("========= MWF_Open  ========= ");
 
 // ---  reset input boxes
         const input_container = document.getElementById("id_MWF_input_container");
@@ -3997,9 +3996,9 @@ if (tblName === "calendarperiod") {
         const map_dict = get_mapdict_from_datamap_by_id(wagefactor_map, map_id )
         const fldName = get_attr_from_el(el_clicked, "data-field");
 
-        console.log("fldName", fldName);
-        console.log("map_id", map_id);
-        console.log("map_dict", map_dict);
+        //console.log("fldName", fldName);
+        //console.log("map_id", map_id);
+        //console.log("map_dict", map_dict);
 // ---  get info from map_dict
         const pk_int = (!is_addnew) ? map_dict.id : null;
         const ppk_int = (!is_addnew) ? map_dict.comp_id :
@@ -4044,8 +4043,8 @@ if (tblName === "calendarperiod") {
 
 //=========  MWF_Save  ================ PR2020-07-13
     function MWF_Save(crud_mode) {
-        console.log("========= MWF_Save  ========= ");
-        console.log("mod_dict", mod_dict);
+        //console.log("========= MWF_Save  ========= ");
+        //console.log("mod_dict", mod_dict);
 
         const is_delete = (crud_mode === "delete")
 // ---  create upload_dict
@@ -4074,13 +4073,13 @@ if (tblName === "calendarperiod") {
             };
 // ---  get new_wagerate from input box
             const input_value = document.getElementById("id_MWF_input_wagerate").value
-        console.log("input_value", input_value, typeof input_value);
+        //console.log("input_value", input_value, typeof input_value);
             // get_number_from_input multiplies input_value by 10000
             const arr = get_number_from_input(loc, "wagefactor", input_value);
             // validation took place in MWF_input_keyup
             const new_wagerate = arr[0]
-        console.log("new_wagerate", new_wagerate, typeof new_wagerate);
-        console.log("mod_dict.wagerate", mod_dict.wagerate, typeof mod_dict.wagerate);
+        //console.log("new_wagerate", new_wagerate, typeof new_wagerate);
+        //console.log("mod_dict.wagerate", mod_dict.wagerate, typeof mod_dict.wagerate);
             if (new_wagerate !== mod_dict.wagerate) {
                 // new_wagerate is string, !!("0") = true, no need for (new_wagerate != null)
                 const new_wagerate_x_10000 = (new_wagerate) ? 10000 * new_wagerate : null;
@@ -4101,7 +4100,7 @@ if (tblName === "calendarperiod") {
         // el_input does not exist when called on open
         let msg_err = null;
         const fldName = get_attr_from_el(el_input, "data-field");
-        console.log("fldName", fldName)
+        //console.log("fldName", fldName)
         // show 'code_is_blank' err when code is blank, not on opening of form
         const code_is_blank = (!document.getElementById("id_MWF_input_code").value)
         const show_code_is_blank_msg = (code_is_blank && el_input)
@@ -4741,7 +4740,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MEP_Open  ================ PR2020-09-04
     function MEP_Open(tr_clicked) {
-        console.log("========= MEP_Open  ========= ");
+        //console.log("========= MEP_Open  ========= ");
         const emplhour_pk = get_attr_from_el_int(tr_clicked, "data-pk");
         const is_absence = !!get_attr_from_el_int(tr_clicked, "data-isabsence");
         mod_dict = {}
@@ -4766,7 +4765,7 @@ if (tblName === "calendarperiod") {
 
 //=========  MEP_Save  ================ PR2020-09-06
     function MEP_Save(tr_clicked) {
-        console.log("========= MEP_Save  ========= ");
+        //console.log("========= MEP_Save  ========= ");
 
         let upload_dict = {  //period_datefirst: selected_period.period_datefirst,
                    //period_datelast: selected_period.period_datelast,
@@ -4805,7 +4804,7 @@ if (tblName === "calendarperiod") {
             upload_dict.wagefactorcode = {pk: wagefactor_pk, update: true};
         }
 
-        console.log("upload_dict", upload_dict);
+        //console.log("upload_dict", upload_dict);
 
         UploadChanges(upload_dict, url_emplhour_upload);
 
@@ -4841,8 +4840,8 @@ if (tblName === "calendarperiod") {
 
 //=========  MEP_SetInputElements  ================ PR2020-06-28 PR2020-09-04
     function MEP_SetInputElements(emplhour_dict, emplhourlog_list) {
-        console.log("========= MEP_SetInputElements  ========= ");
-        console.log("emplhour_dict", emplhour_dict);
+        //console.log("========= MEP_SetInputElements  ========= ");
+        //console.log("emplhour_dict", emplhour_dict);
         //console.log("emplhourlog_list", emplhourlog_list);
 
         mod_dict = {pk: emplhour_dict.id,
@@ -5011,8 +5010,8 @@ if (tblName === "calendarperiod") {
 // +++++++++++++++++ MODAL ABSENCE CATEGORY ++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MAC_Open  ================ PR2020-06-09
     function MAC_Open(col_index, el_clicked) {
-        console.log("========= MAC_Open  ========= ");
-        console.log("el_clicked", el_clicked);
+        //console.log("========= MAC_Open  ========= ");
+        //console.log("el_clicked", el_clicked);
 
         const field_names = field_settings.abscat.field_names;
 
@@ -5043,7 +5042,7 @@ if (tblName === "calendarperiod") {
             }
             mod_dict = deepcopy_dict(abscat_dict)
         }
-        console.log("mod_dict ", mod_dict);
+        //console.log("mod_dict ", mod_dict);
 
 // ---  put abscat_code in header
         const header_text = (mod_dict.o_code) ? loc.Absence_category + ": " + mod_dict.o_code : loc.Absence_category;
@@ -5190,6 +5189,9 @@ if (tblName === "calendarperiod") {
         UploadSettings (upload_dict, url_settings_upload);
 
         selected_col_hidden = col_hidden
+
+        //console.log("selected_col_hidden", selected_col_hidden)
+
         HandleBtnSelect()
 
 // hide modal
@@ -5262,8 +5264,8 @@ if (tblName === "calendarperiod") {
 // +++++++++++++++++ MODAL CONFIRM ++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2020-06-10 PR2020-09-14
     function ModConfirmOpen(crud_mode, el_input) {
-        console.log(" -----  ModConfirmOpen   ----")
-        console.log("crud_mode", crud_mode)
+        //console.log(" -----  ModConfirmOpen   ----")
+        //console.log("crud_mode", crud_mode)
         // used in submenu_delete (el_input = undefined) and abscat UploadToggle
         const is_delete = (crud_mode === "delete");
         const is_set_inactive = (crud_mode === "inactive");
@@ -5345,8 +5347,8 @@ if (tblName === "calendarperiod") {
 
 //=========  ModConfirmSave  ==========  PR2020-06-10  PR2020-09-14
     function ModConfirmSave() {
-        console.log("===  ModConfirmSave  =====") ;
-        console.log("mod_dict", mod_dict) ;
+        //console.log("===  ModConfirmSave  =====") ;
+        //console.log("mod_dict", mod_dict) ;
         $("#id_mod_confirm").modal("hide");
 
         const tblName = mod_dict.table;
@@ -5422,9 +5424,9 @@ if (tblName === "calendarperiod") {
     };
 //========= get_ModConfirm_header_txt  ======== PR2020-09-14
     function get_ModConfirm_header_txt(tblName, is_delete) {
-        console.log("tblName", tblName);
-        console.log("is_delete", is_delete);
-        console.log("loc.Delete_wagefactor", loc.Delete_wagefactor);
+        //console.log("tblName", tblName);
+        //console.log("is_delete", is_delete);
+        //console.log("loc.Delete_wagefactor", loc.Delete_wagefactor);
         return (is_delete) ?
                     (tblName === "functioncode") ? loc.Delete_function :
                     (tblName === "wagecode") ? loc.Delete_wagecode :

@@ -5,7 +5,6 @@ from django.db.models.functions import  Coalesce
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import date, datetime, timedelta
-from timeit import default_timer as timer
 
 from accounts.models import Usersetting
 from companies import models as m
@@ -411,64 +410,6 @@ def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
     #logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
 
     return period_timestart_utc, period_timeend_utc
-
-
-def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-08-01
-    #logger.debug(' ============= get_range_enddate_iso ============= ')
-    #logger.debug(' range_startdate_iso: ' + str(range_startdate_iso) + ' rang: ' + str(range))
-     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
-
-# split range
-    year_add = 0
-    month_add = 0
-    day_add = 0
-    hour_add = 0
-    if range:
-        if ';' in range:
-            arr = range.split(';')
-            year_add = int(arr[0])
-            month_add = int(arr[1])
-            day_add = int(arr[2])
-            hour_add = int(arr[3])
-
-
-# split range_startdate_iso
-    arr = f.get_datetimearray_from_ISOstring(range_startdate_iso)
-    year_int = int(arr[0])
-    month_int = int(arr[1])
-    date_int = int(arr[2])
-
-    datetime_end = None
-    range_end_iso = ''
-    range_end_date = None
-# add range year/month/day/hour
-    if year_add  or month_add:
-        new_month = month_int + month_add
-        if new_month >= 12:
-            new_month = new_month % 12  # % modulus returns the decimal part (remainder) of the quotient
-            year_add = year_add + new_month // 12  # // floor division returns the integral part of the quotient.
-            # The % (modulo) operator yields the remainder from the division of the first argument by the second.
-        new_year = year_int + year_add
-
-        date_end_plus_one = date(new_year, new_month, date_int)
-        datetime_end_plus_one = f.get_datetime_naive_from_dateobject(date_end_plus_one)
-        datetime_end = datetime_end_plus_one + timedelta(days=-1)
-        range_end_date = datetime_end.date()
-
-    elif day_add > 0:
-        # convert range_timestart_utc to range_timestart_local
-        date_start = f.get_date_from_ISOstring(range_startdate_iso)
-        datetime_start = f.get_datetimenaive_from_ISOstring(range_startdate_iso)
-        #logger.debug(' datetime_start: ' + str(datetime_start) + ' rang: ' + str(type(datetime_start)))
-        # previous day is end date
-        day_add -= 1
-        datetime_end = datetime_start + timedelta(days=day_add)
-        range_end_date = datetime_end.date()
-
-    if range_end_date:
-        range_end_iso = range_end_date.isoformat()
-
-    return range_end_iso
 
 
 def get_period_from_settings(request):  # PR2019-07-09

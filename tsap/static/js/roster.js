@@ -1983,7 +1983,7 @@ rowcount: 11
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        console.log("===  ModalStatusSave =========");
+        //console.log("===  ModalStatusSave =========");
 
         // put values in el_body
         let el_body = document.getElementById("id_mod_status_body")
@@ -2050,7 +2050,7 @@ rowcount: 11
         $("#id_mod_status").modal("hide");
 
         if(!!upload_dict) {
-            console.log( "upload_dict", upload_dict);
+            //console.log( "upload_dict", upload_dict);
             let parameters = {"upload": JSON.stringify(upload_dict)};
 
             let response = "";
@@ -2060,8 +2060,8 @@ rowcount: 11
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("item_update" in response) {
                         let item_dict =response["item_update"]

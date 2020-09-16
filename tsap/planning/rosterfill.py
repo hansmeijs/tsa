@@ -36,106 +36,107 @@ idx_s_id = 3
 idx_s_code = 4
 idx_o_id = 5
 idx_o_code = 6
-idx_c_id = 7
-idx_c_code = 8
-idx_comp_id = 9
+idx_o_identifier = 7
+idx_c_id = 8
+idx_c_code = 9
+idx_comp_id = 10
 
-idx_e_id = 10  # is e_id_arr in customer_calendar
-idx_e_code = 11  # is e_code_arr in customer_calendar
+idx_e_id = 11 # is e_id_arr in customer_calendar
+idx_e_code = 12  # is e_code_arr in customer_calendar
 
-idx_e_identifier = 12
-idx_e_payrollcode = 13
+idx_e_identifier = 13
+idx_e_payrollcode = 14
 
-idx_rpl_id = 14  # is r_id_arr in customer_calendar
-idx_rpl_code = 15  # is r_code_arr in customer_calendar
+idx_rpl_id = 15  # is r_id_arr in customer_calendar
+idx_rpl_code = 16  # is r_code_arr in customer_calendar
 
-idx_rpl_identifier = 16
-idx_rpl_payrollcode = 17
+idx_rpl_identifier = 17
+idx_rpl_payrollcode = 18
 
-idx_si_id = 18
-idx_sh_id = 19
-idx_sh_code = 20
+idx_si_id = 19
+idx_sh_id = 20
+idx_sh_code = 21
 
-idx_sh_isbill = 21
-idx_o_seq = 22
-idx_si_mod = 23
+idx_sh_isbill = 22
+idx_o_seq = 23
+idx_si_mod = 24
 
-idx_tm_df = 24 # is null in customer_calendar
-idx_tm_dl = 25  # is null in customer_calendar
-idx_s_df = 26
-idx_s_dl = 27
-idx_s_cycle = 28
+idx_tm_df = 25 # is null in customer_calendar
+idx_tm_dl = 26  # is null in customer_calendar
+idx_s_df = 27
+idx_s_dl = 28
+idx_s_cycle = 29
 
-idx_s_exph = 29
-idx_s_exch = 30
-idx_s_dvgph = 31
+idx_s_exph = 30
+idx_s_exch = 31
+idx_s_dvgph = 32
 
-idx_o_s_nosat = 32
-idx_o_s_nosun = 33
-idx_o_s_noph = 34
-idx_o_s_noch = 35
+idx_o_s_nosat = 33
+idx_o_s_nosun = 34
+idx_o_s_noph = 35
+idx_o_s_noch = 36
 
-idx_sh_os = 36
-idx_sh_oe = 37
-idx_sh_os_nonull = 38  # non zero os for sorting when creating rosterdate
-idx_sh_oe_nonull = 39  # non zero os for sorting when creating rosterdate
-idx_sh_bd = 40
-idx_sh_td = 41
+idx_sh_os = 37
+idx_sh_oe = 38
+idx_sh_os_nonull = 39 # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 40  # non zero os for sorting when creating rosterdate
+idx_sh_bd = 41
+idx_sh_td = 42
 
-idx_tm_rd = 42
-idx_tm_count = 43
+idx_tm_rd = 43
+idx_tm_count = 44
 
-idx_e_tm_id_arr = 44
-idx_e_si_id_arr = 45
-idx_e_mod_arr = 46  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_os_arr = 47
-idx_e_oe_arr = 48
-idx_e_o_seq_arr = 49
+idx_e_tm_id_arr = 45
+idx_e_si_id_arr = 46
+idx_e_mod_arr = 47  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_os_arr = 48
+idx_e_oe_arr = 49
+idx_e_o_seq_arr = 50
 
-idx_r_tm_id_arr = 50
-idx_r_si_id_arr = 51
-idx_r_mod_arr = 52
-idx_r_os_arr = 53
-idx_r_oe_arr = 54
-idx_r_o_seq_arr = 55
+idx_r_tm_id_arr = 51
+idx_r_si_id_arr = 52
+idx_r_mod_arr = 53
+idx_r_os_arr = 54
+idx_r_oe_arr = 55
+idx_r_o_seq_arr = 56
 
-idx_isreplacement = 56  # gets value not in sql but in calculate_add_row_to_dict
+idx_isreplacement = 57  # gets value not in sql but in calculate_add_row_to_dict
 
-idx_tm_ovr = 57
-idx_tm_prc_id = 58
-idx_sh_prc_id = 59
-idx_e_prc_id = 60
-idx_r_prc_id = 61
+idx_tm_ovr = 58
+idx_tm_prc_id = 59
+idx_sh_prc_id = 60
+idx_e_prc_id = 61
+idx_r_prc_id = 62
 
-idx_tm_adc_id = 62
-idx_sh_adc_id = 63
-idx_e_adc_id = 64
-idx_r_adc_id = 65
+idx_tm_adc_id = 63
+idx_sh_adc_id = 64
+idx_e_adc_id = 65
+idx_r_adc_id = 66
 
-idx_sh_txc_id = 66
-idx_o_inv_id = 67
+idx_sh_txc_id = 67
+idx_o_inv_id = 68
 
-idx_e_fnc_id = 68
-idx_e_fnc_code = 69
-idx_e_wgc_id = 70
-idx_e_wgc_code = 71
-idx_e_pdc_id = 72
-idx_e_pdc_code = 73
-idx_e_pdc_dte = 74
-idx_e_wmpd = 75
+idx_e_fnc_id = 69
+idx_e_fnc_code = 70
+idx_e_wgc_id = 71
+idx_e_wgc_code = 72
+idx_e_pdc_id = 73
+idx_e_pdc_code = 74
+idx_e_pdc_dte = 75
+idx_e_wmpd = 76
 
-idx_r_fnc_id = 76
-idx_r_fnc_code = 77
-idx_r_wgc_id = 78
-idx_r_wgc_code = 79
-idx_r_pdc_id = 80
-idx_r_pdc_code = 81
-idx_r_pdc_dte = 82
-idx_r_wmpd = 83
+idx_r_fnc_id = 77
+idx_r_fnc_code = 78
+idx_r_wgc_id = 79
+idx_r_wgc_code = 80
+idx_r_pdc_id = 81
+idx_r_pdc_code = 82
+idx_r_pdc_dte = 83
+idx_r_wmpd = 84
 
-idx_sh_wfc_id = 84
+idx_sh_wfc_id = 85
 
-idx_o_nopay = 85
+idx_o_nopay = 86
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -528,7 +529,8 @@ sql_teammember_sub08 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,      
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,     
+        COALESCE(o.identifier,'') AS o_identifier, 
         c.id AS c_id, 
         COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
         c.company_id AS comp_id, 
@@ -969,7 +971,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
 def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                            lastof_month, comp_timezone, request):  # PR2020-01-5 PR2020-08-14
-    logger.debug(' ============= add_orderhour_emplhour ============= ')
+    #logger.debug(' ============= add_orderhour_emplhour ============= ')
 
     # mode 'i' = inactive
     # mode 'a' = isabsence
@@ -1004,8 +1006,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             row[idx_o_s_nosat], row[idx_o_s_nosun], row[idx_o_s_noph], row[idx_o_s_noch],
             employee_pk, row[idx_e_wmpd], comp_timezone)
 
-    logger.debug('row[idx_sh_os]: ' + str(row[idx_sh_os]) + ' row[idx_sh_oe]: ' + str(row[idx_sh_oe]))
-    logger.debug('excel_date: ' + str(excel_date) + ' excel_start: ' + str(excel_start) + ' excel_end: ' + str(excel_end))
+    #logger.debug('row[idx_sh_os]: ' + str(row[idx_sh_os]) + ' row[idx_sh_oe]: ' + str(row[idx_sh_oe]))
+    #logger.debug('excel_date: ' + str(excel_date) + ' excel_start: ' + str(excel_start) + ' excel_end: ' + str(excel_end))
 
     # calculate datepart
     date_part = 0
@@ -2955,12 +2957,13 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
 
         planning_dict_short = {
                     'fid': '_'.join([str(row[idx_tm_id]), str(row[idx_si_id]), str(row[idx_tm_rd])]),
-                    'employee_pk': row[idx_e_id],
+                    'e_id': row[idx_e_id],
                     'e_code': row[idx_e_code],
                     'e_identifier': row[idx_e_identifier],
                     'e_payrollcode': row[idx_e_payrollcode],
                     'order_pk': row[idx_o_id],
                     'o_code': row[idx_o_code],
+                    'o_identifier': row[idx_o_identifier],
                     'c_code': row[idx_c_code],
                     'c_o_code': ' '.join( (row[idx_c_code], '-', row[idx_o_code])),
 
@@ -3460,7 +3463,8 @@ sql_customer_calendar_team_sub11 = """
         s.id AS s_id,
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,  
+        COALESCE(o.identifier,'') AS o_identifier, 
         c.id AS c_id, 
         COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
         c.company_id AS comp_id,

@@ -2437,15 +2437,15 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
                 if 'shiftdict' in upload_dict:
                     shift_dict = upload_dict.get('shiftdict')
-                    logger.debug('shift_dict: ' + str(shift_dict))
+                    #logger.debug('shift_dict: ' + str(shift_dict))
                     rosterdate_iso = shift_dict.get('rosterdate')
                     emplhour_pk = f.get_dict_value(shift_dict, ('emplhour_pk',), 0)
                     rosterdate_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_iso)
-                    logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
-                    logger.debug('emplhour_pk: ' + str(emplhour_pk))
+                    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
+                    #logger.debug('emplhour_pk: ' + str(emplhour_pk))
                     if rosterdate_dte:
                         sql_emplhour = """ SELECT o.id, 
                             CONCAT(c.code,' - ',o.code), 
@@ -2495,8 +2495,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
@@ -2513,7 +2513,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 eplh_update_list = [] # list of emplhour_pk's that must be put in emplhour_rows
                 check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
@@ -3144,8 +3144,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    logger.debug(' --------- update_emplhour -------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --------- update_emplhour -------------')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_changed = False
     if emplhour:
@@ -3177,16 +3177,16 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         cur_employee = emplhour.employee
                         if cur_employee:
                             old_employee_pk = cur_employee.pk
-                        logger.debug('cur_employee: ' + str(cur_employee))
+                        #logger.debug('cur_employee: ' + str(cur_employee))
                 # - get new employee
                         new_employee = None
                         new_employee_pk = field_dict.get('pk')
-                        logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+                        #logger.debug('field_dict[' + field + ']: ' + str(field_dict))
                         if new_employee_pk:
                             new_employee = m.Employee.objects.filter(company=request.user.company, pk=new_employee_pk).first()
                             if new_employee is None:
                                 new_employee_pk = None
-                        logger.debug('new_employee: ' + str(new_employee))
+                        #logger.debug('new_employee: ' + str(new_employee))
                 # - save field if changed
                         # employee_pk is not required, new_employee_pk may be None
                         if new_employee_pk != old_employee_pk:
@@ -3222,7 +3222,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             # clear_overlap_list contains emplhour_pk's that must be cleared
                             if emplhour.pk not in clear_overlap_list:
                                 clear_overlap_list.append(emplhour.pk)
-                            logger.debug('save new_employee')
+                            #logger.debug('save new_employee')
 # ---   save changes in field 'shift'.
                     #  Note: field 'shift' is in orderhour, not emplhour!!
                     # 'shift': {'code': '08:00 - 1:00', 'update': True}
@@ -3237,13 +3237,13 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     elif field in ('offsetstart', 'offsetend'):
                         # 'offsetstart': {'value': -560, 'update': True}}
                         # use saved_rosterdate to calculate time from offset
-                        logger.debug('field: ' + str(field))
-                        logger.debug('emplhour.rosterdate: ' + str(emplhour.rosterdate))
+                        #logger.debug('field: ' + str(field))
+                        #logger.debug('emplhour.rosterdate: ' + str(emplhour.rosterdate))
                         if emplhour.rosterdate:
                     # - get new offset of this emplhour
                             # value = 0 means midnight, value = null means blank
                             new_offset_int = field_dict.get('value')
-                            logger.debug('new_offset_int: ' + str(new_offset_int))
+                            #logger.debug('new_offset_int: ' + str(new_offset_int))
                     # -  set timeduration to 0 when is calculated duration and offset is set to None PR2020-08-23
                             if new_offset_int is None:
                                 if emplhour.offsetstart is not None and emplhour.offsetend is not None:
@@ -3260,8 +3260,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             offset_nonull = new_offset_int if new_offset_int else 0
                             excel_value = excel_date * 1440 + offset_nonull
                             setattr(emplhour, excel_field, excel_value)
-                            logger.debug('excel_field: ' + str(excel_field))
-                            logger.debug('excel_value: ' + str(excel_value))
+                            #logger.debug('excel_field: ' + str(excel_field))
+                            #logger.debug('excel_value: ' + str(excel_value))
                     # - set is_updated and  recalc_duration to True
                             is_updated = True
                             recalc_duration = True
@@ -3293,16 +3293,16 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         #     isfunctioncode = BooleanField(default=False)
                         # Wagcode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
                    # - get current instance
-                        logger.debug('field: ' + str(field))
+                        #logger.debug('field: ' + str(field))
                         old_instance_pk = None
                         if field == 'functioncode':
                             old_instance_pk = emplhour.functioncode_id
                         elif field == 'wagefactorcode':
                             old_instance_pk = emplhour.wagefactorcode_id
-                        logger.debug('old_instance_pk: ' + str(old_instance_pk))
+                        #logger.debug('old_instance_pk: ' + str(old_instance_pk))
 
                         new_pk = field_dict.get('pk')
-                        logger.debug('new_pk: ' + str(new_pk))
+                        #logger.debug('new_pk: ' + str(new_pk))
                         if new_pk:
                             new_instance = m.Wagecode.objects.get_or_none(
                                     id=new_pk,
@@ -3311,19 +3311,19 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                     company=request.user.company)
                             if new_instance is None:
                                 new_pk = None
-                            logger.debug('new_instance: ' + str(new_instance))
+                            #logger.debug('new_instance: ' + str(new_instance))
                     # - save field if changed
                             # new_pk is not required, new_pk may be None
                             if new_pk != old_instance_pk:
                                 setattr(emplhour, field, new_instance)
-                                logger.debug('new_instance saved')
+                                #logger.debug('new_instance saved')
                     # also update fields wagefactor or wagerate
                                 if field == 'wagefactorcode':
                                     new_wagefactor = None
                                     if new_instance:
                                         new_wagefactor = new_instance.wagerate  # wagefactor is also stored in this fieldalso
                                     setattr(emplhour, 'wagefactor', new_wagefactor)
-                                    logger.debug('new_wagefactor: ' + str(new_wagefactor))
+                                    #logger.debug('new_wagefactor: ' + str(new_wagefactor))
                                 is_updated = True
                                 has_changed = True
 
@@ -3361,7 +3361,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 # --- recalculate timeduration and amount, addition, tax, wage
         #logger.debug('calculate working hours')
         if recalc_duration:
-            logger.debug(' --- recalc_duration --- ')
+            #logger.debug(' --- recalc_duration --- ')
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
 
@@ -3467,7 +3467,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     emplhour.haschanged = True
 # - save emplhour
                 emplhour.save(request=request, last_emplhour_updated=True)
-                logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
+                #logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
 # - save to log after saving emplhour and orderhour, also when emplhour is_created
                 m.save_to_emplhourlog(emplhour.pk, request, False) # is_deleted=False
             except:

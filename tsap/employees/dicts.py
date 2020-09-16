@@ -205,94 +205,6 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
 # >>>   end create_employee_dict
 
 
-
-def create_employee_dictXXX(instance, item_dict, user_lang):
-    # --- create dict of this employee PR2019-07-26 PR2020-06-18
-
-    if instance:
-
-# ---  get min max date
-
-
-        datefirst = getattr(instance, 'datefirst')
-        datelast = getattr(instance, 'datelast')
-
-        workhoursperweek = getattr(instance, 'workhoursperweek', 0)  # workhours per week * 60, unit is minute
-        #workdays = getattr(instance, 'workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
-        workminutesperday = getattr(instance, 'workminutesperday', 0)  # workhours per week * 60, unit is minute
-
-        for field in c.FIELDS_EMPLOYEE:
-# --- get field_dict from  item_dict if it exists
-            field_dict = item_dict[field] if field in item_dict else {}
-
-            if field == 'id':
-                field_dict['pk'] = instance.pk
-                field_dict['ppk'] = instance.company.pk
-                field_dict['table'] = 'employee'
-
-            elif field == 'company':
-                pass
-
-            elif field in ['datefirst', 'datelast']:
-            # also add date when empty, to add min max date
-                if datefirst or datelast:
-                    if field == 'datefirst':
-                        f.set_fielddict_date(
-                            field_dict=field_dict,
-                            date_obj=datefirst,
-                            maxdate=datelast)
-                    elif field == 'datelast':
-                        f.set_fielddict_date(
-                            field_dict=field_dict,
-                            date_obj=datelast,
-                            mindate=datefirst)
-
-            elif field == 'workhoursperweek':
-                if workhoursperweek:
-                    field_dict['value'] = workhoursperweek
-            elif field == 'workdays':
-                if workdays:
-                    field_dict['value'] = workdays
-
-            elif field in ['functioncode', 'wagecode', 'paydatecode']:
-                pk = getattr(instance, field)
-                if field == 'functioncode':
-                    if instance.functioncode:
-                        field_dict['pk'] = instance.functioncode.pk
-                        field_dict['value'] = instance.functioncode.code
-                elif field == 'wagecode':
-                    if instance.wagecode:
-                        field_dict['pk'] = instance.wagecode.pk
-                        field_dict['value'] = instance.wagecode.code
-                elif field == 'paydatecode':
-                    if instance.paydatecode:
-                        field_dict['pk'] = instance.paydatecode.pk
-                        field_dict['value'] = instance.paydatecode.code
-
-            elif field in ['priceratejson']:
-                pricerate = getattr(instance, field)
-                if pricerate is not None:
-                    field_dict['value'] = pricerate
-                field_dict['display'] = f.display_pricerate(pricerate, False, user_lang)
-
-            else:
-                value = getattr(instance, field)
-                if value:
-                    field_dict['value'] = value
-
-            item_dict[field] = field_dict
-
-        if workhoursperweek and workdays:
-            fld = 'workminutesperday'
-            if fld not in item_dict:
-                item_dict[fld] = {}
-            item_dict[fld]['value'] = workminutesperday
-
-# 7. remove empty attributes from item_update
-    f.remove_empty_attr_from_dict(item_dict)
-# >>>   end create_employee_dict
-
-
 def create_teammember_list(filter_dict, company, user_lang):
     #logger.debug(' ----- create_teammember_list  -----  ')
     #logger.debug('filter_dict: ' + str(filter_dict) )
@@ -1067,7 +979,7 @@ def create_employees_inuse_list(period_dict, request):
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     employees_inuse_list = f.dictfetchall(newcursor)
-    logger.debug('employees_inuse_list: ' + str(employees_inuse_list))
+    #logger.debug('employees_inuse_list: ' + str(employees_inuse_list))
 
     return employees_inuse_list
 # ---  end of create_employees_inuse_list
@@ -1228,7 +1140,7 @@ def create_payroll_abscat_period_list(period_datefirst, period_datelast, request
 
 ####################===============@@@@@@@@@@@@@@@@@@@@@@@
 def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request):
-    logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
+    #logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
     #logger.debug('payroll_period: ' + str(payroll_period))
     payrollperiod_detail_list = []
     if request.user.company:
@@ -1319,7 +1231,7 @@ def create_payroll_detail_list(payroll_period, request):
             # TODO add planning to payrollperiod_detail_list
 
             rosterdate_rows = get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, request)
-            logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
+            #logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
 
             ###############################
             # +++++ loop through dates that are not in payrollperiod_detail_list and add planning
@@ -1408,6 +1320,7 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, request):
         o.id AS order_id,
         
         o.code AS o_code,
+        o.identifier AS o_identifier,
         c.code AS c_code,
         CONCAT(c.code, ' - ', o.code) AS c_o_code,
 

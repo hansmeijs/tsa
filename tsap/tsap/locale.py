@@ -290,8 +290,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     elif page == 'payroll':
         dict['ID_number_2lines'] = TXT_ID_number_2lines
         dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
+        dict['Identifier_2lines'] = TXT_Identifier_2lines
 
-        dict['Payroll_2lines'] = TXT_Payroll_2lines
         dict['No_payroll_periods'] = TXT_No_payroll_periods
         dict['Choose_payroll_period'] = TXT_Choose_payroll_period
         dict['Choose_closingdate'] = TXT_Choose_closingdate
@@ -1192,6 +1192,7 @@ TXT_No_order_selected = _('There is no order selected.')
 TXT_Customer_list = _('Customer list')
 TXT_No_customers = _('No customers')
 TXT_Identifier = _('Identifier')
+TXT_Identifier_2lines = pgettext_lazy('Identifier_2lines', 'Identifier')
 TXT_ID_number = _('ID number')
 TXT_ID_number_2lines = pgettext_lazy('ID_number_2lines', 'ID number')
 TXT_Payroll_code = _('Payroll code')
@@ -1607,8 +1608,12 @@ TXT_Period_planning_list = (
 )
 
 TXT_payroll_columns_list = (
-    ('identifier', TXT_ID_number),
+    ('employee_code', TXT_Employee),
+    ('e_identifier', TXT_ID_number),
     ('payrollcode', TXT_Payroll_code),
+    ('rosterdate', TXT_Date),
+    ('c_o_code', _('Customer and order')),
+    ('o_identifier', _('Order identifier')),
     ('offsetstart', TXT_Start_time),
     ('offsetend', TXT_End_time),
     ('plandur',  TXT_Planned_hours),
