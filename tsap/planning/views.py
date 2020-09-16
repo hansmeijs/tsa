@@ -137,7 +137,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if request_item:
                         employee_list, employee_rows = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
                         datalists['employee_list'] = employee_list
-                        datalists['employee_rows'] = employee_rows
+                    request_item = datalist_request.get('employee_rows')
+                    if request_item:
+                        datalists['employee_rows'] = ed.create_employee_rows(request_item, {}, request)
+
 # ----- customer
                     request_item = datalist_request.get('customer_list')
                     if request_item:
@@ -159,16 +162,21 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['order_list'] = order_list
                         datalists['order_rows'] = order_rows
 # ----- abscat_list
-                    request_item = datalist_request.get('abscat_list')
-                    #logger.debug('request_item abscat_list' + str(request_item))
+                    if datalist_request.get('abscat_list'):
+                        datalists['abscat_list'] = cust_dicts.create_abscat_order_list(request)
+                    request_item = datalist_request.get('abscat_rows')
                     if request_item:
-                        abscat_order_list, abscat_order_rows = cust_dicts.create_abscat_order_list(request)
-                        datalists['abscat_list'] = abscat_order_list
-                        datalists['abscat_rows'] = abscat_order_rows
-# ----- absence_list used in scheme. TODO change absence_list to absence_rows in scheme page
-                    request_item = datalist_request.get('absence_list')
+                        datalists['abscat_rows'] = cust_dicts.create_abscat_order_rows(
+                            request=request, request_item=request_item)
+
+# ----- absence_rows used in scheme and employee
+                    request_item = datalist_request.get('absence_rows')
                     if request_item:
-                        datalists['absence_rows'] = ed.create_absence_rows(filter_dict=request_item, teammember_pk=None, request=request)
+                        datalists['absence_rows'] = ed.create_absence_rows(
+                            filter_dict=request_item,
+                            teammember_pk=None,
+                            msg_dict = {},
+                            request=request)
 
 # - page_scheme_list - lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
                     request_item = datalist_request.get('page_scheme_list')
@@ -342,22 +350,22 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['orders_inuse_list'] = \
                             ed.create_orders_inuse_list(period_dict=payroll_period, request=request)
 
-# - paydatecode_list
-                    request_item = datalist_request.get('paydatecode_list')
+# - paydatecode_rows
+                    request_item = datalist_request.get('paydatecode_rows')
                     if request_item:
-                        ed.create_paydatecode_list(request_item, datalists, request)
+                        paydatecode_rows, paydateitem_rows = ed.create_paydatecode_rows(request_item, request)
+                        datalists['paydatecode_rows'] = paydatecode_rows
+                        datalists['paydateitem_rows'] = paydateitem_rows
 # - wagecode_list
                     request_item = datalist_request.get('wagecode_list')
                     if request_item:
                         ed.create_wagecode_list(request_item, datalists, request)
-# - wagefactor_list
-                    request_item = datalist_request.get('wagefactor_list')
-                    if request_item:
-                        ed.create_wagefactor_list(request_item, datalists, request)
+# - wagefactor_rows
+                    if datalist_request.get('wagefactor_rows'):
+                        datalists['wagefactor_rows'] = ed.create_wagefactor_rows(request, {})
 # - functioncode_list
-                    request_item = datalist_request.get('functioncode_list')
-                    if request_item:
-                        ed.create_functioncode_list(request_item, datalists, request)
+                    if datalist_request.get('functioncode_rows'):
+                        datalists['functioncode_rows'] = ed.create_functioncode_rows(request)
 
 # ----- employee_calendar
                     request_item = datalist_request.get('employee_calendar')
@@ -1959,7 +1967,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                             for schemeitem in schemeitems:
 
             # append existing schemeitems to schemeitem_list
-                                # schemeitem, user_lang, temp_pk=None, is_created=False, is_deleted=False, updated_list=None):
+                                # schemeitem, user_lang, is_created=False, is_deleted=False, updated_list=None):
                                 schemeitem_dict = {}
                                 d.create_schemeitem_dict(schemeitem, schemeitem_dict)
                                 schemeitem_list.append(schemeitem_dict)
@@ -2041,7 +2049,6 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                 table='schemeitem',
                                 pk=schemeitem.id,
                                 ppk=schemeitem.scheme.id,
-                                temp_pk=None,
                                 row_index=None)
 
                 # d. update and save schemeitem
@@ -2488,8 +2495,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ')
-        #logger.debug(' ============= EmplhourUploadView ============= ')
+        logger.debug(' ')
+        logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
@@ -2506,7 +2513,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
                 eplh_update_list = [] # list of emplhour_pk's that must be put in emplhour_rows
                 check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
@@ -2585,8 +2592,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list,
                                                   request, comp_timezone, timeformat, user_lang, eplh_update_list)
 # 6. create emplhour_rows
-                period_dict = {'eplh_update_list': eplh_update_list}
-                emplhour_rows = d.create_emplhour_rows(period_dict, request, None, is_delete)
+                filter_dict = {'eplh_update_list': eplh_update_list}
+                emplhour_rows = d.create_emplhour_rows(filter_dict, request, None, is_delete)
                 if deleted_list:
                     emplhour_rows.extend(deleted_list)
                 if emplhour_rows:
@@ -3148,8 +3155,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
         is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
         is_restshift = emplhour.orderhour.isrestshift
         is_absence = emplhour.orderhour.isabsence
-
-        saved_rosterdate_dte = getattr(emplhour, 'rosterdate')
+        is_billable = emplhour.orderhour.isbillable
 
         for field in c.FIELDS_EMPLHOUR:
 # --- get field_dict from  upload_dict  if it exists
@@ -3231,43 +3237,31 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     elif field in ('offsetstart', 'offsetend'):
                         # 'offsetstart': {'value': -560, 'update': True}}
                         # use saved_rosterdate to calculate time from offset
-                        #logger.debug('field: ' + str(field))
-                        #logger.debug('saved_rosterdate_dte: ' + str(saved_rosterdate_dte))
-                        if saved_rosterdate_dte:
+                        logger.debug('field: ' + str(field))
+                        logger.debug('emplhour.rosterdate: ' + str(emplhour.rosterdate))
+                        if emplhour.rosterdate:
                     # - get new offset of this emplhour
                             # value = 0 means midnight, value = null means blank
                             new_offset_int = field_dict.get('value')
-                            #logger.debug('new_offset_int: ' + str(new_offset_int))
+                            logger.debug('new_offset_int: ' + str(new_offset_int))
                     # -  set timeduration to 0 when is calculated duration and offset is set to None PR2020-08-23
                             if new_offset_int is None:
                                 if emplhour.offsetstart is not None and emplhour.offsetend is not None:
                                     emplhour.timeduration = 0
                     # - save offsetstart, offsetend PR2020-04-09
                             setattr(emplhour, field, new_offset_int)
-                    # - convert rosterdate '2019-08-09' to datetime object
-                            rosterdatetime = f.get_datetime_naive_from_dateobject(saved_rosterdate_dte)
-                            # rosterdatetime: 2020-02-16 00:00:00
                     # - get timestart/timeend from rosterdate and offsetstart /-end
-                            new_datetimelocal = f.get_datetimelocal_from_offset(
-                                rosterdate=rosterdatetime,
-                                offset_int=new_offset_int,
-                                comp_timezone=comp_timezone)
-                            # new_datetimelocal: 2020-02-15 14:40:00+01:00
-                            # must be stored als utc??
-                            # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
-                            time_field = 'timestart' if field == 'offsetstart' else  'timeend'
-                            setattr(emplhour, time_field, new_datetimelocal)
+                            # timestart/timeend will be recalculated in recalc_duration
 
-                            #logger.debug('time_field: ' + str(time_field))
-                            #logger.debug('new_datetimelocal: ' + str(new_datetimelocal))
                     # - also save excelstart, excelend PR2020-05-11
+                            # excelstart, excelend will be recalculated in recalc_duration
                             excel_field = 'excelstart' if field == 'offsetstart' else  'excelend'
-                            excel_date = f.get_Exceldate_from_datetime(saved_rosterdate_dte)
+                            excel_date = f.get_Exceldate_from_datetime(emplhour.rosterdate)
                             offset_nonull = new_offset_int if new_offset_int else 0
                             excel_value = excel_date * 1440 + offset_nonull
                             setattr(emplhour, excel_field, excel_value)
-                            #logger.debug('excel_field: ' + str(excel_field))
-                            #logger.debug('excel_value: ' + str(excel_value))
+                            logger.debug('excel_field: ' + str(excel_field))
+                            logger.debug('excel_value: ' + str(excel_value))
                     # - set is_updated and  recalc_duration to True
                             is_updated = True
                             recalc_duration = True
@@ -3289,6 +3283,52 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             is_updated = True
                             recalc_duration = True
                             has_changed = True
+#############################################
+# ---   save changes in breakduration and timeduration field
+                    elif field in ('functioncode', 'wagefactorcode'):
+                        # calculated other fields are: wagefactor wagecode , wagerate , wage
+                        # values of these 3 fields are stored in table 'Wagecode'
+                        #     iswagecode = BooleanField(default=False)
+                        #     iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
+                        #     isfunctioncode = BooleanField(default=False)
+                        # Wagcode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
+                   # - get current instance
+                        logger.debug('field: ' + str(field))
+                        old_instance_pk = None
+                        if field == 'functioncode':
+                            old_instance_pk = emplhour.functioncode_id
+                        elif field == 'wagefactorcode':
+                            old_instance_pk = emplhour.wagefactorcode_id
+                        logger.debug('old_instance_pk: ' + str(old_instance_pk))
+
+                        new_pk = field_dict.get('pk')
+                        logger.debug('new_pk: ' + str(new_pk))
+                        if new_pk:
+                            new_instance = m.Wagecode.objects.get_or_none(
+                                    id=new_pk,
+                                    isfunctioncode=(field == 'functioncode'),
+                                    iswagefactor=(field == 'wagefactorcode'),
+                                    company=request.user.company)
+                            if new_instance is None:
+                                new_pk = None
+                            logger.debug('new_instance: ' + str(new_instance))
+                    # - save field if changed
+                            # new_pk is not required, new_pk may be None
+                            if new_pk != old_instance_pk:
+                                setattr(emplhour, field, new_instance)
+                                logger.debug('new_instance saved')
+                    # also update fields wagefactor or wagerate
+                                if field == 'wagefactorcode':
+                                    new_wagefactor = None
+                                    if new_instance:
+                                        new_wagefactor = new_instance.wagerate  # wagefactor is also stored in this fieldalso
+                                    setattr(emplhour, 'wagefactor', new_wagefactor)
+                                    logger.debug('new_wagefactor: ' + str(new_wagefactor))
+                                is_updated = True
+                                has_changed = True
+
+
+###########################################
 # ---   save changes in field 'status' when clicked on confirmstart or confirmend
                     elif field in ('confirmstart', 'confirmend'):
                         old_status_sum = getattr(emplhour, field, 0)
@@ -3321,45 +3361,51 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 # --- recalculate timeduration and amount, addition, tax, wage
         #logger.debug('calculate working hours')
         if recalc_duration:
-            #logger.debug(' --- recalc_duration --- ')
+            logger.debug(' --- recalc_duration --- ')
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
-            saved_time_duration = getattr(emplhour, 'timeduration', 0)
-            new_time_duration = saved_time_duration
-            field = 'timeduration'
-            if emplhour.offsetstart and emplhour.offsetend:
-                #('emplhour.offsetstart: ' + str(emplhour.offsetstart))
-                #logger.debug('emplhour.offsetend: ' + str(emplhour.offsetend))
-                saved_breakduration = getattr(emplhour, 'breakduration', 0)
-                #logger.debug('saved_breakduration: ' + str(saved_breakduration))
-    # - calculate new_minutes from timestart and timeend, returns 0 when timestart or timeend is None
-                #new_time_duration = f.get_timeduration(
-                #    timestart=emplhour.timestart,
-                #    timeend=emplhour.timeend,
-                #    breakduration=saved_breakduration)
-                new_time_duration = emplhour.offsetend - emplhour.offsetstart - saved_breakduration
-                if new_time_duration < 0:
-                    new_time_duration = 0
-                #logger.debug('new_time_duration: ' + str(new_time_duration))
 
-    # - set plannedduration and billingduration
-            # - only when created record, not when absence or restshift, but don't skip when employee = None PR2020-08-07
-            if is_create and new_time_duration and not is_restshift and not is_absence:
-                setattr(emplhour, 'plannedduration', new_time_duration)
-                setattr(emplhour, 'billingduration', new_time_duration)
+            # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+                f.get_issat_issun_isph_isch_from_rosterdate(
+                    rosterdate_dte=emplhour.rosterdate,
+                    request=request)
+            employee_pk = emplhour.employee.pk if emplhour.employee else None
+            employee_wmpd = emplhour.employee.workminutesperday if emplhour.employee else None
 
-    # - set new_time_duration = 0 when restshift or employee = None PR2020-07-24
-            # Note: not when isabsence, absence hours are stored in field 'timeduration'
-            if is_restshift or emplhour.employee is None:
-                new_time_duration = 0
+            nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
+                get_nosat_nosun_noph_noch(emplhour)
 
-    # - save timeduration
-            if new_time_duration != saved_time_duration:
-                setattr(emplhour, field, new_time_duration)
+            timestart, timeend, planned_durationNIU, time_duration, billing_duration, excel_dateNIU, excel_start, excel_end = \
+                f.calc_timedur_plandur_from_offset(
+                    rosterdate_dte=emplhour.rosterdate,
+                    is_absence=is_absence,
+                    is_restshift=is_restshift,
+                    is_billable=is_billable,
+                    is_sat=is_saturday,
+                    is_sun=is_sunday,
+                    is_ph=is_publicholiday,
+                    is_ch=is_companyholiday,
+                    row_offsetstart=emplhour.offsetstart,
+                    row_offsetend=emplhour.offsetend,
+                    row_breakduration=emplhour.breakduration,
+                    row_timeduration=emplhour.timeduration,
+                    row_nosat=nohours_onsaturday,
+                    row_nosun=nohours_onsunday,
+                    row_noph=nohours_onpublicholiday,
+                    row_noch=nohours_oncompanyholiday,
+                    row_employee_pk=employee_pk,
+                    row_employee_wmpd=employee_wmpd,
+                    comp_timezone=comp_timezone)
 
-    # - when is_billable: make billingduration equal to time_duration
-            if emplhour.orderhour.isbillable:
-                setattr(emplhour, 'billingduration', emplhour.timeduration)
+            emplhour.timestart = timestart
+            emplhour.timeend = timeend
+            # dont change planned_duration
+            emplhour.timeduration = time_duration
+            emplhour.billingduration = billing_duration
+            # dont change  'excel_date'
+            emplhour.excelstart = excel_start
+            emplhour.excelend = excel_end
 
     # get pricerate, additionrate, taxrate
             pricecode = f.get_pat_code_cascade('shift', 'pricecode', emplhour.orderhour, request)
@@ -3394,7 +3440,11 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             emplhour.addition = addition
             emplhour.tax = tax
 
-        # also recalculate datepart when start- and endtime are given # PR2020-03-23
+# - calculate amount, addition and tax
+            # NOT IN USE YET
+            #wage = f.calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor)
+
+            # also recalculate datepart when start- and endtime are given # PR2020-03-23
             date_part = 0
             if emplhour.rosterdate and emplhour.timestart and emplhour.timeend:
                 offset_start = f.get_offset_from_datetimelocal(emplhour.rosterdate, emplhour.timestart)
@@ -3417,16 +3467,42 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     emplhour.haschanged = True
 # - save emplhour
                 emplhour.save(request=request, last_emplhour_updated=True)
+                logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
 # - save to log after saving emplhour and orderhour, also when emplhour is_created
                 m.save_to_emplhourlog(emplhour.pk, request, False) # is_deleted=False
             except:
                 msg_err = _('An error occurred. This shift could not be updated.')
                 error_list.append(msg_err)
+# --- end of update_emplhour -----------------------
 
-# --- end of update_emplhour
+def get_nosat_nosun_noph_noch(emplhour): # PR20120-09-09
+    #logger.debug(' --- get_nosat_nosun_noph_noch ---')
+    # function gets nohours_onsaturday etc from order and scheme of this emplhour
+    nohours_onsaturday = False
+    nohours_onsunday = False
+    nohours_onpublicholiday = False
+    nohours_oncompanyholiday = False
+    if emplhour:
+        nohours_onsaturday = emplhour.orderhour.order.nohoursonsaturday
+        nohours_onsunday = emplhour.orderhour.order.nohoursonsunday
+        nohours_onpublicholiday = emplhour.orderhour.order.nohoursonpublicholiday
+        nohours_oncompanyholiday = emplhour.orderhour.order.nohoursoncompanyholiday
+        schemeitem = emplhour.orderhour.schemeitem
+        if schemeitem:
+            scheme = schemeitem.scheme
+            if scheme:
+                # don't use nohoursonsunday = scheme.nohoursonsunday, because it will override order.nohoursonsunday
+                if scheme.nohoursonsaturday:
+                    nohours_onsaturday = True
+                if scheme.nohoursonsunday:
+                    nohours_onsunday = True
+                if scheme.nohoursonpublicholiday:
+                    nohours_onpublicholiday = True
+                if scheme.nohoursoncompanyholiday:
+                    nohours_oncompanyholiday = True
+    return nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday
 
-
-def recalc_orderhour(orderhour): # PR2019-10-11
+def recalc_orderhourXXX(orderhour): # PR2019-10-11
     #logger.debug(' --- recalc_orderhour ---')
     #logger.debug('orderhour: ' + str(orderhour))
 

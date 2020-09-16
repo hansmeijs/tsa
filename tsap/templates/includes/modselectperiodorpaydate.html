@@ -1,0 +1,90 @@
+{% load i18n %}
+{% load static %}
+
+<!-- =================== MODAL PERIOD  =================== -->
+    <div class="modal" id="id_mod_select_period_paydate" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_period_paydate_header" class="modal-title mx-2" >{% trans 'Select period' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_period_paydate_body" class="modal-body">
+
+                    <div id="id_MSPP_div_tblbody" class="mx-2 mb-2">
+
+                        <!-- <h5 class="mx-2 my-1">{% trans 'Select period' %}:</h5> -->
+                        <div class="modal_container">
+    <!-- this div contains range select table -->
+                            <div class="modal_body_left">
+                                <div class="content_subheader_left mx-2 my-1">
+                                   <table class="table table-condensed tsa_tbl mx-1 my-1">
+                                        <tbody id="id_MSPP_tblbody">
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+
+                            <div class="modal_body_right mr-2">
+
+                                <div id="id_MSPP_btn_container" class="btn-group btn-block mx-2 my-2 display_hide" role="group" aria-label="Choose option" >
+                                    <button data-btn="btn_calendarperiod" class="btn btn-secondary ">{% trans 'Calendar period' %}</button>
+                                    <button data-btn="btn_payrollperiod" class="btn btn-secondary">{% trans 'Payroll period' %}</button>
+                                </div>
+
+                                 <div class="btn_show btn_calendarperiod display_hide">
+                                    <label for="id_MSPP_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
+                                    <input id="id_MSPP_datefirst" type="date" class="form-control mx-2 my-1">
+                                    <label for="id_MSPP_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
+                                    <input id="id_MSPP_datelast" type="date" class="form-control mx-2 my-1">
+
+                                    <div id="id_MSPP_oneday_container"  class="content_subheader_left mx-1">
+                                        <span>
+                                            <input id="id_MSPP__oneday" type="checkbox" data-field="oneday" class="tw_032 mx-2">
+                                            <label for="id_MSPP__oneday" class="mb-0">{% trans 'One day only' %}</label>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="btn_show btn_payrollperiod">
+                                    <div class="mx-2 my-2">
+                                        <label class="mx-2 my-1">{% trans 'Payroll period' %}:</label>
+                                        <input id="id_MSPP_input_payrollperiod"
+                                            type="text"
+                                            autocomplete="off"
+                                            ondragstart="return false;"
+                                            ondrop="return false;"
+                                            class="form-control"
+                                            placeholder="{% trans 'Type a few letters and select a payroll period in the list' %}...">
+                                    </div>
+                                    <div class="mx-2 my-2">
+                                        <label class="mx-2 my-1">{% trans 'Closing date' %}:</label>
+                                        <input id="id_MSPP_input_paydate"
+                                            type="text"
+                                            autocomplete="off"
+                                            ondragstart="return false;"
+                                            ondrop="return false;"
+                                            class="form-control"
+                                            placeholder="{% trans 'Type a few letters and select a closing date in the list' %}...">
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_MSPP_btn_save" type="button" class="btn btn-primary">{% trans 'OK' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>

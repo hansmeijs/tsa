@@ -517,6 +517,60 @@ def create_order_dict(order, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 # end of create_order_dict
 
+def create_abscat_order_rows(request, request_item=None, order_pk=None):
+    # --- create list of all active absence categories of this company PR2019-06-25
+    # each absence category contains abscat_customer, abscat_order
+    abscat_order_list = []
+
+    # abscat_order_rows is used in employee page,
+    #  TODO in scheme page  replace abscat_order_list by abscat_order_rows
+    # Note: order_id must not have alias: 'id' is used in refresh_datamap
+    #logger.debug('request_item: ' + str(request_item))
+    inactive = request_item.get('inactive') if request_item else None
+    #logger.debug('inactive: ' + str(inactive))
+
+    sql_keys = {'compid': request.user.company.pk}
+
+    sql_list = []
+    sql_list.append("""SELECT  
+        o.id, 
+        c.id AS c_id, 
+        c.company_id AS comp_id,
+
+        CONCAT('abscat_', o.id::TEXT) AS mapid,
+
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+
+        o.identifier AS o_identifier,
+        o.nohoursonpublicholiday AS o_noph,
+        o.nohoursonsaturday AS o_nosat,
+        o.nohoursonsunday AS o_nosun,
+        o.nopay AS o_nopay,
+        o.sequence AS o_sequence,
+        o.inactive AS o_inactive
+
+        FROM companies_order AS o 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+
+        WHERE c.company_id = %(compid)s::INT 
+        AND c.isabsence""")
+
+    if order_pk:
+        sql_list.append('AND (o.id = %(oid)s)')
+        sql_keys['oid'] = order_pk
+    else:
+        if inactive is not None and not inactive:
+            sql_list.append('AND NOT o.inactive')
+
+        sql_list.append("ORDER BY LOWER(REPLACE (o.code, '~', ''))")
+    sql = ' '.join(sql_list)
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    abscat_order_rows = f.dictfetchall(newcursor)
+
+    return abscat_order_rows
 
 def create_abscat_order_list(request):
     # --- create list of all active absence categories of this company PR2019-06-25
@@ -534,42 +588,8 @@ def create_abscat_order_list(request):
         #logger.debug(" --- for order in orders ---")
         dict = create_absencecat_dict(order, request)
         abscat_order_list.append(dict)
-    # abscat_order_rows is used in employee page,
-    #  TODin scheme page  replace abscat_order_list by abscat_order_rows
-    # Note: order_id must not have alias: 'id' is used in refresh_datamap
-    sql_abscat_orders = """ SELECT  
-        o.id, 
-        c.id AS c_id, 
-        c.company_id AS comp_id,
 
-        CONCAT('abscat_', c.id::TEXT) AS mapid,
-        
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-
-        o.identifier AS o_identifier,
-        o.nohoursonpublicholiday AS o_noph,
-        o.nohoursonsaturday AS o_nosat,
-        o.nohoursonsunday AS o_nosun,
-        o.nopay AS o_nopay,
-        o.sequence AS o_sequence,
-        o.inactive AS o_inactive
-
-        FROM companies_order AS o 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-
-        WHERE (c.company_id = %(compid)s::INT) 
-        AND (c.isabsence)
-        ORDER BY LOWER(o.code) 
-        """
-    company_pk = request.user.company_id
-    newcursor = connection.cursor()
-    newcursor.execute(sql_abscat_orders, {
-        'compid': company_pk
-    })
-    abscat_order_rows = f.dictfetchall(newcursor)
-
-    return abscat_order_list, abscat_order_rows
+    return abscat_order_list
 
 
 def create_absencecat_dict(order, request):
@@ -918,12 +938,6 @@ def create_billing_agg_list(period_dict, request):
         'dl': period_datelast
     })
     billing_agg_list = f.dictfetchall(newcursor)
-    """
-    logger.debug('---------------------')
-    for row in billing_agg_list:
-        logger.debug(str(row))
-    logger.debug('.......................')
-    """
     return billing_agg_list
 # - end of billing_agg_list
 
@@ -999,12 +1013,6 @@ def create_billing_rosterdate_list(period_dict, request):
         'dl': period_datelast
     })
     billing_rosterdate_list = f.dictfetchall(newcursor)
-    """
-    logger.debug('---------------------')
-    for row in billing_rosterdate_list:
-        logger.debug(str(row))
-    logger.debug('.......................')
-    """
     return billing_rosterdate_list
 # - end of billing_agg_list
 
@@ -1079,12 +1087,6 @@ def create_billing_detail_list(period_dict, request):
         'dl': period_datelast
     })
     billing_detail_list = f.dictfetchall(newcursor)
-    """
-    logger.debug('---------------------')
-    for row in billing_detail_list:
-        logger.debug(str(row))
-    logger.debug('.......................')
-    """
     return billing_detail_list
 # - end of create_billing_detail_list
 

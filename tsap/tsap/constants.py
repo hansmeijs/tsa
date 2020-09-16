@@ -338,7 +338,8 @@ COLDEF_PAYDATECODE = ( {'tsaKey': 'afascode', 'caption': _('Code period table')}
                 )
 
 FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable',
-                  'pricecode_id', 'additioncode_id', 'taxcode_id', 'invoicecode_id', 'workminutesperday', 'entryrate' )
+                  'pricecode_id', 'additioncode_id', 'taxcode_id', 'invoicecode_id',  'workminutesperday', 'entryrate' )
+                # TODO add 'wagefactorcode_id',
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
                          'datepayment', 'dateexpired', 'expired', 'note', 'locked', 'modifiedat')

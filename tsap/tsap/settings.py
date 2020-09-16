@@ -138,7 +138,7 @@ AUTH_USER_MODEL = 'accounts.User'  # PR2019-02-28
 
 STATIC_URL = '/static/'
 
-# PR2018-03-03 Error: he STATICFILES_DIRS setting should not contain the STATIC_ROOT setting.
+# PR2018-03-03 Error: the STATICFILES_DIRS setting should not contain the STATIC_ROOT setting.
 # PR2018-03-06 The STATICFILES_DIRS tells Django where to look for static files that are not tied to a particular app.
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),

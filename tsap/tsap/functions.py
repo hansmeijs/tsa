@@ -1377,19 +1377,24 @@ def date_latest_of_three(date_01, date_02, date_03):  # PR2019-10-19
 
 # ################### NUMERIC FUNCTIONS ###################
 def get_float_from_string(value_str):  # PR2019-09-01
-
+    # PR20202-09-10 debug: when value_str is integer replace function gives error.
+    # solved by isinstance(value_str, float) and isinstance(value_str, int)
     number = 0
     msg_err = None
-    if value_str:
-        try:
-            # replace comma by dot, remove space and '
-            value_str = value_str.replace(',', '.')
-            value_str = value_str.replace(' ', '')
-            value_str = value_str.replace("'", "")
-            number = float(value_str) if value_str != '' else 0
-        except:
-            msg_err = str(_("'%(value)s' is not a valid number.") % { 'value': value_str})
-
+    try:
+        if value_str:
+            if isinstance(value_str, float) or isinstance(value_str, int):
+                number = value_str
+            elif isinstance(value_str, str):
+                # replace comma by dot, remove space and '
+                value_str = value_str.replace(',', '.')
+                value_str = value_str.replace(' ', '')
+                value_str = value_str.replace("'", "")
+                number = float(value_str) if value_str != '' else 0
+            else:
+                msg_err = str(_("'%(value)s' is not a valid number.") % { 'value': value_str})
+    except:
+        msg_err = str(_("'%(value)s' is not a valid number.") % { 'value': value_str})
     return number, msg_err
 
 def get_status_value(status_sum, index):
@@ -2329,6 +2334,7 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
 
 # -- end of save_pricerate_to_dict
 
+
 def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
                              price_rate, addition_rate, tax_rate):  # PR2020-04-28 PR2020-07-04  PR2020-07-26
     #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
@@ -2365,6 +2371,34 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
     #logger.debug('tax: ' + str(tax))
     return amount, addition, tax
 
+
+####################################
+
+def calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor):  #   PR2020-09-15
+    #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
+    # when billable has changed billing_duration is changed outside this function
+    # you must run this function after changing billing_duration PR2020-07-23
+    # TODO make wagecode with items , like prcecode. Wage not in use yet
+    wage = 0
+
+    if not nopay and not is_restshift:
+        if time_duration:
+            if wagerate is None:
+                wagerate = 0
+            if wagefactor is None:
+                wagefactor = 1000000
+            # wagerate 10.000 = 100 US$
+            # wagefactor 1.000.000 = 100 %
+            wage_not_rounded = (time_duration / 60) * (wagerate / 100) * (wagefactor / 1000000)
+            # use math.floor instead of int(), to get correct results when amount is negative
+            # math.floor() returns the largest integer less than or equal to a given number.
+            # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
+            wage = math.floor(0.5 + wage_not_rounded)  # This rounds to an integer
+
+    return wage
+
+
+#######################################
 
 def dictfetchall(cursor):
     # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly

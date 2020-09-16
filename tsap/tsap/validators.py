@@ -125,6 +125,7 @@ def validate_customer(field, value, company, this_pk = None):
                 msg_dont_add = _("This code already exists.")
     return msg_dont_add
 
+
 def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
     #logger.debug ('validate_unique_company_code', value)
     # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
@@ -226,6 +227,7 @@ class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
                         raise ValidationError(_('Name already exists.'))
         return value
 
+
 class validate_unique_employee_name(object):  # PR2019-03-15
     def __init__(self, instance=None):
         if instance:
@@ -246,6 +248,7 @@ class validate_unique_employee_name(object):  # PR2019-03-15
         if _value_exists:
             raise ValidationError(_('Employee name already exists.'))
         return value
+
 
 def validate_code_name_identifier(table, field, new_value, is_absence, parent, update_dict, request, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
@@ -380,7 +383,7 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
     return msg_err
 
 
-def validate_namelast_namefirst(namelast, namefirst, company, update_field, update_dict, this_pk=None):
+def validate_namelast_namefirst(namelast, namefirst, company, update_field, msg_dict, this_pk=None):
     # validate if employee already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
@@ -421,19 +424,13 @@ def validate_namelast_namefirst(namelast, namefirst, company, update_field, upda
                     msg_err_namelast = msg_err
                 elif update_field == 'namefirst':
                     msg_err_namefirst = msg_err
+
     if msg_err_namelast or msg_err_namefirst:
+        has_error = True
         if msg_err_namelast:
-            has_error = True
-            field = 'namelast'
-            if field not in update_dict:
-                update_dict[field] = {}
-            update_dict[field]['error'] = msg_err_namelast
+            msg_dict['err_namelast'] = msg_err_namefirst
         if msg_err_namefirst:
-            field = 'namefirst'
-            has_error = True
-            if field not in update_dict:
-                update_dict[field] = {}
-            update_dict[field]['error'] = msg_err_namefirst
+            msg_dict['err_namefirst'] = msg_err_namefirst
 
     return has_error
 
@@ -462,16 +459,15 @@ def employee_email_exists(email, company, this_pk = None):
     return msg_dont_add
 
 
-def validate_employee_has_emplhours(instance, update_dict):
+def validate_employee_has_emplhours(instance):
     # validate if employee has emplhour records PR2019-07-30
-    has_emplhours = False
     msg_err = None
     if instance:
         has_emplhours = m.Emplhour.objects.filter(employee=instance).exists()
         if has_emplhours:
             msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
-            update_dict['id']['error'] = msg_err
-    return has_emplhours, msg_err
+    return msg_err
+
 
 def validate_order_has_emplhours(order, update_dict, is_abscat):
     # validate if order has emplhour records PR2020-06-10
@@ -483,6 +479,7 @@ def validate_order_has_emplhours(order, update_dict, is_abscat):
             msg_err = _("%(fld)s '%(tbl)s' has shifts and cannot be deleted.") % {'fld': field, 'tbl': order.code}
             update_dict['id']['error'] = msg_err
     return has_emplhours
+
 
 def check_date_overlap(datefirst, datelast, datefirst_is_updated):
     # PR2019-03-29 check if first date is after last date

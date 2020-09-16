@@ -183,6 +183,11 @@
     overflow-x: hidden;
     overflow-y: auto;
 }
+.tbl_h_180 {
+    height: 180px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
 .ta_l {
     text-align: left;
 }
@@ -299,7 +304,7 @@
 .tickmark_0_2 { background-position: -40px -0px;}
 
 .delete_0_0, .delete_0_1, .delete_0_2 {
-    background-image: url('/static/img/delete.png');
+    background-image: url('/static/img/btn_del.png');
     background-size: 60px 20px;
 }
 .delete_0_0 { background-position: -0px -0px;}
@@ -501,9 +506,11 @@
    margin-top: 24px
 }
 .tsa_margin_form_label {
-    margin: 16px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */*/
+    margin: 16px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */
 }
-
+.tsa_margin_label_0848 {
+    margin: 0px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */
+}
 .tsa_carousel_item {
    height: calc(100vh - 32px);
 }

@@ -139,6 +139,7 @@ class Company(TsaBaseModel):
     additioncode_id = IntegerField(null=True)
     taxcode_id = IntegerField(null=True)
     invoicecode_id = IntegerField(null=True)
+    #wagefactorcode_id = IntegerField(null=True)
 
     workminutesperday = IntegerField(default=480)  # default working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
     entryrate = IntegerField(default=0) # /10000 unit is currency (US$, EUR, ANG)
@@ -336,6 +337,7 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
     locked = None
     inactive = None
 
+
 class Paydatecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
@@ -390,7 +392,9 @@ class Wagecode(TsaBaseModel):
     name = None
 
     # PR20202-07-18 removed:  sequence, rate. Rename iswage to iswagecode. leave 'name' for notes??
-    wagerate = IntegerField(default=0)  # /10.000 unitless, 0 = factor 100%  = 10.000)
+    # wagerate    /100 unit currency   wagerate 10.000 = 100 US$
+    # wagefactor  /1.000.000 unitless, wagefactor 100%  = 1.000.000
+    wagerate = IntegerField(default=0)
     #sequence = PositiveSmallIntegerField(default=0)
     #rate = JSONField(null=True)  # stores price plus startdate
     iswagecode = BooleanField(default=False)
@@ -597,7 +601,7 @@ class Employee(TsaBaseModel):
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
-    workhoursperweek = IntegerField(default=0)  # renamed. Was workhours. Working hours per week * 60, unit is minute. 40 hours = 2400 workhours
+    workhoursperweek = IntegerField(default=0)  # renamed. Was workhours. Working hours per week * 60, unit is minute. 40 hours = 2400 'workhours'
     workminutesperday = IntegerField(default=0)  # working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
     # workdays = IntegerField(default=0)  # deprecated: removed: workdays per week * 1440, unit is minute. 5 days = 7200 workdays
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
@@ -1342,9 +1346,9 @@ def delete_instance(instance, update_dict, request, this_text=None):
                 msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
                 msg_err = _('This item could not be deleted.')
-            update_dict['id']['error'] = msg_err
+            # deprecated: update_dict['id']['error'] = msg_err
         else:
-            update_dict['id']['deleted'] = True
+            # deprecated:  update_dict['id']['deleted'] = True
             deleted_ok = True
 
     return deleted_ok, msg_err

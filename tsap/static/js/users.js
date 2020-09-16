@@ -173,7 +173,6 @@ document.addEventListener('DOMContentLoaded', function() {
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 
-
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 //=========  HandleBtnSelect  ================ PR2020-07-31
@@ -243,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblName = (selected_btn === "btn_user_list") ? "users" :
                         (selected_btn === "btn_permissions") ? "permissions" : null;
 
-// --- reset table, except for header
+// --- reset table
         tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
 
@@ -253,65 +252,61 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- insert table rows
                 let tblRow_header = tblHead_datatable.insertRow (-1);
                 let tblRow_filter = tblHead_datatable.insertRow (-1);
-                //tblRow_filter.classList.add("tsa_bc_lightlightgrey");
+
 //--- insert th's to tblHead_datatable
                 for (let j = 0; j < column_count; j++) {
+                    const key = field_settings[tblName].field_caption[j];
+                    const caption = (loc[key]) ? loc[key] : key;
+                    const field_name = field_settings[tblName].field_names[j];
+                    const filter_tag = field_settings[tblName].filter_tags[j];
+                    const class_width = "tw_" + field_settings[tblName].field_width[j] ;
+                    const class_align = "ta_" + field_settings[tblName].field_align[j];
 
 // ++++++++++ create header row +++++++++++++++
 // --- add th to tblRow.
                     let th_header = document.createElement("th");
-// create element with tag from field_tags
-                    const el_header = document.createElement("div");
-                    if (j === 0 ){
+// --- add div to th, margin not working with th
+                        const el_header = document.createElement("div");
+                            if (j === 0 ){
 // --- add checked image to first column
-                       // TODO add multiple selection
-                        //AppendChildIcon(el_header, imgsrc_stat00);
-                    } else {
+                               // TODO add multiple selection
+                                //AppendChildIcon(el_header, imgsrc_stat00);
+                            } else {
 // --- add innerText to el_div
-                        const data_text = field_settings[tblName].field_caption[j];
-                        const caption = (loc[data_text]) ? loc[data_text] : data_text;
-                        if(caption) {el_header.innerText = caption};
-                    };
+                                if(caption) {el_header.innerText = caption};
+                            };
 // --- add width, text_align
-                    el_header.classList.add("tw_" + field_settings[tblName].field_width[j],
-                                         "ta_" + field_settings[tblName].field_align[j]);
-                    th_header.appendChild(el_header)
+                            el_header.classList.add(class_width, class_align);
+                        th_header.appendChild(el_header)
                     tblRow_header.appendChild(th_header);
 
 // ++++++++++ create filter row +++++++++++++++
 // --- add th to tblRow_filter.
                     const th_filter = document.createElement("th");
-// create element with tag from field_tags
-                    const filter_tag = field_settings[tblName].filter_tags[j];
+// --- create element with tag from field_tags
                     const el_tag = (filter_tag === "text") ? "input" : "div";
                     const el_filter = document.createElement(el_tag);
+// --- add EventListener to el_filter
+                        const event_str = (filter_tag === "text") ? "keyup" : "click";
+                        el_filter.addEventListener(event_str, function(event){HandleFilterField(el_filter, j, event)});
 // --- add data-field Attribute.
-                   el_filter.setAttribute("data-field", field_settings[tblName].field_names[j]);
-                   el_filter.setAttribute("data-filtertag", field_settings[tblName].filter_tags[j]);
-// --- add blank image to first column in employee table
-                    if (filter_tag === "text") {
-                        el_filter.setAttribute("type", "text")
-                        el_filter.classList.add("input_text");
-// --- make text grey
-                        el_filter.classList.add("tsa_color_darkgrey");
-                        el_filter.classList.add("tsa_transparent")
+                        el_filter.setAttribute("data-field", field_name);
+                        el_filter.setAttribute("data-filtertag", filter_tag);
 // --- add other attributes
-                        el_filter.setAttribute("autocomplete", "off");
-                        el_filter.setAttribute("ondragstart", "return false;");
-                        el_filter.setAttribute("ondrop", "return false;");
-                    } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
-                        // default empty icon necessary to set pointer_show
-                        let el_icon = document.createElement("div");
-                            el_icon.classList.add("tickmark_0_0")
-                            el_filter.appendChild(el_icon);
-                    }
-// --- add EventListener to td
-                    const event_str = (filter_tag === "text") ? "keyup" : "click";
-                    el_filter.addEventListener(event_str, function(event){HandleFilterField(el_filter, j, event.which)});
+                        if (filter_tag === "text") {
+                            el_filter.setAttribute("type", "text")
+                            el_filter.classList.add("input_text");
+
+                            el_filter.setAttribute("autocomplete", "off");
+                            el_filter.setAttribute("ondragstart", "return false;");
+                            el_filter.setAttribute("ondrop", "return false;");
+                        } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
+                            // default empty icon necessary to set pointer_show
+                            append_background_icon(el_filter,"tickmark_0_0");
+                        }
 
 // --- add width, text_align
-                    el_filter.classList.add("tw_" + field_settings[tblName].field_width[j],
-                                         "ta_" + field_settings[tblName].field_align[j]);
+                        el_filter.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                     th_filter.appendChild(el_filter)
                     tblRow_filter.appendChild(th_filter);
                 }  // for (let j = 0; j < column_count; j++)
@@ -389,10 +384,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         el_td.appendChild(el_div);
                     add_hover(el_td)
                 } else if (field_name === "is_active") {
+                    append_background_icon(el_td,"inactive_0_2")
                     el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_td)}, false )
-                    let el_div = document.createElement("div");
-                        el_div.classList.add("inactive_0_2")
-                        el_td.appendChild(el_div);
+                    //let el_div = document.createElement("div");
+                    //    el_div.classList.add("inactive_0_2")
+                    //    el_td.appendChild(el_div);
                     add_hover(el_td)
                 } else if ( field_name === "last_login") {
                     // pass
@@ -441,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(!is_activated) {
                         is_expired = activationlink_is_expired(map_dict.date_joined);
                     }
-                    const data_value = (is_expired) ? "-2" : (is_activated) ? "1" : "-1"
+                    const data_value = (is_expired) ? "2" : (is_activated) ? "1" : "0"
                     el_div.setAttribute("data-value", data_value);
                     let el_icon = el_div.children[0];
                     if(el_icon){
@@ -460,8 +456,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (field_name === "is_active") {
                     const is_inactive = !( (map_dict[field_name]) ? map_dict[field_name] : false );
                     el_div.setAttribute("data-value", ((is_inactive) ? 1 : 0) );
-                    let el_icon = el_div.children[0];
-                    if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
+                    const img_class = (is_inactive) ? "inactive_1_3" : "inactive_0_2";
+                    refresh_background_icon(el_div, img_class)
+                    //let el_icon = el_div.children[0];
+                    //if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
 // ---  add title
                     add_or_remove_attr (el_div, "title", is_inactive, loc.This_user_is_inactive);
                 } else if ( field_name === "last_login") {
@@ -622,7 +620,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //   if(!!tblRow)
     }  // UploadToggle
 
-
 //========= UploadChanges  ============= PR2020-08-03
     function UploadChanges(upload_dict, url_str) {
         //console.log("=== UploadChanges");
@@ -774,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSU_select_employee ================ PR2020-08-03
     function MSU_select_employee(tblRow) {
-        //console.log( "===== MSU_select_employee ========= ");
+        console.log( "===== MSU_select_employee ========= ");
         // tblRow is the selected tblRow in the employee table of Mod_Select_Employee
 // ---  deselect all highlighted rows in the select employee table
         DeselectHighlightedRows(tblRow, cls_selected)
@@ -805,10 +802,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             field_value = employee_code.replace(/, /g, "_"); // replace comma + space with "_"
                             field_value = replaceChar(field_value)
                         } else if (fldName === "last_name"){
-                            const last_name = get_dict_value(employee_dict, ["last_name", "value"]);
+                            const last_name = get_dict_value(employee_dict, ["namelast", "value"]);
                             const namefirst =  get_dict_value(employee_dict, ["namefirst", "value"]);
-                            field_value = (namefirst && last_name) ? namefirst + " " + last_name :
-                                        (namefirst) ? namefirst  : (last_name) ? last_name : null
+                            field_value = (namefirst && last_name) ? last_name + ", " + namefirst :
+                                          (namefirst) ? namefirst : (last_name) ? last_name : null;
+                            if (field_value && field_value.length > 50) {field_value = field_value.slice(0, 50)};
                         } else {
                             field_value = get_dict_value(employee_dict, [fldName, "value"]);
                         }
@@ -1263,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_created = get_dict_value(update_dict, ["created"], false)
 
             const tblName_settings = (selected_btn === "btn_user_list") ? "users" : "permissions";
-            const field_names =field_settings[tblName_settings].field_names;
+            const field_names = field_settings[tblName_settings].field_names;
 
 // ++++ created ++++
             if(is_created){
@@ -1323,12 +1321,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= HandleFilterField  ====================================
-    function HandleFilterField(el, index, el_key) {
+    function HandleFilterField(el, col_index, event) {
        //console.log( "===== HandleFilterField  ========= ");
         // skip filter if filter value has not changed, update variable filter_text
 
         //console.log( "el_key", el_key);
-        //console.log( "index", index);
+        //console.log( "col_index", col_index);
         const filter_tag = get_attr_from_el(el, "data-filtertag")
         //console.log( "filter_tag", filter_tag);
 
@@ -1337,81 +1335,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblName = get_attr_from_el(tblRow, "data-table")
 
 // --- reset filter row when clicked on 'Escape'
-        let skip_filter = false
-        if (el_key === 27) {
-            filter_dict = {}
-            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
-                let el = tblRow.cells[i].children[0];
-                if(el){ el.value = null};
-            }
-        } else {
-            if(filter_tag === "text") {
-                let filter_dict_text = ""
-                if (index in filter_dict) {filter_dict_text = filter_dict[index]}
-                let el_value_str = (el.value) ? el.value.toString() : "";
-                let new_filter = el_value_str.trim().toLowerCase();
-                //console.log( "new_filter", new_filter);
-                if (!new_filter){
-                    if (!filter_dict_text){
-                        skip_filter = true
-                    } else {;
-                        delete filter_dict[index];
-                    }
-                } else {
-                    if (new_filter === filter_dict_text) {
-                        skip_filter = true
-                    } else {
-                        filter_dict[index] = new_filter;
-                    }
-                }
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
 
-            } else if ( ["toggle", "inactive"].indexOf(filter_tag) > -1) {
+         if ( ["toggle", "inactive"].indexOf(filter_tag) > -1) {
 // ---  toggle filter_checked
-                let filter_checked = (index in filter_dict) ? filter_dict[index] : 0;
-                filter_checked += 1
-                if (filter_checked > 1) { filter_checked = -1 }
-                if (!filter_checked){
-                    delete filter_dict[index];
-                } else {
-                    filter_dict[index] = filter_checked;
-                }
-        // ---  change icon
-                let el_icon = el.children[0];
-                if(el_icon){
-                    add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
-                    if(filter_tag === "toggle"){
-                        add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
-                        add_or_remove_class(el_icon, "tickmark_0_2", filter_checked === 1)
-                    } else  if(filter_tag === "inactive"){
-                        add_or_remove_class(el_icon, "inactive_0_2", filter_checked === -1)
-                        add_or_remove_class(el_icon, "inactive_1_3", filter_checked === 1)
-                    }
-                }
-
-            } else if (filter_tag === "activated") {
-// ---  toggle activated
-                let filter_checked = (index in filter_dict) ? filter_dict[index] : 0;
-                filter_checked += 1
-                if (filter_checked > 1) { filter_checked = -2 }
-                if (!filter_checked){
-                    delete filter_dict[index];
-                } else {
-                    filter_dict[index] = filter_checked;
-                }
-        // ---  change icon
-                let el_icon = el.children[0];
-                if(el_icon){
-                    add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
-                    add_or_remove_class(el_icon, "exclamation_0_2", filter_checked === -2)
+            let filter_checked = (col_index in filter_dict) ? filter_dict[col_index] : 0;
+    // ---  change icon
+            let el_icon = el.children[0];
+            if(el_icon){
+                add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
+                if(filter_tag === "toggle"){
                     add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
                     add_or_remove_class(el_icon, "tickmark_0_2", filter_checked === 1)
-
+                } else  if(filter_tag === "inactive"){
+                    add_or_remove_class(el_icon, "inactive_0_2", filter_checked === -1)
+                    add_or_remove_class(el_icon, "inactive_1_3", filter_checked === 1)
                 }
             }
+
+        } else if (filter_tag === "activated") {
+// ---  toggle activated
+            let filter_checked = (col_index in filter_dict) ? filter_dict[col_index] : 0;
+            filter_checked += 1
+            if (filter_checked > 1) { filter_checked = -2 }
+            if (!filter_checked){
+                delete filter_dict[col_index];
+            } else {
+                filter_dict[col_index] = filter_checked;
+            }
+    // ---  change icon
+            let el_icon = el.children[0];
+            if(el_icon){
+                add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
+                add_or_remove_class(el_icon, "exclamation_0_2", filter_checked === -2)
+                add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
+                add_or_remove_class(el_icon, "tickmark_0_2", filter_checked === 1)
+
+            }
         }
+
+
         Filter_TableRows(tblBody_datatable);
     }; // HandleFilterField
-
 
 //========= Filter_TableRows  ==================================== PR2020-08-17
     function Filter_TableRows(tblBody) {

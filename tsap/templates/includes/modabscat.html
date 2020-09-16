@@ -15,52 +15,54 @@
                 <div class="modal-body">
                     <div class="modal_container">
                         <div id="id_MAC_input_container" class="modal_body_right mx-2 my-1">
+
+
                             <div class="content_header">
                                 <div class="tsa_flex_1 mx-1">
                                     <label for="id_MAC_input_code" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
-                                    <input id="id_MAC_input_code" type="text" data-field= "code"
+                                    <input id="id_MAC_input_code" type="text" data-field= "o_code"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="tsa_input_text form-control">
                                 </div>
                                 <div class="tsa_flex_1 mx-1">
                                     <label for="id_MAC_input_identifier" class="tsa_margin_form_label">{% trans 'Identifier' %}:</label>
-                                    <input id="id_MAC_input_identifier" type="text" data-field= "identifier"
+                                    <input id="id_MAC_input_identifier" type="text" data-field= "o_identifier"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="tsa_input_text form-control">
                                 </div>
                                 <div class="tsa_flex_1 mx-1">
                                     <label for="id_MAC_input_sequence" class="tsa_margin_form_label">{% trans 'Priority' %}:</label>
-                                    <input id="id_MAC_input_sequence"
-                                        type="text"
-                                        data-field= "sequence"
-                                        autocomplete="off"
-                                        ondragstart="return false;"
-                                        ondrop="return false;"
+                                    <input id="id_MAC_input_sequence" type="text" data-field= "o_sequence"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="tsa_input_text form-control">
                                 </div>
                             </div>
 
-                            <div class="content_header">
+                             <div class="content_header">
                                 <div class="tsa_flex_1 mx-1 mt-1 ">
-                                    <small id="id_MAC_err_code" class="text-danger tsa_margin_form_label"></small>
+                                    <small id="id_MAC_err_o_code" class="text-danger tsa_margin_form_label"></small>
                                 </div>
                                 <div class="tsa_flex_1 mx-1 mt-1">
-                                <small id="id_MAC_err_sequence" class="text-danger tsa_margin_form_label"></small>
+                                    <small id="id_MAC_err_o_identifier" class="text-danger tsa_margin_form_label"></small>
+                                </div>
+                                <div class="tsa_flex_1 mx-1 mt-1">
+                                    <small id="id_MAC_err_o_sequence" class="text-danger tsa_margin_form_label"></small>
                                 </div>
                             </div>
+
                             <div class="content_header">
                                 <label class="tsa_margin_form_label">{% trans "Salary payment during this absence" %}:</label>
                             </div>
                             <div class="content_header">
                                 <div class="tsa_flex_1 mx-1">
                                     <span>
-                                        <input id="id_MAC_pay" type="checkbox" data-field="pay" class="tsa_input_checkbox tw_032">
+                                        <input id="id_MAC_pay" type="checkbox" data-field="o_pay" class="tsa_input_checkbox tw_032">
                                         <label for="id_MAC_pay" class="mx-1 mt-2 mb-0">{% trans 'Payment' %}</label>
                                     </span>
                                 </div>
                                 <div class="tsa_flex_2 mx-1">
                                     <span>
-                                        <input id="id_MAC_nopay" type="checkbox" data-field="nopay" class="tsa_input_checkbox tw_032">
+                                        <input id="id_MAC_nopay" type="checkbox" data-field="o_nopay" class="tsa_input_checkbox tw_032">
                                         <label for="id_MAC_nopay" class="mx-1 mt-2 mb-0">{% trans 'No payment' %}</label>
                                     </span>
                                 </div>
@@ -72,19 +74,19 @@
                             <div class="content_header">
                                 <div class="tsa_flex_2 mx-1">
                                     <span>
-                                        <input id="id_MAC_nosat" type="checkbox" data-field="nohoursonsaturday" class="tsa_input_checkbox tw_032">
+                                        <input id="id_MAC_nosat" type="checkbox" data-field="o_nosat" class="tsa_input_checkbox tw_032">
                                         <label for="id_MAC_nosat" class="mx-1 mt-2 mb-0">{% trans 'Saturdays' %}</label>
                                     </span>
                                 </div>
                                 <div class="tsa_flex_2 mx-1">
                                     <span>
-                                        <input id="id_MAC_nosun" type="checkbox" data-field="nohoursonsunday" class="tsa_input_checkbox tw_032">
+                                        <input id="id_MAC_nosun" type="checkbox" data-field="o_nosun" class="tsa_input_checkbox tw_032">
                                         <label for="id_MAC_nosun" class="mx-1 mt-2 mb-0">{% trans 'Sundays' %}</label>
                                     </span>
                                 </div>
                                 <div class="tsa_flex_3 mx-1">
                                     <span>
-                                        <input id="id_MAC_noph" type="checkbox" data-field="nohoursonpublicholiday" class="tsa_input_checkbox tw_032">
+                                        <input id="id_MAC_noph" type="checkbox" data-field="o_noph" class="tsa_input_checkbox tw_032">
                                         <label for="id_MAC_noph" class="mx-1 mt-2 mb-0">{% trans 'Public holidays' %}</label>
                                     </span>
                                 </div>
@@ -105,4 +107,3 @@
             </div>
         </div>
     </div>
-

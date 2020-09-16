@@ -2594,10 +2594,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "===== HandleBillingFilter  ========= ");
         console.log( "event.key", event.key);
         console.log( "filter_dict", filter_dict);
-        const skip_filter = t_SetExtendedFilterDict(el, col_index, event.key, filter_dict);
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
         console.log( "skip_filter", skip_filter);
         if (!skip_filter) {
-            if(selected_btn === "payrolltabular"){
+            if(selected_btn === "payroll_detail"){
                FillPayrollTabularRows();
             } else {
                 FillBillingRows();

@@ -101,9 +101,9 @@
 
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
-        console.log("=== UploadSettings");
-        console.log("url_str", url_str);
-        console.log("upload_dict", upload_dict);
+        //console.log("=== UploadSettings");
+        //console.log("url_str", url_str);
+        //console.log("upload_dict", upload_dict);
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
             let response = "";
@@ -113,11 +113,11 @@
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
                 },  // success: function (response) {
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     //alert(msg + '\n' + xhr.responseText);
                 }  // error: function (xhr, msg) {
             });  // $.ajax({
@@ -308,6 +308,46 @@
         el.classList.add("pointer_show")
     }  // add_hover
 
+//=========  append_background_icon ================ PR2020-09-10
+    function append_background_icon(el, default_class, hover_class) {
+        if (el) {
+            let el_img = document.createElement("div");
+                //el_img.classList.add(default_class);
+                el_img.className = default_class;
+                el.appendChild(el_img);
+                // note: add_hover_class will replace 'is_inactive' icon by default_class
+                if (hover_class) {add_hover_class (el, hover_class, default_class)};
+        }
+    }
+
+//=========  refresh_background_icon ================ PR2020-09-12
+    function refresh_background_icon(el, img_class) {
+        if (el) {
+            let el_img = el.children[0];
+            if (el_img){
+                el_img.className = img_class;
+            }
+        }
+    }  // refresh_background_icon
+
+//========= function add_hover  =========== PR2020-09-07
+    function add_hover_class (el, hover_class, default_class) {
+        //console.log(" === add_hover_class === ")
+//- add hover image to element
+        if(el && hover_class && default_class){
+            const img = el.children[0];
+            if(img){
+                el.addEventListener("mouseenter", function() {
+                    img.classList.remove(default_class)
+                    img.classList.add(hover_class)
+                });
+                el.addEventListener("mouseleave", function() {
+                    img.classList.remove(hover_class)
+                    img.classList.add(default_class)
+                });
+        }}
+    }  // add_hover_class
+
 //========= function add_hover  =========== PR2020-06-09
     function add_hover_image(el, hover_image, default_image) {
         //console.log(" === add_hover_image === ")
@@ -364,28 +404,18 @@
         return field_dict
     }
 
-//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
+//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12 PR2020-09-13
     function get_itemdict_from_datamap_by_el(el, data_map) {
         // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
         let item_dict = {};
         const tblRow = get_tablerow_selected(el);
-        if(!!tblRow){
-            const map_id = get_attr_from_el(tblRow, "data-table") + "_" + get_attr_from_el(tblRow, "data-pk")
-            item_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
+        if(tblRow){
+            // was: const map_id = get_attr_from_el(tblRow, "data-table") + "_" + get_attr_from_el(tblRow, "data-pk")
+            item_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id);
         }
         return item_dict
     }
 
-//========= get_itemdict_from_datamap_by_tblRow  ============= PR2019-10-12
-    function get_itemdict_from_datamap_by_tblRow(tblRow, data_map) {
-        // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
-        let item_dict = {};
-        if(!!tblRow){
-            const map_id = get_attr_from_el(tblRow, "data-table") + "_" + get_attr_from_el(tblRow, "data-pk")
-            item_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
-        };
-        return item_dict
-    }
 
 //========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01 PR2020-08-24
     function get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str) {
@@ -440,6 +470,34 @@
         return map_id
     }
 
+//=========  b_get_updated_fields_list  ================ PR2020-09-10
+    function b_get_updated_fields_list(field_names, data_map, update_dict) {
+        //console.log(" =====  b_get_updated_fields_list  =====");
+        //console.log("update_dict", update_dict);
+// ---  function checks which fields are updated, add to list 'updated_columns'
+        let updated_columns = [];
+        if(!isEmpty(update_dict)){
+            const map_id = update_dict.mapid;
+            const arr = (map_id) ? map_id.split("_") : null;
+            const tblName = (arr) ? arr[0] : null;
+            if(data_map){
+                const old_map_dict = data_map.get(map_id);
+                if(!isEmpty(old_map_dict)){
+                    for (let i = 1, is_diff, col_field, old_value, new_value; col_field = field_names[i]; i++) {
+                        if (col_field in old_map_dict && col_field in update_dict){
+                            is_diff = false;
+                            // absence "sh_os_arr", "sh_oe_arr", "sh_bd_arr" ,"sh_td_arr" return array with 1 element, check first element
+                            if (Array.isArray(update_dict[col_field])){
+                               is_diff = (old_map_dict[col_field][0] !== update_dict[col_field][0]);
+                            } else {
+                                is_diff = (old_map_dict[col_field] !== update_dict[col_field]);
+                            }
+                            if (is_diff ) { updated_columns.push(col_field)}
+        }}}}};
+        return updated_columns;
+    }  // b_get_updated_fields_list
+
+
 //========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
     function refresh_datamap(data_list, data_map, tblName) {
         //console.log(" --- refresh_datamap ---")
@@ -470,15 +528,15 @@
 
 //========= update_map_item  ================== PR2020-08-09
     function update_map_items(data_map, update_rows){
-        console.log(" --- update_map_items ---")
+        //console.log(" --- update_map_items ---")
         // data_map must be in format '_rows' with row.mapid
-        console.log("data_map.size before: " + data_map.size)
+        //console.log("data_map.size before: " + data_map.size)
         if (update_rows) {
             for (let i = 0, row; row = update_rows[i]; i++) {
                 data_map.set(row.mapid, row);
             }
         }
-        console.log("data_map.size after: " + data_map.size)
+        //console.log("data_map.size after: " + data_map.size)
     }
 
 //========= update_map_item  ================== PR2020-04-22
@@ -1587,11 +1645,10 @@
 
 //========= show_hide_selected_elements_byClass  ====  PR2020-02-19  PR2020-06-20
     function show_hide_selected_elements_byClass(container_classname, contains_classname, container_element) {
-        // ---  show / hide elements on page, based on classnames:
-        // <div class="tab_show tab_shift tab_team display_hide">
-        // where 'tab_show' is the container_classname. All elements with this class will be checked
-        // and 'tab_shift' and 'tab_team' are classes of the select buttons ('contains_classname')
-        // class 'display_hide' in html is necessary to prevent showing all elements when page opens
+        // this function shows / hides elements on page, based on classnames: example: <div class="tab_show tab_shift tab_team display_hide">
+        // - all elements with class 'container_classname' will be checked. example:'tab_show' is the container_classname.
+        // - if an element contains class 'contains_classname', it will be shown, if not it will be hidden. example: 'tab_shift' and 'tab_team' are classes of the select buttons ('contains_classname')
+        // - class 'display_hide' in html is necessary to prevent showing all elements when page opens
         if(!container_element){ container_element = document };
         let list = container_element.getElementsByClassName(container_classname);
         for (let i=0, el; el = list[i]; i++) {
@@ -1700,6 +1757,7 @@
     function get_number_from_input(loc, fldName, input_value) {
         //console.log("--------- get_number_from_input ---------")
         //console.log("fldName", fldName)
+        //console.log("input_value", input_value)
         let caption_str = (loc.Number) ? loc.Number : null;
 
         let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
@@ -1720,15 +1778,16 @@
             max_value = 100000;  // max $ 1000, max 1000%
         } else if(fldName === "wagefactor"){
             caption_str = loc.Wage_factor
+            multiplier = 10000;
             is_percentage = true;
         } else if(fldName === "workhoursperweek"){
             caption_str = loc.Workhours
             multiplier = 60;
             max_value = 10080  // 7 * 1440 = 168 * 60
-        } else if(fldName === "workdays"){
-            caption_str = loc.Workdays
-            multiplier = 1440;
-            max_value = 10080  // 7 * 1440
+        } else if(fldName === "workminutesperday"){
+            caption_str = loc.Workhours
+            multiplier = 60;
+            max_value = 1440;
         } else if(fldName === "leavedays"){
             caption_str = loc.Vacation_days
             multiplier = 1440;
@@ -1736,60 +1795,44 @@
         }
 
         let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
-        if(input_value === 0){
+        if(!input_value){
             output_value = 0;
-        } else if(!!input_value){
+        } else {
             // replace comma's with dots
-            const value_with_dot = input_value.replace(/\,/g,".");
-            const index_last_dot = value_with_dot.lastIndexOf(".")
-            // check if input has dots
-            if (index_last_dot === -1){
-                // if input has no dots: convert to integer
-                value_int = Number(value_with_dot);
-                // value is not valid when falsey, except when zero
-                is_not_valid = (!value_int && value_int !== 0)
-            } else {
-                // if input has dots: split into integer and decimal
-                const int_part = value_with_dot.slice(0, index_last_dot);
-                // replace other dots with '', convert to integer
-                value_int = Number(int_part.replace(/\./g,""));
-                is_not_valid = (!value_int && value_int !== 0);
-                if(!is_not_valid){
-                    // get decimal part
-                    const dec_part = value_with_dot.slice(index_last_dot + 1 );
-                    const value_after_dot = Number(dec_part);
-                    // not valid if NaN
-                    is_not_valid = (!value_after_dot && value_after_dot !== 0);
-                    if(!is_not_valid){
-                        is_not_valid = (integer_only && value_after_dot)
-                        if(is_not_valid){
-                            err_msg = caption_str + " " + loc.err_msg_must_be_integer
-                        } else {
-                            // multiply by exp. length, i.e. convert '75' to '0.75'
-                            value_decimal = value_after_dot * (10 ** -dec_part.length);
-                        }
-                    }
-                }
-            }
+            const replace_value_with_dot = input_value.replace(/\,/g,".");
+            // get index of last dot - not in use
+            // const index_last_dot = value_with_dot.lastIndexOf(".")
+            let value_as_number = Number(replace_value_with_dot);
+            // not valid when Number = false , i.e. NaN, except when value = 0
+            is_not_valid = (!value_as_number && value_as_number !== 0)
+
             if(is_not_valid){
                 if(!err_msg){err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
             } else {
-                // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
-                output_value = Math.round(multiplier * (value_int + value_decimal));
-                is_not_valid =( (min_value != null && output_value < min_value) || (max_value != null && output_value > max_value) ) ;
+                // Math.trunc() returns the integer part of a floating-point number
+                const has_decimal_part = !!(value_as_number - Math.trunc(value_as_number));
+                is_not_valid = (integer_only && has_decimal_part)
                 if(is_not_valid){
-                    if(!err_msg){
-                        if(min_value != null) {
-                            if(max_value != null) {
-                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
-                                err_msg = caption_str + " " + must_be + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
-                            } else {
-                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
+                    if(!err_msg){err_msg = caption_str + " " + loc.err_msg_must_be_integer};
+                } else {
+                    // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
+                    output_value = Math.round(multiplier * (value_as_number));
+
+                    is_not_valid =( (min_value != null && output_value < min_value) || (max_value != null && output_value > max_value) ) ;
+                    if(is_not_valid){
+                        if(!err_msg){
+                            if(min_value != null) {
+                                if(max_value != null) {
+                                    const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
+                                    err_msg = caption_str + " " + must_be + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
+                                } else {
+                                    const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
+                                    err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
+                                }
+                            } else if(max_value != null) {
+                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
                                 err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
-                            }
-                        } else if(max_value != null) {
-                            const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
-                            err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
+                }
         }}}}};
         return [output_value, err_msg];
     }  // get_number_from_input

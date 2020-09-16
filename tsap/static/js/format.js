@@ -1130,11 +1130,13 @@
 
     //========= display_offset_timerange  ======== PR2019-12-04
     function display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_hour_suffix) {
-        //console.log("------ display_offset_timerange --------------", fieldname)
+        //console.log("------ display_offset_timerange --------------")
+
         let display_time = "";
+        const blank_when_zero = false;
         if(offset_start != null || offset_end != null){
-            const offsetstart_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_start, skip_hour_suffix);
-            const offsetend_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_end, skip_hour_suffix);
+            const offsetstart_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_start, skip_hour_suffix, blank_when_zero);
+            const offsetend_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_end, skip_hour_suffix, blank_when_zero);
             display_time = offsetstart_formatted + " - " + offsetend_formatted
         }
         return display_time;
@@ -1143,17 +1145,17 @@
     //========= display_offset_time  ======== PR2019-10-22
     function display_offset_time (loc, offset, skip_hour_suffix, blank_when_zero) {
         //console.log("------ display_offset_time --------------")
-        //console.log("offset: ", offset, typeof offset)
 
         let do_display = false
-        if (offset != null && !!Number(offset)) {
+        //PR2020-09-05 debug: !!Number(0) = false, this goed wrong when offset = 0: if (offset != null && !!Number(offset))
+        if (offset != null) {
+
             if (offset === 0){
-                do_display = (!blank_when_zero)
-            } else {
+                do_display = !blank_when_zero;
+            } else if ( !!Number(offset)) {
                 do_display = true
             }
         }
-
         let display_time = "";
         if(do_display){
             let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
@@ -1270,7 +1272,7 @@
 //========= update_shiftcode_in_shiftdict  ============= PR2020-03-27
     function update_shiftcode_in_shiftdict(loc, shift_dict) {
         if(!isEmpty(shift_dict)) {
-        const new_shift_code = create_shift_code(loc,
+        const new_shift_code = f_create_shift_code(loc,
                                     get_dict_value(shift_dict, ["offsetstart", "value"]),
                                     get_dict_value(shift_dict, ["offsetend", "value"], 0),
                                     get_dict_value(shift_dict, ["timeduration", "value"], 0),
@@ -1280,13 +1282,19 @@
         }
     }
 
-//========= create_shift_code  ============= PR2020-02-02 PR2020-05-27
-    function create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code, is_restshift) {
-        //console.log( "=== create_shift_code ");
+//========= f_create_shift_code  ============= PR2020-02-02 PR2020-05-27
+    function f_create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code, is_restshift) {
+        console.log( "=== f_create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
         // const lastCharCode = shift_code.charCodeAt(shift_code.length - 1);
         // let shift_code_without_restchar = (lastCharCode === 9790) ? shift_code.slice(0, -1) : shift_code
+
+        console.log( "offset_start", offset_start);
+        console.log( "offset_end", offset_end);
+        console.log( "time_duration", time_duration);
+        console.log( "cur_shift_code", cur_shift_code);
+        console.log( "is_restshift", is_restshift);
 
         if(cur_shift_code == null) {cur_shift_code = ""};
         let code_trimmed = cur_shift_code.trim();
@@ -1310,7 +1318,12 @@
         //console.log( "may_override: ", may_override, typeof may_override);
         if (may_override){
             if (offset_start != null || offset_end != null) {
+        console.log( "offset_start != null || offset_end != null");
+        console.log( "offset_start", offset_start);
+        console.log( "offset_end", offset_end);
                 new_shift_code = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, true)  // true = skip_hour_suffix
+
+        console.log( "offset_start != null || offset_end != null");
             } else if (!!time_duration) {
                 new_shift_code = display_duration (time_duration, loc.user_lang, loc.Hour, loc.Hours);
             }
@@ -1318,7 +1331,7 @@
             new_shift_code = code_trimmed
         }
         return new_shift_code
-    }  // create_shift_code
+    }  // f_create_shift_code
 
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
@@ -1406,14 +1419,45 @@
         return time_format
     }  // format_total_duration
 
+//========= format_wagefactor ======== PR2020-09-05
+    function format_wagefactor (user_lang, value_int, hide_zero, hide_decimals) {
+        //console.log(" --- format_wagefactor  -----")
+        let display_text = "";
+        // wagefactor 100% = 1.000.000, 1% = 10.000
+        if (value_int > 0) {
+            const decimal_separator = (user_lang === "en") ? "." : ",";
+            let value_str = value_int.toString();
+            // add zero's at beginning when percentage < 1%
+            if (value_int < 10000) { value_str = ("0000" + value_str).slice(-5)};
+            const pos = value_str.length - 4 ;
+            if(hide_decimals){
+                display_text = value_str.slice(0, pos);
+            } else {
+                let int_part = value_str.slice(0, pos);
+                let frac_part = value_str.slice(pos);
+                // remove trailing zero's;
+                while (frac_part.length > 0 && frac_part.slice(-1) === "0" ) {
+                    frac_part = frac_part.slice(0, frac_part.length - 1);
+                }
+                display_text = (frac_part) ? [int_part, frac_part].join(decimal_separator) : int_part;
+            }
+        } else if(!hide_zero) {
+            display_text = "0"
+        }  // if (!!value_int)
+        if (display_text) { display_text += "%" }
+        return display_text;
+    }  // format_wagefactor
+
 //========= format_pricerate ======== PR2019-08-22 PR2020-07-10
     function format_pricerate (user_lang, value_int, is_percentage, show_zero, no_decimals) {
         //console.log(" --- format_pricerate  -----")
+        // TODO this one is not correct. debug it
         is_percentage = (is_percentage) ? is_percentage : false;
         show_zero = (show_zero) ? show_zero : false;
         no_decimals = (no_decimals) ? no_decimals : false;
         //console.log("no_decimals", no_decimals)
 
+        //console.log("value_int", value_int)
         let display_text = "";
 
         if (!!value_int) {
@@ -1430,6 +1474,8 @@
               // The Math.floor() function returns the largest integer less than or equal to a given number.
             const dollars_int = Math.trunc(value_int/divisor);
             let dollar_text = dollars_int.toString()
+        //console.log("dollars_int", dollars_int)
+        //console.log("dollar_text", dollar_text)
             if (dollars_int >= 1000000) {
                 const pos = dollar_text.length - 6 ;
                 dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
@@ -1438,18 +1484,24 @@
                 const pos = dollar_text.length - 3 ;
                 dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
             }
+        //console.log("dollars_int", dollars_int)
+        //console.log("dollar_text", dollar_text)
             if(no_decimals){
                 display_text = minus_sign + dollar_text;
             } else {
                 const cents_int = value_int - dollars_int * divisor  // % is remainder operator
                 let cent_text = "";
                 const cents_str = "00" + cents_int.toString()
+        //console.log("cents_int", cents_int)
+        //console.log("cents_str", cents_str)
                 // dont show decimals '00' when percentage
                 if ((is_percentage && !!cents_int) || (!is_percentage)){
                     const cents_str = "00" + cents_int.toString()
                     cent_text = decimal_separator + cents_str.slice(-2);
+        //console.log("cent_text", cent_text)
                 }
                 display_text = minus_sign + dollar_text + cent_text;
+        //console.log("display_text", display_text)
             }
         } else if(show_zero) {
             display_text = "0"
@@ -1709,7 +1761,7 @@
     }  // function format_status_element
 
 //=========  format_datetime_from_datetimeJS ================ PR2020-07-22
-    function format_datetime_from_datetimeJS(loc, datetimeJS) {
+    function format_datetime_from_datetimeJS(loc, datetimeJS, hide_weekday, hide_year, hide_suffix) {
         //console.log( "===== format_datetime_from_datetimeJS  ========= ");
         //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
         //  format: wo 16.30 u or Sat, 12:00 pm
@@ -1720,13 +1772,13 @@
         if(datetimeJS){
             const isEN = (loc.user_lang === "en");
             const isAmPm = (loc.timeformat === "AmPm");
-
-            const year = datetimeJS.getFullYear();
+            const year_int = datetimeJS.getFullYear();
+            const year_str = (!hide_year) ? " " + year_int.toString() : "";
             const date = datetimeJS.getDate();
 
             const weekday_index = (datetimeJS.getDay()) ? datetimeJS.getDay() : 7 // JS sunday = 0, iso sunday = 7
-            const weekday_str = loc.weekdays_abbrev[weekday_index];
-            const month_str = loc.months_abbrev[ (1 + datetimeJS.getMonth()) ];
+            const weekday_str = (!hide_weekday) ? loc.weekdays_abbrev[weekday_index] + " " : "";
+            const month_str = " " + loc.months_abbrev[ (1 + datetimeJS.getMonth()) ];
 
             // midnight, begin of day = 00:00 am
             // noon = 12:00 am
@@ -1737,15 +1789,15 @@
                 hours -= 12
                 is_pm = true;
             }
-            const hour_str = ("0" + hours).slice(-2);
+            const hour_str = " " + ("0" + hours).slice(-2);
             const minute_str = ("0" + datetimeJS.getMinutes()).slice(-2);
             const ampm_str = (isAmPm) ?  ( (is_pm) ? " pm" : " am" ) : "";
-
+            const suffix = (!hide_suffix) ? " u" : "";
             if (isEN) {
-                time_formatted = [weekday_str + ",", month_str + date + ",", year + ",", hour_str + ":" + minute_str].join(' ');
+                time_formatted = [weekday_str + ",", month_str + date + ",", year_str + ",", hour_str + ":" + minute_str].join(' ');
                 if(ampm_str) { time_formatted += ampm_str};
             } else {
-                time_formatted = [weekday_str, date, month_str, year + ",", hour_str + "." + minute_str, "u"].join(' ');
+                time_formatted = weekday_str + date + " " + month_str + year_str + "," + hour_str + "." + minute_str + suffix;
             }
         }
         return time_formatted

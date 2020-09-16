@@ -2318,7 +2318,7 @@ let planning_list = [] // for export and printing - can replace map?
                 const offset_start = 60 * row_index
                 id_new = id_new + 1
                 shift_pk_str = "new" + id_new.toString();
-                shift_code = create_shift_code(loc, offset_start, null, 0, "");
+                shift_code = f_create_shift_code(loc, offset_start, null, 0, "");
                 const new_shift_dict = {id: {pk: shift_pk_str,
                                              ppk: scheme_pk,
                                              table: "shift",
@@ -2788,10 +2788,7 @@ let planning_list = [] // for export and printing - can replace map?
                         text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete, imgsrc_deletered: imgsrc_deletered,
-                       };
-
-
+                        show_btn_delete: show_btn_delete};
 
         mtp_TimepickerOpen(loc, el_input, MSO_TimepickerResponse, tp_dict, st_dict)
 
@@ -2851,7 +2848,7 @@ let planning_list = [] // for export and printing - can replace map?
                 time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
                 shift_dict.timeduration = {value: time_duration};
             }
-            const new_shift_code = create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
+            const new_shift_code = f_create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
             if (new_shift_code !== shift_code){
                 shift_code = new_shift_code;
                 shift_dict.code = {value: shift_code};

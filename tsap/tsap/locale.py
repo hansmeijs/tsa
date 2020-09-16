@@ -76,7 +76,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Select_employee'] = TXT_Select_employee
     dict['Replacement_employee'] = TXT_Replacement_employee
 
-
     dict['weekdays_abbrev'] = TXT_weekdays_abbrev
     dict['weekdays_long'] = TXT_weekdays_long
     dict['months_abbrev'] = TXT_months_abbrev
@@ -105,6 +104,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Yes_make_active'] = _('Yes, make active')
     dict['Make_inactive'] = _('Make inactive')
     dict['No_cancel'] = _('No, cancel')
+    dict['Click_show_inactive_items'] = _('Click to show or hide inactive items.')
+    dict['Click_to_make_this_item_inactive'] = _('Click to make this item inactive.')
+    dict['Click_to_make_this_item_active'] = _('Click to make this item active.')
+
 
     # ModTimepicker
     dict['Working_hours'] = TXT_Working_hours
@@ -119,7 +122,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['already_exists'] = _(' already exists.')
     dict['already_exists_but_inactive'] = _(' already exists, but is inactive.')
     dict['must_be_completed'] = _(' must be completed.')
-    dict['cannot_be_blank'] =  _(' cannot be blank.')
+    dict['cannot_be_blank'] = _(' cannot be blank.')
+
+    dict['is_too_long_MAX24'] = _(' is too long. Maximum is 24 characters.')
+    dict['is_too_long_MAX80'] = _(' is too long. Maximum is 80 characters.')
 
     dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
     dict['err_msg_must_be_integer'] = TXT_err_msg_must_be_integer
@@ -130,6 +136,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['err_msg_must_be_percentage_less_than_or_equal_to'] = TXT_err_msg_must_be_percentage_less_than_or_equal_to
     dict['err_msg_must_be_number_greater_than_or_equal_to'] = TXT_err_msg_must_be_number_greater_than_or_equal_to
     dict['err_msg_must_be_percentage_greater_than_or_equal_to'] = TXT_err_msg_must_be_percentage_greater_than_or_equal_to
+
 
 # ====== PAGE UPLOAD =========================
     if page == 'upload':
@@ -197,7 +204,16 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
         dict['Click_show_inactive_employees'] = _('Click to show or hide inactive employees.')
-        dict['Click_to_make_this_employee_inactive'] = _('Click to make this employee inactive or active.')
+        dict['Click_to_make_this_employee_inactive'] = _('Click to make this employee inactive.')
+        dict['Click_to_make_this_employee_active'] = _('Click to make this employee active.')
+
+        dict['Short_name'] = TXT_Short_name
+        dict['First_name'] = TXT_First_name
+        dict['Last_name'] = TXT_Last_name
+        dict['ID_number'] = TXT_ID_number
+
+        dict['Email_address'] = TXT_Email_address
+        dict['Telephone'] = TXT_Telephone
 
         dict['Hours_per_week'] = TXT_Hours_per_week
         dict['Hours_per_day'] = TXT_Hours_per_day
@@ -217,8 +233,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Difference'] = TXT_Difference
 
         dict['ID_number'] = TXT_ID_number
+        dict['ID_number_2lines'] = TXT_ID_number_2lines
+
         dict['Payroll_code'] = TXT_Payroll_code
         dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
+        dict['Payroll_code_2lines'] = TXT_Payroll_code_2lines
 
         dict['Hourly_rate'] = TXT_Hourly_rate
         dict['Wage_rate'] = TXT_Wage_rate
@@ -256,8 +275,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['an_employee'] = TXT_an_employee
 
         # mod confirm
-        dict['Pease_select_employee_first'] = TXT_Pease_select_employee_first
-        dict['Pease_select_absence_first'] = TXT_Pease_select_absence_first
+        dict['Please_select_employee_first'] = TXT_Please_select_employee_first
+        dict['Please_select_absence_first'] = TXT_Please_select_absence_first
 
         # print planning
         dict['Company'] = TXT_Company
@@ -269,6 +288,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
 # ====== PAGE PAYROLL =========================
     elif page == 'payroll':
+        dict['ID_number_2lines'] = TXT_ID_number_2lines
+        dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
+
         dict['Payroll_2lines'] = TXT_Payroll_2lines
         dict['No_payroll_periods'] = TXT_No_payroll_periods
         dict['Choose_payroll_period'] = TXT_Choose_payroll_period
@@ -284,10 +306,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['The_absence_category'] = TXT_The_absence_category
         dict['This_absence_category'] = TXT_This_absence_category
         dict['Absence_categories'] = TXT_Absence_categories
+        dict['Absence_hours'] = TXT_Absence_hours
 
         dict['Add_abscat'] = TXT_Add_abscat
         dict['Delete_abscat'] = TXT_Delete_abscat
         dict['Make_abscat_inactive'] = TXT_Make_abscat_inactive
+        dict['Make_abscat_active'] = TXT_Make_abscat_active
 
         dict['With_absence'] = TXT_With_absence
         dict['Without_absence'] = TXT_Without_absence
@@ -337,6 +361,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Make_wagecode_inactive'] = TXT_Make_wagecode_inactive
         dict['Delete_wagecode'] = TXT_Delete_wagecode
 
+        dict['Number'] = TXT_Number
         dict['Percentage'] = TXT_Percentage
         dict['Wage_factor'] = TXT_Wage_factor
         dict['This_wagefactor'] = TXT_This_wagefactor
@@ -407,15 +432,28 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
-        #dict['Absence_2lines'] = TXT_Absence_2lines
+        dict['Absence_category_2lines'] = TXT_Absence_category_2lines
+
+        dict['No_payment'] = _('No payment')
+        dict['Modified_by'] = TXT_Modified_by
+        dict['Modified_on'] = TXT_Modified_on
+        dict['Show_logfile'] = _('Show log file')
+        dict['Hide_logfile'] = _('Hide log file')
+        dict['Last_modified_by'] = _('Last modified by')
+        dict['_on_'] = TXT_date_prefix_on
 
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
         dict['This_is_rostershift'] = _('This is a roster shift.')
+        dict['Please_select_abscat_first'] = TXT_Please_select_abscat_first
+        dict['Please_select_function_first'] = TXT_Please_select_function_first
+        dict['Please_select_wagefactor_first'] = TXT_Please_select_wagefactor_first
+        dict['Please_select_wagecode_first'] = TXT_Please_select_wagecode_first
+        dict['Please_select_payrollperiod_first'] = TXT_Please_select_payrollperiod_first
 
         # excel
         dict['Overview_rosterhours'] = _("Overview of roster hours")
-        dict['Overview_rosterhours_per_abscat'] = _("Overview of roster hours per absence category")
+        dict['Overview_rosterhours_per_category'] = _("Overview of roster hours per category")
 
         # menu
         dict['Show_report'] = TXT_Show_report
@@ -656,7 +694,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['err_msg_template_blank'] = _('Please enter a template name.')
 
-
 # ====== PAGE PRICE =========================
     elif page == 'price':
 
@@ -878,6 +915,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['You_cannot_confirm_overlapping_shift'] = _('You cannot confirm an overlapping shift.')
 
+        dict['dst_warning'] = _('Daylight saving time has changed. This has been taken into account.')
+
         dict['a_starttime'] = TXT_a_starttime
         dict['an_endtime'] = TXT_an_endtime
 
@@ -909,7 +948,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Total'] = TXT_Total
 
         dict['Modified_by'] = TXT_Modified_by
-        dict['on'] = TXT_on
+        dict['_on_'] = TXT_date_prefix_on
 
 # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
@@ -1105,8 +1144,10 @@ TXT_Export_to_Excel = _('Export to Excel')
 
 # headers
 
-TXT_Short_name = _('Short name')
 TXT_Name = _('Name')
+TXT_Short_name = _('Short name')
+TXT_First_name = _('First name')
+TXT_Last_name = _('Last name')
 
 TXT_Roster = _('Roster')
 TXT_Rosterdate = _('Rosterdate')
@@ -1152,9 +1193,11 @@ TXT_Customer_list = _('Customer list')
 TXT_No_customers = _('No customers')
 TXT_Identifier = _('Identifier')
 TXT_ID_number = _('ID number')
+TXT_ID_number_2lines = pgettext_lazy('ID_number_2lines', 'ID number')
 TXT_Payroll_code = _('Payroll code')
 
 TXT_Payroll_code_abbrev = pgettext_lazy('Code loonadm.', 'Payroll code')
+TXT_Payroll_code_2lines = pgettext_lazy('Code loonadministratie 2 lines', 'Payroll code')
 TXT_Payroll_2lines = pgettext_lazy('Loon administatie sidebar', 'Payroll')
 TXT_No_payroll_periods = _('No payroll periods found')
 TXT_Choose_payroll_period = _('Choose a payroll period')
@@ -1256,6 +1299,7 @@ TXT_This_item = _('This item')
 TXT_Upload_employees = _('Upload employees')
 
 TXT_Email_address = _('Email address')
+TXT_Telephone = _('Telephone')
 
 TXT_Employee = _('Employee')
 TXT_This_employee = _('This employee')
@@ -1267,8 +1311,13 @@ TXT_Remove_employee = _('Remove employee')
 TXT_Current_teammember = _('Current teammember')
 TXT_Current_teammembers = _('Current teammembers')
 
-TXT_Pease_select_employee_first = _('Please select an employee first.')
-TXT_Pease_select_absence_first = _('Please select an absence first.')
+TXT_Please_select_employee_first = _('Please select an employee first.')
+TXT_Please_select_absence_first = _('Please select an absence first.')
+TXT_Please_select_abscat_first = _('Please select an absence category first.')
+TXT_Please_select_function_first = _('Please select a function first.')
+TXT_Please_select_wagefactor_first = _('Please select a wage factor first.')
+TXT_Please_select_wagecode_first = _('Please select a wage code first.')
+TXT_Please_select_payrollperiod_first = _('Please select a payroll period first.')
 
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')
@@ -1300,6 +1349,7 @@ TXT_Select_abscat = _('Select absence category')
 TXT_No_absence_categories = _('No absence categories')
 TXT_Delete_abscat = _('Delete absence category')
 TXT_Make_abscat_inactive = _('Make absence category inactive')
+TXT_Make_abscat_active = _('Make absence category active')
 TXT_Add_abscat = _('Add absence category')
 
 TXT_Add_absence = _('Add absence')
@@ -1358,8 +1408,10 @@ TXT_Add_wagecode= _('Add wage code')
 TXT_Make_wagecode_inactive = _('Make wage code inactive')
 TXT_Delete_wagecode = _('Delete wage code')
 
-TXT_Wage_factor = _('Wage factor')
+
+TXT_Number = _('Number')
 TXT_Percentage = _('Percentage')
+TXT_Wage_factor = _('Wage factor')
 TXT_This_wagefactor = _('This wage factor')
 TXT_Add_wagefactor= _('Add wage factor')
 TXT_Make_wagefactor_inactive = _('Make wage factor inactive')
@@ -1388,7 +1440,6 @@ TXT_Page = _('Page')
 TXT_for_txt = _('for')
 
 TXT_Grand_total = _('Grand total')
-TXT_Total_hours = _('Total hours')
 TXT_Total = _('Total')
 TXT_Back_to_previous_level = _('Back to previous level')
 
@@ -1427,7 +1478,6 @@ TXT_err_msg_set_hours_to_0_instead = _('You can set the hours to zero instead.')
 TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
 TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
-
 
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_must_be_integer = _('must be an integer.')
@@ -1540,7 +1590,8 @@ TXT_Next_day_title = _('Shift ends on the next day')
 TXT_As_of = _('As of')
 
 TXT_Modified_by = _('Modified by ')
-TXT_on = _('on ')
+
+TXT_Modified_on = _('Modified on')
 
 
 TXT_Period_planning_list = (
@@ -1556,6 +1607,8 @@ TXT_Period_planning_list = (
 )
 
 TXT_payroll_columns_list = (
+    ('identifier', TXT_ID_number),
+    ('payrollcode', TXT_Payroll_code),
     ('offsetstart', TXT_Start_time),
     ('offsetend', TXT_End_time),
     ('plandur',  TXT_Planned_hours),

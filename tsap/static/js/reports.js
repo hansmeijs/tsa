@@ -27,8 +27,8 @@
 
 // ++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++
     function PrintRoster(option, selected_period, emplhour_list, company_dict, loc, imgsrc_warning) {
-        console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
-        console.log("emplhour_list: ", emplhour_list)
+        //console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
+        //console.log("emplhour_list: ", emplhour_list)
 
 // ---  calculate subtotals and display values of subtotal rows and detail rows
         const subtotals = calc_roster_totals(emplhour_list, loc);
@@ -98,7 +98,7 @@
 
 // +++++++ loop through rows from sorted_rows[1] +++++++++++++++++++++++++
            const rosterdate_rows = sorted_rows[1];
-        console.log( "rosterdate_rows", rosterdate_rows)
+        //console.log( "rosterdate_rows", rosterdate_rows)
            for (let i = 0, len = rosterdate_rows.length; i < len; i++) {
                 const rosterdate_header_row = rosterdate_rows[i][0];
                 const customer_rows = rosterdate_rows[i][1]
@@ -876,8 +876,8 @@
 
 // ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict, loc) {
-        console.log("PrintEmployeePlanning")
-        console.log("selected_period", selected_period)
+        //console.log("PrintEmployeePlanning")
+        //console.log("selected_period", selected_period)
 
         const today_JS = new Date();
         const today_str = format_dateJS_vanilla (loc, today_JS, true, false)

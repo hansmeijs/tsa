@@ -56,7 +56,7 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= CustomerUploadView ============= ')
+        #logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -69,13 +69,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
-
-
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. get iddict variables
                 id_dict = f.get_dict_value(upload_dict, ('id',))
-                logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
+                #logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
                 if id_dict:
                     #logger.debug('upload_dict: ' + str(upload_dict))
                     table = f.get_dict_value(id_dict, ('table',), '')
@@ -91,8 +89,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
                     orders_list = f.get_dict_value(upload_dict, ('orders_list',))
 
-                    logger.debug('table: ' + str(table))
-                    logger.debug('is_delete: ' + str(is_delete))
+                    #logger.debug('table: ' + str(table))
+                    #logger.debug('is_delete: ' + str(is_delete))
 # TODO check identifier for duplicates
 
                     updated_customer_rows = []
@@ -104,7 +102,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # A. check if parent with ppk_int exists and is same as request.user.company
                         parent = m.Company.objects.get_or_none(id=ppk_int)
-                        logger.debug('parent:', parent)
+                        #logger.debug('parent:', parent)
                         if parent and ppk_int == request.user.company_id:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -167,13 +165,13 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # =====  ORDER  ==========
                     elif table == "order":
-                        logger.debug('table: ' + str(table))
-                        logger.debug('ppk_int: ' + str(ppk_int))
+                        #logger.debug('table: ' + str(table))
+                        #logger.debug('ppk_int: ' + str(ppk_int))
 
 # A. check if parent exists (customer is parent of order)
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
-                        logger.debug('parent: ' + str(parent))
-                        logger.debug('is_delete: ' + str(is_delete))
+                        #logger.debug('parent: ' + str(parent))
+                        #logger.debug('is_delete: ' + str(is_delete))
                         if parent:
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
                             update_dict = f.create_update_dict(
@@ -463,8 +461,8 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
 def create_order(parent, upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    logger.debug(' >>>>>>>>>>>> --- create_order   ---- ')
-    logger.debug(' upload_dict ', str(upload_dict))
+    #logger.debug(' >>>>>>>>>>>> --- create_order   ---- ')
+    #logger.debug(' upload_dict ', str(upload_dict))
 
     instance = None
 
@@ -489,14 +487,14 @@ def create_order(parent, upload_dict, update_dict, request):
         elif code is None:
             code = name[:c.CODE_MAX_LENGTH]
 
-        logger.debug('code' + str(code))
-        logger.debug('name' + str(name))
+        #logger.debug('code' + str(code))
+        #logger.debug('name' + str(name))
 
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
             msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
-            logger.debug('msg_err' + str(msg_err))
+            #logger.debug('msg_err' + str(msg_err))
             if not msg_err:
                 msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
 
@@ -509,7 +507,7 @@ def create_order(parent, upload_dict, update_dict, request):
                         isabsence=is_absence
                     )
                     instance.save(request=request)
-                    logger.debug('instance' + str(instance))
+                    #logger.debug('instance' + str(instance))
 
 # 5. return msg_err when instance not created
                     if instance.pk is None:
@@ -701,7 +699,7 @@ class OrderImportView(View):
 class OrderImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, has_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderImportUploadSetting ============= ')
+        #logger.debug(' ============= OrderImportUploadSetting ============= ')
         #logger.debug('request.POST' + str(request.POST) )
         companysetting_dict = {}
         if request.user is not None :
@@ -709,7 +707,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                 if request.POST['upload']:
                     new_setting_json = request.POST['upload']
                     # new_setting is in json format, json.loads (gets dict from json) and json.dumps (creates json from dict)
-                    logger.debug('new_setting_json' + str(new_setting_json))
+                    #logger.debug('new_setting_json' + str(new_setting_json))
 
                     new_worksheetname = ''
                     new_has_header = True
@@ -718,7 +716,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                     stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
                     if stored_json:
                         stored_setting = json.loads(stored_json)
-                        logger.debug('stored_setting: ' + str(stored_setting))
+                        #logger.debug('stored_setting: ' + str(stored_setting))
                         if stored_setting:
                             new_has_header = stored_setting.get('has_header', True)
                             new_worksheetname = stored_setting.get('worksheetname', '')
@@ -735,8 +733,8 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                                 new_coldefs = new_setting.get('coldefs', {})
                     new_setting = {'worksheetname': new_worksheetname, 'has_header': new_has_header, 'coldefs': new_coldefs}
                     new_setting_json = json.dumps(new_setting)
-                    logger.debug('---  set_jsonsettingg  ------- ')
-                    logger.debug(new_setting_json)
+                    #logger.debug('---  set_jsonsettingg  ------- ')
+                    #logger.debug(new_setting_json)
                     m.Companysetting.set_jsonsetting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
 
         # only for testing
@@ -746,7 +744,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                     coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
                     if coldefs_dict:
                         companysetting_dict['coldefs'] = coldefs_dict
-                    logger.debug('new_setting from saved ' + str(coldefs_dict))
+                    #logger.debug('new_setting from saved ' + str(coldefs_dict))
 
         return HttpResponse(json.dumps(companysetting_dict, cls=LazyEncoder))
 
@@ -755,7 +753,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
 class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderImportUploadData ============= ')
+        #logger.debug(' ============= OrderImportUploadData ============= ')
 
 # - Reset language
         # PR2019-03-15 Debug: language gets lost, get request.user.lang again

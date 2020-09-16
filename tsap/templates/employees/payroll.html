@@ -15,24 +15,10 @@
         <div class="sidebar_header">
             <h3 id="id_SBR_hdr_text"></h3>
         </div>
-        <div class="tab_show tab_payrollcrosstab tab_payrolltabular display_hide">
+        <div class="tab_show tab_payroll_agg tab_payroll_detail display_hide">
         <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
+            <h6 id="id_SBR_label_select_period" class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
             <input id="id_SBR_select_period"
-                type="text"
-                class="tw_200 border_none pointer_show px-2"
-                readonly>
-        </div>
-        <div class="mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Payroll period' %}:</h6>
-            <input id="id_sbr_select_payrollperiod"
-                type="text"
-                class="tw_200 border_none pointer_show px-2"
-                readonly>
-        </div>
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Closing date' %}:</h6>
-            <input id="id_sbr_select_paydate"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
@@ -80,8 +66,8 @@
                 {% include 'includes/modmessage.html' %}
         <!-- =================== MODAL ABSCAT  =================== -->
                 {% include 'includes/modabscat.html' %}
-        <!-- =================== MODAL PERIOD  =================== -->
-                {% include 'includes/modselectperiod.html' %}
+        <!-- =================== MODAL PERIOD OR PAYROLL PERIOD =================== -->
+                {% include 'includes/modselectperiodorpaydate.html' %}
         <!-- =================== MODAL PAYROLL PERIOD  =================== -->
                 {% include 'includes/modpayrollperiod.html' %}
         <!-- =================== MODAL FUNCTION CODE =================== -->
@@ -120,13 +106,13 @@
         <!-- end class content_header -->
 <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button data-btn="payrollcrosstab" class="btn btn-secondary ">{% trans 'Roster totals' %}</button>
-                    <button data-btn="payrolltabular" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
+                    <button data-btn="payroll_agg" class="btn btn-secondary ">{% trans 'Roster totals' %}</button>
+                    <button data-btn="payroll_detail" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
                     <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
-                    <button data-btn="paydatecode" class="btn btn-secondary ">{% trans 'Payroll periods' %}</button>
+                    <button data-btn="paydatecode" class="btn btn-secondary display_hide">{% trans 'Payroll periods' %}</button>
                     <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Wage codes' %}</button>
                     <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage factors' %}</button>
-                    <button data-btn="order" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
+                    <button data-btn="abscat" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
 
@@ -136,7 +122,7 @@
                 <div class="content_body ml-2 mr-0">
 
     <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_payrollcrosstab tab_payrolltabular tab_order display_hide">
+                    <div class="tab_show tab_payroll_agg tab_payroll_detail tab_abscat display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>
@@ -152,11 +138,11 @@
                                 <tfoot id="id_tblFoot_paydatecode"></tfoot>
                              </table>
                          </div>
-                         <div class="tsa_flex_1 m-2">
+                         <div class="tsa_flex_1 m-2 tab_show tab_paydatecode tab_functioncode display_hide">
                             <button id="id_btn_add_selected" class="btn btn-block btn-outline-secondary "></button>
                             <button id="id_btn_remove_selected" class="btn btn-block btn-outline-secondary "></button>
                          </div>
-                         <div class="tsa_flex_4 m-0">
+                         <div class="tsa_flex_4 m-0 tab_show tab_paydatecode tab_functioncode display_hide">
                               <table class="table tsa_tbl">
                                 <thead id="id_tblHead_employee"></thead>
                                 <tbody id="id_tblBody_employee"></tbody>
@@ -171,6 +157,7 @@
                     data-datalist_download_url="{% url 'datalist_download_url' %}"
                     data-settings_upload_url="{% url 'settings_upload_url' %}"
                     data-payroll_upload_url="{% url 'payroll_upload_url' %}"
+                    data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
                     data-paydatecode_import_url="{% url 'paydatecode_import_url' %}"
                     data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
                     data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"

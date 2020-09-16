@@ -74,6 +74,7 @@
 //========= CreateFooter  ====================================
     function CreateFooter(tp_dict, st_dict, ModTimepickerChanged) {
         //console.log( "--- CreateFooter  ");
+        //console.log( "tp_dict", tp_dict);
 
         // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
         // const is_quicksave = tp_dict.quicksave;
@@ -90,8 +91,9 @@
                 btn_quicksave.classList.add("pointer_show")
                 btn_quicksave.addEventListener("click", function() {
                         ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_qs")}, false )
-                btn_quicksave.addEventListener("mouseenter", function() {btn_quicksave.classList.add("tr_hover")});
-                btn_quicksave.addEventListener("mouseleave", function() {btn_quicksave.classList.remove("tr_hover")});
+                add_hover(btn_quicksave);
+               // btn_quicksave.addEventListener("mouseenter", function() {btn_quicksave.classList.add("tr_hover")});
+                //btn_quicksave.addEventListener("mouseleave", function() {btn_quicksave.classList.remove("tr_hover")});
 
                 if(!mod_quicksave) {
                    //btn_quicksave.setAttribute("data-toggle", "modal");
@@ -101,7 +103,17 @@
             div_left.appendChild(btn_quicksave);
         el_footer.appendChild(div_left);
 
-        if(st_dict["show_btn_delete"] && tp_dict["offset"] != null){
+        let show_btn = false; //PR2020-09-09
+        if(st_dict.show_btn_delete){
+            if (["offsetstart", "offsetend"].indexOf(tp_dict.field) > -1) {
+                // offset '0' is midnight, can be deleted
+                show_btn = (tp_dict.offset != null);
+            } else {
+                // don't delete '0', makes innerText 0, and cannot be selected any more
+                show_btn = (tp_dict.offset);
+            }
+        }
+        if(show_btn){
             let btn_delete = document.createElement("div");
                 // PR2020-08-21 instead of button with el_img, create div el with border and background img
 
@@ -832,7 +844,7 @@ function CalcMinMax(dict) {
             time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
         }
 
-        const new_shift_code = create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
+        const new_shift_code = f_create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
 
         //console.log("new_shift_code: ", new_shift_code );
         let shift_dict = {code: {value: new_shift_code},

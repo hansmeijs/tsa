@@ -2085,6 +2085,13 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             
             eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,
             eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration, 
+            
+            eh.functioncode_id AS fnc_id,
+            fnc.code AS fnc_code,
+            
+            eh.wagefactorcode_id AS wfc_id,
+            wfc.code AS wfc_code,
+            eh.wagefactor,
 
             eh.haschanged, 
             eh.status,
@@ -2108,10 +2115,12 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             eh.note
 
             FROM companies_emplhour AS eh 
-            LEFT JOIN accounts_user AS u ON (eh.modifiedby_id = u.id)
-            INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
-            INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
-            INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            LEFT JOIN accounts_user AS u ON (u.id = eh.modifiedby_id)
+            LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id) 
+            LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id) 
 
             WHERE (c.company_id = %(comp_id)s)
             """)
