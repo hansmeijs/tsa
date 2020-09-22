@@ -2069,7 +2069,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(is_billing_detail_mod_mode){
             is_billing_detail_mod_mode = false;
         } else {
-            b_EmptyFilterRow(tblHead_datatable)
+            b_reset_tblHead_filterRow(tblHead_datatable)
             //Filter_TableRows(tblBody_datatable)
 
             if (billing_level){

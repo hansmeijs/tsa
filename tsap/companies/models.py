@@ -66,6 +66,14 @@ class TsaBaseModel(Model):
             if self.request.user:
                 self.modifiedby = self.request.user
                 self.company = self.request.user.company
+
+                # save username in self.modifiedbyusername when this field exists PR2020-09-18
+                try:
+                    if hasattr(self, 'modifiedbyusername'):
+                        self.modifiedbyusername = self.request.user.username_sliced
+                except:
+                    pass
+
         # put now_utc in Companysettings (only when table is emplhour) PR2020-08-12
                 key = 'last_emplhour_updated'
                 if key in kwargs:
@@ -139,7 +147,7 @@ class Company(TsaBaseModel):
     additioncode_id = IntegerField(null=True)
     taxcode_id = IntegerField(null=True)
     invoicecode_id = IntegerField(null=True)
-    #wagefactorcode_id = IntegerField(null=True)
+    wagefactorcode_id = IntegerField(null=True)
 
     workminutesperday = IntegerField(default=480)  # default working minutes per day * 60, unit is minute. 8 hours = 480 workminutes
     entryrate = IntegerField(default=0) # /10000 unit is currency (US$, EUR, ANG)
@@ -508,7 +516,7 @@ class Scheme(TsaBaseModel):
     excludecompanyholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
-
+    # nopay in scheme is not in use (yet) PR2020-09-17
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
     nohoursonsunday = BooleanField(default=False)
@@ -880,6 +888,7 @@ class Emplhour(TsaBaseModel):
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
+    wagefactorcaption = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
@@ -1334,23 +1343,23 @@ def get_instance(table, pk_int, parent, update_dict=None):
     return instance
 
 
-def delete_instance(instance, update_dict, request, this_text=None):
+def delete_instance(instance, update_dict, msg_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
     deleted_ok = False
-    msg_err = None
+
     if instance:
         try:
             instance.delete(request=request)
         except:
             if this_text:
-                msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
+                msg_dict['err_delete'] = _('An error occurred. %(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
-                msg_err = _('This item could not be deleted.')
+                msg_dict['err_delete'] = _('An error occurred. This item could not be deleted.')
             # deprecated: update_dict['id']['error'] = msg_err
         else:
             # deprecated:  update_dict['id']['deleted'] = True
             deleted_ok = True
 
-    return deleted_ok, msg_err
+    return deleted_ok
 
 

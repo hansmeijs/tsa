@@ -23,7 +23,7 @@ urlpatterns = [
     #path('login', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     #path('login', auth_views.LoginView.as_view(), name='login'),
     path('login', auth_views.LoginView.as_view(authentication_form=CompanyAuthenticationForm), name='login'),
-    # TODO create custom message when user that is not is_actibe wants to login - PR2020-08-18
+    # TODO create custom message when user that is not is_active wants to login - PR2020-08-18
     #      now a 'username password not correct' message appears, that is confusing
     # url(r'^favicon\.ico$',RedirectView.as_view(url='/static/img/favicon.ico')),
     # path('favicon\.ico',RedirectView.as_view(url='/static/img/favicon.ico')),
@@ -126,7 +126,6 @@ urlpatterns = [
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
 
         path('user_upload', account_views.UserUploadView.as_view(), name='user_upload_url'),
-
         path('settings_upload', account_views.UserSettingsUploadView.as_view(), name='settings_upload_url'),
 
     ])),

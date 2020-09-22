@@ -4798,7 +4798,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // reset filter of tblHead
             let tblHead = document.getElementById("id_thead_" + tblName)
-            if(!!tblHead){t_reset_tblHead_filter(tblHead)}
+            if(!!tblHead){b_reset_tblHead_filterRow(tblHead)}
 
 //--- reset filter of select table
             //t_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)

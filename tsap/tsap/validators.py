@@ -250,12 +250,13 @@ class validate_unique_employee_name(object):  # PR2019-03-15
         return value
 
 
-def validate_code_name_identifier(table, field, new_value, is_absence, parent, update_dict, request, this_pk=None):
+def validate_code_name_identifier(table, field, new_value, is_absence, parent, update_dict, msg_dict, request, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
     #logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     # filter is_absence is only used in table 'order' PR2020-06-14
+    # TODO update_dict to be deprecated, to be replaced by msg_dict
     msg_err = None
     if not parent:
         msg_err = _("No parent record.")
@@ -375,10 +376,13 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
 
     #logger.debug('msg_err: ' + str(msg_err))
     if msg_err:
+        # empty update_dict {} is Falsey
         if update_dict:
             if field not in update_dict:
                 update_dict[field] = {}
             update_dict[field]['error'] = msg_err
+        elif msg_dict:
+            update_dict['err_' + field] = msg_err
 
     return msg_err
 

@@ -118,8 +118,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
                                 if instance:
                                     this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
-                                    # delete_instance adds 'deleted' or 'error' to id_dict
-                                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+                                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
                                     if deleted_ok:
                                         instance = None
                                         # - create deleted_dict
@@ -185,7 +184,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                                 if instance:
                                     this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+                                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
                                     if deleted_ok:
                                         instance = None
                             # - create deleted_dict
@@ -356,9 +355,9 @@ def create_new_customer(parent, upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
                 if not msg_err:
-                    msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
+                    msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, {}, request)
 
     # 4. create and save customer
                     if not msg_err:
@@ -405,7 +404,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
                 # b. validate code or name
-                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request, this_pk=None)
+                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, {}, request, this_pk=None)
                             if not msg_err:
                  # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
@@ -493,10 +492,10 @@ def create_order(parent, upload_dict, update_dict, request):
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
-            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
             #logger.debug('msg_err' + str(msg_err))
             if not msg_err:
-                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, request)
+                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, {}, request)
 
 # 4. create and save order
                 if not msg_err:
@@ -547,7 +546,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         if new_value != saved_value:
         # b. validate code or name
                             msg_err = v.validate_code_name_identifier(table, field,
-                                                                        new_value, False, parent, update_dict, request, instance.pk)
+                                                                        new_value, False, parent, update_dict, {}, request, instance.pk)
                             if not msg_err:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)

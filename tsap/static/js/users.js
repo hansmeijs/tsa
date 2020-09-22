@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             el_filter.setAttribute("ondrop", "return false;");
                         } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
                             // default empty icon necessary to set pointer_show
-                            append_background_icon(el_filter,"tickmark_0_0");
+                            append_background_class(el_filter,"tickmark_0_0");
                         }
 
 // --- add width, text_align
@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         el_td.appendChild(el_div);
                     add_hover(el_td)
                 } else if (field_name === "is_active") {
-                    append_background_icon(el_td,"inactive_0_2")
+                    append_background_class(el_td,"inactive_0_2")
                     el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_td)}, false )
                     //let el_div = document.createElement("div");
                     //    el_div.classList.add("inactive_0_2")
@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const is_inactive = !( (map_dict[field_name]) ? map_dict[field_name] : false );
                     el_div.setAttribute("data-value", ((is_inactive) ? 1 : 0) );
                     const img_class = (is_inactive) ? "inactive_1_3" : "inactive_0_2";
-                    refresh_background_icon(el_div, img_class)
+                    refresh_background_class(el_div, img_class)
                     //let el_icon = el_div.children[0];
                     //if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
 // ---  add title

@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
                         field_names: ["", "e_code", "o_code", "s_df", "s_dl", "sh_os_arr", "sh_oe_arr", "sh_td_arr", ""],
                         filter_tags: ["", "text", "text", "text", "text", "text", "text", "text", "text","duration"],
-                        field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "032"],
+                        field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "020"],
                         field_align: ["c", "l", "l", "r", "r", "r", "r", "r", "c"]},
             }
 
@@ -1574,7 +1574,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 el.setAttribute("data-field", field_settings[sel_btn].field_names[j]);
     // --- add img delete to col_delete
                 if (j === column_count - 1) {
-                    append_background_icon(el,"delete_0_1", "delete_0_2")
+                    append_background_class(el,"delete_0_1", "delete_0_2")
     // --- add EventListeners
                     el.addEventListener("click", function() {ModConfirmTblrowOpen("delete", "absence", el)}, false )
                 } else if (j){
@@ -1899,7 +1899,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 el_input.children[0].setAttribute("src", imgsrc_delete);
             });
         }
-        //el_input.classList.add("ml-4XX")
+       // el_input.classList.add("m-2")
 
         const img_src = (mode ==="delete") ? imgsrc_delete : (!!is_inactive) ? imgsrc_inactive_black : imgsrc_inactive_grey;
         AppendChildIcon(el_input, img_src)
@@ -6749,7 +6749,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         if (!!tblName){
 
 // reset filter of tblHead
-            t_reset_tblHead_filter(tblHead_datatable);
+            b_reset_tblHead_filterRow(tblHead_datatable);
 
 //--- reset filter of select table
             //t_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
@@ -7051,7 +7051,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     display_text = loc.Cycle + "..."
                 if (value === 32767) {
                     display_text = loc.No_cycle;
-                } else {
+                } else if(value) {
                     display_text = value.toString() + "-" + loc.days_cycle;
                 }
             } else if(fldName === "datefirstlast") {

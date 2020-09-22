@@ -25,16 +25,15 @@
         </div>
 
         <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
-            <input id="id_SBR_select_order"
+            <h6 id="id_SBR_label_select_employee" class="tw_200 line_height_normal px-2">{% trans 'Employee' %} / {% trans 'Function' %}:</h6>
+            <input id="id_SBR_select_employee"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-
         <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Employee' %}:</h6>
-            <input id="id_SBR_select_employee"
+            <h6 class="tw_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
+            <input id="id_SBR_select_order"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
@@ -78,8 +77,8 @@
                 {% include 'includes/modwagefactor.html' %}
         <!-- =================== MODAL SELECT ORDER  ===================-->
                 {% include 'includes/modselectorder.html' %}
-        <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
-                {% include 'includes/modselectemployee.html' %}
+        <!-- =================== MODAL SELECT EMPLOYEE FUNCTION =================== -->
+                {% include 'includes/modselectemployeefunction.html' %}
         <!-- =================== MODAL SELECT PAYDATE  =================== -->
                 {% include 'includes/modselectpaydate.html' %}
         <!-- =================== MODAL SELECT COLUMNS  =================== -->

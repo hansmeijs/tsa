@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_caption: ["", "Employee", "ID_number_2lines",  "Payroll_code_2lines", "First_date_in_service", "Last_date_in_service", "Hours_per_week", "Hours_per_day", "Leavedays", ""],
                         field_names: ["", "code", "identifier", "payrollcode", "datefirst", "datelast", "workhoursperweek", "workminutesperday", "leavedays", "inactive"],
                         filter_tags: ["", "text", "text", "text", "text", "text", "amount", "amount", "amount", "inactive"],
-                        field_width:  ["016","180", "120", "120","100", "100", "090","090", "090", "032"],
+                        field_width:  ["016","180", "120", "120","100", "100", "090","090", "090", "020"],
                         field_align: ["c","l", "l", "l","r", "r",  "r", "r", "r", "c"]},
             absence: { tbl_col_count: 9,
                         field_caption: ["", "Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
@@ -723,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_filter.setAttribute("ondragstart", "return false;");
                                 el_filter.setAttribute("ondrop", "return false;");
                             } else if (filter_tag === "inactive") {
-                                append_background_icon(el_filter, "inactive_0_2");
+                                append_background_class(el_filter, "inactive_0_2");
                                 el_filter.title = loc.Click_show_inactive_employees;
                             }
                             if (["workhoursperweek", "workminutesperday", "leavedays", ].indexOf(field_name) > -1) {
@@ -758,7 +758,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateEmployeeTblRow  ================ PR2019-08-29 PR2020-08-10
     function CreateEmployeeTblRow(map_dict, row_index) {
-        console.log("=========  CreateEmployeeTblRow =========");
+        //console.log("=========  CreateEmployeeTblRow =========");
         //console.log("map_id", map_id);
         const tblName = "employee";
         let tblRow = null;
@@ -785,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.setAttribute("data-field", field_settings[tblName].field_names[j]);
     // --- add img inactive to col_inactive
                 if (field_names[j] === "inactive") {
-                    append_background_icon(el,"inactive_0_2")
+                    append_background_class(el,"inactive_0_2")
                     el.setAttribute("title", loc.Click_to_make_this_employee_inactive);
     // --- add EventListeners
                     el.addEventListener("click", function() {UploadDeleteInactive("inactive", el)}, false )
@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected.employee_pk = pk_int
             selected.employee_code = null;
             selected.teammember_pk = null;
-            HandleSelect_Filter() ;
+            //HandleSelect_Filter() ;
         }
 // ++++ update table filter when inactive changed ++++
         if (inactive_changed && !filter_show_inactive){
@@ -1161,7 +1161,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = update_dict.mapid;
             const is_deleted = update_dict.isdeleted;
             const is_created = update_dict.iscreated;
+            if ("error" in update_dict) {
+                let err_text = "";
+                const err_dict = update_dict.error
+                for(let key in err_dict) {
+                    if(err_dict.hasOwnProperty(key)){
+                        const value = err_dict[key];
+                        if(value){
+                            if (err_text) { err_text += "\n"};
+                            err_text += value;
+                        }
+                }};
+                if(err_text) { ModConfirm_Message(loc, loc.An_error_occurred, err_text)}
 
+            }
 // +++  create list of updated fields, before updating data_map, to make them green later
             const updated_fields = b_get_updated_fields_list(field_settings.employee.field_names, employee_map, update_dict);
             //console.log("updated_fields", updated_fields);
@@ -1820,7 +1833,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UploadDeleteInactive  ============= PR2019-09-23
     function UploadDeleteInactive(mode, el_input) {
         console.log( " ==== UploadDeleteInactive ====", mode);
-
+        // TODO fix this function PR2020-09-21
         let tblRow = get_tablerow_selected(el_input)
         if(tblRow){
             const tblName = get_attr_from_el(tblRow, "data-table");
@@ -1831,7 +1844,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  create upload_dict with id_dict
                 let upload_dict = {id: map_dict.id};
                 mod_dict = {id: map_dict.id};
-                if (["absence", "teammember"].indexOf() > -1) {
+                if (["absence", "teammember"].indexOf(tblName) > -1) {
                     if (!isEmpty(map_dict.employee)){
                         mod_dict.employee = map_dict.employee;
                     };
@@ -1842,7 +1855,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 } else if (mode === "inactive"){
             // get inactive from map_dict
-                    const inactive = get_dict_value(map_dict, ["inactive", "value"], false)
+                    const inactive = map_dict.inactive;
             // toggle inactive
                     const new_inactive = (!inactive);
                     upload_dict["inactive"] = {"value": new_inactive, "update": true};
@@ -4914,7 +4927,7 @@ console.log( "reset mod_dict: ");
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= HandleSelect_Filter  ====================================
-    function HandleSelect_Filter() {
+    function HandleSelect_FilterXXX() {
         console.log( "===== HandleSelect_Filter  ========= ");
 
         // skip filter if filter value has not changed, else: update variable filter_select
@@ -4955,12 +4968,13 @@ console.log( "reset mod_dict: ");
 
         // skip filter if filter value has not changed, update variable filter_text
         const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
+        console.log( "..............skip_filter", skip_filter);
         console.log( "filter_dict", filter_dict);
         if (!skip_filter) {
             const tblName = tblName_from_selectedbtn(selected_btn);
             const has_ppk_filter = (tblName !== "employee");
             for (let i = 0, tblRow, show_row; tblRow = tblBody_datatable.rows[i]; i++) {
-                 const selected_ppk = null;
+                const selected_ppk = null;
                 show_row = t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk);
                 if (show_row) {
                     tblRow.classList.remove(cls_hide)
@@ -5095,7 +5109,7 @@ console.log( "reset mod_dict: ");
 
 //========= ShowTableRow_dict  ====================================
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15
-        //console.log( "===== ShowTableRow_dict  ========= ");
+        console.log( "===== ShowTableRow_dict  ========= ");
 
         // function filters by inactive and substring of fields,
         // also filters selected pk in table absence, shift, planning
@@ -5108,93 +5122,85 @@ console.log( "reset mod_dict: ");
         //       - checks data-value of column 'inactive'.
         //       - hides row if inactive = true
         let hide_row = false;
-        if (!!tblRow){
-            const pk_str = get_attr_from_el(tblRow, "data-pk");
-            const pk_int = parseInt(pk_str) // use Number instead of parseInt : Number("576-03") = NaN,  parseInt("576-03") = 576
-
-            //console.log( "pk_str", pk_str, typeof pk_str);
-            //console.log( "pk_int", pk_int, typeof pk_int);
-            //console.log( "parseInt(pk_str)", parseInt(pk_str), typeof parseInt(pk_str));
-// 1. skip new row
-    // check if row is_new_row. This is the case when pk is a string ('new_3').
-            // Not all search tables have "id" (select employee has no id in tblrow)
-            // Number returns NaN if the value cannot be converted to a legal number. If no argument is provided, it returns 0.
-            const is_new_row = (!!pk_str) ? (!pk_int) : false;
-            //console.log( "is_new_row", is_new_row, typeof is_new_row);
-            if(!is_new_row){
+        if (tblRow){
+            const pk_int = get_attr_from_el_int(tblRow, "data-pk");
 
 // 2. hide other employees when selected.employee_pk has value, but not when employee is replacement
-                // only in table absence, shift, planning
-                const tblName = get_attr_from_el(tblRow, "data-table");
-                //console.log( "tblName", tblName, typeof tblName);
-                if (!!selected.employee_pk) {
-                    if (["teammember", "planning"].indexOf(tblName) > -1) {
-                        const row_employee_pk_str = get_attr_from_el(tblRow, "data-employee_pk");
-                        //console.log( "row_employee_pk_str", row_employee_pk_str, typeof row_employee_pk_str);
-                        //console.log( "selected.employee_pk", selected.employee_pk, typeof selected.employee_pk);
-                        hide_row = (row_employee_pk_str !== selected.employee_pk.toString())
-                        //console.log( "-------- hide_row", hide_row);
-                    }
+            // only in table absence, shift, planning
+            const tblName = get_attr_from_el(tblRow, "data-table");
+            //console.log( "tblName", tblName, typeof tblName);
+            if (!!selected.employee_pk) {
+                if (["teammember", "planning"].indexOf(tblName) > -1) {
+                    const row_employee_pk_str = get_attr_from_el(tblRow, "data-employee_pk");
+                    //console.log( "row_employee_pk_str", row_employee_pk_str, typeof row_employee_pk_str);
+                    //console.log( "selected.employee_pk", selected.employee_pk, typeof selected.employee_pk);
+                    hide_row = (row_employee_pk_str !== selected.employee_pk.toString())
+                    //console.log( "-------- hide_row", hide_row);
                 }
+            }
 // 3. hide inactive rows if filter_show_inactive is false
-                if (!hide_row && !filter_show_inactive){
-                    const is_inactive = (get_attr_from_el(tblRow, "data-inactive") === "true")
-                    hide_row = is_inactive;
-                }
 
+        /*
+    console.log( "................filter_show_inactive", filter_show_inactive);
+            if (!hide_row && !filter_show_inactive){
+                const is_inactive = (get_attr_from_el(tblRow, "data-inactive") === "true")
+        console.log( "is_inactive", is_inactive);
+                hide_row = is_inactive;
+            }
+*/
 // 4. show all rows if filter_name = ""
-                //console.log(  "hide_row", hide_row);
-                if (!hide_row && !isEmpty(filter_dict)){
+            //console.log(  "hide_row", hide_row);
+            if (!hide_row && !isEmpty(filter_dict)){
 
 // 5. loop through keys of filter_dict
-                    // break doesnt work with this one: Object.keys(filter_dict).forEach(function(key) {
-                    for (let col_index in filter_dict) {
-                        const filter_text = filter_dict[col_index];
-                        const filter_blank = (filter_text ==="#")
-                        let tbl_cell = tblRow.cells[col_index];
-                        if(!hide_row && !!tbl_cell){
-                            let el = tbl_cell.children[0];
-                            if (!!el) {
-           // skip if no filter om this colums
-                                if(!!filter_text){
-           // get value from el.value, innerText or data-value
-                                    const el_tagName = el.tagName.toLowerCase()
-                                    let el_value;
-                                    if (el_tagName === "select"){
-                                        //or: el_value = el.options[el.selectedIndex].text;
-                                        el_value = get_attr_from_el(el, "data-value")
-                                    } else if (el_tagName === "input"){
-                                        el_value = el.value;
-                                    } else {
-                                        el_value = el.innerText;
-                                    }
-                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
+                // break doesnt work with this one: Object.keys(filter_dict).forEach(function(key) {
+                for (let col_index in filter_dict) {
+                    const filter_text = filter_dict[col_index];
+        console.log( "filter_text", filter_text);
+                    const filter_blank = (filter_text ==="#")
+                    let tbl_cell = tblRow.cells[col_index];
+                    if(!hide_row && !!tbl_cell){
+                        let el = tbl_cell.children[0];
+                        if (!!el) {
+       // skip if no filter om this colums
+                            if(!!filter_text){
+       // get value from el.value, innerText or data-value
+                                const el_tagName = el.tagName.toLowerCase()
+                                let el_value;
+                                if (el_tagName === "select"){
+                                    //or: el_value = el.options[el.selectedIndex].text;
+                                    el_value = get_attr_from_el(el, "data-value")
+                                } else if (el_tagName === "input"){
+                                    el_value = el.value;
+                                } else {
+                                    el_value = el.innerText;
+                                }
+                                if (!el_value){el_value = get_attr_from_el(el, "data-value")}
 
-                                    if (!!el_value){
-                                        if (filter_blank){
-                                            hide_row = true;
-                                            break;
-                                        } else {
-                                            el_value = el_value.toLowerCase();
-                                            // hide row if filter_text not found
-                                            if (el_value.indexOf(filter_text) === -1) {
-                                                hide_row = true
-                                                break;
-                                            }
-                                        }
+                                if (!!el_value){
+                                    if (filter_blank){
+                                        hide_row = true;
+                                        break;
                                     } else {
-                                        if (!filter_blank){
+                                        el_value = el_value.toLowerCase();
+                                        // hide row if filter_text not found
+                                        if (el_value.indexOf(filter_text) === -1) {
                                             hide_row = true
                                             break;
                                         }
-                                    }   // if (!!el_value)
-                                }  //  if(!!filter_text)
-                            }  // if (!!el) {
-                        }  // if(!hide_row && !!tbl_cell)
-                    }
-                    //);  // Object.keys(filter_dict).forEach(function(key) {
-                }  // if (!hide_row)
-            } //  if(!is_new_row){
+                                    }
+                                } else {
+                                    if (!filter_blank){
+                                        hide_row = true
+                                        break;
+                                    }
+                                }   // if (!!el_value)
+                            }  //  if(!!filter_text)
+                        }  // if (!!el) {
+                    }  // if(!hide_row && !!tbl_cell)
+                }
+                //);  // Object.keys(filter_dict).forEach(function(key) {
+            }  // if (!hide_row)
         }  // if (!!tblRow)
         return !hide_row
     }; // function ShowTableRow_dict
@@ -5321,8 +5327,9 @@ console.log( "reset mod_dict: ");
                 const duration = (value) ? value[0] : 0;
                 el_input.innerText = display_duration (duration, loc.user_lang);
             } else if (fldName === "inactive"){
-                const img_class = (value) ? "inactive_1_3" : "inactive_0_2";
-                refresh_background_icon(el_input, img_class)
+                //const img_class = (value) ? "inactive_1_3" : "inactive_0_2
+                //refresh_background_class(el_input, img_class)";
+                add_or_remove_class(el_input,"inactive_1_3", value, "inactive_0_2"  )
                 el_input.title = (value) ? loc.Click_to_make_this_employee_active : loc.Click_to_make_this_employee_inactive;
                 tblRow.setAttribute("data-inactive", value);
             }
@@ -5357,7 +5364,7 @@ console.log( "reset mod_dict: ");
                 el.setAttribute("data-field", field_settings[sel_btn].field_names[j]);
     // --- add img delete to col_delete
                 if (j === column_count - 1) {
-                    append_background_icon(el,"delete_0_1", "delete_0_2")
+                    append_background_class(el,"delete_0_1", "delete_0_2")
     // --- add EventListener
                     el.addEventListener("click", function() {ModConfirmOpen("delete", tblRow)}, false )
                 } else if (j){

@@ -360,8 +360,8 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12 PR2020-08-29
     function t_SetExtendedFilterDict(el, col_index, filter_dict, event_key) {
-        //console.log( "===== t_SetExtendedFilterDict  ========= ");
-        //console.log( "col_index ", col_index, "event_key ", event_key);
+        console.log( "===== t_SetExtendedFilterDict  ========= ");
+        console.log( "col_index ", col_index, "event_key ", event_key);
         // filter_dict = [ ["text", "m", ""], ["duration", 180, "gt"] ]
 
 // --- get filter tblRow and tblBody
@@ -381,8 +381,22 @@
                 let el = tblRow.cells[i].children[0];
                 if(el){ el.value = null};
             }
+        } else if ( filter_tag === "triple") {
+            let arr = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
+            const old_value = (arr && arr[1] ) ? arr[1] : 0;
+            // subtract 1, to get order V, X, -
+            let new_value = old_value - 1;
+            if(new_value < 0) { new_value = 2};
+            filter_dict[col_index] = [filter_tag, new_value];
+        } else if ( filter_tag === "inactive") {
+            let arr = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
+            const old_value = (arr && arr[1] ) ? arr[1] : 0;
+            // subtract 1, to get order V, X, -
+            let new_value = old_value - 1;
+            if(new_value < 0) { new_value = 1};
+            filter_dict[col_index] = [filter_tag, new_value];
 
-        } else if ( ["boolean", "inactive", "toggle_2", "toggle_3"].indexOf(filter_tag) > -1) {
+        } else if ( ["boolean", "toggle_2", "toggle_3"].indexOf(filter_tag) > -1) {
             // //filter_dict = [ ["boolean", "1"] ];
             // toggle value 0 / 1 when boolean
             let arr = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
@@ -477,33 +491,77 @@
     }  // t_SetExtendedFilterDict
 
 //========= t_ShowTableRowExtended  ==================================== PR2020-07-12 PR2020-09-12
-    function t_ShowTableRowExtended(filter_row, filter_dict) {
+    function t_ShowTableRowExtended(filter_row, filter_dict, tblRow) {
         // only called by FillPayrollRows,
-        //console.log( "===== t_ShowTableRowExtended  ========= ");
-        //console.log( "filter_dict", filter_dict);
-        //console.log( "filter_row", filter_row);
+        console.log( "===== t_ShowTableRowExtended  ========= ");
+        console.log( "filter_dict", filter_dict);
+        console.log( "filter_row", filter_row);
 
         let hide_row = false;
-        if (filter_row){
+
 // ---  show all rows if filter_name = ""
-            if (!isEmpty(filter_dict)){
+        if (!isEmpty(filter_dict)){
 // ---  loop through filter_dict key = col_index, value = filter_value
-                Object.keys(filter_dict).forEach(function(index_str) {
+            Object.keys(filter_dict).forEach(function(index_str) {
 // ---  skip column if no filter on this column
-                    if(filter_dict[index_str]){
+                if(filter_dict[index_str]){
+                    const arr = filter_dict[index_str];
+                    const col_index = Number(index_str);
+    console.log( "col_index", col_index);
+
+                    // filter text is already trimmed and lowercase
+                    const filter_tag = arr[0];
+                    const filter_value = arr[1];
+                    const filter_mode = arr[2];
+        console.log( "filter_tag", filter_tag);
+
+                    if(tblRow){
+                    // used in abscat table
+                        const cell = tblRow.cells[col_index];
+                        if(cell){
+                            const el = cell.children[0];
+                            if (el){
+                                if (filter_tag === "triple"){
+                                    console.log( "el", el);
+                                    const cell_value = get_attr_from_el_int(el, "data-filter")
+                                    console.log( "cell_value", cell_value);
+                                    console.log( "filter_value", filter_value);
+                                    if (filter_value === 2){
+                                        // show only rows with tickmark
+                                        if (!cell_value) { hide_row = true}
+                                    } else if (filter_value === 1){
+                                        // show only rows without tickmark
+                                        if (cell_value) { hide_row = true}
+                                    }
+                                }
+                            }
+                        }
+
+                    } else if (filter_row){
+
                         const arr = filter_dict[index_str];
                         const col_index = Number(index_str);
+        console.log( "col_index", col_index);
 
                         // filter text is already trimmed and lowercase
                         const filter_tag = arr[0];
                         const filter_value = arr[1];
                         const filter_mode = arr[2];
+        console.log( "filter_tag", filter_tag);
 
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
 
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if( filter_tag === "boolean") {
                             // skip, filter is set outside this function
+
+                        } else if (filter_tag === "triple"){
+                            const cell = filter_row.cells[col_index]
+                            if(cell){
+                                cell_value = get_attr_from_el(cell, "data-filter")
+
+        console.log( "========== cell_value", cell_value, typeof cell_value);
+                            }
                         } else if(filter_mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
                         } else if(filter_mode === "no_blanks"){  // # : show only non-blank cells
@@ -543,10 +601,11 @@
                                 }
                             }
                         }
-                    };
-                });  // Object.keys(filter_dict).forEach(function(col_index) {
-            }  // if (!hide_row)
-        }  // if (!!filter_row)
+
+                    }  // else if (filter_row){
+                };  //   if(filter_dict[index_str]){
+            });  // Object.keys(filter_dict).forEach(function(col_index) {
+        }  // if (!hide_row)
         return !hide_row
     }; // t_ShowTableRowExtended
 
@@ -1678,43 +1737,6 @@
         return !hide_row
     }; // t_ShowTableRow
 
-//  ======= t_reset_tblHead_filter ======== PR2020-01-18
-    function t_reset_tblHead_filter (tblHead){
-        //console.log ("======= t_reset_tblHead_filter ========")
-        if(!!tblHead){
-            let filterRow = tblHead.rows[1];
-            if(!!filterRow){
-                const column_count = filterRow.cells.length;
-                for (let j = 0, el; j < column_count; j++) {
-                    el = filterRow.cells[j].children[0]
-                    if(!!el){el.value = null}
-                }
-            }
-        }
-    }; // t_reset_tblHead_filter
-
-//  ======= t_reset_tblSelect_filter ======== PR2020-01-18
-    function t_reset_tblSelect_filter (id_filter_select_input, id_filter_select_btn, imgsrc_inactive_lightgrey){
-        //console.log ("======= t_reset_tblSelect_filter ========")
-//--- reset filter of select table
-        let el_filter_select_input = document.getElementById(id_filter_select_input)
-        if (!!el_filter_select_input){
-            el_filter_select_input.value = null
-        }
-
-        // reset icon of filter select table
-        // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
-        // select table is in sidebar: use lightgrey instead of imgsrc_inactive_grey
-
-        let el_filter_select_btn = document.getElementById(id_filter_select_btn)
-        if (!!el_filter_select_btn){
-            let el_filter_select_btn_cell = el_filter_select_btn.children[0]
-            if(!!el_filter_select_btn_cell){
-                el_filter_select_btn_cell.setAttribute("src", imgsrc_inactive_lightgrey);
-            }
-        }
-
-    }; // t_reset_tblSelect_filter
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //  ======= ReplaceItemDict ========

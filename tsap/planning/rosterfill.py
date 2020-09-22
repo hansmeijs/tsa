@@ -135,8 +135,10 @@ idx_r_pdc_dte = 83
 idx_r_wmpd = 84
 
 idx_sh_wfc_id = 85
+idx_sh_wfc_code = 86
+idx_sh_wfc_rate = 87
 
-idx_o_nopay = 86
+idx_o_nopay = 88
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
@@ -145,8 +147,8 @@ idx_o_nopay = 86
 # PR2020-04-04 called by: sql_teammember_sub08  ( and sql_teammembers_with_si_subNIU)
 
 # how to use scheme.divergentonpublicholiday and schemeitem.onpublicholiday  PR2020-05-02
-# - scheme.divergentonpublicholiday is only used in planning pages to allow public hoiday shifts
-# - when a schemeitem.onpublicholiday shift is mad, it gets the 'min_rosterdate'.
+# - scheme.divergentonpublicholiday is only used in planning pages to allow public holiday shifts
+# - when a schemeitem.onpublicholiday shift is made, it gets the 'min_rosterdate'.
 #   This is not in use. in  sql_schemeitem_sub00 it is replaced by the current rosterdate %(rd)s
 # - shift with onpublicholiday=True is only shown when current rosterdate is a public holiday
 #   done by filter OR (si.onpublicholiday = CAST(%(ph)s AS boolean))
@@ -227,11 +229,16 @@ sql_schemeitem_sub00 = """
         sh.pricecode_id AS sh_prc_id,
         sh.additioncode_id AS sh_adc_id,
         sh.taxcode_id AS sh_txc_id,
-        sh.wagefactorcode_id AS sh_wfc_id
+        
+        sh.wagefactorcode_id AS sh_wfc_id,
+        wfc.code AS sh_wfc_code,
+        COALESCE(wfc.wagerate, 0) AS sh_wfc_rate
 
         FROM companies_schemeitem AS si 
         INNER JOIN companies_scheme AS s ON (si.scheme_id = s.id) 
         LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
+        
+        LEFT JOIN companies_wagecode AS wfc ON (wfc.id = sh.wagefactorcode_id)
 
         WHERE  
             (
@@ -653,7 +660,10 @@ sql_teammember_sub08 = """
         r_sub.e_pdc_dte AS r_pdc_dte,
         CASE WHEN r_sub.e_wmpd IS NULL THEN comp.workminutesperday ELSE r_sub.e_wmpd END AS r_wmpd,
 
-        si_sub.sh_wfc_id,
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN comp.wagefactorcode_id ELSE si_sub.sh_wfc_id END AS sh_wfc_id,
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN wfc.code ELSE si_sub.sh_wfc_code END AS sh_wfc_code,
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.sh_wfc_rate END AS sh_wfc_rate,
+
         o.nopay AS o_nopay
 
     FROM companies_teammember AS tm 
@@ -666,6 +676,8 @@ sql_teammember_sub08 = """
     INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS e_sub ON (e_sub.e_id = tm.employee_id)
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS r_sub ON (r_sub.e_id = tm.replacement_id)
+    
+    LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)
 
     WHERE (c.company_id = %(cid)s)
     AND (NOT c.inactive OR c.isabsence) AND (NOT o.inactive OR o.isabsence) AND (NOT s.inactive OR s.isabsence)
@@ -681,8 +693,8 @@ sql_teammember_sub08 = """
     AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) )
     AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
     AND ( (e_sub.e_id = %(eid)s) OR (r_sub.e_id = %(eid)s) OR (%(eid)s IS NULL) ) 
+    AND ( (e_sub.e_fnc_id = %(fnc_id)s) OR (r_sub.e_fnc_id = %(fnc_id)s) OR (%(fnc_id)s IS NULL) ) 
 """
-
 
 @method_decorator([login_required], name='dispatch')
 class FillRosterdateView(UpdateView):  # PR2019-05-26
@@ -767,8 +779,8 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 #######################################################
 
 def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
-    #logger.debug(' ###################### FillRosterdate ###################### ')
-    #logger.debuglogger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    logger.debug(' ###################### FillRosterdate ###################### ')
+    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
     logfile = []
 
@@ -864,8 +876,20 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
             customer_pk, order_pk, employee_pk = None, None, None
-            all_rows = get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
-                                                  customer_pk, order_pk, employee_pk, company_id)
+            all_rows = get_employee_calendar_rows(
+                rosterdate_dte=rosterdate_dte,
+                is_saturday=is_saturday,
+                is_sunday=is_sunday,
+                is_publicholiday=is_publicholiday,
+                is_companyholiday=is_companyholiday,
+                customer_pk=customer_pk,
+                order_pk=order_pk,
+                employee_pk=employee_pk,
+                functioncode_pk=None,
+                company_id=company_id
+            )
+
+
 # - sort rows
             # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
             # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
@@ -883,7 +907,6 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     add_shifts_without_employee=True,
                     user_lang=user_lang)
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
 # - create orderhour_emplhour record
                 if add_row:
                     emplhour_is_added, linked_emplhours_exist, count_duration = \
@@ -1069,14 +1092,12 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         )
         orderhour.save(request=request)
 
-        # 4. create new emplhour
-        # TODO: add shift_wagefactor
+# - create new emplhour
         emplhour_is_added = add_emplhour(
             row=row,
             orderhour=orderhour,
             employee_pk=employee_pk,
             is_replacement=is_replacement,
-            shift_wagefactor=None,
             timestart=timestart,
             timeend=timeend,
             planned_duration=planned_duration,
@@ -1106,12 +1127,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 
 
 def add_emplhour(row, orderhour, employee_pk, is_replacement,
-                 shift_wagefactor,
                  timestart, timeend, planned_duration, time_duration, billing_duration, break_duration,
                  offset_start, offset_end, excel_date, excel_start, excel_end,
                  date_part, lastof_month, comp_timezone, request):
     #logger.debug(' ============= add_emplhour ============= ')
-    # ('row: ')
+
     #logger.debug(str(row))
 
     # NOTE:
@@ -1127,11 +1147,10 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
             # try:
             # TODO give value
             wagerate = 0
-            wagefactor = 0
+            #wagefactor = row[idx_sh_wfc_rate]
             wage = 0
             overlap = 0
-            amount = 0
-            tax = 0
+
 
             # TODO give value
             # new_emplhour.wagecode = employee.wagecode
@@ -1198,7 +1217,6 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
 # - calculate amount, addition and tax
             amount, addition, tax = f.calc_amount_addition_tax_rounded(billing_duration, orderhour.isabsence, orderhour.isrestshift,
                                                                        price_rate, addition_rate, tax_rate)
-
             # add pay_date PR2020-06-18
             # note: pay_date must be updated in table Paydatecode before filling rosterdate
             # IMPORTANT: dont forget to change paydate in emplhour when changing employee
@@ -1211,12 +1229,6 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
             functioncode_id = row[idx_e_fnc_id]
             wagecode_id = row[idx_e_wgc_id]
 
-            # TODO instead of  wagefactor use wagefactorcode
-            # if teammember.wagefactor:
-            #    wagefactor = teammember.wagefactor
-            # elif shift_wagefactor:
-            #    wagefactor = shift_wagefactor
-            wagefactorcode_id = None
             username = request.user.username_sliced
 
             new_emplhour = m.Emplhour(
@@ -1250,8 +1262,9 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
                 functioncode_id=functioncode_id,
                 wagecode_id=wagecode_id,
                 wagerate=wagerate,
-                wagefactorcode_id=wagefactorcode_id,
-                wagefactor=wagefactor,
+                wagefactorcode_id=row[idx_sh_wfc_id],
+                wagefactor=row[idx_sh_wfc_rate],
+                wagefactorcaption=row[idx_sh_wfc_code],
                 wage=wage,
 
                 amount=amount,
@@ -1264,7 +1277,8 @@ def add_emplhour(row, orderhour, employee_pk, is_replacement,
 
                 schemeitemid=row[idx_si_id],
                 teammemberid=row[idx_tm_id],
-                modifiedbyusername=username
+                # modifiedbyusername is saved in Emplhour.save()
+                #  modifiedbyusername=username
             )
 
             #logger.debug('new_emplhour: ' + str(new_emplhour))
@@ -2218,6 +2232,7 @@ def replace_employee_info_by_replacement(row):
     row[idx_e_wmpd] = row[idx_r_wmpd]
 
 def remove_employee_info_From_row(row):
+    #logger.debug('remove_employee_info_From_row' + str(row))
     # replace employee info by info of replacement employee
     row[idx_isreplacement] = False
 
@@ -2248,7 +2263,7 @@ def remove_employee_info_From_row(row):
 
 #######################################################
 
-def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk,
+def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk, functioncode_pk,
                              add_shifts_without_employee, skip_absence_and_restshifts, orderby_rosterdate_customer,
                              comp_timezone, timeformat, user_lang, request):
     #logger.debug(' ----------  create_employee_planning  ---------- ')
@@ -2292,8 +2307,19 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 
     # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
-            rows = get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
-                                              customer_pk, order_pk, employee_pk, company_id)
+            rows = get_employee_calendar_rows(
+                rosterdate_dte=rosterdate_dte,
+                is_saturday=is_saturday,
+                is_sunday=is_sunday,
+                is_publicholiday=is_publicholiday,
+                is_companyholiday=is_companyholiday,
+                customer_pk=customer_pk,
+                order_pk=order_pk,
+                employee_pk=employee_pk,
+                functioncode_pk=functioncode_pk,
+                company_id=company_id
+            )
+
     # - add rows to all_rows
             all_rows.extend(rows)
     # - add one day to rosterdate
@@ -2378,7 +2404,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 
 
 def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday, customer_pk, order_pk,
-                               employee_pk, company_id):
+                               employee_pk, functioncode_pk, company_id):
     #logger.debug(' =============== get_employee_calendar_rows ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('employee_pk: ' + str(employee_pk))
@@ -2407,6 +2433,7 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
         'customerid': customer_pk,
         'orderid': order_pk,
         'eid': employee_pk,
+        'fnc_id': functioncode_pk,
         'rd': rosterdate_dte,
         'is_sat': is_saturday,
         'is_sun': is_sunday,
@@ -2989,10 +3016,15 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
 
                     'fnc_id': row[idx_e_fnc_id],
                     'functioncode': row[idx_e_fnc_code],
-                    'wfc_id': row[idx_e_wgc_id],
-                    'wagefactor': row[idx_e_wgc_code],
+                    'wgc_id': row[idx_e_wgc_id],
+                    'wagecode': row[idx_e_wgc_code],
                     'pdc_id': row[idx_e_pdc_id],
                     'paydatecode': row[idx_e_pdc_code],
+
+                    'wfc_id': row[idx_sh_wfc_id],
+                    'wfc_code': row[idx_sh_wfc_code],
+                    'wfc_rate': row[idx_sh_wfc_rate],
+                    'nopay': row[idx_o_nopay]
 
         }
 

@@ -32,7 +32,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['of'] = TXT_of
     dict['As_of_abbrev'] = pgettext_lazy('abbrev', 'As of')
     dict['Through'] = _('Through')
-    dict['All'] = _('All')
+    dict['All'] = _('All ')
 
     # button text
     dict['Close'] = _('Close')
@@ -44,6 +44,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Undo'] = _('Undo')
     dict['Create'] = _('Create')
     dict['Delete'] = _('Delete')
+    dict['Edit_'] = _('Edit ')
     dict['Remove'] = _('Remove')
     dict['Unlock'] = _('Unlock')
     dict['Lock'] = _('Lock')
@@ -53,6 +54,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Rest_shift'] = TXT_Rest_shift
     dict['No_shifts'] = TXT_No_shifts
     dict['Select_shift'] = TXT_Select_shift
+
+    dict['Select'] = _('Select ')
 
     dict['Customer'] = TXT_Customer
     dict['Customers'] = TXT_Customers
@@ -75,6 +78,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
     dict['Select_employee'] = TXT_Select_employee
     dict['Replacement_employee'] = TXT_Replacement_employee
+
+    dict['Make_'] = _('Make ')
+    dict['_inactive'] = _(' inactive')
+    dict['_active'] = _(' active')
 
     dict['weekdays_abbrev'] = TXT_weekdays_abbrev
     dict['weekdays_long'] = TXT_weekdays_long
@@ -108,6 +115,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Click_to_make_this_item_inactive'] = _('Click to make this item inactive.')
     dict['Click_to_make_this_item_active'] = _('Click to make this item active.')
 
+    dict['Type_letters_and_select'] = _('Type a few letters and select ')
+    dict['in__the_list'] = _(' in the list...')
+    dict['an_order'] = _('an order')
+    dict['an_employee'] = _('an employee')
 
     # ModTimepicker
     dict['Working_hours'] = TXT_Working_hours
@@ -137,6 +148,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['err_msg_must_be_number_greater_than_or_equal_to'] = TXT_err_msg_must_be_number_greater_than_or_equal_to
     dict['err_msg_must_be_percentage_greater_than_or_equal_to'] = TXT_err_msg_must_be_percentage_greater_than_or_equal_to
 
+    dict['An_error_occurred'] = TXT_err_msg_error
 
 # ====== PAGE UPLOAD =========================
     if page == 'upload':
@@ -272,7 +284,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
-        dict['an_employee'] = TXT_an_employee
 
         # mod confirm
         dict['Please_select_employee_first'] = TXT_Please_select_employee_first
@@ -288,6 +299,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
 # ====== PAGE PAYROLL =========================
     elif page == 'payroll':
+
+        dict['Payroll_2lines'] = TXT_Payroll_2lines
         dict['ID_number_2lines'] = TXT_ID_number_2lines
         dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
         dict['Identifier_2lines'] = TXT_Identifier_2lines
@@ -346,6 +359,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['No_closing_date_entered'] = _('There is no closing date entered.')
 
         dict['Function'] = TXT_Function
+        dict['a_function'] = TXT_a_function
+        dict['of_withspaces'] = TXT__of_
+        dict['No_employee_entered'] = _('<no employee entered>')
+
         dict['Functions'] = TXT_Functions
         dict['No_functions'] = TXT_No_functions
         dict['This_function'] = TXT_This_function
@@ -361,13 +378,18 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Make_wagecode_inactive'] = TXT_Make_wagecode_inactive
         dict['Delete_wagecode'] = TXT_Delete_wagecode
 
+        dict['This_item'] = TXT_This_item
+
         dict['Number'] = TXT_Number
         dict['Percentage'] = TXT_Percentage
         dict['Wage_factor'] = TXT_Wage_factor
         dict['This_wagefactor'] = TXT_This_wagefactor
+        dict['Default_wagefactor'] = TXT_Default_wagefactor
         dict['Add_wagefactor'] = TXT_Add_wagefactor
         dict['Make_wagefactor_inactive'] = TXT_Make_wagefactor_inactive
         dict['Delete_wagefactor'] = TXT_Delete_wagefactor
+
+        dict['Description'] = TXT_Description
 
         dict['There_is_no'] = _('There is no ')
         dict['selected'] = _(' selected')
@@ -548,8 +570,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
         dict['err_open_planning_preview_02'] = TXT_err_open_planning_preview_02
 
-        dict['an_order'] = TXT_an_order
-
 # ====== PAGE SCHEME =========================
     elif page == 'scheme':
         dict['weekdays_long'] = c.WEEKDAYS_LONG[user_lang]
@@ -678,7 +698,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
-        dict['an_employee'] = TXT_an_employee
 
         dict['err_msg_error'] = TXT_err_msg_error
         dict['err_msg_customer'] = TXT_err_msg_customer
@@ -904,8 +923,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['You_must_first_select'] = _('You must first select ')
         dict['before_confirm_shift'] = _(', before you can confirm a shift.')
-        dict['an_order'] = TXT_an_order
-        dict['an_employee'] = TXT_an_employee
+
 
         dict['You_must_first_enter'] = _('You must first enter ')
         dict['before_confirm_shift'] = _(', before you can confirm a shift.')
@@ -1118,7 +1136,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Click_to_register_new_user'] = _('Click the submit button to register the new user.')
         dict['We_will_send_an_email_to_the_new_user'] = _('We will send an email to the new user, with a link to create a password and activate the account.')
         dict['Activationlink_expired'] = _('The link to active the account is valid for 7 days and has expired.')
-        dict['We_will_resend_an_email_to_user'] = _('We will email a new activation link to user')
+        dict['We_will_resend_an_email_to_user'] = _('We will email a new activation link to the user.')
         dict['Activation_email_not_sent'] = _('The activation email has not been sent.')
 
 
@@ -1395,6 +1413,7 @@ TXT_Make_payrollperiod_inactive = _('Make payroll period inactive')
 TXT_Delete_payrollperiod = _('Delete payroll period')
 
 TXT_Function = _("Function")
+TXT_a_function = _("a function")
 TXT_Functions = _("Functions")
 TXT_No_functions = _('No functions')
 TXT_This_function = _('This function')
@@ -1413,6 +1432,8 @@ TXT_Delete_wagecode = _('Delete wage code')
 TXT_Number = _('Number')
 TXT_Percentage = _('Percentage')
 TXT_Wage_factor = _('Wage factor')
+TXT_Default_wagefactor = _('Default wage factor')
+
 TXT_This_wagefactor = _('This wage factor')
 TXT_Add_wagefactor= _('Add wage factor')
 TXT_Make_wagefactor_inactive = _('Make wage factor inactive')
@@ -1434,6 +1455,7 @@ TXT_This_order = _('This order')
 TXT_Planning = _('Planning')
 TXT_Review = _('Review')
 TXT_of = _('of')
+TXT__of_ = _(' of ')
 TXT_Date = _('Date')
 TXT_Print_date = _('Print date')
 TXT_Page = _('Page')
@@ -1498,8 +1520,6 @@ TXT_err_open_planning_preview_02 = _(', before you can print a planning.')
 TXT_err_first_select_team = _('You must first select a team, before you can add a teammember.')
 TXT_err_cannot_enter_teammember_in_template = _('You cannot enter a teammember in a template.')
 
-TXT_an_order = _('an order')
-TXT_an_employee = _('an employee')
 TXT_a_starttime = _('a start time')
 TXT_an_endtime = _('an end time')
 

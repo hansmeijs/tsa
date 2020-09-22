@@ -2790,11 +2790,15 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - and takes in account daylight saving time
     # - otherwise value of shift.timeduration is used (shift '6:00 hours')
 
-    #logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
-    #logger.debug('is_absence: ' + str(is_absence))
-    #logger.debug('is_billable: ' + str(is_billable))
-    #logger.debug('row_employee_pk: ' + str(row_employee_pk))
-    #logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
+    logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
+    logger.debug('is_absence: ' + str(is_absence))
+    logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
+    logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
+    logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend) +
+                 ' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
+    logger.debug('row_employee_pk: ' + str(row_employee_pk))
+    logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
+
     timestart, timeend, new_timeduration = calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         offsetstart=row_offsetstart,
@@ -2803,7 +2807,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-    #logger.debug('new_timeduration: ' + str(new_timeduration))
+    logger.debug('new_timeduration: ' + str(new_timeduration))
 
     # Note: when is_publicholiday or is_companyholiday rows with 'excl_ph' or 'excl_ch' are filtered out.
     #    Maybe these rows are still necessary TODO PR2020-08-14
@@ -2824,6 +2828,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     else:
         planned_duration = new_timeduration
 
+    logger.debug('planned_duration: ' + str(planned_duration))
     # timeduration are the real hours made by employee, including absence hours, but no rest hours
     # therefore:
     #  -  time_duration gets also value when absence
@@ -2858,9 +2863,9 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     else:
         billing_duration = planned_duration
 
-    #logger.debug('planned_duration: ' + str(planned_duration))
-    #logger.debug('time_duration: ' + str(time_duration))
-    #logger.debug('billing_duration: ' + str(billing_duration))
+    logger.debug('planned_duration: ' + str(planned_duration))
+    logger.debug('time_duration: ' + str(time_duration))
+    logger.debug('billing_duration: ' + str(billing_duration))
 
 # - calculate excel_date, excel_start, excel_end
     row_offsetstart_nonull = row_offsetstart if row_offsetstart else 0

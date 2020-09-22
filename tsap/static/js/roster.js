@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
             field_names: ["select", "rosterdate", "c_o_code", "shiftcode", "employeecode", "stat_start_conf", "offsetstart", "stat_end_conf", "offsetend", "breakduration", "timeduration", "status"],
             field_tags: ["div", "input", "input", "input", "input", "div", "input", "div", "input", "input", "input", "div"],
             filter_tags: ["div", "text", "text", "text", "text", "img", "text", "img", "text", "duration", "duration", "status"],
-            field_width:  ["016", "090", "200", "150", "180", "020", "090", "020", "090", "090", "090", "020"],
+            field_width:  ["016", "090", "200", "150", "180", "020", "090", "020", "090", "075", "075", "020"],
             field_align: ["c", "l", "l", "l", "l", "r", "l", "r", "l", "l", "l", "c"]
         }
 
@@ -552,8 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody_datatable.innerText = null
 
 // +++  insert header and filter row ++++++++++++++++++++++++++++++++
-        let tblHeadRow = tblHead_datatable.insertRow (-1);
-        let tblFilterRow = tblHead_datatable.insertRow (-1);
+        let tblRow_header = tblHead_datatable.insertRow (-1);
+        let tblRow_filter = tblHead_datatable.insertRow (-1);
 
 // ---  create header_row, put caption in columns
         for (let j = 0, len = field_settings.field_names.length; j < len; j++) {
@@ -567,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const class_width = "tw_" + field_settings.field_width[j];
             const class_align = "ta_" + field_settings.field_align[j];
 
-// +++ add th to tblHeadRow +++
+// +++ add th to tblRow_header +++
             let th = document.createElement("th");
                 let el = document.createElement("div");
                     if ( ["stat_start_conf", "stat_end_conf", "status"].indexOf(field_name) > -1) {
@@ -575,14 +575,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                            (field_name === "stat_end_conf") ? "stat_0_3" : "stat_0_4";
                         el.classList.add(class_name)
                     } else {
-
                         el.innerText = caption;
                     }
                     el.classList.add(class_width, class_align);
                 th.appendChild(el);
-            tblHeadRow.appendChild(th);
+            tblRow_header.appendChild(th);
 
-// +++ add th to tblFilterRow +++
+// +++ add th to tblRow_filter  +++
             th = document.createElement("th");
                 el = document.createElement(field_tag);
                     el.setAttribute("data-field", field_name);
@@ -601,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     el.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                 th.appendChild(el);
-            tblFilterRow.appendChild(th);
+            tblRow_filter.appendChild(th);
         }
     };  //  CreateTblHeader
 
@@ -2381,7 +2380,7 @@ rowcount: 11
         filter_hide_inactive = true;
 
 // ---   empty filter input boxes in filter header
-        t_reset_tblHead_filter(tblHead_datatable)
+        b_reset_tblHead_filterRow(tblHead_datatable)
 
 // ---  deselect highlighted rows, reset selected_emplhour_pk
         selected_emplhour_pk = 0;
@@ -2567,7 +2566,7 @@ rowcount: 11
             const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]))
             if(is_delete){
                 const map_id = get_mapid_from_dict (upload_dict);
-                b_ShowTblrowError_byID(map_id);
+                b_ShowTblrowErrorOK_byID(map_id);
             }  // if(is_delete){
 
             let response = "";
@@ -2577,8 +2576,8 @@ rowcount: 11
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log("response");
-                    //console.log(response);
+                    console.log("response");
+                    console.log(response);
                     // refresh page on open page or when rosterdate is added or removes
                     if ("emplhour_rows" in response) {
                         FillEmplhourMap(response.emplhour_rows);
@@ -2612,11 +2611,9 @@ rowcount: 11
                         // hide logfile button when when there is no logfile
                         add_or_remove_class (el_MRD_btn_logfile, cls_hide, true)
                     };
-
-
                 },
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -3456,26 +3453,6 @@ rowcount: 11
         }
     }  // MRE_MRO_MSO_MSE_FillSelectTable
 
-//=========  MRE_MRO_MSO_MSE_AddAllToList  ================ PR2020-08-24
-    function MRE_MRO_MSO_MSE_AddAllToList(tblBody_select, pgeName, tblName){
-        //console.log( "===== MRE_MRO_MSO_MSE_AddAllToList ========= ");
-        let map_dict = {};
-        if (pgeName === "MSE") {
-            const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
-            map_dict = {id: 0, comp_id: ppk_int, code: "<" + loc.All_employees + ">"};
-        } else if (pgeName === "MSO") {
-            if (tblName === "customer") {
-                const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
-                map_dict = {id: 0, comp_id: ppk_int, code: "<" + loc.All_customers + ">"};
-            } else {
-                const ppk_int =  mod_dict.customer_pk;
-                map_dict = {id: 0, c_id: ppk_int, code: "<" + loc.All_orders + ">"};
-            }
-        }
-        //console.log( "map_dict: ", map_dict);
-        MRE_MRO_MSO_MSE_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, 0, 0)
-    }  // MRE_MRO_MSO_MSE_AddAllToList
-
 //=========  MRE_MRO_MSO_MSE_FillSelectRow  ================ PR2020-08-18
     function MRE_MRO_MSO_MSE_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, row_index, selected_pk, rosterdate) {
         //console.log( "===== MRE_MRO_MSO_MSE_FillSelectRow ========= ");
@@ -3557,6 +3534,26 @@ rowcount: 11
             td.appendChild(el);
         };
     }  // MRE_MRO_MSO_MSE_FillSelectRow
+
+//=========  MRE_MRO_MSO_MSE_AddAllToList  ================ PR2020-08-24
+    function MRE_MRO_MSO_MSE_AddAllToList(tblBody_select, pgeName, tblName){
+        //console.log( "===== MRE_MRO_MSO_MSE_AddAllToList ========= ");
+        let map_dict = {};
+        if (pgeName === "MSE") {
+            const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
+            map_dict = {id: 0, comp_id: ppk_int, code: "<" + loc.All_employees + ">"};
+        } else if (pgeName === "MSO") {
+            if (tblName === "customer") {
+                const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
+                map_dict = {id: 0, comp_id: ppk_int, code: "<" + loc.All_customers + ">"};
+            } else {
+                const ppk_int =  mod_dict.customer_pk;
+                map_dict = {id: 0, c_id: ppk_int, code: "<" + loc.All_orders + ">"};
+            }
+        }
+        //console.log( "map_dict: ", map_dict);
+        MRE_MRO_MSO_MSE_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, 0, 0)
+    }  // MRE_MRO_MSO_MSE_AddAllToList
 
 //=========  MRE_MRO_MSO_MSE_SelecttableClicked  ================ PR2020-08-19
     function MRE_MRO_MSO_MSE_SelecttableClicked(pgeName, tblName, tblRow) {
@@ -4193,7 +4190,7 @@ rowcount: 11
             const display_offset = display_offset_time (loc, mod_dict.offsetsplit, false, false);
             document.getElementById("id_MRE_split_time").innerText = display_offset;
 
-// ---  select table abscat when teher is a current employee
+// ---  select table abscat when there is a current employee
             MRE_MRO_MSO_MSE_FillSelectTable("MRE", "abscat", mod_dict.cur_employee_pk);
 
 // ---  change label 'replacement' to 'select_employee' if no employee, hide right panel, hide 'replacement' when absence
@@ -4229,10 +4226,11 @@ rowcount: 11
     function MRE_Save(crud_mode) {
         // crud_mode = 'delete' when clicked on MRE delete btn. Deletes absence emplhour or removes employee from emplhour
         // crud_mode = 'save' otherwise
-        //console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
+        console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
         // btn_select are: tab_absence, tab_move, tab_split, tab_switch
         let btn_name = el_modemployee_body.getAttribute("data-action");
 
+        console.log("mod_dict", mod_dict);
         // absence:
         // - mod_dict.isabsence = true when current record is absence record
         // - btn_select = "tab_absence" when current record is absence or will be made absent

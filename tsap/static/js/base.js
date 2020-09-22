@@ -135,16 +135,22 @@
     return true;
 }
 
-//========= b_EmptyFilterRow  ============= PR2020-06-20
-    function b_EmptyFilterRow(tblHead) {
-        let filterRow = tblHead.rows[1];
-        if(!!filterRow){
-            for (let j = 0, el, len = filterRow.cells.length ; j < len; j++) {
-                if(filterRow.cells[j]){
-                    el = filterRow.cells[j].children[0];
-                    if(!!el){el.value = null}
-        }}};
-    }
+//========= b_reset_tblHead_filterRow  ============= PR2020-06-20 PR2020-09-21
+    function b_reset_tblHead_filterRow(tblHead) {
+        if(tblHead){
+            let filterRow = tblHead.rows[1];
+            if(filterRow){
+                for (let j = 0, cell, el ; cell = filterRow.cells[j]; j++) {
+                    el = cell.children[0];
+                    if(el){
+                        if (el.tag === "INPUT") {
+                            el.value = null;
+                        } else {
+                            const el_icon = el.children[0];
+                            if(el_icon) {
+                                el_icon.className = "stat_0_0";
+        }}}}}};
+    };
 
 //========= dict_length  ============= PR2020-02-03
     //PR2020-02-03 https://stackoverflow.com/questions/5223/length-of-a-javascript-object
@@ -308,44 +314,33 @@
         el.classList.add("pointer_show")
     }  // add_hover
 
-//=========  append_background_icon ================ PR2020-09-10
-    function append_background_icon(el, default_class, hover_class) {
+//=========  append_background_class ================ PR2020-09-10
+    function append_background_class(el, default_class, hover_class) {
         if (el) {
-            let el_img = document.createElement("div");
-                //el_img.classList.add(default_class);
-                el_img.className = default_class;
-                el.appendChild(el_img);
-                // note: add_hover_class will replace 'is_inactive' icon by default_class
-                if (hover_class) {add_hover_class (el, hover_class, default_class)};
+            el.classList.add(default_class, "pointer_show");
+            // note: dont use on icons that will change, like 'inactive' or 'status'
+            // add_hover_class will replace 'is_inactive' icon by default_class
+            if (hover_class) {add_hover_class (el, hover_class, default_class)};
         }
     }
 
-//=========  refresh_background_icon ================ PR2020-09-12
-    function refresh_background_icon(el, img_class) {
+//=========  refresh_background_class ================ PR2020-09-12
+    function refresh_background_class(el, img_class) {
         if (el) {
             let el_img = el.children[0];
             if (el_img){
                 el_img.className = img_class;
             }
         }
-    }  // refresh_background_icon
+    }  // refresh_background_class
 
-//========= function add_hover  =========== PR2020-09-07
+//========= function add_hover  =========== PR2020-09-20
     function add_hover_class (el, hover_class, default_class) {
         //console.log(" === add_hover_class === ")
-//- add hover image to element
         if(el && hover_class && default_class){
-            const img = el.children[0];
-            if(img){
-                el.addEventListener("mouseenter", function() {
-                    img.classList.remove(default_class)
-                    img.classList.add(hover_class)
-                });
-                el.addEventListener("mouseleave", function() {
-                    img.classList.remove(hover_class)
-                    img.classList.add(default_class)
-                });
-        }}
+            el.addEventListener("mouseenter", function() {add_or_remove_class (el, hover_class, true, default_class)});
+            el.addEventListener("mouseleave", function() {add_or_remove_class (el, default_class, true, hover_class)});
+        };
     }  // add_hover_class
 
 //========= function add_hover  =========== PR2020-06-09
@@ -1689,18 +1684,19 @@
         }}};
     };
 
-//========= b_ShowTblrowError_byID  ====  PR2020-04-13
-    function b_ShowTblrowError_byID(tr_id) {
+//========= b_ShowTblrowErrorOK_byID  ====  PR2020-04-13
+    function b_ShowTblrowErrorOK_byID(tr_id, is_show_ok) {
         let tblRow = document.getElementById(tr_id);
-        b_ShowTblrowError(tblRow);
+        b_ShowTblrowErrorOK(tblRow, is_show_ok);
     }
 
-//========= b_ShowTblrowError set_element_class  ====  PR2020-04-13
-    function b_ShowTblrowError(tblRow) {
-        const cls_error = "tsa_tr_error";
+//========= b_ShowTblrowErrorOK set_element_class  ====  PR2020-04-13 PR2020-09-20
+    function b_ShowTblrowErrorOK(tblRow, is_show_ok) {
+        // can also use ShowOkElement in format js. That one has border
+        const cls_error_ok = (is_show_ok) ?  "tsa_tr_ok" :  "tsa_tr_error";
         if(tblRow){
-            tblRow.classList.add(cls_error);
-            setTimeout(function (){ tblRow.classList.remove(cls_error); }, 2000);
+            tblRow.classList.add(cls_error_ok);
+            setTimeout(function (){ tblRow.classList.remove(cls_error_ok); }, 2000);
         }
     }
 

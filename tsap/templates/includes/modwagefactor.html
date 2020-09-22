@@ -13,15 +13,14 @@
                 </div>
 
                 <div class="modal-body">
-
-                    <div id="id_MWF_input_container" class="content_header mx-2 my-1">
+                    <div class="content_header mx-2 my-1">
                         <div class="tsa_flex_1 mx-1">
                             <label for="id_MWF_input_code" class="tsa_margin_form_label">{% trans 'Description wage factor' %}:</label>
                             <input id="id_MWF_input_code" type="text" data-field= "code"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
                             <div class="tsa_flex_1 mx-2 my-1">
-                                <small id="id_MWF_err_code" class="text-danger">{% trans 'Description cannot be blank.' %}</small>
+                                <small id="id_MWF_err_code" class="text-danger"></small>
                             </div>
                         </div>
                         <div class="tsa_flex_1 mx-1">
@@ -30,12 +29,19 @@
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
                             <div class="tsa_flex_1 mx-2 my-1">
-                                <small id="id_MWF_err_rate" class="text-danger"></small>
+                                <small id="id_MWF_err_wagerate" class="text-danger"></small>
                             </div>
                         </div>
                     </div>
-
-
+                    <div class="content_subheader_left mx-1">
+                        <span>
+                            <input id="id_MWF_input_default" type="checkbox" data-field="default" class="tw_032 mx-2">
+                            <label for="id_MWF_input_default" class="mb-0">{% trans 'This is the default wagefactor' %}</label>
+                        </span>
+                    </div>
+                    <div class="content_subheader_left mx-2">
+                        <small>{% trans 'It will be used, when no wagefactor is entered in a shift.' %}</small>
+                    </div>
 
                 </div>
 

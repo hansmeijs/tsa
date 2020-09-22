@@ -46,7 +46,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
     #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
     logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         #logger.debug(' ')
         #logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
         #logger.debug('request.POST' + str(request.POST))
@@ -103,6 +103,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if request_item:
                         # request_item: {page: "employee"}
                         datalists['locale_dict'] = loc.get_locale_dict(request_item, user_lang, comp_timezone, timeformat, interval, request)
+
+
 # ----- quicksave
                     request_item = datalist_request.get('quicksave')
                     if request_item:
@@ -331,10 +333,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('payroll_list')
                     if request_item:
                         payroll_period = f.get_dict_value(datalists, ('payroll_period',))
-                        datalists['payroll_abscat_list'] = \
-                            ed.create_payroll_abscat_list(payroll_period, request)
-                        #datalists['payroll_period_agg_list'] = \
-                        #    ed.create_payroll_agg_list(payroll_period, request)
                         datalists['payroll_period_detail_list'] = \
                             ed.create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request)
                         #datalists['payroll_period_detail_list'] = \
@@ -365,7 +363,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['wagefactor_rows'] = ed.create_wagefactor_rows(request, {})
 # - functioncode_list
                     if datalist_request.get('functioncode_rows'):
-                        datalists['functioncode_rows'] = ed.create_functioncode_rows(request)
+                        datalists['functioncode_rows'] = ed.create_functioncode_rows(None, {}, request)
 
 # ----- employee_calendar
                     request_item = datalist_request.get('employee_calendar')
@@ -656,6 +654,10 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
 
         datefirst_iso = calendar_period_dict.get('period_datefirst')
         datelast_iso = calendar_period_dict.get('period_datelast')
+        customer_pk = calendar_period_dict.get('customer_pk')
+        order_pk = calendar_period_dict.get('order_pk')
+        employee_pk = calendar_period_dict.get('employee_pk')
+        functioncode_pk = calendar_period_dict.get('functioncode_pk')
 
         #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
         orderby_rosterdate_customer = False
@@ -665,6 +667,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
             customer_pk=customer_pk,
             order_pk=order_pk,
             employee_pk=employee_pk,
+            functioncode_pk= functioncode_pk,
             add_shifts_without_employee=add_shifts_without_employee,
             skip_absence_and_restshifts=skip_absence_and_restshifts,
             orderby_rosterdate_customer=orderby_rosterdate_customer,
@@ -735,6 +738,10 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
+    customer_pk = planning_period_dict.get('customer_pk')
+    order_pk = planning_period_dict.get('order_pk')
+    employee_pk = planning_period_dict.get('employee_pk')
+    functioncode_pk = planning_period_dict.get('functioncode_pk')
 
     dict_list, short_list, logfile = r.create_employee_planning(
         datefirst_iso=datefirst_iso,
@@ -742,6 +749,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
         customer_pk=customer_pk,
         order_pk=order_pk,
         employee_pk=employee_pk,
+        functioncode_pk= functioncode_pk,
         add_shifts_without_employee=add_shifts_without_employee,
         skip_absence_and_restshifts=skip_restshifts,
         orderby_rosterdate_customer=orderby_rosterdate_customer,
@@ -1495,7 +1503,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                     # shift, team and schemeitem have on_delete=CASCADE set.
                     # Therefore they don't have to be deleted separately
                     this_text = _("Scheme '%(suffix)s'") % {'suffix': instance.code}
-                    deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
                     if deleted_ok:
                         # instance will stay after delete, therefore must set instance = None
                         instance = None
@@ -1583,8 +1591,8 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
                 this_text = _('This shift')
             # add pk here, because instance will be deleted
             update_dict['id']['pk'] = instance.pk
-            # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-            deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+            # delete_instance
+            deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
             if deleted_ok:
                 instance = None
 # C. Create new shift
@@ -1644,8 +1652,8 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
             instance = m.Team.objects.get_or_none(id=pk_int, scheme=parent)
             if instance:
                 this_text = _("Team %(suffix)s") % {'suffix': instance.code}
-                # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-                deleted_or_created_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+                # delete_instance
+                deleted_or_created_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
                 if deleted_or_created_ok:
                     instance = None
 # 5. Create new team
@@ -1778,6 +1786,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                                 is_absence=False,
                                 parent=parent,
                                 update_dict=update_dict,
+                                msg_dict={},
                                 request=request,
                                 this_pk=instance.pk)
                             if not msg_err:
@@ -2155,7 +2164,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                         update_dict['id']['ppk'] = parent.pk
 # B. Delete instance
                         if is_delete:
-                            # delete_instance adds 'deleted' or 'error' to id_dict
+                            # delete_instance
                             this_text = _("This shift")
                             instance = m.Schemeitem.objects.get_or_none(id=pk_int, scheme=parent)
                             # PR20202-06-21 debug: you can delete same row twice, because of asynchronic update
@@ -2164,8 +2173,8 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                             if instance:
                                 # add pk here, because instance will be deleted
                                 update_dict['id']['pk'] = instance.pk
-                                # delete_instance adds 'deleted' or 'error' to 'id' in update_dict
-                                deleted_ok, msg_errNIU = m.delete_instance(instance, update_dict, request, this_text)
+                                # delete_instance
+                                deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
                                 if deleted_ok:
                                     instance = None
 # C. Create new schemeitem
@@ -2495,8 +2504,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ')
-        #logger.debug(' ============= EmplhourUploadView ============= ')
+        logger.debug(' ')
+        logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
@@ -2881,11 +2890,16 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # P
             #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-31
             new_customer_code = abscat_order.customer.code.replace('~', '') if abscat_order.customer.code else None
             new_order_code = abscat_order.code.replace('~', '') if abscat_order.code else None
+            new_nopay = abscat_order.nopay
+
+            # TODO when abscat changes 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
 
             # add emplohour log records before updating PR2020-07-26
             # also set haschanged=True in emplhour records  PR2020-07-21
             emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
             for emplhour in emplhours:
+ # - change nopay in   emplhour
+                emplhour.nopay = new_nopay
                 emplhour.haschanged = True
                 emplhour.save(request=request, last_emplhour_updated=True)
 
@@ -3144,8 +3158,12 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    #logger.debug(' --------- update_emplhour -------------')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --------- update_emplhour -------------')
+    logger.debug('upload_dict: ' + str(upload_dict))
+
+# upload_dict: {'id': {'pk': 11760, 'ppk': 11215, 'table': 'emplhour'},
+    # 'nopay': {'value': True, 'update': True},
+    # 'wagefactorcode': {'pk': None, 'update': True}}
 
     has_changed = False
     if emplhour:
@@ -3200,12 +3218,11 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             has_changed = True
                 # - also recalc_duration, so set or remove timeduraton when employee has changed
                             recalc_duration = True
-                # - add functioncode, wagecode, wagefactorcode, paydatecode from employee, recalc paydate
-                            # TODO get value of wagefactorcode
+                # - add functioncode, wagecode, paydatecode from employee, recalc paydate
                             if new_employee:
                                 emplhour.functioncode = new_employee.functioncode
                                 emplhour.wagecode = new_employee.wagecode
-                                # emplhour.wagefactorcode = ??
+
                                 emplhour.paydatecode = new_employee.paydatecode
                                 firstdateNIU, paydate = recalc_paydate(emplhour.rosterdate, new_employee.paydatecode)
                                 emplhour.paydate = paydate
@@ -3213,8 +3230,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                 # remove paydatecode when no employee, reset paydate to monthly, 31
                                 emplhour.functioncode = None
                                 emplhour.wagecode = None
-                                emplhour.wagefactorcode = None
-
                                 emplhour.paydatecode = None
                                 firstdateNIU, paydate = recalc_paydate(emplhour.rosterdate, None)
                                 emplhour.paydate = paydate
@@ -3283,50 +3298,84 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             is_updated = True
                             recalc_duration = True
                             has_changed = True
+
 #############################################
-# ---   save changes in breakduration and timeduration field
-                    elif field in ('functioncode', 'wagefactorcode'):
-                        # calculated other fields are: wagefactor wagecode , wagerate , wage
-                        # values of these 3 fields are stored in table 'Wagecode'
-                        #     iswagecode = BooleanField(default=False)
-                        #     iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
-                        #     isfunctioncode = BooleanField(default=False)
                         # Wagcode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
+# ---   save changes in functioncode
+                    elif field == 'functioncode':
                    # - get current instance
-                        #logger.debug('field: ' + str(field))
-                        old_instance_pk = None
-                        if field == 'functioncode':
-                            old_instance_pk = emplhour.functioncode_id
-                        elif field == 'wagefactorcode':
-                            old_instance_pk = emplhour.wagefactorcode_id
-                        #logger.debug('old_instance_pk: ' + str(old_instance_pk))
+                        old_instance_pk = emplhour.functioncode_id
 
                         new_pk = field_dict.get('pk')
-                        #logger.debug('new_pk: ' + str(new_pk))
                         if new_pk:
                             new_instance = m.Wagecode.objects.get_or_none(
                                     id=new_pk,
-                                    isfunctioncode=(field == 'functioncode'),
-                                    iswagefactor=(field == 'wagefactorcode'),
+                                    isfunctioncode=True,
                                     company=request.user.company)
                             if new_instance is None:
                                 new_pk = None
-                            #logger.debug('new_instance: ' + str(new_instance))
                     # - save field if changed
                             # new_pk is not required, new_pk may be None
                             if new_pk != old_instance_pk:
                                 setattr(emplhour, field, new_instance)
-                                #logger.debug('new_instance saved')
-                    # also update fields wagefactor or wagerate
-                                if field == 'wagefactorcode':
-                                    new_wagefactor = None
-                                    if new_instance:
-                                        new_wagefactor = new_instance.wagerate  # wagefactor is also stored in this fieldalso
-                                    setattr(emplhour, 'wagefactor', new_wagefactor)
-                                    #logger.debug('new_wagefactor: ' + str(new_wagefactor))
                                 is_updated = True
                                 has_changed = True
 
+#############################################
+                                # ---   save changes in breakduration and timeduration field
+                    elif field == 'nopay':
+                        old_nopay = emplhour.nopay
+                        new_nopay = field_dict.get('value', False)
+
+                        logger.debug('old_nopay: ' + str(old_nopay))
+                        logger.debug('new_nopay: ' + str(new_nopay))
+
+                        if new_nopay != old_nopay:
+                            emplhour.nopay = new_nopay
+                            # remove wagefactor when new_nopay = True
+                            if new_nopay:
+                                emplhour.wagefactorcode = None
+                                emplhour.wagefactorcaption = None
+                                emplhour.wagefactor = 0
+                            is_updated = True
+                            has_changed = True
+
+
+                    elif field == 'wagefactorcode':
+                        # calculated other fields are: wagefactor wagecode , wagerate , wage
+                        # values of these 3 fields are stored in table 'Wagecode'
+                        # fields of wagefactor are:
+                        #    wagefactorcode  (= wagefactorcode_id),
+                        #    wagefactor (= reate,   # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
+                        #    wagefactorcaption =  Wagecode.code
+
+                        # Wagcode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
+                # - get current instance
+                        old_instance_pk = emplhour.wagefactorcode_id
+
+                        new_pk = field_dict.get('pk')
+
+
+                        logger.debug('old_instance_pk: ' + str(old_instance_pk))
+                        logger.debug('new_pk: ' + str(new_pk))
+
+                        if new_pk:
+                            new_instance = m.Wagecode.objects.get_or_none(
+                                id=new_pk,
+                                iswagefactor=True,
+                                company=request.user.company)
+                            if new_instance is None:
+                                new_pk = None
+                            # new_pk is not required, new_pk may be None
+                            if new_pk != old_instance_pk:
+                                emplhour.wagefactorcode = new_instance
+                                emplhour.wagefactorcaption = new_instance.code if new_instance else None
+                                emplhour.wagefactor = new_instance.wagerate if new_instance else 0 # wagefactor is NoNull field
+                                is_updated = True
+                                has_changed = True
+                                # reset nopay when wagefactor has value
+                                if new_pk:
+                                    emplhour.nopay = False
 
 ###########################################
 # ---   save changes in field 'status' when clicked on confirmstart or confirmend
@@ -3610,7 +3659,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             # TODO code can have inactive duplicates
-                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, request,  this_pk=None)
+                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, {}, request,  this_pk=None)
                             if not has_error:
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -4081,7 +4130,7 @@ def create_shift_instance(parent, upload_dict, update_dict, request):
             code = code_dict.get('value')
         if code:
 # 2. validate code
-            msg_err = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, request)
+            msg_err = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, {}, request)
             if not msg_err:
 # 4. create and save shift
                 try:
@@ -4135,6 +4184,7 @@ def update_shift_instance(instance, parent, upload_dict, update_dict, user_lang,
                                 is_absence=False,
                                 parent=parent,
                                 update_dict=update_dict,
+                                msg_dict={},
                                 request=request,
                                 this_pk=instance.pk)
                             if not msg_err:
@@ -4271,7 +4321,7 @@ def create_teXXXam(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
     # c. validate code
-                msg_err = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, request)
+                msg_err = validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
                 if not msg_err:
 # 4. create and save team
                     team = m.Team(scheme=parent, code=code)
@@ -4301,7 +4351,7 @@ def create_scheme(parent, upload_dict, update_dict, request):
         if code_dict:
             code = code_dict.get('value')
 # - validate code
-        msg_err = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, request)
+        msg_err = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, {}, request)
         if not msg_err:
             instance = m.Scheme(order=parent, code=code)
             instance.save(request=request)
