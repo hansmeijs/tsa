@@ -300,9 +300,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             el_filter.setAttribute("autocomplete", "off");
                             el_filter.setAttribute("ondragstart", "return false;");
                             el_filter.setAttribute("ondrop", "return false;");
+
+                        } else if (["triple"].indexOf(filter_tag) > -1) {
+                            // TODO
+                            // default empty icon necessary to set pointer_show
+                            //el_filter.addEventListener("click", function(event){HandleFilter_Tickmark(el_filter)});
+                            const el_icon = document.createElement("div");
+                                el_icon.classList.add("tickmark_0_0", "tw-20")
+                            el_filter.appendChild(el_icon);
+                            el_filter.classList.add("pointer_show");
                         } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
                             // default empty icon necessary to set pointer_show
-                            append_background_class(el_filter,"tickmark_0_0");
+                            //append_background_class(el_filter,"tickmark_0_0");
                         }
 
 // --- add width, text_align
@@ -384,11 +393,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         el_td.appendChild(el_div);
                     add_hover(el_td)
                 } else if (field_name === "is_active") {
-                    append_background_class(el_td,"inactive_0_2")
                     el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_td)}, false )
-                    //let el_div = document.createElement("div");
-                    //    el_div.classList.add("inactive_0_2")
-                    //    el_td.appendChild(el_div);
+
+                    //append_background_class(el_td,"inactive_0_2")
+                    let el_div = document.createElement("div");
+                        el_div.classList.add("inactive_0_2")
+                        el_td.appendChild(el_div);
                     add_hover(el_td)
                 } else if ( field_name === "last_login") {
                     // pass
@@ -429,8 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const permit_value = (!is_true) ? 0 : (!Number(value_str)) ? 0 : Number(value_str);
                     el_div.setAttribute("data-value", permit_value);
                     let el_icon = el_div.children[0];
-                    if(el_icon){add_or_remove_class (el_icon, "tickmark_0_2", is_true)};
-
+                    if(el_icon){add_or_remove_class (el_icon, "tickmark_1_2", is_true, "tickmark_0_0")};
                 } else if ( field_name === "activated") {
                     const is_activated = (map_dict[field_name]) ? map_dict[field_name] : false;
                     let is_expired = false;
@@ -441,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_div.setAttribute("data-value", data_value);
                     let el_icon = el_div.children[0];
                     if(el_icon){
-                        add_or_remove_class (el_icon, "tickmark_0_2", is_activated);
+                        add_or_remove_class (el_icon, "tickmark_1_2", is_activated);
                         add_or_remove_class (el_icon, "exclamation_0_2", is_expired);
                         add_or_remove_class (el_icon, "tickmark_0_0", !is_activated && !is_expired);
                     }
@@ -456,10 +465,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (field_name === "is_active") {
                     const is_inactive = !( (map_dict[field_name]) ? map_dict[field_name] : false );
                     el_div.setAttribute("data-value", ((is_inactive) ? 1 : 0) );
-                    const img_class = (is_inactive) ? "inactive_1_3" : "inactive_0_2";
-                    refresh_background_class(el_div, img_class)
-                    //let el_icon = el_div.children[0];
-                    //if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
+                    //const img_class = (is_inactive) ? "inactive_1_3" : "inactive_0_2";
+                    //refresh_background_class(el_div, img_class)
+                    let el_icon = el_div.children[0];
+                    if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
 // ---  add title
                     add_or_remove_attr (el_div, "title", is_inactive, loc.This_user_is_inactive);
                 } else if ( field_name === "last_login") {

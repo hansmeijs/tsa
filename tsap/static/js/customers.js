@@ -446,7 +446,8 @@ let planning_list = [] // for export and printing - can replace map?
         console.log( "===== HandleBtnSelect ========= ");
 
         // btns are: 'customer', 'oder', 'calendar, 'planning'
-
+        // TODO skip_upload
+        const skip_upload = false;
         // data_btn has value when called by button, in that case: upload settings
         if(data_btn){
             selected_btn = data_btn;
