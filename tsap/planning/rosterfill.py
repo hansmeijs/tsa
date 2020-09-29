@@ -2538,7 +2538,6 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         else:
             sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_e_code, idx_tm_rd, idx_c_code, idx_o_code))
 
-        #logger.debug( 'sorted_rows: ' + str(time() - starttime))
         starttime = time()
 
         for i, row_tuple in enumerate(sorted_rows):
@@ -2554,6 +2553,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 user_lang=user_lang)
             # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
+            #logger.debug( 'row: ' + str(row))
 
             # TODO PR2019-12-16 row is made for sipleshift without schemitem.
             #  To be solved by adding required schemitem to absence and change left join in inner join
@@ -2604,13 +2604,16 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                     calendar_shortlist.append(planning_dict_short)
 
         #logger.debug( 'create_planning_dict: ' + str(time() - starttime))
+    # PR2020-09-29 debug: not when called by payroll page. Gave empty row in payroll list
+    # temporary disabled
+    # TODO enable when calendar works again, but skip when called by payroll page
+    # add empty dict when list has no items. To refresh an empty calendar
+    #if len(calendar_dictlist) == 0:
+    #    calendar_dictlist = [{}]
+    # add empty dict when list has no items. To refresh an empty calendar
+    #if len(calendar_shortlist) == 0:
+    #    calendar_shortlist = [{}]
 
-    # add empty dict when list has no items. To refresh an empty calendar
-    if len(calendar_dictlist) == 0:
-        calendar_dictlist = [{}]
-    # add empty dict when list has no items. To refresh an empty calendar
-    if len(calendar_shortlist) == 0:
-        calendar_shortlist = [{}]
     return calendar_dictlist, calendar_shortlist, logfile
 
 

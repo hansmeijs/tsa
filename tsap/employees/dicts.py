@@ -1076,8 +1076,8 @@ def create_orders_inuse_list(period_dict, request):
 
 ####################===============@@@@@@@@@@@@@@@@@@@@@@@
 def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request):
-    logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
-    logger.debug('payroll_period: ' + str(payroll_period))
+    #logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
+    #logger.debug('payroll_period: ' + str(payroll_period))
 
     payrollperiod_detail_list = []
     if request.user.company:
@@ -1098,9 +1098,9 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
         employee_pk = f.get_dict_value(payroll_period, ('employee_pk',))
         functioncode_pk = f.get_dict_value(payroll_period, ('functioncode_pk',))
 
-        logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
-        logger.debug('period_datefirst: ' + str(period_datefirst))
-        logger.debug('period_datelast: ' + str(period_datelast))
+        #logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+        #logger.debug('period_datefirst: ' + str(period_datefirst))
+        #logger.debug('period_datelast: ' + str(period_datelast))
 
 # - get list of rosterdates that are in emplhour in selected period
         # if paydatecode_pk and paydateitem_datelast have values: these will be used, use period_datefirst / last otherwise
@@ -1111,7 +1111,7 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
             paydateitem_datelast,
             request)
 
-        logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
+        #logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
 ###############################
 # +++++ loop through dates of selected period
         datefirst_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datefirst)
@@ -1229,7 +1229,7 @@ def create_payroll_detail_list(payroll_period, request):
 # --- end of create_payroll_detail_list
 
 def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydatecode_pk, paydateitem_datelast, request):
-    logger.debug(' ============= get_rosterdates_of_emplhour_period ============= ')
+    #logger.debug(' ============= get_rosterdates_of_emplhour_period ============= ')
     # create list of rosterdates that are in selected period PR2020-09-07
     # if paydatecode_pk and paydateitem_datelast: filter on paydatecode_pk and paydateitem_datelast
     # else : filter on period_datefirst and/or period_datelast
@@ -1244,8 +1244,8 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
         #sql_list.append("""AND eh.paydatecode_id = CAST(%(pdc_id)s AS INTEGER)
         #                   AND eh.paydate = CAST(%(paydate)s AS DATE)""")
         sql_list.append("""AND eh.paydatecode_id = CAST(%(pdc_id)s AS INTEGER)""")
-        logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
-        logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
+        #logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+        #logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
         sql_keys['pdc_id'] = paydatecode_pk
         sql_keys['paydate'] = paydateitem_datelast
     else:
@@ -1261,7 +1261,7 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     rosterdate_rows = newcursor.fetchall()
-    logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
+    #logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
     rosterdate_list = []
     for row in rosterdate_rows:
         rosterdate_list.append(row[0])
