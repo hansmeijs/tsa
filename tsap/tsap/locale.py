@@ -345,6 +345,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Make_payrollperiod_inactive'] = TXT_Make_payrollperiod_inactive
         dict['Delete_payrollperiod'] = TXT_Delete_payrollperiod
 
+        dict['Calendar_period'] = _('Calendar period')
+
         dict['Link_payrollperiod_to_employees'] = _('Link payrollperiod to selected employees')
         dict['Remove_payrollperiod_from_employees'] = _('Remove payrollperiod from selected employees')
         dict['Link_wagefactor_to_shifts'] = _('Link wagefactor to selected shifts')

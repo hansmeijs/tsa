@@ -833,6 +833,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
         skip_restshifts = False
         orderby_rosterdate_customer = False
         functioncode_pk = None
+        paydatecode_pk = None
         calendar_dictlist, short_list, logfile = \
             plrf.create_employee_planning(
                 datefirst_iso=datefirst_iso,
@@ -841,6 +842,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
                 order_pk=order_id,
                 employee_pk=employee_pk,
                 functioncode_pk=functioncode_pk,
+                paydatecode_pk=paydatecode_pk,
                 add_shifts_without_employee=add_shifts_without_employee,
                 skip_absence_and_restshifts=skip_restshifts,
                 orderby_rosterdate_customer=orderby_rosterdate_customer,
@@ -2189,7 +2191,7 @@ def import_paydatecodes(upload_dict, user_lang, request):
                                             year=pdi_year,
                                             period=pdi_period,
                                             datefirst=pdi_datefirst_dte,
-                                            paydate=pdi_paydate_dte
+                                            datelast=pdi_paydate_dte
                                         )
                                         paydateitem.save(request=request)
 
@@ -3110,20 +3112,21 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
                 upload_dict = json.loads(upload_json)
                 table = f.get_dict_value(upload_dict, ('id', 'table'))
                 refresh_employeelist_needed = False
+# +++++ ABSENCE CATEGORIES (table = 'abscat')
+                if table == 'abscat':
+                    update_wrap['updated_abscat_rows'] = upload_abscat_order(upload_dict, user_lang, request)
 # +++++ FUNCTION CODE
-                if table == 'functioncode':
+                elif table == 'functioncode':
                     update_list, refresh_employeelist_needed = functioncode_upload(upload_dict, request)
                     update_wrap['updated_functioncode_rows'] = update_list
+# +++++ PAYDATECODE
+                elif table == 'paydatecode':
+                    update_list, refresh_employeelist_needed = upload_paydatecode(upload_dict, user_lang, request)
+                    update_wrap['updated_paydatecode_rows'] = update_list
 # +++++ WAGE FACTOR
                 elif table == 'wagefactor':
                     update_wrap['updated_wagefactor_rows'] = upload_wagefactor(upload_dict, request)
-# +++++ ABSENCE CATEGORIES (table = 'abscat')
-                elif table == 'abscat':
-                    update_wrap['updated_abscat_rows'] = upload_abscat_order(upload_dict, user_lang, request)
-# +++++ PAYDATECODE PERIODS
-                elif table == 'paydatecode':
-                    update_list, refresh_employeelist_needed = upload_paydatecode(upload_dict, user_lang, request)
-                    update_wrap['update_list'] = update_list
+
 # +++++ SET EMPLOYEE PAYDATE, FUNCTION
                 elif table == 'employee':
                     update_wrap['updated_employee_rows'] = upload_employee_paydate_function(upload_dict, request)
@@ -3271,6 +3274,7 @@ def upload_abscat_order(upload_dict, user_lang, request):
     return updated_list
 
 
+######################################################
 # === functioncode_upload ===========  PR2020-07-18 PR2020-09-20
 def functioncode_upload(upload_dict, request):
     #logger.debug(' ===== functioncode_upload =====')
@@ -3283,12 +3287,10 @@ def functioncode_upload(upload_dict, request):
     refresh_employeelist_needed = False
 
 # - get id  variables
-    table = f.get_dict_value(upload_dict, ('id', 'table'))
     pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
     ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
     is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
     is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
-    #logger.debug('is_delete' + str(is_delete))
 
 # - check if parent with ppk_int exists and is same as request.user.company
     parent = m.Company.objects.get_or_none(id=ppk_int)
@@ -3300,7 +3302,6 @@ def functioncode_upload(upload_dict, request):
                 id=pk_int,
                 isfunctioncode=True,
                 company=parent)
-            #logger.debug('instance' + str(instance))
             if instance:
                 this_text = _("Function '%(tbl)s'") % {'tbl': instance.code}
     # - check if this Functioncode has emplhours with lockedpaydate=True
@@ -3309,13 +3310,12 @@ def functioncode_upload(upload_dict, request):
                     msg_err = _('%(this)s has locked roster shifts. It cannot be deleted.') % {'this': this_text}
                     msg_dict['err_delete'] = msg_err
                 else:
-    # - delete_instance,
 
     # - create deleted_row, to be sent back to page
                     deleted_row = {'pk': instance.pk,
                                    'mapid': 'functioncode_' + str(instance.pk),
                                    'isdeleted': True}
-    # c. delete instance
+    # - delete instance
                     # wagecodeitems are not in use for functioncode
                     deleted_ok = m.delete_instance(instance, {}, msg_dict, request, this_text)
                     if deleted_ok:
@@ -3354,19 +3354,23 @@ def functioncode_upload(upload_dict, request):
 
 
 def create_new_functioncode(parent, upload_dict, msg_dict, request):
-    # --- create new functioncode # PR20120-07-18
-    # Note: all keys in update_dict must exist by running create_update_dict first
+    # --- create new functioncode # PR20120-07-18  PR2020-09-20
 
     instance = None
-# - get parent instance
     if parent:
 # - get value of 'code'
         code = f.get_dict_value(upload_dict, ('code', 'value'))
         if code:
 # - validate code
-            # msg_err is added in update_dict[fldName]
-            msg_err = v.validate_code_name_identifier('functioncode', 'code', code, False, parent, {}, msg_dict, request)
-            #logger.debug('msg_err: ' + str(msg_err))
+            msg_err = v.validate_code_name_identifier(
+                table='functioncode',
+                field='code',
+                new_value=code,
+                is_absence=False,
+                parent=parent,
+                update_dict={},
+                msg_dict=msg_dict,
+                request=request)
             if not msg_err:
 # - create and save functioncode
                 instance = m.Wagecode(company=parent, code=code, isfunctioncode=True)
@@ -3376,14 +3380,14 @@ def create_new_functioncode(parent, upload_dict, msg_dict, request):
                     caption = _('This function')
                     msg_dict['err_create'] = _('An error occurred. %(tbl)s could not be created.') % {'tbl': caption}
                 else:
-# - put info in update_dict
+# - put iscreated in msg_dict
                     msg_dict['iscreated'] = True
     return instance
 # --- end of create_new_functioncode
 
 
 def update_functioncode(instance, parent, upload_dict, msg_dict, request):
-    # --- update existing and new functioncode PR2020-07-18
+    # --- update existing and new functioncode PR2020-07-18  PR2020-09-20
     # add new values to update_dict (don't reset update_dict, it has values)
     #logger.debug(' --- update_functioncode --- ')
 
@@ -3398,40 +3402,43 @@ def update_functioncode(instance, parent, upload_dict, msg_dict, request):
         for field in fields:
 # - get field_dict from  upload_dict if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
-            #logger.debug('field_dict: ' + str(field_dict))
-            #logger.debug('field: ' + str(field))
-            if field_dict:
-                if 'update' in field_dict:
+            if 'update' in field_dict:
 # - get new_value
-                    new_value = field_dict.get('value')
-                    #logger.debug('new_value: ' + str(new_value))
+                new_value = field_dict.get('value')
 # - save changes in field 'code'
-                    if field == 'code':
-        # a. get old value
-                        saved_value = getattr(instance, field)
-                        #logger.debug('saved_value: ' + str(saved_value))
-                        if new_value != saved_value:
-                            #logger.debug('new_value != saved_value')
-        # b. validate code or name
-                            msg_err = v.validate_code_name_identifier('functioncode', field, new_value, False,
-                                                                        parent, {}, msg_dict, request, instance.pk)
-                            #logger.debug('msg_err: ' + str(msg_err))
-                            if not msg_err:
-        # c. save field if changed and no_error
-                                setattr(instance, field, new_value)
-                                save_changes = True
-                                code_has_changed = True
-# - save changes in boolean fields
-                    # to be added:  'inactive')
-                    elif field =='inactive':
-                        new_value = field_dict.get('value', False)
-                        saved_value = getattr(instance, field, False)
-                        if new_value != saved_value:
+                if field == 'code':
+    # a. get old value
+                    saved_value = getattr(instance, field)
+                    # field 'code' is required, cannot be None
+                    if new_value != saved_value:
+                        #logger.debug('new_value != saved_value')
+    # b. validate code or name
+                        msg_err = v.validate_code_name_identifier(
+                            table='functioncode',
+                            field=field,
+                            new_value=new_value,
+                            is_absence=False,
+                            parent=parent,
+                            update_dict={},
+                            msg_dict=msg_dict,
+                            request=request,
+                            this_pk=instance.pk)
+                        if not msg_err:
+    # c. save field if changed and no_error
                             setattr(instance, field, new_value)
                             save_changes = True
+                            code_has_changed = True
+# - save changes in boolean fields
+                # to be added:  'inactive')
+                elif field =='inactive':
+                    new_value = field_dict.get('value', False)
+                    saved_value = getattr(instance, field, False)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        save_changes = True
 # --- end of for loop ---
 
-# 5. save changes
+# +++  save changes
         if save_changes:
             try:
                 instance.save(request=request)
@@ -3452,28 +3459,7 @@ def update_functioncode(instance, parent, upload_dict, msg_dict, request):
 # ---  end of update_functioncode
 
 
-def create_functioncode_dict(instance, item_dict):
-    # --- create dict of this functioncode PR2020-07-14
-    if instance:
-        for field in ('id', 'code', 'inactive'):
-# --- get field_dict from  item_dict if it exists
-            field_dict = item_dict[field] if field in item_dict else {}
-            if field == 'id':
-                field_dict['pk'] = instance.pk
-                field_dict['ppk'] = instance.company.pk
-                field_dict['table'] = 'functioncode'
-
-            elif field in ('code', 'inactive'):
-                value = getattr(instance, field)
-                if value:
-                    field_dict['value'] = value
-            if field_dict:
-                item_dict[field] = field_dict
-# end of create_functioncode_dict
-
-
-
-###########################
+######################################################
 # === upload_wagefactor ===================================== PR2020-09-15
 def upload_wagefactor(upload_dict, request):
     #logger.debug(' ----- upload_wagefactor -----')
@@ -3654,125 +3640,133 @@ def update_wagefactor(instance, parent, upload_dict, msg_dict, request):
 # ---  end of update_wagefactor
 
 
-# === upload_paydatecode ===================================== PR2020-06-17
+# === upload_paydatecode ======  PR2020-06-17  PR2020-09-22
 def upload_paydatecode(upload_dict, user_lang, request):
     #logger.debug(' ===== upload_paydatecode =====')
     #logger.debug('upload_dict' + str(upload_dict))
+    # Paydatecodes are stored in table Paydatecode
 
+    paydatecode_rows = []
+    deleted_list= []
+    msg_dict = {}
+    refresh_employeelist_needed = False
+
+# - get id  variables
     table = f.get_dict_value(upload_dict, ('id', 'table'))
     pk_int = f.get_dict_value(upload_dict, ('id', 'pk'))
     ppk_int = f.get_dict_value(upload_dict, ('id', 'ppk'))
-    row_index = f.get_dict_value(upload_dict, ('id', 'rowindex'))
     is_create = f.get_dict_value(upload_dict, ('id', 'create'), False)
     is_delete = f.get_dict_value(upload_dict, ('id', 'delete'), False)
 
-    update_list = []
-    refresh_employeelist_needed = False
-    #logger.debug('is_create: ' + str(is_create))
 # - check if parent with ppk_int exists and is same as request.user.company
     parent = m.Company.objects.get_or_none(id=ppk_int)
     if parent and ppk_int == request.user.company_id:
-        recalc_emplhour_paydates, recurrence = False, ''
-# ----- create new update_dict with all fields and id_dict. Unused ones will be removed at the end
-        update_dict = f.create_update_dict(
-            c.FIELDS_PAYDATECODE,
-            table=table,
-            pk=pk_int,
-            ppk=parent.pk,
-            row_index=row_index)
+
+        recurrence = ''
+        recalc_emplhour_paydates = False
+
 # +++++ Delete Paydatecode
         if is_delete:
-            instance = m.Paydatecode.objects.get_or_none(id=pk_int, company=parent)
+            instance = m.Paydatecode.objects.get_or_none(
+                id=pk_int,
+                company=parent)
             if instance:
                 this_text = _("Payroll period '%(tbl)s'") % {'tbl': instance.code}
     # - check if this paydatecode has emplhours with lockedpaydate=True
                 if instance.has_lockedpaydate_emplhours():
                     msg_err = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
-                    update_dict['id']['error'] = msg_err
+                    msg_dict['err_delete'] = msg_err
                 else:
+
+    # - create deleted_row, to be sent back to page
+                    deleted_row = {'pk': instance.pk,
+                                   'mapid': 'paydatecode' + str(instance.pk),
+                                   'isdeleted': True}
     # - delete_instance
                     # paydateitems are also deleted because of cascade delete
-                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
+                    deleted_ok = m.delete_instance(instance, {}, msg_dict, request, this_text)
                     if deleted_ok:
+                        deleted_list.append(deleted_row)
                         instance = None
                         refresh_employeelist_needed = True
         else:
+
 # +++++ Create new paydatecode
             if is_create:
-                instance = create_new_paydatecode(parent, upload_dict, update_dict, request)
+                instance = create_new_paydatecode(parent, upload_dict, msg_dict, request)
     # - get existing paydatecode
             else:
                 instance = m.Paydatecode.objects.get_or_none(id=pk_int, company=parent)
+
 # +++++ Update paydatecode, also when it is created
             if instance:
                 has_error, code_has_changed, recalc_emplhour_paydates, recurrence = \
-                    update_paydatecode(instance, parent, upload_dict, update_dict, request)
+                    update_paydatecode(instance, parent, upload_dict, msg_dict, request)
                 if code_has_changed:
                     refresh_employeelist_needed = True
 
     # - put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
         if instance:
-            ed.create_paydatecode_dict(instance, update_dict)
-    # - remove empty attributes from update_dict
-        f.remove_empty_attr_from_dict(update_dict)
-    # - add update_dict to update_wrap
-        if update_dict:
-            update_list.append(update_dict)
+            paydatecode_rows = ed.create_paydatecode_rows(
+                period_dict={},
+                paydatecode_pk=instance.pk,
+                msg_dict=msg_dict,
+                request=request)
 
-        if recalc_emplhour_paydates:
-            # update paydatecode in all emplhour records that are not locked
-            # and recalculate paydate in these emplhour records
-            recalc_emplhour_paydatecode(instance.pk, [], True, request)
         if recurrence == 'irregular':
+            update_dict = {}
             update_paydatecodeitem(instance, upload_dict, update_dict, request)
         else:
             # TODO update the Paydateitem list in JS
             #m.Paydateitem.objects.filter(paydatecode=instance).delete()
             pass
 
+        if recalc_emplhour_paydates:
+            # update paydatecode in all emplhour records that are not locked
+            # and recalculate paydate in these emplhour records
+            recalc_emplhour_paydatecode(instance.pk, [], True, request)
 
-    return update_list, refresh_employeelist_needed
+        if deleted_list:
+            paydatecode_rows.extend(deleted_list)
+
+    return paydatecode_rows, refresh_employeelist_needed
 # --- end of upload_paydatecode
 
 
-def create_new_paydatecode(parent, upload_dict, update_dict, request):
-    # --- create new paydatecode # PR20120-06-17
-    # Note: all keys in update_dict must exist by running create_update_dict first
-
+def create_new_paydatecode(parent, upload_dict, msg_dict, request):
+    # --- create new paydatecode # PR2020-06-17 PR2020-09-22
     instance = None
-# - get iddict variables
-    # id_dict is added in create_update_dict
-    id_dict = upload_dict.get('id')
-    if id_dict:
-# - get parent instance
-        if parent:
+    if parent:
 # - get value of 'code'
-            code = f.get_dict_value(upload_dict, ('code', 'value'))
-            if code:
+        code = f.get_dict_value(upload_dict, ('code', 'value'))
+        if code:
 # - validate code
-                # TODO add validate_code_name_identifier
-                # has_error = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
-                has_error = False
-                if not has_error:
-# - create and save paydate
-                    instance = m.Paydatecode(company=parent, code=code)
-                    instance.save(request=request)
+            msg_err = v.validate_code_name_identifier(
+                table='paydatecode',
+                field='code',
+                new_value=code,
+                is_absence=False,
+                parent=parent,
+                update_dict={},
+                msg_dict=msg_dict,
+                request=request)
+            if not msg_err:
+# - create and save paydatecode
+                instance = m.Paydatecode(company=parent, code=code)
+                instance.save(request=request)
 # - return msg_err when instance not created
-                    if instance.pk is None:
-                        msg_err = _('This payroll period could not be created.')
-                        update_dict['code']['error'] = msg_err
-                    else:
-# - put info in update_dict
-                        update_dict['id']['pk'] = instance.pk
-                        update_dict['id']['ppk'] = instance.company.pk
-                        update_dict['id']['created'] = True
-                        update_dict['code']['updated'] = True
+                if instance.pk is None:
+                    caption = _('This payroll period')
+                    msg_dict['err_create'] = _('An error occurred. %(tbl)s could not be created.') % {'tbl': caption}
+                else:
+# - put iscreated in msg_dict
+                    msg_dict['iscreated'] = True
     return instance
 # --- end of create_new_paydatecode
 
 
-def update_paydatecode(instance, parent, upload_dict, update_dict, request):
-    # --- update existing and new paydate PR2020-06-17
+def update_paydatecode(instance, parent, upload_dict, msg_dict, request):
+    # --- update existing and new paydate PR2020-06-17  PR2020-09-22
     # add new values to update_dict (don't reset update_dict, it has values)
     #logger.debug(' --- update_paydatecode --- ')
 
@@ -3786,64 +3780,75 @@ def update_paydatecode(instance, parent, upload_dict, update_dict, request):
 
     has_error, code_has_changed, recalc_emplhour_paydates, recurrence = False, False, False, ''
     if instance:
-        table = 'paydatecode'
         save_changes = False
         recalc_emplhour_paydates = False
-        # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence',  'referencedate', 'dayofmonth', 'paydate', 'isdefault', 'inactive')
         recurrence = f.get_dict_value(upload_dict, ('recurrence', 'value'))
 
+        # FIELDS_PAYDATECODE = ('id', 'company', 'code', 'recurrence', 'dayofmonth', 'referencedate',
+        #       'datefirst', 'datelast', 'datefirst_agg', 'datelast_agg', 'afascode', 'isdefault', 'inactive')
         for field in c.FIELDS_PAYDATECODE:
 # - get field_dict from  upload_dict if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
-            if field_dict:
-                if 'update' in field_dict:
-                    is_updated = False
+            if 'update' in field_dict:
 # - get new_value
-                    new_value = field_dict.get('value')
-
+                new_value = field_dict.get('value')
 # - save changes in field 'code'
-                    if field == 'code':
-        # a. get old value
-                        saved_value = getattr(instance, field)
-                        # field 'code' is required
-                        if new_value != saved_value:
-        # b. validate code or name
-                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, {}, request, this_pk=None)
-                            if not msg_err:
-        # c. save field if changed and no_error
-                                setattr(instance, field, new_value)
-                                is_updated = True
-                                code_has_changed = True
+                if field == 'code':
+    # a. get old value
+                    saved_value = getattr(instance, field)
+                    # field 'code' is required, cannot be None
+                    if new_value != saved_value:
+    # b. validate code or name
+                        msg_err = v.validate_code_name_identifier(
+                            table='paydatecode',
+                            field=field,
+                            new_value=new_value,
+                            is_absence=False,
+                            parent=parent,
+                            update_dict={},
+                            msg_dict=msg_dict,
+                            request=request,
+                            this_pk=instance.pk)
+                        if not msg_err:
+    # c. save field if changed and no_error
+                            setattr(instance, field, new_value)
+                            save_changes = True
+                            code_has_changed = True
 # - save changes in text field, date field and number fields
-                    elif field in ('recurrence', 'dayofmonth', 'referencedate', 'datefirst', 'datelast', 'afascode'):
-                        saved_value = getattr(instance, field)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
-                            recalc_emplhour_paydates = True
+                elif field in ('recurrence', 'dayofmonth', 'referencedate', 'datefirst', 'datelast', 'afascode'):
+                    saved_value = getattr(instance, field)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        save_changes = True
+                        recalc_emplhour_paydates = True
 # - save changes in boolean fields
-                    elif field in ['isdefault', 'inactive']:
-                        new_value = field_dict.get('value', False)
-                        saved_value = getattr(instance, field, False)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
-# - add 'updated' to field_dict'
-                    if is_updated:
-                        update_dict[field]['updated'] = True
+                elif field in ['isdefault', 'inactive']:
+                    new_value = field_dict.get('value', False)
+                    saved_value = getattr(instance, field, False)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
                         save_changes = True
 # --- end of for loop ---
 
-# 5. save changes
+# +++  save changes
         if save_changes:
             try:
                 instance.save(request=request)
             except:
                 has_error = True
-                msg_err = _('This %(tbl)s could not be updated.') % {'tbl': 'payroll period'}
-                update_dict['id']['error'] = msg_err
+                caption = _('This payroll period')
+                msg_dict['err_update'] = _('An error occurred. %(tbl)s could not be updated.') % {'tbl': caption}
+
                 code_has_changed = False
                 recalc_emplhour_paydates = False
+
+        if not has_error:
+            if recalc_emplhour_paydates:
+                # update paydatecode in all emplhour records that are not locked
+                # and recalculate paydate in these emplhour records
+                pass
+                #TODO
+                # recalc_emplhour_paydatecode(instance.pk, [], True, request)
 
     return has_error, code_has_changed, recalc_emplhour_paydates, recurrence
 # ---  end of update_paydatecode
@@ -3861,7 +3866,7 @@ def update_paydatecodeitem(instance, upload_dict, update_dict, request):
     paydateitem_list = []
     paydateitems = m.Paydateitem.objects.filter( paydatecode=instance )
     for paydateitem in paydateitems:
-        paydate = paydateitem.paydate
+        paydate = paydateitem.datelast
         if paydate:
             #logger.debug('paydate: ' + str(paydate) + ' ' + str(type(paydate)))
             paydate_iso = paydate.isoformat()
@@ -3881,8 +3886,7 @@ def update_paydatecodeitem(instance, upload_dict, update_dict, request):
         closingdate_dte = f.get_dateobj_from_dateISOstring(closingdate_iso)
         paydateitem = m.Paydateitem(
             paydatecode=instance,
-            paydate=closingdate_dte,
-            locked=False
+            datelast=closingdate_dte
         )
 # - save paydateitems and add to paydateitem_list
         paydateitem.save(request=request)
@@ -3906,10 +3910,10 @@ def upload_employee_paydate_function(upload_dict, request):
         field = None
         if 'functioncode' in upload_dict:
             field = 'functioncode'
-        elif 'wagecode' in upload_dict:
-            field = 'wagecode'
         elif 'paydatecode' in upload_dict:
             field = 'paydatecode'
+        elif 'wagecode' in upload_dict:
+            field = 'wagecode'
 
         if field:
             sql_keys = {'comp_id': request.user.company.pk, 'eid_arr': employee_pk_list}
@@ -3935,12 +3939,8 @@ def upload_employee_paydate_function(upload_dict, request):
             # updated_employee_pk_list contains list of pk's of updated employees
             if updated_employee_pk_list:
         # update functioncode / wagecode / paydatecode in non-locked emplhour records of updated employees
-                if field == 'functioncode':
-                    update_emplhour_functioncode(employee_pk_list, field_pk)
-                if field == 'wagecode':
-                    pass
-                if field == 'paydatecode':
-                    pass
+                if field in ('functioncode', 'paydatecode', 'wagecode'):
+                    update_emplhour_fnc_pdc(field, employee_pk_list, field_pk)
 
         # create employee_row of all updates employees
                 request_item = {'employee_pk_list': updated_employee_pk_list}
@@ -3948,8 +3948,10 @@ def upload_employee_paydate_function(upload_dict, request):
                 msg_dict = {}
                 updated_employee_rows = ed.create_employee_rows(request_item, msg_dict, request)
                 # --- create rows of all employees of this company PR2019-06-16 PR2020-09-09
-                # TODO update emplhour reccords
-                #recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, False, request)
+
+                if field == 'paydatecode':
+                    recalc_emplhour_paydatecode(field_pk, employee_pk_list, False, request)
+
     return updated_employee_rows
 
 #############################################
@@ -3965,7 +3967,7 @@ def update_emplhour_functioncode(employee_pk_list, new_functioncode_pk):
     sql_list = ['UPDATE companies_emplhour SET']
 
     if new_functioncode_pk:
-        sql_list.append( field + '_id = %(fld_pk)s::INT')
+        sql_list.append(field + '_id = %(fld_pk)s::INT')
         sql_keys['fld_pk'] = new_functioncode_pk
     else:
         sql_list.append(field + '_id = NULL')
@@ -3977,6 +3979,37 @@ def update_emplhour_functioncode(employee_pk_list, new_functioncode_pk):
     with connection.cursor() as cursor:
         cursor.execute(sql, sql_keys)
 # ---- end of update_emplhour_functioncode
+
+
+# === update_emplhour_paydatecode =========== PR2020-09-28
+def update_emplhour_fnc_pdc(field, employee_pk_list, new_fnc_pdc_pk):
+    #logger.debug(' ===== update_emplhour_paydatecode =====')
+    #logger.debug('employee_pk_list' + str(employee_pk_list))
+    #logger.debug('new_functioncode_pk' + str(new_functioncode_pk))
+
+    sql_keys = {'eid_arr': employee_pk_list}
+    sql_list = ['UPDATE companies_emplhour SET']
+
+    if new_fnc_pdc_pk:
+        sql_list.append(field + '_id = %(fld_pk)s::INT')
+        sql_keys['fld_pk'] = new_fnc_pdc_pk
+    else:
+        sql_list.append(field + '_id = NULL')
+    sql_list.append("""
+        WHERE NOT companies_emplhour.lockedpaydate 
+        AND companies_emplhour.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
+        RETURNING id, rosterdate, employeecode
+        """)
+    sql = ' '.join(sql_list)
+
+    #logger.debug('sql_keys' + str(sql_keys))
+    #logger.debug('sql' + str(sql))
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_keys)
+        #emplhour_rows = f.dictfetchall(cursor)
+        #for row in emplhour_rows:
+        #    logger.debug('emplhour_row' + str(row))
+# ---- end of update_emplhour_paydatecode
 
 
 # === upload_emplhour_wagefactor =========== PR2020-09-15
@@ -4204,114 +4237,143 @@ def recalc_emplhour_functioncode(employee_pk_list):
 # === recalc_emplhour_paydatecode ===================================== PR2020-06-27
 def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees, request):
     #logger.debug(' --- recalc_emplhour_paydatecode --- ')
+    #logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+    #logger.debug('employee_pk_list: ' + str(employee_pk_list))
+    #logger.debug('all_employees: ' + str(all_employees))
     # function updates paydatecode in all emplhour records that are not lockedpaydate
     # and recalculates paydate in these emplhour records
 
     # if all_employees=True it will update all employee records
     # Do not change modifiedby_id and modifiedat PR20202-07-19
-    #   was:  modifiedby_id = %(uid)s, modifiedat = %(now)s
-    #             'uid': request.user.pk,
-    #             'now': now_utc,
-    #       # - get now with timezone utc
-    #           now_utc_naive = datetime.utcnow()
-    #           now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
-    # TODO at this time paydatecode is linked to employee, therefore filter by employee_pk_list
 
-    paydatecode = m.Paydatecode.objects.get_or_none(id=paydatecode_pk, company=request.user.company)
-    #logger.debug('.......... employee_pk_list: ' + str(employee_pk_list))
-    #logger.debug('.......... paydatecode: ' + str(paydatecode))
+    # Note: at this time paydatecode is linked to employee, therefore filter by employee_pk_list is allowed
+    sql_keys = {'comp_id': request.user.company.pk, 'pdc_id': paydatecode_pk}
+    sql = None
 
-    if employee_pk_list:
-        all_employees = False
+    if paydatecode_pk is None:
+# ---   remove paydatecode_pk and paydate from empl emplhour records  when no paydatecode_pk:
+        #  - that are not lockedpaydate
+        #  - only of employees in employee_pk_list
+        #  - skip when all_employees = True
+        if employee_pk_list:
+            sql = """
+                UPDATE companies_emplhour SET paydatecode_id = NULL, paydate = NULL
+                WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
+                RETURNING employee_id, paydatecode_id, paydate
+            """
+    elif employee_pk_list:
+# ---   update paydatecode_id in all emplhour records:
+        #  - that are not lockedpaydate
+        #  - only of employees in employee_pk_list
+        #  - skip when all_employees = True
+        sql_keys['eid_arr'] = employee_pk_list
+        sql = """
+            UPDATE companies_emplhour  SET paydatecode_id = %(pdc_id)s
+            WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
+            RETURNING employee_id, paydatecode_id, paydate
+        """
+    elif all_employees:
+# ---   update field paydatecode_id in table emplhour with paydatecode_id of related employee record
+        #  - that are not lockedpaydate , filter company_id
+        sql = """
+            UPDATE companies_emplhour SET paydatecode_id = companies_employee.paydatecode_id
+            FROM companies_employee 
+            WHERE NOT companies_emplhour.lockedpaydate 
+            AND companies_employee.company_id = %(comp_id)s::INT 
+            AND companies_emplhour.employee_id = companies_employee.id
+            RETURNING companies_emplhour.employee_id, companies_employee.code, companies_emplhour.paydatecode_id, companies_emplhour.paydate
+        """
+    # for testing: RETURNING id, employee_id, paydatecode_id, paydate;
+    if sql:
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+            #emplhour_rows = f.dictfetchall(cursor)
+            #for row in emplhour_rows:
+            #    logger.debug('.......... row: ' + str(row))
 
-# ---   update paydatecode in all emplhour records that are not lockedpaydate
-    sql_update_paydatecode = """
-        UPDATE companies_emplhour SET 
-            paydatecode_id = %(pdcid)s
-        WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
-        AND (NOT lockedpaydate) 
-    """
-
-    sql_update_paydatecodeXX = """
-        UPDATE companies_emplhour AS eh
-        SET paydatecode_id = e.paydatecode_id
-        FROM companies_employee AS e
-        WHERE eh.employee_id = e.id
-        AND (NOT lockedpaydate) 
-        AND  (eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
-        RETURNING eh.employee_id, e.code;
-    """
-
-    # was for testing: RETURNING id, employee_id, paydatecode_id, paydate;
-    with connection.cursor() as cursor:
-        cursor.execute(sql_update_paydatecode, {
-            'pdcid': paydatecode_pk,
-            'eid_arr': employee_pk_list,
-            'all_employees': all_employees
-        })
-    #logger.debug('.......... paydatecode: ' + str(paydatecode))
-
+# --- skip update paydate in emplhour when no when paydatecode_pk is null
+    # paydate is already removed above in this function
+    if paydatecode_pk:
 # ---   get first and last rosterdate of not locked emplhour records
-    sql_get_first_last_rosterdate = """
-        SELECT MIN(rosterdate), MAX(rosterdate)
-        FROM companies_emplhour
-        WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
-        AND (NOT lockedpaydate) 
-        AND ( ( paydatecode_id = %(pdcid)s ) OR (paydatecode_id IS NULL AND %(pdcid)s IS NULL) )
-    """
-    # This one doesnt work: AND ( paydatecode_id = %(pdcid)s )
-    min_rosterdate_dte = None
-    max_rosterdate_dte = None
-    with connection.cursor() as cursor:
-        cursor.execute(sql_get_first_last_rosterdate, {
-            'pdcid': paydatecode_pk,
-            'eid_arr': employee_pk_list,
-            'all_employees': all_employees
-        })
-        min_max_arr = cursor.fetchone()
-        if min_max_arr:
-            min_rosterdate_dte = min_max_arr[0]
-            max_rosterdate_dte = min_max_arr[1]
+        sql_list = ["""
+            SELECT MIN(eh.rosterdate), MAX(eh.rosterdate) 
+            FROM companies_emplhour AS eh
+            INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+            WHERE NOT eh.lockedpaydate AND eh.paydatecode_id = %(pdc_id)s::INT
+            """]
+        if employee_pk_list:
+            sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
+        elif all_employees:
+            sql_list.append('AND c.company_id = %(comp_id)s::INT ')
+        sql = ' '.join(sql_list)
 
-    if min_rosterdate_dte:
-        rosterdate_dte = min_rosterdate_dte
-        if rosterdate_dte and max_rosterdate_dte:
+        # skip this when paydatecode_pk is null and employee_pk_list has value. Paydate is already removed above in this function
+        # This one doesnt work: AND ( paydatecode_id = %(pdc_id)s )
+        min_rosterdate_dte = None
+        max_rosterdate_dte = None
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+            min_max_arr = cursor.fetchone()
+            if min_max_arr:
+                min_rosterdate_dte = min_max_arr[0]
+                max_rosterdate_dte = min_max_arr[1]
 
-# iterate till last rosterdate:
-            # PR2020-07-14 debug. got error when no items, because max_rosterdate_dte = None and <= not allowed then
-            while rosterdate_dte <= max_rosterdate_dte:
-# ---  from first rosterdate : get closingdate
-                firstdate_of_period_dte, new_paydate_dte = plv.recalc_paydate(rosterdate_dte, paydatecode)
-                #logger.debug('.......... rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-                #logger.debug('.......... firstdate_of_period_dte: ' + str(firstdate_of_period_dte))
-                #logger.debug('.......... new_paydate_dte: ' + str(new_paydate_dte))
-# ---  update paydate in all emplhours from first rostrdate thru closingdate that are not lockedpaydate
-                sql_update_paydatecode = """
-                    UPDATE companies_emplhour SET 
-                        paydate = CAST(%(paydte)s AS DATE)
-                    WHERE (employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR %(all_employees)s )
-                    AND (NOT lockedpaydate) 
-                    AND ( ( paydatecode_id = %(pdcid)s ) OR (paydatecode_id IS NULL AND %(pdcid)s IS NULL) )
-                    AND ( rosterdate >= CAST(%(df)s AS DATE) )
-                    AND ( rosterdate <= CAST(%(dl)s AS DATE) )
-                """
-                # was for testing: RETURNING id, employee_id, paydatecode_id, paydate;
-                with connection.cursor() as cursor:
-                    cursor.execute(sql_update_paydatecode, {
-                        'pdcid': paydatecode_pk,
-                        'eid_arr': employee_pk_list,
-                        'all_employees': all_employees,
-                        'paydte': new_paydate_dte,
-                        'df': firstdate_of_period_dte,
-                        'dl': new_paydate_dte
-                    })
-                    #paydateitems = f.dictfetchall(cursor)
-                    #for paydateitem in paydateitems:
-                        #logger.debug('.. updated paydateitem: ' + str(paydateitem))
+        #logger.debug('.......... min_rosterdate_dte: ' + str(min_rosterdate_dte) + str(type(min_rosterdate_dte)))
+        #logger.debug('.......... max_rosterdate_dte: ' + str(max_rosterdate_dte) + str(type(max_rosterdate_dte)))
 
-# make rosterdate 1 day later than new_paydate_dte
-                rosterdate_dte = f.add_days_to_date(new_paydate_dte, 1)
-# end of while loop
+        if min_rosterdate_dte:
+            rosterdate_dte = min_rosterdate_dte
+            if rosterdate_dte and max_rosterdate_dte:
+
+                paydatecode = m.Paydatecode.objects.get_or_none(id=paydatecode_pk, company=request.user.company)
+    # iterate till last rosterdate:
+                # PR2020-07-14 debug. got error when no items, because max_rosterdate_dte = None and <= is not allowed then
+                while rosterdate_dte <= max_rosterdate_dte:
+    # ---  get new closingdate for this rosterdate_dte
+                    firstdate_of_period_dte, new_paydate_dte = plv.recalc_paydate(rosterdate_dte, paydatecode)
+
+                    #logger.debug('.......... rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                    #logger.debug('.......... firstdate_of_period_dte: ' + str(firstdate_of_period_dte))
+                    #logger.debug('.......... new_paydate_dte: ' + str(new_paydate_dte))
+                    #logger.debug('.......... paydatecode_pk: ' + str(paydatecode_pk))
+
+    # ---  update paydate in all emplhours of this rosterdate that are not lockedpaydate of employees in employee_pk_list
+                    sql_keys = {'comp_id': request.user.company.pk,
+                                'rd': rosterdate_dte,
+                                'pdc_id': paydatecode_pk,
+                                'paydate': new_paydate_dte}
+                    sql_list = ["""
+                        UPDATE companies_emplhour AS eh SET paydate = %(paydate)s::DATE
+                        FROM companies_employee AS e
+                        WHERE NOT lockedpaydate AND e.company_id = %(comp_id)s::INT 
+                        AND eh.employee_id = e.id
+                        AND eh.rosterdate = %(rd)s::DATE  
+                        AND eh.paydatecode_id = %(pdc_id)s::INT
+                    """]
+                    if employee_pk_list:
+                        sql_keys['eid_arr'] = employee_pk_list
+                        sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
+                    elif all_employees:
+                        sql_keys['comp_id'] = request.user.company.pk
+                        sql_list.append('AND e.company_id = %(comp_id)s::INT')
+                    sql_list.append('RETURNING eh.employee_id, e.code, eh.paydatecode_id, eh.paydate')
+                    sql = ' '.join(sql_list)
+
+                    # was for testing: RETURNING id, employee_id, paydatecode_id, paydate;
+                    with connection.cursor() as cursor:
+                        cursor.execute(sql, sql_keys)
+                        #emplhour_rows = f.dictfetchall(cursor)
+                        #for row in emplhour_rows:
+                       #    logger.debug('.---- row: ' + str(row))
+
+    # make rosterdate 1 day later than new_paydate_dte
+                    rosterdate_dte = f.add_days_to_date(new_paydate_dte, 1)
+    # --- end of while loop
+
+# === end of recalc_emplhour_paydatecode
 
 
 def get_lastname_initials(namelast, namefirst, with_space):  # PR2019-08-05

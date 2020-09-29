@@ -4,15 +4,10 @@
 <!-- navbar -->
 <nav class="navbar navbar-default navbar-expand-sm headerbar fixed-top">
     <div class="container">
-        <!--
-        <button type="button" id="sidebarCollapse" class="btn">
-            <i class="fas fa-align-left"></i>
-            <span>Sidebar</span>
-        </button>
-        -->
+
         <div>
             <a href="{% url 'home' %}">
-                <img src="{% static 'img/tsalogo.png' %}" href="{% url 'home' %}" height="24" width="72">
+                <img src="{% static 'img/tsalogo.png' %}" height="24" width="72">
             </a>
         </div>
 
@@ -20,7 +15,6 @@
                 type="button"
                 data-toggle="collapse"
                 data-target="#navbar_collapse"
-                aria-controls="navbarsExample04"
                 aria-expanded="false"
                 aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -32,7 +26,7 @@
                 <!-- Select company -->
                 <!-- <li class="nav-item dropdown navbar-brand">  -->
                     {% if select_company %}
-                        <a class="btn dropdown-toggle nopadding" href="#" id="companyMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a id="companyMenu" class="btn dropdown-toggle nopadding" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             {{ company }}
                         </a>
                         <div class="dropdown-menu" aria-labelledby="companyMenu">
@@ -40,7 +34,7 @@
                                 {% if row.selected %}
                                     <a class="dropdown-item" style="color:darkgrey;">{{ row.company }}</a>
                                 {% else %}
-                                    <a  href="{% url 'company_selected_url' row.pk %}?next={{ request.path|urlencode }}" class="dropdown-item">
+                                    <a href="{% url 'company_selected_url' row.pk %}?next={{ request.path|urlencode }}" class="dropdown-item">
                                         {{ row.company }}
                                     </a>
                                 {% endif %}
@@ -53,15 +47,16 @@
                 <a class="navbar-brand navbar-default nopadding">secure</a>
             {% endif %}
 
+
             <!-- User -->
             <button class="navbar-toggler nopadding" type="button" data-toggle="collapse" data-target="#mainMenu" aria-controls="mainMenu" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse nopadding" id="mainMenu">
+            <div id="mainMenu" class="collapse navbar-collapse nopadding" >
                 {% if user.is_authenticated %}
                     <ul class="navbar-nav ml-auto">
                         <li class="nav-item dropdown">
-                            <a class="btn dropdown-toggle nopadding" href="#" id="userMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <a id="userMenu" class="btn dropdown-toggle nopadding" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 {{ user.username_sliced }}
                             </a>
                             <div class="dropdown-menu dropdown-menu-right nopadding" aria-labelledby="userMenu">

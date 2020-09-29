@@ -335,23 +335,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         payroll_period = f.get_dict_value(datalists, ('payroll_period',))
                         datalists['payroll_period_detail_list'] = \
                             ed.create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request)
-                        #datalists['payroll_period_detail_list'] = \
-                        #    ed.create_payroll_detail_list(payroll_period, request)
-                        datalists['paydatecodes_inuse_list'] = \
-                            ed.create_paydatecodes_inuse_list(period_dict=payroll_period, request=request)
-                        datalists['paydateitems_inuse_list'] = \
-                            ed.create_paydateitems_inuse_list(period_dict=payroll_period, request=request)
-                        datalists['employees_inuse_list'] = \
-                            ed.create_employees_inuse_list(period_dict=payroll_period, request=request)
-                        datalists['customers_inuse_list'] = \
-                            ed.create_customers_inuse_list(period_dict=payroll_period, request=request)
-                        datalists['orders_inuse_list'] = \
-                            ed.create_orders_inuse_list(period_dict=payroll_period, request=request)
 
 # - paydatecode_rows
                     request_item = datalist_request.get('paydatecode_rows')
                     if request_item:
-                        paydatecode_rows, paydateitem_rows = ed.create_paydatecode_rows(request_item, request)
+                        period_dict = {}
+                        paydatecode_rows, paydateitem_rows = ed.create_paydatecode_rows(period_dict, None,{}, request)
                         datalists['paydatecode_rows'] = paydatecode_rows
                         datalists['paydateitem_rows'] = paydateitem_rows
 # - wagecode_list
@@ -658,6 +647,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
         order_pk = calendar_period_dict.get('order_pk')
         employee_pk = calendar_period_dict.get('employee_pk')
         functioncode_pk = calendar_period_dict.get('functioncode_pk')
+        paydatecode_pk = calendar_period_dict.get('paydatecode_pk')
 
         #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
         orderby_rosterdate_customer = False
@@ -668,6 +658,7 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
             order_pk=order_pk,
             employee_pk=employee_pk,
             functioncode_pk= functioncode_pk,
+            paydatecode_pk=paydatecode_pk,
             add_shifts_without_employee=add_shifts_without_employee,
             skip_absence_and_restshifts=skip_absence_and_restshifts,
             orderby_rosterdate_customer=orderby_rosterdate_customer,
@@ -742,6 +733,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
     order_pk = planning_period_dict.get('order_pk')
     employee_pk = planning_period_dict.get('employee_pk')
     functioncode_pk = planning_period_dict.get('functioncode_pk')
+    paydatecode_pk = planning_period_dict.get('paydatecode_pk')
 
     dict_list, short_list, logfile = r.create_employee_planning(
         datefirst_iso=datefirst_iso,
@@ -750,6 +742,7 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
         order_pk=order_pk,
         employee_pk=employee_pk,
         functioncode_pk= functioncode_pk,
+        paydatecode_pk=paydatecode_pk,
         add_shifts_without_employee=add_shifts_without_employee,
         skip_absence_and_restshifts=skip_restshifts,
         orderby_rosterdate_customer=orderby_rosterdate_customer,
@@ -2504,8 +2497,8 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
@@ -2737,6 +2730,9 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
 def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, request):
     #logger.debug(' --- make_absence_shift --- ')
     #logger.debug('upload_dict: ' + str(upload_dict))
+    # upload_dict: {'id': {'pk': 11769, 'ppk': 11224, 'table': 'emplhour', 'isabsence': False, 'shiftoption': 'make_absent'},
+    # 'employee': {'field': 'employee', 'pk': None, 'code': None, 'update': True},
+    # 'abscat': {'pk': 1452, 'ppk': 705, 'code': 'Ongeoorloofd', 'table': 'order', 'isabsence': True, 'update': True}}
 
     rosterdate_dte = orderhour.rosterdate
 
@@ -2775,11 +2771,10 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, reque
         if absent_employee:
 # - calculate absent_duration: this is workhours per day, in minutes
             # timestart and timeend cannot be entered when creating absence record.
-            # it can be entered when editing an existing absence record
-            # set absence to zero on public holidays and weekends
+            # but can be entered when editing an existing absence record
 
 # 4. get is_publicholiday, is_companyholiday of this date from Calendar
-            # set absence to zero on public holidays and weekends
+            # set absence to zero on public holidays and weekends when 'nohoursonsaturday' etc
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
 
 # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
@@ -2791,8 +2786,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, reque
                 abscat_nohours = True
             elif is_publicholiday and abscat_order.nohoursonpublicholiday:
                 abscat_nohours = True
-
             #logger.debug('abscat_nohours: ' + str(abscat_nohours))
+
 # - get absent_duration. Is absent_employee.workminutesperday. If None, use company.workminutesperday
             absent_duration = 0
             if not abscat_nohours:
@@ -2890,24 +2885,42 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # P
             #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-31
             new_customer_code = abscat_order.customer.code.replace('~', '') if abscat_order.customer.code else None
             new_order_code = abscat_order.code.replace('~', '') if abscat_order.code else None
-            new_nopay = abscat_order.nopay
 
-            # TODO when abscat changes 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
+# - when abscat changes 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
+            # get is_publicholiday, is_companyholiday of this rosterdate from Calendar
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+                f.get_issat_issun_isph_isch_from_rosterdate(orderhour.rosterdate, request)
 
-            # add emplohour log records before updating PR2020-07-26
-            # also set haschanged=True in emplhour records  PR2020-07-21
+            # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
+            abscat_nopay = abscat_order.nopay
+            abscat_nohours = (is_saturday and abscat_order.nohoursonsaturday) or \
+                          (is_sunday and abscat_order.nohoursonsunday) or \
+                          (is_publicholiday and abscat_order.nohoursonpublicholiday)
+
+            # split shifts can have multiple emplhour records in one orderhour
+            # absence records cannot be split, because modal woindow with that option not enabled when absence record
+
+            # TODO: payroll manager must be able to split absence records for rcorrection purposes PR2020-09-22
             emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
+            duration_changed_in_one_row = False
+            # when abscat is changed to a 'no_hours' abscat: set duration = 0.
+            # leave duration otherwise
             for emplhour in emplhours:
- # - change nopay in   emplhour
-                emplhour.nopay = new_nopay
-                emplhour.haschanged = True
-                emplhour.save(request=request, last_emplhour_updated=True)
+                save_emplhour = False
+                if abscat_nopay != emplhour.nopay:
+                    emplhour.nopay = abscat_nopay
+                    save_emplhour = True
+                if abscat_nohours and emplhour.timeduration:
+                    emplhour.timeduration = 0
+                    save_emplhour = True
+                if save_emplhour:
+                    emplhour.haschanged = True
+                    emplhour.save(request=request, last_emplhour_updated=True)
+    # - save to log
+                    m.save_to_emplhourlog(emplhour.pk, request, False)  # is_deleted=False
 
-# - save to log
-                m.save_to_emplhourlog(emplhour.pk, request, False)  # is_deleted=False
-
-                if emplhour.pk not in eplh_update_list:
-                    eplh_update_list.append(emplhour.pk)
+                    if emplhour.pk not in eplh_update_list:
+                        eplh_update_list.append(emplhour.pk)
 
             orderhour.order=abscat_order
             orderhour.customercode = new_customer_code
@@ -3158,8 +3171,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    logger.debug(' --------- update_emplhour -------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --------- update_emplhour -------------')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
 # upload_dict: {'id': {'pk': 11760, 'ppk': 11215, 'table': 'emplhour'},
     # 'nopay': {'value': True, 'update': True},
@@ -3327,8 +3340,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         old_nopay = emplhour.nopay
                         new_nopay = field_dict.get('value', False)
 
-                        logger.debug('old_nopay: ' + str(old_nopay))
-                        logger.debug('new_nopay: ' + str(new_nopay))
+                        #logger.debug('old_nopay: ' + str(old_nopay))
+                        #logger.debug('new_nopay: ' + str(new_nopay))
 
                         if new_nopay != old_nopay:
                             emplhour.nopay = new_nopay
@@ -3356,8 +3369,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         new_pk = field_dict.get('pk')
 
 
-                        logger.debug('old_instance_pk: ' + str(old_instance_pk))
-                        logger.debug('new_pk: ' + str(new_pk))
+                        #logger.debug('old_instance_pk: ' + str(old_instance_pk))
+                        #logger.debug('new_pk: ' + str(new_pk))
 
                         if new_pk:
                             new_instance = m.Wagecode.objects.get_or_none(
@@ -4476,13 +4489,17 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
             #logger.debug('schemeitem.saved rosterdate: ' + str(schemeitem.rosterdate))
 
 
-def update_paydates_in_paydatecode(rosterdate_dte, request):  # PR2020-06-19
+def update_paydates_in_paydatecode(rosterdate_dte, paydatecode_pk, request):  # PR2020-06-19 PR2020-09-27
     # update the paydates of all paydatecodes to the nearest date from this rosterdate_dte
     # only called by FillRosterdate
     #logger.debug(' --- update_paydatecode new_rosterdate_dte --- ')
     #logger.debug('new_rosterdate_dte: ' + str(rosterdate_dte) + ' ' + f.format_WDMY_from_dte(rosterdate_dte, 'nl'))
 
-    paydatecodes = m.Paydatecode.objects.filter(company=request.user.company)
+    crit = Q(company=request.user.company)
+    if paydatecode_pk is not None:
+        crit.add(Q(pk=paydatecode_pk), crit.connector)
+
+    paydatecodes = m.Paydatecode.objects.filter(crit)
     for paydatecode in paydatecodes:
         firstdate_of_period_dte, new_paydate_dte = recalc_paydate(rosterdate_dte, paydatecode)
         paydatecode.datelast = new_paydate_dte
@@ -4506,13 +4523,11 @@ def recalc_paydate(rosterdate_dte, paydatecode):  # PR2020-06-22
         paydate_dayofmonth = paydatecode.dayofmonth
     else:
         # if paydatecode = None: use montly, 31 as paydate
-        recurrence = "monthly"
+        recurrence = 'monthly'
         referencedate_dte = None
         paydate_dayofmonth = 31
 
     if rosterdate_dte:
-        new_paydate_dte = None
-
         if recurrence in ('weekly', 'biweekly'):
             # floor_division_part = days_diff // quotient  # // floor division returns the integral part of the quotient.
             # The % (modulo) operator yields the remainder from the division of the first argument by the second.
@@ -4526,10 +4541,10 @@ def recalc_paydate(rosterdate_dte, paydatecode):  # PR2020-06-22
 
         elif recurrence == "monthly":
             # PR20202-07-03 debug: rosterday_dayofmonth <= paydate_dayofmonth gave error
-            # becasue paydate_dayofmonth was None. Set to 31 when None.
+            # because paydate_dayofmonth was None. Set to 31 when None.
             if not paydate_dayofmonth:
                 paydate_dayofmonth = 31
-# - check if rosterday_dayofmonth is greater than paydate_dayofmonth. If so: paydete is in next month
+# - check if rosterday_dayofmonth is greater than paydate_dayofmonth. If so: paydate is in next month
             rosterday_dayofmonth = rosterdate_dte.day
             firstof_thismonth_dte = f.get_firstof_thismonth(rosterdate_dte)
 

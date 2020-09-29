@@ -96,7 +96,7 @@ def remove_status_from_statussum(status, old_status_sum):
 def get_rosterdate_check(upload_dict, request):  # PR2019-11-11 PR2020-07-26
     #logger.debug(' --- get_rosterdate_check --- ')
     #logger.debug('upload_dict: ' + str(upload_dict))
-    # function gets rosterdate from upload_dict. If None: lookup last roserdate in orderhour and add one day to it.
+    # function gets rosterdate from upload_dict. If None: lookup last rosterdate in orderhour and add one day to it.
     # Generates a "SELECT MAX..." query, return value is a dict
     # # upload_dict: (input) {rosterdate: "2019-11-14"} or (create) {next: True} or (delete) {last: True}
     # 'rosterdate_check': {'mode': 'delete', 'rosterdate': '2019-12-14'}} <class 'dict'>
@@ -107,15 +107,11 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11 PR2020-07-26
 
     mode = upload_dict.get('mode')
     rosterdate_dict = {'mode': mode}
-    #logger.debug('mode: ' + str(mode))
 
 # if rosterdate in dict: check this rosterdate, otherwise check last rosterdate or next
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
-
-        new_rosterdate = f.add_months_to_date(rosterdate, 6)
-        #logger.debug('new_rosterdate: ' + str(new_rosterdate.isoformat()) + ' ' + str(type(new_rosterdate)))
 
     else:
 # get last rosterdate of Emplhour
@@ -1518,18 +1514,19 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     emplhour_pk = period_dict.get('emplhour_pk')
 
 # +++  get paydatecode_pk
-    paydatecode_pk = None
-    paydatecode_code = None
-    paydate_iso = None
+    paydatecode_pk, paydatecode_code, paydateitem_year, paydateitem_datefirst, paydateitem_datelast = None, None, None, None, None
     if 'paydatecode_pk' in period_dict:
         new_paydatecode_pk = period_dict.get('paydatecode_pk')
         if new_paydatecode_pk:
             paydatecode = m.Paydatecode.objects.get_or_none(id=new_paydatecode_pk, company=request.user.company)
             if paydatecode:
                 # paydatecode may have been deleted, therefore make save_setting only True when paydatecode exists
-                save_setting = True
                 paydatecode_pk = paydatecode.pk
-                paydatecode_code = paydatecode.code
+                paydatecode_code = period_dict.get('paydatecode_code')
+                paydateitem_year = period_dict.get('paydateitem_year')
+                paydateitem_datefirst = period_dict.get('paydateitem_datefirst')
+                paydateitem_datelast = period_dict.get('paydateitem_datelast')
+                save_setting = True
         else:
             # when paydatecode_pk = 0 in period_dict: means show all paydatecodes, therefore make save_setting = True
             save_setting = True
@@ -1540,9 +1537,10 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             paydatecode = m.Paydatecode.objects.get_or_none(id=saved_paydatecode_pk, company=request.user.company)
             if paydatecode:
                 paydatecode_pk = paydatecode.pk
-                paydatecode_code = paydatecode.code
-    if paydatecode_pk:
-        paydate_iso = period_dict.get('paydate_iso')
+                paydatecode_code = saved_period_dict.get('paydatecode_code')
+                paydateitem_year =  saved_period_dict.get('paydateitem_year')
+                paydateitem_datefirst = saved_period_dict.get('paydateitem_datefirst')
+                paydateitem_datelast = saved_period_dict.get('paydateitem_datelast')
 
 # +++  get is_absence - None: all records, True: absence only, False: absence excluded, None: all records
     is_absence = None
@@ -1646,7 +1644,15 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                 setting_tobe_saved['period_datelast'] = period_datelast_dte.isoformat()
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
-        #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
+
+        if paydatecode_pk:
+            setting_tobe_saved['paydatecode_pk'] = paydatecode_pk
+            setting_tobe_saved['paydatecode_code'] = paydatecode_code
+            setting_tobe_saved['paydateitem_datefirst'] = paydateitem_datefirst
+            setting_tobe_saved['paydateitem_datelast'] = paydateitem_datelast
+            setting_tobe_saved['paydateitem_year'] = paydateitem_year
+
+        logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
         #logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
@@ -1690,10 +1696,16 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['employee_code'] = employee_code
     if emplhour_pk:
         update_dict['emplhour_pk'] = emplhour_pk
+
     if paydatecode_pk:
         update_dict['paydatecode_pk'] = paydatecode_pk
         update_dict['paydatecode_code'] = paydatecode_code
-        update_dict['paydate_iso'] = paydate_iso
+        update_dict['paydateitem_year'] = paydateitem_year
+        update_dict['paydateitem_datefirst'] = paydateitem_datefirst
+        update_dict['paydateitem_datelast'] = paydateitem_datelast
+
+
+
     if extend_offset:
         update_dict['extend_offset'] = extend_offset
     if is_absence is not None:
@@ -1702,6 +1714,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['isrestshift'] = is_restshift
     if daynightshift is not None:
         update_dict['daynightshift'] = daynightshift
+
     if period_datefirst_dte:
         # period_datefirst_minus1 is used in create_emplhour_list
         period_datefirst_minus1 = period_datefirst_dte - timedelta(days=1)
@@ -1728,10 +1741,19 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     if periodstart_datetimelocal and periodend_datetimelocal:
         update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
                                                                        periodend_datetimelocal, timeformat, user_lang)
-    update_dict['dates_display_long'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, False,
-                                                                  user_lang)
-    update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
-                                                                   user_lang)
+
+    if paydatecode_pk:
+        paydateitem_datefirst_dte = f.get_dateobj_from_dateISOstring(paydateitem_datefirst)
+        paydateitem_datelast_dte = f.get_dateobj_from_dateISOstring(paydateitem_datelast)
+        update_dict['dates_display_long'] = f.format_period_from_date(paydateitem_datefirst_dte, paydateitem_datelast_dte, False,
+                                                                      user_lang)
+        update_dict['dates_display_short'] = f.format_period_from_date(paydateitem_datefirst_dte, paydateitem_datelast_dte, True,
+                                                                       user_lang)
+    else:
+        update_dict['dates_display_long'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, False,
+                                                                      user_lang)
+        update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
+                                                                       user_lang)
 
     return update_dict
 # ---  end of period_get_and_save
@@ -1740,21 +1762,9 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
 def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_period_dict, save_period_setting,
                                                            period_tag, extend_offset, comp_timezone):
 
-    # get 'now' and 'today
-    # get now from period_dict
-    now_arr = period_dict.get('now')
-    # if 'now' is not in period_dict: create 'now' (should not be possible)
-    if now_arr is None:
-        now = datetime.now()
-        now_arr = [now.year, now.month, now.day, now.hour, now.minute]
     # get now_usercomp_dtm from now_arr
     # now is the time of the computer of the current user. May be different from company local
-
-    #logger.debug(' now_arr: ' + str(now_arr))
-    today_dte = f.get_date_from_arr(now_arr)
-    #logger.debug(' today_dte: ' + str(today_dte) + ' type: ' + str(type(today_dte)))
-    now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
-    # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+    today_dte, now_usercomp_dtm = f.get_today_usertimezone(period_dict)
 
 # - get periodstart_datetimelocal/periodend_datetimelocal
     period_datefirst_dte = None
@@ -1975,7 +1985,6 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         if not employee_pk:
             employee_pk = None
 
-
         eplh_update_list = period_dict.get('eplh_update_list')
         #logger.debug('eplh_update_list: ' + str(eplh_update_list) + ' ' + str(type(eplh_update_list)))
 
@@ -2089,11 +2098,6 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             elif customer_pk:
                 sql_list.append('AND c.id = %(cust_id)s')
                 sql_keys['cust_id'] = customer_pk
-
-            if employee_pk:
-                sql_list.append('AND eh.employee_id = %(empl_id)s')
-                sql_keys['empl_id'] = employee_pk
-
 
             if employee_pk:
                 sql_list.append('AND eh.employee_id = %(empl_id)s')
@@ -2767,7 +2771,7 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
                                        INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
                                        
-                                       WHERE (c.company_id = %(cid)s) 
+                                       WHERE (c.company_id = %(comp_id)s) 
                                        AND (oh.rosterdate IS NOT NULL) 
                                        AND (oh.rosterdate >= %(df)s)
                                        AND (oh.rosterdate <= %(dl)s)
@@ -2779,7 +2783,7 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                        
                                        ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)
                                """,
-                               {'cid': company_id,
+                               {'comp_id': company_id,
                                 'emplid': employee_pk,
                                 'custid': customer_pk,
                                 'ordid': order_pk,
@@ -2896,7 +2900,7 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
                            INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id=oh.id)
                            INNER JOIN companies_order AS o ON (oh.order_id=o.id)
                            INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
-                           WHERE (c.company_id = %(cid)s) 
+                           WHERE (c.company_id = %(comp_id)s) 
                            AND (oh.rosterdate IS NOT NULL) 
                            AND (oh.rosterdate >= %(df)s)
                            AND (oh.rosterdate <= %(dl)s)
@@ -2907,7 +2911,7 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
                            AND (oh.isrestshift = %(isrest)s OR %(isrest)s IS NULL)
                            ORDER BY LOWER(e.code), e.id, eh.rosterdate, LOWER(c.code), c.id, LOWER(o.code), o.id
                            """,
-                           {'cid': company_id,
+                           {'comp_id': company_id,
                             'emplid': employee_pk,
                             'custid': customer_pk,
                             'ordid': order_pk,
@@ -2955,14 +2959,14 @@ def reset_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
                         FROM companies_orderhour AS oh 
                         INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
                         INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                        WHERE c.company_id = %(cid)s)     
+                        WHERE c.company_id = %(comp_id)s)     
         UPDATE companies_emplhour AS eh
         SET overlap = 0
         FROM oh_sub 
         WHERE (eh.orderhour_id = oh_sub.oh_id)
         AND (eh.overlap IS NOT NULL) 
         AND (eh.rosterdate >= %(df)s)
-        AND (eh.rosterdate <= %(dl)s)""", {'cid': request.user.company_id, 'df': datefirst, 'dl': datelast})
+        AND (eh.rosterdate <= %(dl)s)""", {'comp_id': request.user.company_id, 'df': datefirst, 'dl': datelast})
 
 def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
     #logger.debug(' === check_overlapping_shifts === ' + ' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
@@ -3022,14 +3026,14 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
         INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id=oh.id)
         INNER JOIN companies_order AS o ON (oh.order_id=o.id)
         INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
-        WHERE (c.company_id = %(cid)s) 
+        WHERE (c.company_id = %(comp_id)s) 
             AND (eh.employee_id IS NOT NULL) 
             AND (eh.rosterdate IS NOT NULL) 
             AND (eh.rosterdate >= %(df)s)
             AND (eh.rosterdate <= %(dl)s)
         GROUP BY empl_id
         HAVING COUNT(eh.id) > 1""",
-        {'cid': request.user.company_id, 'df': datefirst_extended, 'dl': datelast_extended})
+        {'comp_id': request.user.company_id, 'df': datefirst_extended, 'dl': datelast_extended})
     employee_list = cursor.fetchall()
     #logger.debug('employee_list: ' + str(employee_list) + ' ' + str(type(employee_list)))
     # employee_list: [(393,), (155,), (363,), (1252,), (265,), (281,), (1352,)] <class 'list'>

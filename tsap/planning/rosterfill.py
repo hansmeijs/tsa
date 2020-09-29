@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView
 
 from datetime import timedelta
+from time import time
 
 from companies.views import LazyEncoder
 
@@ -413,7 +414,7 @@ sql_teammember_sub04 = """
 
     INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
 
-    WHERE (c.company_id = %(cid)s)
+    WHERE (c.company_id = %(comp_id)s)
     AND (NOT o.istemplate)
     AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) )
     AND ( (tm.datelast >= CAST(%(rd)s AS date) ) OR (tm.datelast IS NULL) )
@@ -469,7 +470,7 @@ sql_teammember_aggr_sub06 = """
     GROUP BY sq.e_id
 """
 
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(comp_id)s
 # Note: (not correct. I think: )  filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
 
 # ========= sql_employee_with_aggr_sub07 =============
@@ -516,7 +517,7 @@ sql_employee_with_aggr_sub07 = """
         LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id) 
         LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
         
-        WHERE (e.company_id = %(cid)s) 
+        WHERE (e.company_id = %(comp_id)s) 
         AND (e.datefirst <= CAST(%(rd)s AS DATE) OR e.datefirst IS NULL) 
         AND (e.datelast  >= CAST(%(rd)s AS DATE) OR e.datelast IS NULL)
    """
@@ -528,6 +529,7 @@ sql_employee_with_aggr_sub07 = """
 
 # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
 # caused bij idx_e_code = None. Coalesce added in query for idx_tm_rd, idx_c_code, idx_o_code, idx_e_code)
+
 sql_teammember_sub08 = """
     SELECT 
         tm.id AS tm_id,
@@ -679,7 +681,7 @@ sql_teammember_sub08 = """
     
     LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)
 
-    WHERE (c.company_id = %(cid)s)
+    WHERE (c.company_id = %(comp_id)s)
     AND (NOT c.inactive OR c.isabsence) AND (NOT o.inactive OR o.isabsence) AND (NOT s.inactive OR s.isabsence)
     AND (NOT o.istemplate)
     AND (CAST(%(ph)s AS BOOLEAN) = FALSE OR NOT s.excludepublicholiday)
@@ -695,6 +697,169 @@ sql_teammember_sub08 = """
     AND ( (e_sub.e_id = %(eid)s) OR (r_sub.e_id = %(eid)s) OR (%(eid)s IS NULL) ) 
     AND ( (e_sub.e_fnc_id = %(fnc_id)s) OR (r_sub.e_fnc_id = %(fnc_id)s) OR (%(fnc_id)s IS NULL) ) 
 """
+
+sql_teammember_sub08_FASTER = """
+    SELECT 
+        tm.id AS tm_id,
+        t.id AS t_id, 
+        COALESCE(t.code,'') AS t_code,
+        s.id AS s_id,
+        COALESCE(s.code,'') AS s_code,
+        o.id AS o_id,
+        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,     
+        COALESCE(o.identifier,'') AS o_identifier, 
+        c.id AS c_id, 
+        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        c.company_id AS comp_id, 
+
+        e_sub.e_id AS e_id,
+        COALESCE(e_sub.e_code,'') AS e_code,
+        COALESCE(e_sub.e_identifier,'') AS e_identifier,
+        COALESCE(e_sub.e_payrollcode,'') AS e_payrollcode,
+
+        r_sub.e_id AS rpl_id,
+        COALESCE(r_sub.e_code,'') AS rpl_code,
+        COALESCE(r_sub.e_identifier,'') AS rpl_identifier,
+        COALESCE(r_sub.e_payrollcode,'') AS rpl_payrollcode,
+
+        si_sub.si_id,
+        si_sub.sh_id,
+        COALESCE(si_sub.sh_code,'') AS sh_code,
+
+        CASE WHEN c.isabsence OR si_sub.sh_rest THEN FALSE ELSE
+            CASE WHEN si_sub.sh_bill = 0 OR si_sub.sh_bill IS NULL THEN
+                CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
+                    CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
+                ELSE 
+                    CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
+                END
+            ELSE 
+                CASE WHEN si_sub.sh_bill = 2 THEN TRUE ELSE FALSE END
+            END 
+        END AS sh_isbill,
+
+        CASE WHEN o.isabsence THEN o.sequence ELSE -1 END AS o_seq,
+
+        si_sub.si_mod,
+
+        tm.datefirst AS tm_df,
+        tm.datelast AS tm_dl,
+        s.datefirst AS s_df,
+        s.datelast AS s_dl,
+        s.cycle AS s_cycle,
+
+        s.excludepublicholiday AS s_exph,
+        s.excludecompanyholiday AS s_exch,
+        s.divergentonpublicholiday AS s_dvgph,
+
+        CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
+        CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
+        CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
+        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
+
+        si_sub.sh_os,
+        si_sub.sh_oe,
+        si_sub.sh_os_nonull,
+        si_sub.sh_oe_nonull, 
+        si_sub.sh_bd,
+        si_sub.sh_td,
+
+        CAST(%(rd)s AS DATE) AS tm_rd,
+        COALESCE(e_sub.tm_count, 0) AS tm_count,
+
+        e_sub.tm_id_arr AS e_tm_id_arr,
+        e_sub.si_id_arr AS e_si_id_arr,
+        e_sub.mod_arr AS e_mod_arr,
+        e_sub.sh_os_arr AS e_os_arr,
+        e_sub.sh_oe_arr AS e_oe_arr,
+        e_sub.o_seq_arr AS e_o_seq_arr,
+
+        r_sub.tm_id_arr AS r_tm_id_arr,
+        r_sub.si_id_arr AS r_si_id_arr,
+        r_sub.mod_arr AS r_mod_arr,
+        r_sub.sh_os_arr AS r_os_arr,
+        r_sub.sh_oe_arr AS r_oe_arr,
+        r_sub.o_seq_arr AS r_o_seq_arr, 
+
+        FALSE AS isreplacement,
+
+        tm.override AS tm_ovr,
+        tm.pricecode_id AS tm_prc_id,
+        CASE WHEN si_sub.sh_prc_id IS NULL THEN 
+            CASE WHEN o.pricecode_id IS NULL THEN 
+                comp.pricecode_id 
+            ELSE o.pricecode_id END
+        ELSE si_sub.sh_prc_id END AS sh_prc_id,
+        e_sub.e_prc_id,
+        r_sub.e_prc_id AS r_prc_id,
+
+        tm.additioncode_id AS tm_adc_id,
+        CASE WHEN si_sub.sh_adc_id IS NULL THEN 
+            CASE WHEN o.additioncode_id IS NULL THEN 
+                comp.additioncode_id 
+            ELSE o.additioncode_id END
+        ELSE si_sub.sh_adc_id END AS sh_adc_id,
+        e_sub.e_adc_id,
+        r_sub.e_adc_id AS r_adc_id,
+
+        CASE WHEN si_sub.sh_txc_id IS NULL THEN 
+            CASE WHEN o.taxcode_id IS NULL THEN 
+                comp.taxcode_id 
+            ELSE o.taxcode_id END
+        ELSE si_sub.sh_txc_id END AS sh_txc_id,
+
+        CASE WHEN o.invoicecode_id IS NULL THEN 
+            c.invoicecode_id 
+        ELSE o.invoicecode_id END AS o_inv_id,
+
+        e_sub.e_fnc_id,
+        e_sub.e_fnc_code,
+        e_sub.e_wgc_id,
+        e_sub.e_wgc_code,
+        e_sub.e_pdc_id,
+        e_sub.e_pdc_code,
+        e_sub.e_pdc_dte,
+        CASE WHEN e_sub.e_wmpd IS NULL OR e_sub.e_wmpd = 0 THEN comp.workminutesperday ELSE e_sub.e_wmpd END AS e_wmpd,
+
+        r_sub.e_fnc_id AS r_fnc_id,
+        r_sub.e_fnc_code AS r_fnc_code,
+        r_sub.e_wgc_id AS r_wgc_id,
+        r_sub.e_wgc_code AS r_wgc_code,
+        r_sub.e_pdc_id AS r_pdc_id,
+        r_sub.e_pdc_code AS r_pdc_code,
+        r_sub.e_pdc_dte AS r_pdc_dte,
+        CASE WHEN r_sub.e_wmpd IS NULL THEN comp.workminutesperday ELSE r_sub.e_wmpd END AS r_wmpd,
+
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN comp.wagefactorcode_id ELSE si_sub.sh_wfc_id END AS sh_wfc_id,
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN wfc.code ELSE si_sub.sh_wfc_code END AS sh_wfc_code,
+        CASE WHEN si_sub.sh_wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.sh_wfc_rate END AS sh_wfc_rate,
+
+        o.nopay AS o_nopay
+
+    FROM companies_teammember AS tm 
+    INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
+    INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
+    INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+    INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+    INNER JOIN companies_company AS comp ON (comp.id = c.company_id) 
+
+    INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
+    LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS e_sub ON (e_sub.e_id = tm.employee_id)
+    LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS r_sub ON (r_sub.e_id = tm.replacement_id)
+
+    LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)
+
+    WHERE (c.company_id = %(comp_id)s)
+    AND (NOT c.inactive OR c.isabsence) AND (NOT o.inactive OR o.isabsence) AND (NOT s.inactive OR s.isabsence)
+    AND (NOT o.istemplate)
+    AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) )
+    AND ( (tm.datelast  >= CAST(%(rd)s AS date) ) OR (tm.datelast IS NULL) )
+    AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) )
+    AND ( (s.datelast  >= CAST(%(rd)s AS date) ) OR (s.datelast IS NULL) )
+    AND ( (o.datefirst <= CAST(%(rd)s AS date) ) OR (o.datefirst IS NULL) )
+    AND ( (o.datelast  >= CAST(%(rd)s AS date) ) OR (o.datelast IS NULL) )
+"""
+
 
 @method_decorator([login_required], name='dispatch')
 class FillRosterdateView(UpdateView):  # PR2019-05-26
@@ -779,7 +944,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 #######################################################
 
 def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
-    logger.debug(' ###################### FillRosterdate ###################### ')
+    #logger.debug(' ###################### FillRosterdate ###################### ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
     logfile = []
@@ -824,7 +989,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                 plv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
 
 # - update the paydates of all paydatecodes to the nearest date from rosterdate_dte PR2020-06-19
-            plv.update_paydates_in_paydatecode(rosterdate_dte, request)
+            plv.update_paydates_in_paydatecode(rosterdate_dte, None, request)
             # - delete existing emplhour
             # TODO replace by skipping , because of keeping track of entries
             # delete existing emplhour records of this rosterdate if they are not confirmed or locked,
@@ -886,6 +1051,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                 order_pk=order_pk,
                 employee_pk=employee_pk,
                 functioncode_pk=None,
+                paydatecode_pk=None,
                 company_id=company_id
             )
 
@@ -897,12 +1063,22 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             #  Idem with idx_sh_os_nonull. idx_sh_os must stay, may have null value for updating
             sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_sh_os_nonull, idx_c_code, idx_o_code))
 
+            # PR2020-09-28 debug Pycharm gives warning:
+            #   'Expected type '{__ne__, __eq__}', got 'None' instead
+            #   Inspection info: This inspection detects type errors in function call expressions.
+            #   Due to dynamic dispatch and duck typing, this is possible in a limited but useful number of cases.
+            #   Types of function parameters can be specified in docstrings or in Python 3 function annotations.
+            # Solved by value 0 instead of None
+            filter_employee_pk, filter_functioncode_pk, filter_paydatecode_pk = 0, 0, 0
+
             for i, row_tuple in enumerate(sorted_rows):
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
                 row, add_row = calculate_add_row_to_dict(
                     row_tuple=row_tuple,
                     logfile=logfile,
-                    filter_employee_pk=0,
+                    filter_employee_pk=filter_employee_pk,
+                    filter_functioncode_pk=filter_functioncode_pk,
+                    filter_paydatecode_pk=filter_paydatecode_pk,
                     skip_absence_and_restshifts=False,
                     add_shifts_without_employee=True,
                     user_lang=user_lang)
@@ -1391,13 +1567,13 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
                     SELECT oh.id AS oh_id FROM companies_orderhour AS oh
                     INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
                     INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                    WHERE (c.company_id = %(cid)s) 
+                    WHERE (c.company_id = %(comp_id)s) 
                     AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL)
                     AND (oh.status < %(oh_status)s) 
                     AND (NOT oh.lockedinvoice)
                 )
                 """, {
-        'cid': request.user.company_id,
+        'comp_id': request.user.company_id,
         'eh_status': c.STATUS_004_START_CONFIRMED,
         'oh_status': c.STATUS_032_LOCKED,
         'rd': new_rosterdate_dte})
@@ -1414,14 +1590,14 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
             WHERE order_id IN (
                 SELECT o.id AS o_id FROM companies_order AS o
                 INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                WHERE (c.company_id = %(cid)s) 
+                WHERE (c.company_id = %(comp_id)s) 
             )
             AND id NOT IN (
                 SELECT orderhour_id FROM companies_emplhour
             )
             AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL) 
             """, {
-        'cid': request.user.company_id,
+        'comp_id': request.user.company_id,
         'rd': new_rosterdate_dte})
     deleted_count_oh = newcursor.rowcount
 
@@ -1786,7 +1962,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
 
     # no absence, restshift, template
     newcursor = connection.cursor()
-    #                     WHERE (e.company_id = %(cid)s) AND (tm.cat < %(cat_lt)s)
+    #                     WHERE (e.company_id = %(comp_id)s) AND (tm.cat < %(cat_lt)s)
     #                     AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)
     #                     AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
 
@@ -1878,7 +2054,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
             INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
             INNER JOIN companies_order AS o ON (s.order_id = o.id) 
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-            WHERE (c.company_id = %(cid)s) 
+            WHERE (c.company_id = %(comp_id)s) 
             AND (%(order_id)s IS NULL OR o.id = %(order_id)s )
             AND (tm.cat < %(abs_cat_lt)s) 
             AND (o.datefirst <= %(rd)s OR o.datefirst IS NULL)
@@ -1887,7 +2063,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
         ) AS sq  
         ORDER BY LOWER(sq.c_code), LOWER(sq.o_code), rosterdate ASC, osdif ASC
             """, {
-        'cid': company_id,
+        'comp_id': company_id,
         'abs_cat_lt': c.SHIFT_CAT_0512_ABSENCE,
         'order_id': order_id,
         'rd': rosterdate,
@@ -2018,7 +2194,9 @@ def create_customer_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
 
 
 #######################################################
-def calculate_add_row_to_dict(row_tuple, logfile, filter_employee_pk, skip_absence_and_restshifts, add_shifts_without_employee,
+def calculate_add_row_to_dict(row_tuple, logfile,
+                              filter_employee_pk, filter_functioncode_pk, filter_paydatecode_pk,
+                              skip_absence_and_restshifts, add_shifts_without_employee,
                               user_lang):
     #logger.debug('------------ calculate_add_row_to_dict ------------------------------ ')
     #logger.debug('filter_employee_pk' + str(filter_employee_pk))
@@ -2027,9 +2205,12 @@ def calculate_add_row_to_dict(row_tuple, logfile, filter_employee_pk, skip_absen
     # called by FillRosterdate, create_employee_planning and create_customer_planning
 
     # when called by create_employee_planning:
-    #  - filter_employee_pk must have value
+    #  - filter_employee_pk must have value - not true: in payroll page all employees are shown
     #  - dont add empty shifts
     #  - dont skip_absence_and_restshifts
+    #  - filter_functioncode_pk and filter_paydatecode_pk are necessary. PR2020-09-28
+    #       in get_rows the rows of employee and replacement are retrieved whne they have the given functioncode / paydatecode
+    #       in this function the row that is not chosen must be filtered out
 
     # when called by create_customer_planning:
     #  - filter_employee_pk is None
@@ -2044,12 +2225,14 @@ def calculate_add_row_to_dict(row_tuple, logfile, filter_employee_pk, skip_absen
     # this disables the logger, except for critical
     # logging.disable(logging.CRITICAL)
 
+
     # row_tuple cannot be modified. Convert to list 'row'
     row = list(row_tuple)
     # filter_employee_is_replacement is only used in create_employee_planning
     # filter_employee_is_replacement is only true when employee and replacement are not the same
     # in case an employee is also his replacement...
     filter_employee_is_replacement = (filter_employee_pk) and (filter_employee_pk != row[idx_e_id]) and (filter_employee_pk == row[idx_rpl_id])
+
     rosterdate_display = f.format_DMY_from_dte(row[idx_tm_rd], user_lang)
 
     logfile.append('------------ ' + rosterdate_display + ' ------------------------------ ')
@@ -2106,7 +2289,6 @@ def calculate_add_row_to_dict(row_tuple, logfile, filter_employee_pk, skip_absen
             # logfile.append('--> employee is not absent and has no other restshift: add rest shift')
         else:
             logfile.append('--> skip, employee is absent or already has restshift')
-
 
 # >>>>> SHIFT IS NORMAL SHIFT
     else:
@@ -2201,7 +2383,16 @@ def calculate_add_row_to_dict(row_tuple, logfile, filter_employee_pk, skip_absen
                     else:
                         logfile.append('--> skip. Shift is empty.')
 
+# - check if employee has the right funtioncode_pk / paydatecode_pk when filter is on.  PR2020-09-28
+    #  skip when it has a different code_pk
+    if add_row_to_dict:
+        if filter_functioncode_pk and filter_functioncode_pk != row[idx_e_fnc_id]:
+            add_row_to_dict = False
+        if filter_paydatecode_pk and filter_paydatecode_pk != row[idx_e_pdc_id]:
+            add_row_to_dict = False
+
     return row, add_row_to_dict
+
 
 def replace_employee_info_by_replacement(row):
     # replace employee info by info of replacement employee
@@ -2263,7 +2454,7 @@ def remove_employee_info_From_row(row):
 
 #######################################################
 
-def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk, functioncode_pk,
+def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk, functioncode_pk, paydatecode_pk,
                              add_shifts_without_employee, skip_absence_and_restshifts, orderby_rosterdate_customer,
                              comp_timezone, timeformat, user_lang, request):
     #logger.debug(' ----------  create_employee_planning  ---------- ')
@@ -2296,7 +2487,10 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         datelast_dte = f.get_date_from_ISO(datelast_iso)
 
 # - check if calendar contains dates of this year, fill if necessary
+        starttime = time()
         f.check_and_fill_calendar(datefirst_dte, datelast_dte, request)
+        #logger.debug( 'check_and_fill_calendar.extend: ' + str(time() - starttime))
+        starttime = time()
 
 # +++++ loop through dates
         rosterdate_dte = datefirst_dte
@@ -2304,6 +2498,9 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
     # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
                 rosterdate_dte, request)
+
+    # - update the paydates of all paydatecodes to the nearest date from rosterdate_dte PR2020-06-19
+            plv.update_paydates_in_paydatecode(rosterdate_dte, None, request)
 
     # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -2317,23 +2514,32 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 order_pk=order_pk,
                 employee_pk=employee_pk,
                 functioncode_pk=functioncode_pk,
+                paydatecode_pk=paydatecode_pk,
                 company_id=company_id
             )
 
     # - add rows to all_rows
             all_rows.extend(rows)
+
     # - add one day to rosterdate
             rosterdate_dte = rosterdate_dte + timedelta(days=1)
 # +++++ end of loop
+
+        #logger.debug( 'get_employee_calendar_rows: ' + str(time() - starttime))
+        starttime = time()
 
 # - sort rows
         # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
         # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
         # caused bij idx_e_code = None. Coalesce added in query
+
         if orderby_rosterdate_customer:
             sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_tm_rd, idx_c_code, idx_o_code, idx_e_code))
         else:
             sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_e_code, idx_tm_rd, idx_c_code, idx_o_code))
+
+        #logger.debug( 'sorted_rows: ' + str(time() - starttime))
+        starttime = time()
 
         for i, row_tuple in enumerate(sorted_rows):
             # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -2341,10 +2547,13 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 row_tuple=row_tuple,
                 logfile=logfile,
                 filter_employee_pk=employee_pk,
+                filter_functioncode_pk=functioncode_pk,
+                filter_paydatecode_pk=paydatecode_pk,
                 skip_absence_and_restshifts=skip_absence_and_restshifts,
                 add_shifts_without_employee=add_shifts_without_employee,
                 user_lang=user_lang)
             # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
 
             # TODO PR2019-12-16 row is made for sipleshift without schemitem.
             #  To be solved by adding required schemitem to absence and change left join in inner join
@@ -2394,6 +2603,8 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 if planning_dict_short:
                     calendar_shortlist.append(planning_dict_short)
 
+        #logger.debug( 'create_planning_dict: ' + str(time() - starttime))
+
     # add empty dict when list has no items. To refresh an empty calendar
     if len(calendar_dictlist) == 0:
         calendar_dictlist = [{}]
@@ -2404,7 +2615,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 
 
 def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday, customer_pk, order_pk,
-                               employee_pk, functioncode_pk, company_id):
+                               employee_pk, functioncode_pk, paydatecode_pk, company_id):
     #logger.debug(' =============== get_employee_calendar_rows ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('employee_pk: ' + str(employee_pk))
@@ -2427,27 +2638,45 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
     # dictrows is for logging only
     #logger.debug('sql_teammember_sub08 ---------------- rosterdate_dte' + str(rosterdate_dte))
 
+    sql_keys = {'comp_id': company_id, 'rd': rosterdate_dte, 'ph': is_publicholiday, 'ch': is_companyholiday}
+
+    sql_keys['orderid'] = order_pk
+
+    sql_list = []
+    sql_list.append(sql_teammember_sub08_FASTER)
+
+    if is_publicholiday:
+        sql_list.append('AND NOT s.excludepublicholiday')
+    if is_companyholiday:
+        sql_list.append('AND NOT s.excludecompanyholiday')
+    if order_pk:
+        sql_list.append('AND o.id = %(orderid)s::INT')
+        sql_keys['orderid'] = order_pk
+    if customer_pk:
+        sql_list.append('AND o.id = %(customerid)s::INT')
+        sql_keys['customerid'] = customer_pk
+    if employee_pk:
+        sql_list.append('AND ( e_sub.e_id = %(eid)s::INT OR r_sub.e_id = %(eid)s::INT )')
+        sql_keys['eid'] = employee_pk
+    if functioncode_pk:
+        sql_list.append('AND (e_sub.e_fnc_id = %(fnc_id)s::INT OR r_sub.e_fnc_id = %(fnc_id)s::INT )')
+        sql_keys['fnc_id'] = functioncode_pk
+    if paydatecode_pk:
+        sql_list.append('AND (e_sub.e_pdc_id = %(pdc_id)s::INT OR r_sub.e_pdc_id = %(pdc_id)s::INT )')
+        sql_keys['pdc_id'] = paydatecode_pk
+    sql = ' '.join(sql_list)
+
     newcursor = connection.cursor()
-    newcursor.execute(sql_teammember_sub08, {
-        'cid': company_id,
-        'customerid': customer_pk,
-        'orderid': order_pk,
-        'eid': employee_pk,
-        'fnc_id': functioncode_pk,
-        'rd': rosterdate_dte,
-        'is_sat': is_saturday,
-        'is_sun': is_sunday,
-        'ph': is_publicholiday,
-        'ch': is_companyholiday
-    })
+    newcursor.execute(sql,sql_keys)
     rows = newcursor.fetchall()
+
     """
     #FOR TESTING ONLY
     logger.debug('--------------------- sql_teammember_sub08 --------------------- ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('employee_pk: ' + str(employee_pk) + ' order_pk: ' + str(order_pk) + ' customer_pk: ' + str(customer_pk))
     newcursor.execute(sql_teammember_sub08, {
-        'cid': company_id,
+        'comp_id': company_id,
         'customerid': customer_pk,
         'orderid': order_pk,
         'eid': employee_pk,
@@ -3020,6 +3249,7 @@ def create_planning_dict_short(row, is_saturday, is_sunday, is_publicholiday, is
                     'wagecode': row[idx_e_wgc_code],
                     'pdc_id': row[idx_e_pdc_id],
                     'paydatecode': row[idx_e_pdc_code],
+                    'paydate': row[idx_e_pdc_dte],
 
                     'wfc_id': row[idx_sh_wfc_id],
                     'wfc_code': row[idx_sh_wfc_code],
@@ -3319,7 +3549,7 @@ sql_customer_calendar_teammember_sub04 = """
 
     INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
 
-    WHERE ( c.company_id = %(cid)s )
+    WHERE ( c.company_id = %(comp_id)s )
     AND ( NOT o.istemplate )
     AND ( tm.datefirst <= CAST(%(rd)s AS DATE) OR tm.datefirst IS NULL )
     AND ( tm.datelast  >= CAST(%(rd)s AS DATE) OR tm.datelast IS NULL )
@@ -3351,7 +3581,7 @@ sql_customer_calendar_teammember_aggr_sub06 = """
     GROUP BY sq.e_id
 """
 
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(comp_id)s
 # Note: filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
 
 
@@ -3379,7 +3609,7 @@ sql_customer_calendar_employee_sub07 = """
         LEFT JOIN (
             """ + sql_customer_calendar_teammember_aggr_sub06 + """
         ) AS tm_sub ON (tm_sub.tm_eid = e.id) 
-        WHERE (e.company_id = %(cid)s) 
+        WHERE (e.company_id = %(comp_id)s) 
         AND (e.datefirst <= CAST(%(rd)s AS DATE) OR e.datefirst IS NULL) 
         AND (e.datelast  >= CAST(%(rd)s AS DATE) OR e.datelast IS NULL)
    """
@@ -3568,7 +3798,7 @@ sql_customer_calendar_team_sub11 = """
     INNER JOIN  ( """ + sql_schemeitem_norest_sub01 + """ ) AS si_sub ON (si_sub.t_id = t.id)
     INNER JOIN  ( """ + sql_customer_calendar_teammember_aggr_sub10 + """ ) AS tm_sub ON (tm_sub.t_id = t.id)
 
-    WHERE (c.company_id = %(cid)s)
+    WHERE (c.company_id = %(comp_id)s)
     AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive
     AND NOT o.istemplate AND NOT o.isabsence
     AND (NOT CAST(%(ph)s AS BOOLEAN) OR NOT s.excludepublicholiday)
@@ -3588,7 +3818,7 @@ def get_customer_calendar_rows(rosterdate, company_pk, customer_pk, order_pk, is
 
     #logger.debug('================= sql_customer_calendar_teammember_aggr_sub10  ===========================  ')
     # newcursor.execute(sql_customer_calendar_teammember_aggr_sub10, {
-    #    'cid': company_pk,
+    #    'comp_id': company_pk,
     #    'customerid': customer_pk,
     #     'orderid': order_pk,
     #    'rd': rosterdate,
@@ -3603,7 +3833,7 @@ def get_customer_calendar_rows(rosterdate, company_pk, customer_pk, order_pk, is
     newcursor = connection.cursor()
     # ============================================
     newcursor.execute(sql_customer_calendar_team_sub11, {
-        'cid': company_pk,
+        'comp_id': company_pk,
         'customerid': customer_pk,
         'orderid': order_pk,
         'rd': rosterdate,

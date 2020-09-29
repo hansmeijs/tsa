@@ -119,11 +119,6 @@
     background: #fbedba; /* lighter shade of tsa yellow */
 }
 
-.tsa_btn_selected  {
-    background-color: #fbedba; /* lighter shade of tsa yellow */
-    color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
-}
-
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 .tsa_tbl  {
     /*table-layout: auto;*/
@@ -215,6 +210,7 @@
     width: 18px;
     height: 18px;
 }
+
 /* SPRITES PR2020-08-17 */
 
 .stat_0_0, .stat_0_1, .stat_0_2, .stat_0_3, .stat_0_4, .stat_0_5, .stat_0_6,
@@ -227,6 +223,8 @@
 .exclamation_0_0, .exclamation_0_1, .exclamation_0_2,
 .tickmark_0_0, .tickmark_0_1, .tickmark_0_2,
 .tickmark_1_0, .tickmark_1_1, .tickmark_1_2,
+.flag_0_0, .flag_0_1, .flag_0_2,
+.flag_1_0, .flag_1_1, .flag_1_2,
 .delete_0_0, .delete_0_1, .delete_0_2 {
     background-repeat: no-repeat;
     height: 20px;
@@ -341,6 +339,20 @@
 .btn_del_0_1 { background-position: -28px -0px;}
 .btn_del_0_2 { background-position: -56px -0px;}
 
+.flag_0_0, .flag_0_1, .flag_0_2,
+.flag_1_0, .flag_1_1, .flag_1_2 {
+    background-image: url('/static/img/flags.png');
+    background-size: 60px 40px;
+}
+.flag_0_0 { background-position: -0px -0px;}
+.flag_0_1 { background-position: -20px -0px;}
+.flag_0_2 { background-position: -40px -0px;}
+.flag_1_0 { background-position: -0px -20px;}
+.flag_1_1 { background-position: -20px -20px;}
+.flag_1_2 { background-position: -40px -20px;}
+
+
+
 /* END OF SPRITES */
 
 
@@ -374,11 +386,14 @@
 .td_border_left {
     border-left: 1px solid #808080; /* grijs; */
 }
+
+.tsa_btn_selected  {
+    background-color: #fbedba; /* lighter shade of tsa yellow */
+    color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
+}
 .tsa_tr_selected {
     background: #e0e0e0; /* light grey; tsa_tr_selected*/
 }
-
-
 
 .tsa_tr_error {
    /* background: #f1b5b5; /* licht rood; */

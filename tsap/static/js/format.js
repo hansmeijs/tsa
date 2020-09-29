@@ -477,7 +477,6 @@
                 period_text = format_dateISO_vanilla(loc, datelast_iso, true, false)
         }
         period_text = prefix + " " + period_text;
-
         return period_text;
     }  // f_get_periodtext_sidebar
 

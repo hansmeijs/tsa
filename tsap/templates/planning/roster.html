@@ -77,7 +77,7 @@
     <div class="tsa_margin_top48_left24 mx-4">
 
     {% if user.is_authenticated %}
-    {% if user.is_perm_planner or user.is_perm_supervisor %}
+    {% if user.is_perm_supervisor or user.is_perm_planner or user.is_perm_hrman or user.is_perm_accman %}
 
 <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >

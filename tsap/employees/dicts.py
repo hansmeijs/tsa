@@ -1,7 +1,8 @@
 from django.db import connection
 from django.db.models import Q
 
-from datetime import timedelta
+from datetime import date, time, datetime, timedelta
+
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -1076,78 +1077,88 @@ def create_orders_inuse_list(period_dict, request):
 ####################===============@@@@@@@@@@@@@@@@@@@@@@@
 def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request):
     logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
-    #logger.debug('payroll_period: ' + str(payroll_period))
+    logger.debug('payroll_period: ' + str(payroll_period))
+
     payrollperiod_detail_list = []
     if request.user.company:
-        paydatecode_pk = f.get_dict_value(payroll_period, ('paydatecode_pk',))
-        paydate_iso = f.get_dict_value(payroll_period, ('paydate_iso',))
-        period_datefirst = None
-        period_datelast = None
-        if paydatecode_pk and paydate_iso:
-            pass
-            # when paydatecode_pk and paydate_iso have value:
-            # set startdate and enddate of payroll period as period_datefirst / period_datelast
-        else:
+
+        period_datefirst, period_datelast, paydatecode_pk, paydateitem_datelast, paydate = None, None, None, None, None
+        sel_view = payroll_period.get('sel_view')
+        if sel_view =='calendarperiod':
             period_datefirst = f.get_dict_value(payroll_period, ('period_datefirst',))
             period_datelast = f.get_dict_value(payroll_period, ('period_datelast',))
+        else:
+            paydatecode_pk = payroll_period.get('paydatecode_pk')
+            period_datefirst = payroll_period.get('paydateitem_datefirst')
+            period_datelast = payroll_period.get('paydateitem_datelast')
+            paydate = period_datelast
 
         customer_pk = f.get_dict_value(payroll_period, ('customer_pk',))
         order_pk = f.get_dict_value(payroll_period, ('order_pk',))
         employee_pk = f.get_dict_value(payroll_period, ('employee_pk',))
         functioncode_pk = f.get_dict_value(payroll_period, ('functioncode_pk',))
 
+        logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+        logger.debug('period_datefirst: ' + str(period_datefirst))
+        logger.debug('period_datelast: ' + str(period_datelast))
 
 # - get list of rosterdates that are in emplhour in selected period
-        # if paydatecode_pk and paydate_iso have values: these will be used, use period_datefirst / last otherwise
+        # if paydatecode_pk and paydateitem_datelast have values: these will be used, use period_datefirst / last otherwise
         rosterdate_rows = get_rosterdates_of_emplhour_period(
             period_datefirst,
             period_datelast,
             paydatecode_pk,
-            paydate_iso,
+            paydateitem_datelast,
             request)
 
+        logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
 ###############################
 # +++++ loop through dates of selected period
         datefirst_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datefirst)
         datelast_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datelast)
+        if datefirst_dte and datelast_dte:
+            rosterdate_dte = datefirst_dte
+            while rosterdate_dte <= datelast_dte:
+                rosterdate_iso = rosterdate_dte.isoformat()
 
-        rosterdate_dte = datefirst_dte
-        while rosterdate_dte <= datelast_dte:
-            rosterdate_iso = rosterdate_dte.isoformat()
-            if rosterdate_dte in rosterdate_rows:
-# - when emplhour records of this rosterdate exist: add them to payrollperiod_detail_list
-                detail_listONEDAY = create_payrollperiod_detail_listONDEDAY(
-                    rosterdate=rosterdate_iso,
-                    customer_pk=customer_pk,
-                    order_pk=order_pk,
-                    employee_pk=employee_pk,
-                    functioncode_pk=functioncode_pk,
-                    request=request)
-                if detail_listONEDAY:
-                    payrollperiod_detail_list.extend(detail_listONEDAY)
-            else:
-# - if not: add planning day of this rosterdate
-                dict_listNIU, short_list, logfileNIU = plrf.create_employee_planning(
-                    datefirst_iso=rosterdate_iso,
-                    datelast_iso=rosterdate_iso,
-                    customer_pk=customer_pk,
-                    order_pk=order_pk,
-                    employee_pk=employee_pk,
-                    functioncode_pk=functioncode_pk,
-                    add_shifts_without_employee=True,
-                    skip_absence_and_restshifts=False,
-                    orderby_rosterdate_customer=False,
-                    comp_timezone=comp_timezone,
-                    timeformat=timeformat,
-                    user_lang=user_lang,
-                    request=request)
+                if rosterdate_dte in rosterdate_rows:
+    # - when emplhour records of this rosterdate exist: add them to payrollperiod_detail_list
+                    detail_listONEDAY = create_payrollperiod_detail_listONDEDAY(
+                        rosterdate=rosterdate_iso,
+                        customer_pk=customer_pk,
+                        order_pk=order_pk,
+                        employee_pk=employee_pk,
+                        functioncode_pk=functioncode_pk,
+                        paydatecode_pk=paydatecode_pk,
+                        paydate=paydate,
+                        request=request)
+                    if detail_listONEDAY:
+                        payrollperiod_detail_list.extend(detail_listONEDAY)
 
-                # - add rows to all_rows
-                payrollperiod_detail_list.extend(short_list)
-            # - add one day to rosterdate
-            rosterdate_dte = rosterdate_dte + timedelta(days=1)
+                else:
+    # - if not: add planning day of this rosterdate
+                    dict_listNIU, short_list, logfileNIU = plrf.create_employee_planning(
+                        datefirst_iso=rosterdate_iso,
+                        datelast_iso=rosterdate_iso,
+                        customer_pk=customer_pk,
+                        order_pk=order_pk,
+                        employee_pk=employee_pk,
+                        functioncode_pk=functioncode_pk,
+                        paydatecode_pk=paydatecode_pk,
+                        add_shifts_without_employee=True,
+                        skip_absence_and_restshifts=False,
+                        orderby_rosterdate_customer=False,
+                        comp_timezone=comp_timezone,
+                        timeformat=timeformat,
+                        user_lang=user_lang,
+                        request=request)
+
+                    # - add rows to all_rows
+                    payrollperiod_detail_list.extend(short_list)
+                # - add one day to rosterdate
+                rosterdate_dte = rosterdate_dte + timedelta(days=1)
     # +++++ end of loop
-        #################################
+#################################
 
 
     return payrollperiod_detail_list
@@ -1203,6 +1214,7 @@ def create_payroll_detail_list(payroll_period, request):
                         order_pk=None,
                         employee_pk=None,
                         functioncode_pk=None,
+                        paydatecode_pk=None,
                         company_id=request.user.company.pk
                     )
                     # - add rows to all_rows
@@ -1216,10 +1228,10 @@ def create_payroll_detail_list(payroll_period, request):
     return payrollperiod_detail_list
 # --- end of create_payroll_detail_list
 
-def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydatecode_pk, paydate_iso,request):
-    #logger.debug(' ============= get_rosterdates_of_emplhour_period ============= ')
+def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydatecode_pk, paydateitem_datelast, request):
+    logger.debug(' ============= get_rosterdates_of_emplhour_period ============= ')
     # create list of rosterdates that are in selected period PR2020-09-07
-    # if paydatecode_pk and paydate_iso: filter on paydatecode_pk and paydate_iso
+    # if paydatecode_pk and paydateitem_datelast: filter on paydatecode_pk and paydateitem_datelast
     # else : filter on period_datefirst and/or period_datelast
     sql_keys = {'compid': request.user.company_id}
     sql_list = ["""SELECT eh.rosterdate
@@ -1228,11 +1240,14 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
             INNER JOIN companies_order AS o ON (o.id = oh.order_id)
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
             WHERE c.company_id = %(compid)s"""]
-    if paydatecode_pk and paydate_iso:
-        sql_list.append("""AND eh.paydatecode_id = CAST(%(pdc_id)s AS INTEGER)
-                           AND eh.paydate = CAST(%(paydate)s AS DATE)""")
+    if paydatecode_pk and paydateitem_datelast:
+        #sql_list.append("""AND eh.paydatecode_id = CAST(%(pdc_id)s AS INTEGER)
+        #                   AND eh.paydate = CAST(%(paydate)s AS DATE)""")
+        sql_list.append("""AND eh.paydatecode_id = CAST(%(pdc_id)s AS INTEGER)""")
+        logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+        logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
         sql_keys['pdc_id'] = paydatecode_pk
-        sql_keys['paydate'] = paydate_iso
+        sql_keys['paydate'] = paydateitem_datelast
     else:
         if period_datefirst:
             sql_list.append('AND eh.rosterdate >= CAST(%(df)s AS DATE)')
@@ -1246,6 +1261,7 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     rosterdate_rows = newcursor.fetchall()
+    logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
     rosterdate_list = []
     for row in rosterdate_rows:
         rosterdate_list.append(row[0])
@@ -1254,7 +1270,8 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
 # - end of get_rosterdates_of_emplhour_period
 
 
-def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk, employee_pk, functioncode_pk, request):
+def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
+                                            employee_pk, functioncode_pk, paydatecode_pk, paydate, request):
 
     #logger.debug(' ============= create_payrollperiod_detail_listONDEDAY ============= ')
     # create crosstab list of employees with absence hours PR2020-06-12
@@ -1334,6 +1351,12 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk, e
     if functioncode_pk:
         sql_list.append('AND fnc.id = %(fnc_id)s::INT')
         sql_keys['fnc_id'] = functioncode_pk
+    if paydatecode_pk:
+        sql_list.append('AND pdc.id = %(pdc_id)s::INT')
+        sql_keys['pdc_id'] = paydatecode_pk
+    if paydate:
+        sql_list.append('AND eh.paydate = %(paydate)s::DATE')
+        sql_keys['paydate'] = paydate
 
     sql_list.append('ORDER BY LOWER(e.code), LOWER(o.code)')
 
@@ -1693,7 +1716,7 @@ def create_payroll_agg_listXXX(period_dict, request):
 # - end of create_payrollperiod_agg_list
 
 
-def create_paydatecode_rows(period_dict, request):
+def create_paydatecode_rows(period_dict, paydatecode_pk, msg_dict, request):
     #logger.debug(' --- create_paydatecode_rows --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
@@ -1712,6 +1735,7 @@ def create_paydatecode_rows(period_dict, request):
         sql_keys = {'compid': company_pk}
         sql_sub_list = []
         sql_sub_list.append("""SELECT pdi.paydatecode_id, 
+                CONCAT('paydatecode_', pdi.paydatecode_id::TEXT) AS mapid,
                 ARRAY_AGG( TO_CHAR(pdi.datefirst, 'YYYY-MM-DD') ORDER BY pdi.id) AS datefirst_agg,
                 ARRAY_AGG( TO_CHAR(pdi.datelast, 'YYYY-MM-DD') ORDER BY pdi.id) AS datelast_agg
             FROM companies_paydateitem AS pdi""")
@@ -1742,10 +1766,12 @@ def create_paydatecode_rows(period_dict, request):
         newcursor.execute(sql, sql_keys)
         paydatecode_rows = f.dictfetchall(newcursor)
 
+# --- create list of payrollitems of this company
         sql_paydateitem_keys = {'compid': company_pk}
         sql_paydateitem_list = []
         sql_paydateitem_list.append("""
-            SELECT pdi.id AS pdi_id, pdc.id AS pdc_id, 
+            SELECT pdi.id, pdc.id AS pdc_id, 
+            CONCAT('paydateitem_', pdi.id::TEXT) AS mapid,
             pdi.datefirst, pdi.datelast, pdi.year, pdi.period
             FROM companies_paydateitem AS pdi
             INNER JOIN companies_paydatecode AS pdc ON (pdc.id = pdi.paydatecode_id)
@@ -1763,74 +1789,118 @@ def create_paydatecode_rows(period_dict, request):
         newcursor.execute(sql_paydateitem, sql_paydateitem_keys)
         paydateitem_rows = f.dictfetchall(newcursor)
 
+        rows = create_bi_weekly_monthly_paydateitem_rows(paydatecode_rows)
+        paydateitem_rows.extend(rows)
     return paydatecode_rows, paydateitem_rows
 # --- end of create_paydatecode_rows
 
 
-def create_paydatecode_dict_sql(paydate):
-    # --- create dict of this paydate PR2020-06-17
-    item_dict = {}
-    if paydate:
-        # FIELDS_PAYDATECODE = ('id', 'company',  'code', 'recurrence', 'weekday', 'date', 'paydate', 'isdefault', 'inactive')
-        for field in c.FIELDS_PAYDATECODE:
-            field_dict = {}
-            if field == 'id':
-                field_dict['pk'] = paydate.get('id')
-                field_dict['ppk'] = paydate.get('comp_id')
-                field_dict['table'] = 'paydatecode'
+def create_bi_weekly_monthly_paydateitem_rows(paydatecode_rows):
+    #logger.debug(' --- create_paydatecode_rows --- ')
+    # --- create list of paydateitems of weekly, biweekly and monthly paydatecodes PR2020-09-23
 
-            elif field in ('code', 'afascode', 'recurrence', 'dayofmonth', 'referencedate',
-                            'datefirst', 'datelast', 'datefirst_agg', 'datelast_agg', 'isdefault', 'inactive'):
-                value = paydate.get(field)
-                if value:
-                    field_dict['value'] = value
-            if field_dict:
-                item_dict[field] = field_dict
-    return item_dict
+    # may be replaced by  get_today_usertimezone, to get now in user timezone
+    # today_dte, now_usercomp_dtm = f.get_today_usertimezone(period_dict)
+    now = datetime.now()
+    this_year = now.year
 
+    rows = []
+    for row in paydatecode_rows:
+        recurrence = row.get('recurrence')
+        #logger.debug('recurrence: ' + str(recurrence))
+        #logger.debug('code: ' + str(row.get('code')))
 
-def create_paydatecode_dict(instance, item_dict):
-    # --- create dict of this paydate PR2020-06-17
-    if instance:
-        for field in c.FIELDS_PAYDATECODE:
-# --- get field_dict from  item_dict if it exists
-            field_dict = item_dict[field] if field in item_dict else {}
-            if field == 'id':
-                field_dict['pk'] = instance.pk
-                field_dict['ppk'] = instance.company.pk
-                field_dict['table'] = 'paydatecode'
+        if recurrence in ['weekly', 'biweekly', 'monthly']:
+            paydatecode_pk = row.get('id')
+            dayofmonth = row.get('dayofmonth')
+            reference_datelast_dte = f.get_date_from_ISO(row.get('referencedate'))
+            datefirst_nextmonth_dte = None
 
-            elif field in ('code', 'recurrence', 'dayofmonth', 'referencedate',
-                            'datefirst', 'datelast', 'afascode', 'isdefault', 'inactive'):
-                value = getattr(instance, field)
-                if value:
-                    field_dict['value'] = value
-            if field_dict:
-                item_dict[field] = field_dict
-    f.remove_empty_attr_from_dict(item_dict)
-# end of create_paydatecode_dict
+            #logger.debug('dayofmonth: ' + str(dayofmonth))
+            #logger.debug('reference_datelast_dte: ' + str(reference_datelast_dte))
 
+            if recurrence == 'monthly':
+                if not dayofmonth:
+                    dayofmonth = 31
+                for year in range(this_year -2, this_year + 2, 1):  # range(start_value, end_value, step), end_value is not included!
+                    if year == this_year -2:
+                        # only get last period of this year, to calculate datefirst of first month in next year
+                        # when new date is not valid, subtract one day till it gets a valid day.
+                        datelast_dte = f.get_dayofmonth_orlesswheninvalid(year, 12, dayofmonth)
+                        datefirst_nextmonth_dte = f.add_days_to_date(datelast_dte, 1)
+                    else:
+                        for month in range(1 , 13, 1):  # range(start_value, end_value, step), end_value is not included!
+                            # when new date is not valid, subtract one day till it gets a valid day.
+                            datelast_dte = f.get_dayofmonth_orlesswheninvalid(year, month, dayofmonth)
+                            datelast_iso = datelast_dte.isoformat()
+                            datefirst_iso = datefirst_nextmonth_dte.isoformat()
+                            datefirst_nextmonth_dte = f.add_days_to_date(datelast_dte, 1)
 
-def create_paydateitem_dict_sql(paydateitem):
-    #logger.debug(' --- create_paydateitem_dict_sql --- ')
-    # --- create dict of this paydate PR2020-06-17
-    item_dict = {}
-    if paydateitem:
-        for field in c.FIELDS_PAYDATEITEM:
-            field_dict = {}
-            if field == 'id':
-                field_dict['pk'] = paydateitem.get('pdi_id')
-                field_dict['ppk'] = paydateitem.get('pdc_id')
-                field_dict['table'] = 'paydateitem'
+                            row = {'id': str(paydatecode_pk) + "-" + datelast_iso,
+                                   'mapid': 'paydateitem_' + str(paydatecode_pk) + "-" + datelast_iso,
+                                   'pdc_id': paydatecode_pk,
+                                   'datefirst': datefirst_iso,
+                                   'datelast': datelast_iso,
+                                   'year': year,
+                                   'period': month}
+                            rows.append(row)
 
-            elif field in ('datefirst', 'datelast', 'year', 'period'):
-                value = paydateitem.get(field)
-                if value:
-                    field_dict['value'] = value
-            if field_dict:
-                item_dict[field] = field_dict
-    return item_dict
+            if recurrence in ['weekly', 'biweekly']:
+                pivot_dayofmonth = 7 if recurrence == 'biweekly' else 4
+                length_of_period = 14 if recurrence == 'biweekly' else 7
+                range_of_year = 26 if recurrence == 'biweekly' else 52
 
+                weekday_ref_datelast = 5
+                if recurrence == 'biweekly':
+                    if not reference_datelast_dte:
+                        reference_datelast_dte = date(this_year, 1, length_of_period)
+                    weekday_ref_datelast = reference_datelast_dte.isoweekday()
+                elif recurrence == 'weekly':
+                    # weekdayindex is stored in dayofmonth. Default is 5 (Friday)
+                    if not dayofmonth:
+                        dayofmonth = 5
+                    weekday_ref_datelast = dayofmonth
+                #logger.debug('weekday_ref_datelast: ' + str(weekday_ref_datelast))
+
+                for year in range(this_year -1, this_year + 2, 1):  # range(start_value, end_value, step), end_value is not included!
+                    # count weeknr: 'ISO 8601:
+                    #   week 1 is de week is, waarin de eerste donderdag van dat jaar zit,
+                    #   en de week waar 4 januari in valt.
+                    # first period is period that contains jan_04
+                    # calculate difference in weekday of reference_datelast and weekday of jan_04
+                    # add diff to jan_04 to get llast date of first period
+                    pivotdate_dte = date(year, 1, pivot_dayofmonth)
+                    weekday_pivotdate = pivotdate_dte.isoweekday()
+                    weekdays_diff = weekday_ref_datelast - weekday_pivotdate
+                    if weekdays_diff < 0:
+                        weekdays_diff += length_of_period
+                    datelast_of_firstweekofyear = f.add_days_to_date(pivotdate_dte, weekdays_diff)
+
+                    pivotdate_next_year_dte = date(year + 1, 1, pivot_dayofmonth)
+                    pivotdate_next_year_iso = pivotdate_next_year_dte.isoformat()
+
+                    for period in range(1, range_of_year + 2, 1):  # range(start_value, end_value, step), end_value is not included!
+                        #logger.debug ('recurrence: ' + str(recurrence) + ' year: ' + str(year) + ' period: ' + str(period))
+
+                        days_add = (period - 1) * length_of_period
+                        datelast_dte = f.add_days_to_date(datelast_of_firstweekofyear, days_add)
+                        datelast_iso = datelast_dte.isoformat()
+                        datefirst_dte = f.add_days_to_date(datelast_dte, 1 - length_of_period)
+                        datefirst_iso = datefirst_dte.isoformat()
+                        # skip 27th quincena if it contains jan-07 of next year
+                        # skip 53th week if it contains jan-04 of next year
+                        if datelast_iso < pivotdate_next_year_iso:
+                            #logger.debug ('datefirst_iso: ' + str(datefirst_iso) + ' datelast_iso: ' + str(datelast_iso))
+                            row = {'id': str(paydatecode_pk) + "-" + datelast_iso,
+                                   'mapid': 'paydateitem_' + str(paydatecode_pk) + "-" + datelast_iso,
+                                   'pdc_id': paydatecode_pk,
+                                   'datefirst': datefirst_iso,
+                                   'datelast': datelast_iso,
+                                   'year': year,
+                                   'period': period}
+                            rows.append(row)
+
+    return rows
 # ------------------------------------------------------
 
 def create_wagecode_list(period_dict, datalists, request):

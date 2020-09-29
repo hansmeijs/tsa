@@ -5147,7 +5147,8 @@ if(mod_dict.mode === "scheme_delete"){
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", select_pk);
             MSE_put_employee_in_MGT_dict(employee_dict);
 // ---  highlight selected row
-            const tblRow = document.getElementById()
+            // TODO debug error: 'Failed to execute 'getElementById' on 'Document': 1 argument required, but only 0 present.
+            // const tblRow = document.getElementById()
 // put code_value of selected employee in el_input
             el_input.value = employee_dict.code;
             el_MSE_btn_save.focus();

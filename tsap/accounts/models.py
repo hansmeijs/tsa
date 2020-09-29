@@ -217,10 +217,10 @@ class User(AbstractUser):
     	Accountmanager.     De accountmanager heeft volledige toegang tot de pagina’s ‘Klanten’ en ‘Facturering’. 
     	                    De accountmanager kan de pagina ‘Rooster’ inzien, maar geen wijzigingen aanbrengen.
     	HR-manager.         De HR-manager heeft volledige toegang tot de pagina’s ‘Medewerkers’ en ‘Loonadministratie’. 
-    	                    De HR-manager kan de pagina ‘Rooster’ inzien, maar geen wijzigingen aanbrengen behalve ontgrendelen
+    	                    De HR-manager kan de pagina ‘Rooster’ inzien, maar geen wijzigingen aanbrengen behalve ontgrendelen (PR2020-09-27 added: + vergrendelen)
     	Controleur.         De controleur heeft volledige toegang tot de pagina ‘Rooster’. 
     	                    Kan shifts vergrendelen, niet ontgrendelen
-    	Planner.            De planner heeft volledige toegang tot de pagina ‘Planning’, ‘Mederwerker’ en 'Klanten' en 'Locaties'  
+    	Planner.            De planner heeft volledige toegang tot de pagina ‘Planning’, ‘Medewerker’ en 'Klanten en Locaties'  
     	                    De planner kan de pagina ‘Rooster’ inzien en roosters toevoegen of verwijderen, maar geen wijzigingen aanbrengen.
     	                    De planner kan de pagina ‘Mederwker’ en'Klanten en Loccaies 
     	Medewerker.         Een medewerker heeft toegang tot de (nog te maken) pagina ‘Medewerker’. 

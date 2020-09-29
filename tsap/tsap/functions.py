@@ -261,6 +261,26 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
     return offset_int
 
 
+def get_today_usertimezone(period_dict):
+    # get 'now' and 'today
+    # get now from period_dict
+    # used in calc_periodstart_datetimelocal_periodend_datetimelocal PR2020-09-23
+    now_arr = period_dict.get('now')
+    # if 'now' is not in period_dict: create 'now' (should not be possible)
+    if now_arr is None:
+        now = datetime.now()
+        now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+    # get now_usercomp_dtm from now_arr
+    # now is the time of the computer of the current user. May be different from company local
+
+    #logger.debug(' now_arr: ' + str(now_arr))
+    today_dte = get_date_from_arr(now_arr)
+    #logger.debug(' today_dte: ' + str(today_dte) + ' type: ' + str(type(today_dte)))
+    now_usercomp_dtm = get_datetime_from_arr(now_arr)
+    # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+    return today_dte, now_usercomp_dtm
+
+
 def get_today_iso():
     # function gets today in '2019-12-05' format
     now = datetime.now()
@@ -689,19 +709,25 @@ def add_months_to_date(date_obj, months_add_int):  # PR2020-04-07
             year_int -= 1
             new_month_int += 12
 
-        new_dateobj = None
-        is_ok = False
-        # when new date is not valid, subtract one day till it gets a valid day.
-        # Add condition day_int < 28 to prevent infinite loop
-        while not is_ok:
-            try:
-                new_dateobj = date(year_int, new_month_int, day_int)
-                is_ok = True
-            except:
-                day_int -= 1
-            if day_int < 28:
-                is_ok = True
+        new_dateobj = get_dayofmonth_orlesswheninvalid(year_int, new_month_int, day_int)
 
+
+    return new_dateobj
+
+
+def get_dayofmonth_orlesswheninvalid(year_int, month_int, day_int): #PR2020-09-24
+    new_dateobj = None
+    is_ok = False
+    # when new date is not valid, subtract one day till it gets a valid day.
+    # Add condition day_int < 28 to prevent infinite loop
+    while not is_ok:
+        try:
+            new_dateobj = date(year_int, month_int, day_int)
+            is_ok = True
+        except:
+            day_int -= 1
+        if day_int < 28:
+            is_ok = True
     return new_dateobj
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2790,14 +2816,13 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - and takes in account daylight saving time
     # - otherwise value of shift.timeduration is used (shift '6:00 hours')
 
-    logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
-    logger.debug('is_absence: ' + str(is_absence))
-    logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
-    logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
-    logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend) +
-                 ' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
-    logger.debug('row_employee_pk: ' + str(row_employee_pk))
-    logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
+    #logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
+    #logger.debug('is_absence: ' + str(is_absence))
+    #logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
+    #logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
+    #logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend) + ' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
+    #logger.debug('row_employee_pk: ' + str(row_employee_pk))
+    #logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
 
     timestart, timeend, new_timeduration = calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
@@ -2807,7 +2832,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-    logger.debug('new_timeduration: ' + str(new_timeduration))
+    #logger.debug('new_timeduration: ' + str(new_timeduration))
 
     # Note: when is_publicholiday or is_companyholiday rows with 'excl_ph' or 'excl_ch' are filtered out.
     #    Maybe these rows are still necessary TODO PR2020-08-14
@@ -2828,7 +2853,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     else:
         planned_duration = new_timeduration
 
-    logger.debug('planned_duration: ' + str(planned_duration))
+    #logger.debug('planned_duration: ' + str(planned_duration))
     # timeduration are the real hours made by employee, including absence hours, but no rest hours
     # therefore:
     #  -  time_duration gets also value when absence
@@ -2863,9 +2888,9 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     else:
         billing_duration = planned_duration
 
-    logger.debug('planned_duration: ' + str(planned_duration))
-    logger.debug('time_duration: ' + str(time_duration))
-    logger.debug('billing_duration: ' + str(billing_duration))
+    #logger.debug('planned_duration: ' + str(planned_duration))
+    #logger.debug('time_duration: ' + str(time_duration))
+    #logger.debug('billing_duration: ' + str(billing_duration))
 
 # - calculate excel_date, excel_start, excel_end
     row_offsetstart_nonull = row_offsetstart if row_offsetstart else 0

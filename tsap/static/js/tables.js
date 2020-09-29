@@ -493,9 +493,9 @@
 //========= t_ShowTableRowExtended  ==================================== PR2020-07-12 PR2020-09-12
     function t_ShowTableRowExtended(filter_row, filter_dict, tblRow) {
         // only called by FillPayrollRows,
-        console.log( "===== t_ShowTableRowExtended  ========= ");
-        console.log( "filter_dict", filter_dict);
-        console.log( "filter_row", filter_row);
+        //console.log( "===== t_ShowTableRowExtended  ========= ");
+        //console.log( "filter_dict", filter_dict);
+        //console.log( "filter_row", filter_row);
 
         let hide_row = false;
 
@@ -507,13 +507,13 @@
                 if(filter_dict[index_str]){
                     const arr = filter_dict[index_str];
                     const col_index = Number(index_str);
-    console.log( "col_index", col_index);
+    //console.log( "col_index", col_index);
 
                     // filter text is already trimmed and lowercase
                     const filter_tag = arr[0];
                     const filter_value = arr[1];
                     const filter_mode = arr[2];
-        console.log( "filter_tag", filter_tag);
+        //console.log( "filter_tag", filter_tag);
 
                     if(tblRow){
                     // used in abscat table
@@ -541,13 +541,13 @@
 
                         const arr = filter_dict[index_str];
                         const col_index = Number(index_str);
-        console.log( "col_index", col_index);
+       // console.log( "col_index", col_index);
 
                         // filter text is already trimmed and lowercase
                         const filter_tag = arr[0];
                         const filter_value = arr[1];
                         const filter_mode = arr[2];
-        console.log( "filter_tag", filter_tag);
+       // console.log( "filter_tag", filter_tag);
 
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
 
@@ -560,7 +560,7 @@
                             if(cell){
                                 cell_value = get_attr_from_el(cell, "data-filter")
 
-        console.log( "========== cell_value", cell_value, typeof cell_value);
+        //console.log( "========== cell_value", cell_value, typeof cell_value);
                             }
                         } else if(filter_mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
@@ -1537,7 +1537,7 @@
 
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "===== t_Filter_SelectRows  ========= ");
         //console.log( "filter_text: <" + filter_text + ">");
         //console.log( "has_ppk_filter: " + has_ppk_filter);
         //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
@@ -1959,33 +1959,42 @@
         //console.log( "===== t_Sidebar_DisplayPeriod  ========= ");
         let period_text = null;
         if (!isEmpty(selected_period)){
-            const period_tag = get_dict_value(selected_period, ["period_tag"]);
-            const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
-            let default_text = null, extend_text = null;
-            for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
-                item = loc.period_select_list[i];  // item = ('today', TXT_today)
-                if (item[0] === period_tag){ period_text = item[1] }
-                if (item[0] === 'today'){ default_text = item[1] }
-            }
-            if(!period_text){period_text = default_text}
 
-        //console.log( "loc.period_extension: " , loc.period_extension);
-            if(loc.period_extension){
-               let extend_default_text = null
-                for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
-                    item = loc.period_extension[i];
-                    if (item[0] === extend_offset){ extend_text = item[1] }
-                    if (item[0] === 0){ extend_default_text = item[1] }
-                }
-                if(!extend_text){extend_text = extend_default_text}
-            }
-            if(period_tag === "other"){
-                const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
-                const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
+            if(selected_period.sel_view && selected_period.sel_view === "payrollperiod"){
+                // PR2020-09-28
+                const datefirst_iso = get_dict_value(selected_period, ["paydateitem_datefirst"]);
+                const datelast_iso = get_dict_value(selected_period, ["paydateitem_datelast"]);
                 period_text = f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso);
-            }
-            if(!!extend_offset){
-                period_text += " +- " + extend_text;
+
+            } else {
+                const period_tag = get_dict_value(selected_period, ["period_tag"]);
+                const extend_offset = get_dict_value(selected_period, ["extend_offset"], 0);
+                let default_text = null, extend_text = null;
+                for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
+                    item = loc.period_select_list[i];  // item = ('today', TXT_today)
+                    if (item[0] === period_tag){ period_text = item[1] }
+                    if (item[0] === 'today'){ default_text = item[1] }
+                }
+                if(!period_text){period_text = default_text}
+
+            //console.log( "loc.period_extension: " , loc.period_extension);
+                if(loc.period_extension){
+                   let extend_default_text = null
+                    for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
+                        item = loc.period_extension[i];
+                        if (item[0] === extend_offset){ extend_text = item[1] }
+                        if (item[0] === 0){ extend_default_text = item[1] }
+                    }
+                    if(!extend_text){extend_text = extend_default_text}
+                }
+                if(period_tag === "other"){
+                    const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
+                    const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
+                    period_text = f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso);
+                }
+                if(!!extend_offset){
+                    period_text += " +- " + extend_text;
+                }
             }
         }
 
