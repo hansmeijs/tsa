@@ -1003,7 +1003,7 @@ def calc_workingdays_in_period(period_datefirst_dte, period_datelast_dte, reques
         rosterdate_dte = period_datefirst_dte
         while rosterdate_dte <= period_datelast_dte:
             # 4. get is_publicholiday, is_companyholiday of this date from Calendar
-            is_saturday, is_sunday, is_publicholiday, is_companyholiday = get_issat_issun_isph_isch_from_rosterdate(
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = get_issat_issun_isph_isch_from_calendar(
                 rosterdate_dte, request)
             if not is_saturday and not is_sunday:
                 period_workingdays_incl_ph += 1
@@ -2435,6 +2435,7 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+
 def dictfetchone(cursor):
     # Return one row from a cursor as a dict  PR2020-06-28
     return_dict = {}
@@ -2444,6 +2445,22 @@ def dictfetchone(cursor):
     except:
         pass
     return return_dict
+
+
+def dictfetchrows(cursor):
+    # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly
+    # creates dict from output cusror.execute instead of list
+    # key is first column of row
+    #starttime = timer()
+    columns = [col[0] for col in cursor.description]
+    return_dict = {}
+    for row in cursor.fetchall():
+        return_dict[row[0]] = dict(zip(columns, row))
+    #elapsed_seconds = int(1000 * (timer() - starttime) ) /1000
+    #elapsed_seconds = (timer() - starttime)
+    #return_dict['elapsed_milliseconds'] = elapsed_seconds * 1000
+    return return_dict
+
 
 def system_updates():
     # these are once-only updates in tables. Data will be changed / moved after changing fields in tables
@@ -3016,7 +3033,7 @@ def get_holiday_dict(datefirst_dte, datelast_dte, user_lang, request):  # PR2020
     return holiday_dict
 
 
-def get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request):
+def get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request):
     #logger.debug(' --- create_calendar_header ---')
     # PR2020-01-26 function returns 'ispublicholiday', 'iscompanyholiday' from Calendar
     # PR2020-06-22 is_saturday is_sunday added
@@ -3320,7 +3337,7 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
         return emplhour_dict
 
 
-def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
+def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
     #logger.debug(' =============== check_emplhour_overlap ============= ')
 
     overlap_dict = {}
@@ -3338,7 +3355,18 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
         #logger.debug('datelast_plus_one_iso: ' + str(datelast_plus_one_iso) + ' ' + str(type(datelast_plus_one_iso)))
         #logger.debug('employee_pk: ' + str(employee_pk) + ' ' + str(type(employee_pk)))
 
-        sql_emplhour = """ 
+        """
+        AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
+        """
+
+        sql_keys =  {
+            'compid': request.user.company_id,
+            'rdf': datefirst_minus_one_iso,
+            'rdl': datelast_plus_one_iso
+        }
+
+        sql_list = []
+        sql_list.append(""" 
             SELECT eh.id, e.id, eh.excelstart, eh.excelend, 
             oh.isabsence OR oh.isrestshift
             FROM companies_emplhour AS eh 
@@ -3346,19 +3374,21 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk, request):
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
             INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id)   
-            WHERE c.company_id = %(compid)s
-            AND (eh.employee_id = %(eid)s OR %(eid)s IS NULL)
-            AND (eh.rosterdate >= CAST(%(rdf)s AS DATE) AND eh.rosterdate <= CAST(%(rdl)s AS DATE))
-            AND (eh.rosterdate IS NOT NULL)  
-            ORDER BY eh.employee_id, eh.excelstart 
-        """
+            WHERE c.company_id = %(compid)s::INT
+            AND eh.rosterdate IS NOT NULL
+            AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE
+        """)
+
+        if employee_pk_list:
+            sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
+            sql_keys['eid_arr'] = employee_pk_list
+        sql_list.append('ORDER BY eh.employee_id, eh.excelstart')
+
+        sql = ' '.join(sql_list)
+
         newcursor = connection.cursor()
-        newcursor.execute(sql_emplhour, {
-            'compid': request.user.company_id,
-            'eid': employee_pk,
-            'rdf': datefirst_minus_one_iso,
-            'rdl': datelast_plus_one_iso
-        })
+        newcursor.execute(sql, sql_keys)
+
         # dictrow: {'eh.id': 29055, 'e.id': 2623, excelstart': 63306720, 'excelend': 63307260, absence_or_restshift: false}
         rows = newcursor.fetchall()
         previous_eid = -1

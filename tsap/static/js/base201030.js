@@ -371,7 +371,7 @@
     }  // set_focus_on_el_with_timeout
 
 //========= highlight_BtnSelect  ============= PR2020-02-20 PR2020-08-31
-    function highlight_BtnSelect(btn_container, selected_btn, btns_disabled){
+    function highlight_BtnSelect(btn_container, selected_btn, disable_other_btns){
         //console.log( "//========= highlight_BtnSelect  ============= ")
         // ---  highlight selected button
         let btns = btn_container.children;
@@ -380,7 +380,7 @@
             // highlight selected btn
             add_or_remove_class(btn, "tsa_btn_selected", (data_btn === selected_btn) );
             // disable btn, except when btn is selected btn
-            btn.disabled = (btns_disabled && data_btn !== selected_btn)
+            btn.disabled = (disable_other_btns && data_btn !== selected_btn)
         }
     }  //  highlight_BtnSelect
 
@@ -561,18 +561,20 @@
         //console.log(data_map) // PR2019-11-26
     }  // update_map_item
 
-//========= b_comparator_employeecode  =========  PR2020-09-03
+//========= b_comparator_e_code  =========  PR2020-09-03
 // PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
 // function used in Array.sort to sort by key 'code', null or '---' last
-    function b_comparator_employeecode(a, b) {
+    function b_comparator_e_code(a, b) {
         const max_len = 24 // CODE_MAX_LENGTH = 24;
         const z_str = "z".repeat(max_len);
-        const a_lc = (a.employee_code && a.employee_code !== "---" && a.employee_code !== "-") ? a.employee_code.toLowerCase() : z_str;
-        const b_lc = (b.employee_code && b.employee_code !== "---" && b.employee_code !== "-") ? b.employee_code.toLowerCase() : z_str;
+
+        const a_lc = (a.e_code && a.e_code !== "---" && a.e_code !== "-") ? a.e_code.toLowerCase() : z_str;
+        const b_lc = (b.e_code && b.e_code !== "---" && b.e_code !== "-") ? b.e_code.toLowerCase() : z_str;
+
         if (a_lc < b_lc) return -1;
         if (a_lc > b_lc) return 1;
         return 0;
-    }  // b_comparator_employeecode
+    }  // b_comparator_e_code
 
     function b_comparator_code(a, b) {
         const max_len = 24 // CODE_MAX_LENGTH = 24;
@@ -1817,17 +1819,17 @@
                     is_not_valid =( (min_value != null && output_value < min_value) || (max_value != null && output_value > max_value) ) ;
                     if(is_not_valid){
                         if(!err_msg){
-                            if(min_value != null) {
-                                if(max_value != null) {
-                                    const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
-                                    err_msg = caption_str + " " + must_be + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
+                            if(min_value !== null) {
+                                if(max_value !== null) {
+                                    const must_be_str = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
+                                    err_msg = caption_str + " " + must_be_str + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
                                 } else {
                                     const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
-                                    err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
+                                    err_msg = caption_str + " " + must_be_str + " " + min_value / multiplier + "."
                                 }
-                            } else if(max_value != null) {
-                                const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
-                                err_msg = caption_str + " " + must_be + " " + max_value / multiplier + "."
+                            } else if(max_value !== null) {
+                                const must_be_str = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
+                                err_msg = caption_str + " " + must_be_str + " " + max_value / multiplier + "."
                 }
         }}}}};
         return [output_value, err_msg];

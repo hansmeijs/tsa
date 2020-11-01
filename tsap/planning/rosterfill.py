@@ -926,8 +926,8 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                                                              comp_timezone, timeformat, interval, user_lang, request)
 
 # def create_emplhour_list(period_dict, request_item, comp_timezone, timeformat, user_lang, request):
-                last_emplhour_check, last_emplhour_updated, new_last_emplhour_check = None, None, None
-                emplhour_rows, no_updates, last_emplhour_check, last_emplhour_updated, new_last_emplhour_check = \
+                last_emplhour_check, last_emplhour_updated, last_emplhour_deleted, new_last_emplhour_check = None, None, None, None
+                emplhour_rows, no_updates, last_emplhour_check, last_emplhour_updated, last_emplhour_deleted, new_last_emplhour_check = \
                     pld.create_emplhour_list(
                         period_dict=roster_period_dict,
                         is_emplhour_check=False,
@@ -1017,7 +1017,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
             # add  rosterdate_is_weekend to skip absence hours when nohoursonweekend
 # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
-            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_calendar(
                 rosterdate_dte, request)
 
 # - get lastof_month;  lastof_month is entered as paydate when no paydatecode is given
@@ -1548,6 +1548,27 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
     # delete existing shifts of this rosterdate if they are not confirmed or locked, also delete if rosterdate is null
     newcursor = connection.cursor()
 
+    sql_keys = {'comp_id': request.user.company_id,
+        'eh_status': c.STATUS_004_START_CONFIRMED,
+        'oh_status': c.STATUS_032_LOCKED,
+        'rd': new_rosterdate_dte}
+# - first delete emplhour notes
+    sql_delete = """ DELETE FROM companies_emplhournote AS ehn
+                WHERE ehn.emplhour_id IN (
+                    SELECT eh.id
+                    FROM companies_emplhour AS eh
+                    INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+                    INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+                    INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+                    WHERE c.company_id = %(comp_id)s::INT 
+                    AND (oh.rosterdate = %(rd)s::DATE OR oh.rosterdate IS NULL)
+                    AND oh.status < %(oh_status)s::INT 
+                    AND NOT eh.lockedpaydate AND NOT oh.lockedinvoice
+                )"""
+    newcursor.execute(sql_delete,sql_keys)
+    deleted_count = newcursor.rowcount
+
+
     # a delete emplhour records
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     # NOTE: INNER JOIN not working with DELETE, use IN instead
@@ -1558,25 +1579,20 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
     #  - oh_status less than locked
     #  - not oh_locked, not oh_lockedinvoice
     # not in use:  AND (NOT eh.locked) , AND (NOT oh.locked)
-    newcursor.execute(""" 
-                DELETE FROM companies_emplhour AS eh
-                WHERE (eh.rosterdate = %(rd)s OR eh.rosterdate IS NULL) 
-                AND (eh.status < %(eh_status)s) 
-                AND (NOT eh.lockedpaydate)
+    sql_delete = """ DELETE FROM companies_emplhour AS eh
+                WHERE (eh.rosterdate = %(rd)s::DATE OR eh.rosterdate IS NULL) 
+                AND eh.status < %(eh_status)s::INT 
+                AND NOT eh.lockedpaydate
                 AND orderhour_id IN (
                     SELECT oh.id AS oh_id FROM companies_orderhour AS oh
                     INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
                     INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                    WHERE (c.company_id = %(comp_id)s) 
-                    AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL)
-                    AND (oh.status < %(oh_status)s) 
-                    AND (NOT oh.lockedinvoice)
-                )
-                """, {
-        'comp_id': request.user.company_id,
-        'eh_status': c.STATUS_004_START_CONFIRMED,
-        'oh_status': c.STATUS_032_LOCKED,
-        'rd': new_rosterdate_dte})
+                    WHERE c.company_id = %(comp_id)s::INT 
+                    AND (oh.rosterdate = %(rd)s::DATE OR oh.rosterdate IS NULL)
+                    AND oh.status < %(oh_status)s::INT 
+                    AND NOT oh.lockedinvoice
+                )"""
+    newcursor.execute(sql_delete,sql_keys)
     deleted_count = newcursor.rowcount
 
     # b delete 'childless' orderhour records (i.e. without emplhour records)
@@ -2228,7 +2244,7 @@ def calculate_add_row_to_dict(row_tuple, logfile,
 
     # row_tuple cannot be modified. Convert to list 'row'
     row = list(row_tuple)
-    # filter_employee_is_replacement is only used in create_employee_planning
+    # filter_employee_is_replacement is only used in create_employee_planning when filter_employee_pk has value
     # filter_employee_is_replacement is only true when employee and replacement are not the same
     # in case an employee is also his replacement...
     filter_employee_is_replacement = (filter_employee_pk) and (filter_employee_pk != row[idx_e_id]) and (filter_employee_pk == row[idx_rpl_id])
@@ -2496,7 +2512,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
     # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
-            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_calendar(
                 rosterdate_dte, request)
 
     # - update the paydates of all paydatecodes to the nearest date from rosterdate_dte PR2020-06-19
@@ -2572,7 +2588,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
                 rosterdate_dte = row[idx_tm_rd]
                 is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
-                    f.get_issat_issun_isph_isch_from_rosterdate(
+                    f.get_issat_issun_isph_isch_from_calendar(
                         rosterdate_dte, request)
 
                 timestart, timeend, planned_duration, time_duration, billingduration, excel_date, excel_start, excel_end = \
@@ -2673,25 +2689,17 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
     newcursor.execute(sql,sql_keys)
     rows = newcursor.fetchall()
 
-    """
     #FOR TESTING ONLY
-    logger.debug('--------------------- sql_teammember_sub08 --------------------- ')
+    logger.debug('--------------------- sql_teammember_sub08_FASTER --------------------- ')
+    logger.debug(sql)
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('employee_pk: ' + str(employee_pk) + ' order_pk: ' + str(order_pk) + ' customer_pk: ' + str(customer_pk))
-    newcursor.execute(sql_teammember_sub08, {
-        'comp_id': company_id,
-        'customerid': customer_pk,
-        'orderid': order_pk,
-        'eid': employee_pk,
-        'rd': rosterdate_dte,
-        'ph': is_publicholiday,
-        'ch': is_companyholiday
-    })
+    newcursor.execute(sql,sql_keys)
     dictrows = f.dictfetchall(newcursor)
     for dictrow in dictrows:
         logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
         logger.debug(str(dictrow))
-    """
+
 
     # TODO to filter multiple order_pk's Works, but add 'Show All orders
     # order_pk = [44]
@@ -2800,7 +2808,7 @@ def check_absencerow_for_doubles(row):
 def no_overlap_with_absence_or_restshift(row, check_replacement):
     #logger.debug('--- check overlap_with_absence_or_restshift: ---  ')
     # This function checks for overlap with absence
-    # this row is a normal, singleshift or rest row, not an absence row, is filtered out
+    # row is a normal, singleshift or rest row, not an absence row, is filtered out
     # ref means that the offset is measured against the reference date
 
     if not check_replacement:
@@ -2822,7 +2830,7 @@ def no_overlap_with_absence_or_restshift(row, check_replacement):
 
     has_overlap = False
 
-    # skip when no employee or replacement, also when shift is absence
+    # skip when no employee or replacement, also when row is absence
     if row[idx_id] and row[idx_si_mod] != 'a':
         row_tm_id = row[idx_tm_id]
         row_si_id = row[idx_si_id]
@@ -3349,7 +3357,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         while rosterdate_dte <= datelast_dte:
 # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
             is_saturdayNIU, is_sundayNIU, is_publicholiday, is_companyholiday = \
-                f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
+                f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
 
             # - create list with all schemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -3450,7 +3458,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
                     rosterdate_dte = row[idx_tm_rd]
                     is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
-                        f.get_issat_issun_isph_isch_from_rosterdate(rosterdate_dte, request)
+                        f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
 
                     planning_dict = create_planning_dict(
                         row=row_list,

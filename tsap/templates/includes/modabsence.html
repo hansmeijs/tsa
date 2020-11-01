@@ -17,7 +17,7 @@
                         <div class="modal_body_left">
                             <div class="content_subheader_left mx-2 my-1">
                                 <div class="mx-2">
-                                    <h6 id="id_MAB_hdr_select" >{% trans 'Employees' %}:</h6>
+                                    <h6 id="id_MAB_hdr_selecttable" >{% trans 'Employees' %}:</h6>
                                 </div>
                                 <div style="overflow-x:hidden;overflow-y:auto;height:334px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table tsa_tbl m-1">
@@ -30,12 +30,8 @@
                         <div class="modal_body_right mx-2 my-1">
                             <div id="id_MAB_div_input_employee" class="content_subheader_left mx-1 display_hide">
                                 <label for="id_MAB_input_employee" class="mx-2 mt-0 mb-1">{% trans 'Select employee' %}:</label>
-                                <input id="id_MAB_input_employee"
-                                    type="text"
-                                    autocomplete="off"
-                                    ondragstart="return false;"
-                                    ondrop="return false;"
-                                    class="form-control"
+                                <input id="id_MAB_input_employee" type="text" data-field= "employee" class="form-control"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     placeholder="{% trans 'Type a few letters and select an employee in the list ...' %}">
                             </div>
                             <div class="content_subheader_left mx-1">
@@ -45,6 +41,12 @@
                                     placeholder="{% trans 'Type a few letters and select an absence category in the list ...' %}">
                             </div>
 
+                            <div class="content_subheader_left mx-1">
+                                <label for="id_MAB_input_replacement" class="tsa_margin_form_label">{% trans 'Select replacement employee' %}:</label>
+                                <input id="id_MAB_input_replacement" type="text" data-field= "replacement" class="form-control"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                    placeholder="{% trans 'Type a few letters and select a replacement employee in the list ...' %}">
+                            </div>
                             <div class="content_header">
                                 <div class="content_subheader_left mx-1">
                                     <label for="id_MAB_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
@@ -61,7 +63,7 @@
                              </div>
                             <div id="id_MAB_oneday_container"  class="content_subheader_left mx-1">
                                 <span>
-                                    <input id="id_MAB_oneday" type="checkbox" data-field="oneday"class="tw_032 mx-2">
+                                    <input id="id_MAB_oneday" type="checkbox" data-field="oneday" class="tw_032 mx-2">
                                     <label for="id_MAB_oneday" class="mx-1 mt-2 mb-0">{% trans 'One day only' %}</label>
                                 </span>
                             </div>
@@ -90,6 +92,7 @@
                             <div class="content_subheader_left mx-1">
                                 <small class="tsa_margin_form_label">{% trans "Instead of the start- and endtime you can also enter the hours." %}</small>
                              </div>
+
                         </div>
                     </div>  <!-- end modal_container -->
                 </div>

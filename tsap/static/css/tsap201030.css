@@ -20,7 +20,6 @@ h4 h5 {
   color: #868e96;
   background-color: #ffd01c;  /* tsa yellow */
   border-bottom: 1px solid #f3f3f3; /* offwhite */
-
 }
 
 .headerbutton {
@@ -149,12 +148,9 @@ h4 h5 {
     border: 1px solid #dc3545;    /*  red like in django is-invalid */
     border-radius: .25rem;
 }
-
-
 .color_invalid {
     color: #dc3545;    /*  red like in django is-invalid */
 }
-
 .border_bg_valid {
     border: 1px solid  #4cbd67 !important;  /*  #28a745; is green like in django is-valid */
     border-radius: .25rem  !important;

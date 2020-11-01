@@ -367,6 +367,7 @@
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
         const filter_tag = get_attr_from_el(el, "data-filtertag")
+        console.log( "filter_tag ", filter_tag);
 
         const col_count = tblRow.cells.length
         let mode = "", filter_value = null, skip_filter = false;
@@ -486,7 +487,7 @@
                 };
             }
         }
-        //console.log( "filter_dict ", filter_dict);
+        console.log( "filter_dict ", filter_dict);
         return skip_filter;
     }  // t_SetExtendedFilterDict
 

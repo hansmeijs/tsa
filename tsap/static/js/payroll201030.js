@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_abscat_code = null;
 
         let selected_btn = null;
+        let selected_view = null;  //selected views are 'calendarperiod' and 'payrollperiod', gets value in DatalistDownload response
+
         let is_quicksave = false
         let is_payroll_detail_mode = false;
         let is_payroll_detail_modal_mode = false;
@@ -237,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_sidebar_select_order = document.getElementById("id_SBR_select_order");
             el_sidebar_select_order.addEventListener("click", function() {MSO_Open()}, false );
             add_hover(el_sidebar_select_order);
-// ---  side bar - select employee
+// ---  side bar - select employee - function
         const el_SBR_select_employee_function = document.getElementById("id_SBR_select_employee");
             el_SBR_select_employee_function.addEventListener("click", function() {MSEF_Open()}, false );
             add_hover(el_SBR_select_employee_function);
@@ -454,13 +456,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("payroll_period" in response) {
                     selected_period = response.payroll_period;
                     selected_btn = get_dict_value(selected_period, ["sel_btn"], "payrollperiod")
+                    selected_view = get_dict_value(selected_period, ["sel_view"], "calendarperiod")
+
                     selected_col_hidden = get_dict_value(selected_period, ["col_hidden"], [])
                     selected_paydatecode_pk = get_dict_value(selected_period, ["sel_paydatecode_pk"]);
                     //selected_paydatecode_code = get_dict_value(selected_period, ["sel_paydatecode_pk"]);
                     selected_paydateitem_iso =  get_dict_value(selected_period, ["sel_paydate_iso"]);
                     //selected_paydateitem_code =  get_dict_value(selected_period, ["sel_paydatecode_pk"]);
                     is_period_paydate =(!!selected_paydatecode_pk)
-                    //console.log("selected_period", selected_period);
+                    console.log("selected_period", selected_period);
 
                     const sel_isabsence = get_dict_value(selected_period, ["isabsence"]) //  can have value null, false or true
                     const sel_value_absence = (!!sel_isabsence) ? "2" : (sel_isabsence === false) ? "1" : "0";
@@ -531,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleBtnSelect  ================ PR2019-05-25 PR2020-06-12 PR2020-09-04
     function HandleBtnSelect(btn) {
-        //console.log( "===== HandleBtnSelect ========= ");
+        console.log( "===== HandleBtnSelect ========= ");
 
         // btn only exists when clicked on BtnSelect
         const skip_upload = (!btn);
@@ -917,8 +921,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  convert dictionary to array
         const agg_list = Object.values(agg_dict);
+        console.log(">>>>>>>>>>>>agg_list", agg_list)
 // ---  sort array with sort and b_comparator_code
-        payroll_agg_list_sorted = agg_list.sort(b_comparator_employeecode);
+        payroll_agg_list_sorted = agg_list.sort(b_comparator_e_code);
+        console.log(">>>>>>>>>>>>payroll_agg_list_sorted", payroll_agg_list_sorted)
 
 // ---  convert dictionary 'employees_inuse' to array 'employees_inuse_list'
         const employees_inuse_list = Object.values(employees_inuse);
@@ -1141,8 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_list  ==================================== PR2020-09-01
     function CreateHTML_list(tblName) {
-        //console.log("==== CreateHTML_list  ========= ");
-        //console.log("payroll_agg_list_sorted", payroll_agg_list_sorted);
+        console.log("==== CreateHTML_list  ========= ");
 
         let header_row = "";
         let filter_row = [];
@@ -1150,6 +1155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_list = (tblName === "payroll_agg") ? payroll_agg_list_sorted :
                           (tblName === "payroll_detail") ? payroll_detail_list : null
 
+        console.log("data_list", data_list);
         if (data_list){
 
 // ++++++++ loop through rows of data_list
@@ -1380,7 +1386,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const detail_rows = (is_payroll_detail_mode) ? payroll_period_detail_rows : payroll_period_agg_rows;
         if (detail_rows) {
             for (let i = 0, item, tblRow, excel_data, filter_row, show_row; item = detail_rows[i]; i++) {
-
 // ---  filter selected_detail_employee_pk when is_payroll_detail_mode
                 show_row = (!is_payroll_detail_mode || item[1] === selected_detail_employee_pk)
 // ---  filter selected_MSEF_pk (set in SBR)
@@ -1677,7 +1682,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (j === 0 && tblName === "employee"){
                 el.addEventListener("click", function(event){HandleFilter_Tickmark(el)});
             } else {
-                //ZZZ el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event)});
+                el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event)});
             }
 // --- add left margin to first column, not in employee (has check tick
             if (j === 0 && tblName !== "employee"){el.classList.add("ml-2")};
@@ -2202,8 +2207,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-       //console.log(" --- UpdateSettings ---")
-       //console.log("setting_dict", setting_dict)
+       console.log(" --- UpdateSettings ---")
+       console.log("setting_dict", setting_dict)
 
         selected_btn = get_dict_value(setting_dict, ["sel_btn"], "payroll_agg");
 
@@ -2220,85 +2225,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
-        //console.log( "===== UpdateHeaderText  ========= ");
-        //console.log( "selected_abscat_pk ", selected_abscat_pk);
-        //console.log( "selected_abscat_code", selected_abscat_code);
+        console.log( "===== UpdateHeaderText  ========= ");
+        console.log( "is_addnew_mode ", is_addnew_mode);
+        console.log( "selected_period ", selected_period);
+        console.log( "selected_btn ", selected_btn);
+        console.log( "selected_view ", selected_view);
 
-        let header_text = "";
+        let header_text = null, sidebar_selectperiod_text = null;
+        const is_payrollperiod_view = (selected_view === "payrollperiod");
+        const sidebar_selectperiodlabel = ( (is_payrollperiod_view) ? loc.Payroll_period : loc.Period) + ": ";
+
         if (["payroll_agg", "payroll_detail"].indexOf(selected_btn) > -1) {
             //console.log( "selected_period", selected_period);
-            const is_payrollperiod_view = (selected_period.sel_view === "payrollperiod");
+            // el_sbr_select_period is only visible in 'payroll_agg' or 'payroll_detail'
+            const period_tag = (selected_period.period_tag) ? selected_period.period_tag : null
+            const dates_display = get_dict_value(selected_period, ["dates_display_short"], "---");
+
+            header_text = ( (is_payrollperiod_view) ? loc.Payroll_period : loc.Period) + ": ";
+            if(is_payroll_detail_mode){
+                header_text += selected_employee_code + " - " + dates_display;
+            } else {
+                header_text += dates_display;
+            }
 
             if(is_payrollperiod_view){
-                const SBR_label_text = ( (is_payrollperiod_view) ? loc.Payroll_period : loc.Period) + ": ";
-                document.getElementById("id_SBR_label_select_period").innerText = SBR_label_text
-                el_sbr_select_period.value = selected_period.paydatecode_code;
-            } else {
-
     // ---  get first / last date caption of selected_paydateitem
                 selected_paydateitem_code = "";
-                let paydate_caption = "";
-                const period_tag = (selected_period.period_tag) ? selected_period.period_tag : null
-                let period_tag_caption = null;
                 if(period_tag === "other"){
-                    period_tag_caption = get_dict_value(selected_period, ["dates_display_short"], "---");
+                    sidebar_selectperiod_text = dates_display;
                 } else if(loc.period_select_list){
                     for (let i = 0, item; item = loc.period_select_list[i]; i++) {
                         if(item[0] === period_tag) {
-                            period_tag_caption = item[1];
+                            sidebar_selectperiod_text = (item[1]) ? item[1] : null;
                             break;
                         }
                     }
-
                 }
-                el_sbr_select_period.value = (period_tag_caption) ? period_tag_caption : null;
-            }
+                sidebar_selectperiod_text = (selected_period.paydatecode_code) ? selected_period.paydatecode_code : "---";
 
-        // set label of sidebar
-            header_text = ( (is_payrollperiod_view) ? loc.Payroll_period : loc.Period) + ": ";
-            //if(is_payroll_detail_mode){
-            //    header_text += selected_employee_code + " - " + get_dict_value(selected_period, ["dates_display_short"], "---");
-            //} else {
-                header_text += get_dict_value(selected_period, ["dates_display_short"], "---");
-            //}
-            document.getElementById("id_hdr_text").innerText = header_text
-
-        } else {
-
-            if (selected_btn === "abscat") {
-                header_text = (selected_abscat_pk && selected_abscat_code) ? loc.Absence_category + ": " + selected_abscat_code : loc.Absence_categories ;
-            } else if (selected_btn === "paydatecode") {
-                header_text = loc.Payroll_periods;
-            } else if (selected_btn === "functioncode") {
-                header_text = loc.Function + ( (selected_functioncode_pk && selected_functioncode_code) ? ": " + selected_functioncode_code : "");
-           } else if (["payroll_aggXX", "payroll_detailXX"].indexOf(selected_btn) > -1) {
-                const is_payrollperiod_view = (selected_period.sel_view === "payrollperiod");
-
-                header_text = ( (is_payrollperiod_view) ? loc.Payroll_period : loc.Period) + ": ";
-                document.getElementById("id_SBR_label_select_period").innerText = header_text
-
-                if(is_payrollperiod_view){
-                    if (is_payroll_detail_mode){
-                        header_text += selected_employee_code + " - " + selected_paydateitem_code;
-                    } else if(selected_paydateitem_iso){
-                        header_text += selected_paydateitem_code
-                    } else if (selected_paydatecode_pk != null) {
-                        header_text += selected_paydatecode_code;
-                    }
-                } else {
-                    if (is_payroll_detail_mode){
-                        header_text += selected_employee_code + " - " + get_dict_value(selected_period, ["dates_display_short"], "---");
-                    } else {
-                        header_text += get_dict_value(selected_period, ["dates_display_short"], "---");
+            } else {
+                if(period_tag === "other"){
+                    sidebar_selectperiod_text = dates_display;
+                } else if(loc.period_select_list){
+                    console.log( "loc.period_select_list", loc.period_select_list);
+                    for (let i = 0, item; item = loc.period_select_list[i]; i++) {
+                        if(item[0] === period_tag) {
+                            sidebar_selectperiod_text = (item[1]) ? item[1] : null;
+                            break;
+                        }
                     }
                 }
             }
 
-       //console.log( "header_text", header_text);
+        } else if (selected_btn === "abscat") {
+            header_text = (selected_abscat_pk && selected_abscat_code) ? loc.Absence_category + ": " + selected_abscat_code : loc.Absence_categories ;
+        } else if (selected_btn === "paydatecode") {
+            header_text = loc.Payroll_periods;
+        } else if (selected_btn === "functioncode") {
+            header_text = loc.Function + ( (selected_functioncode_pk && selected_functioncode_code) ? ": " + selected_functioncode_code : "");
+        }  //  if (["payroll_agg", "payroll_detail"].indexOf(selected_btn) > -1) {
+
         document.getElementById("id_hdr_text").innerText = header_text
 
-
-        }  //  if (["payroll_agg", "payroll_detail"].indexOf(selected_btn) > -1) {
+        document.getElementById("id_SBR_label_select_period").innerText = sidebar_selectperiodlabel;
+        el_sbr_select_period.value = sidebar_selectperiod_text;
 
     }  // UpdateHeaderText
 
@@ -2319,8 +2309,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!isEmpty(update_dict)){
             const map_id = update_dict.mapid;
             const tblName = "wagefactor";
-            const is_created = (update_dict.iscreated) ? update_dict.iscreated : false;
-            const is_deleted = (update_dict.isdeleted) ? update_dict.isdeleted : false;
+            const is_created = (update_dict.created) ? update_dict.created : false;
+            const is_deleted = (update_dict.deleted) ? update_dict.deleted : false;
 
 // +++  create list of updated fields, before updating data_map, to make them green later
             const updated_fields = b_get_updated_fields_list(field_settings.wagefactor.field_names, wagefactor_map, update_dict);
@@ -2522,16 +2512,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // UpdateFromResponse(update_list)
 
-//=========  fill_abscat_map  ================ PR2020-09-08
-    function fill_data_map(data_map, rows) {
-        data_map.clear();
-        if (rows && rows.length) {
-            for (let i = 0, dict; dict = rows[i]; i++) {
-                data_map.set(dict.mapid, emplhour_dict);
-            }
-        }
-    };  // fill_abscat_map
-
 //=========  refresh_data_mapNEW ================ PR2020-09-08
     function refresh_data_mapNEW(tblName, data_map, updated_rows, skip_show_ok) {
         //console.log(" --- refresh_data_mapNEW  ---");
@@ -2551,7 +2531,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  update or add update_dict in data_map
         const map_id = update_dict.mapid;
         const old_map_dict = data_map.get(update_dict.mapid);
-        const is_deleted = update_dict.isdeleted;
+        const is_deleted = update_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
        // //console.log("old_map_dict", old_map_dict);
@@ -2634,7 +2614,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const tblName = (arr) ? arr[0] : null;
             const field_names = field_settings[tblName].field_names;
             const old_map_dict = data_map.get(update_dict.mapid);
-            const is_deleted = update_dict.isdeleted;
+            const is_deleted = update_dict.deleted;
             const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
         //console.log("field_names", field_names);
@@ -3095,11 +3075,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSPP_BtnSelect  ================ PR2020-09-27
     function MSPP_BtnSelect(btn) {
-        //console.log( "===== MSPP_BtnSelect ========= ");
-        //console.log( "selected_period", selected_period);
-        //console.log( "btn", btn);
-        const MSPP_selected_btn = (btn) ? get_attr_from_el(btn, "data-btn", "calendarperiod") :
-                                (selected_period.sel_view) ? selected_period.sel_view : "calendarperiod";
+        console.log( "===== MSPP_BtnSelect ========= ");
+        console.log( "selected_period", selected_period);
+        console.log( "btn", btn);
+        let MSPP_selected_btn = null;
+        if(btn){
+            MSPP_selected_btn = get_attr_from_el(btn, "data-btn")
+        } else if (selected_view){
+                MSPP_selected_btn = selected_view;
+        } else {
+            MSPP_selected_btn = "calendarperiod";
+        }
 
         const tblName = (MSPP_selected_btn === "payrollperiod") ? "paydatecode" : MSPP_selected_btn;
         mod_MSPP_dict = {sel_view: MSPP_selected_btn,
@@ -3890,59 +3876,6 @@ document.addEventListener('DOMContentLoaded', function() {
         MSEF_headertext();
     }  // MSEF_BtnSelect
 
-//=========  MSEF_SelectEmployee  ================ PR2020-01-09
-    function MSEF_SelectEmployee(tblRow) {
-        //console.log( "===== MSEF_SelectEmployee ========= ");
-        //console.log( tblRow);
-        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
-// ---  get clicked tablerow
-        if(tblRow) {
-// ---  deselect all highlighted rows
-            DeselectHighlightedRows(tblRow, cls_selected)
-// ---  highlight clicked row
-            tblRow.classList.add(cls_selected)
-// ---  get pk en code from id of select_tblRow
-            selected_MSEF_pk = get_attr_from_el_int(tblRow, "data-pk");
-            selected_MSEF_code = get_attr_from_el(tblRow, "data-value");
-        //console.log( "selected_MSEF_pk", selected_MSEF_pk);
-        //console.log( "selected_MSEF_code", selected_MSEF_code);
-
-
-// ---  filter rows wth selected pk
-            MSEF_Save()
-        }
-// ---  put value in input box, reste when no tblRow
-            el_MSEF_input_employee.value = get_attr_from_el(tblRow, "data-value")
-            MSEF_headertext();
-
-    }  // MSEF_SelectEmployee
-
-//=========  MSEF_InputKeyup  ================ PR2020-09-19
-    function MSEF_InputKeyup() {
-        //console.log( "===== MSEF_InputKeyup  ========= ");
-
-// ---  get value of new_filter
-        let new_filter = el_MSEF_input_employee.value
-
-        let tblBody = document.getElementById("id_MSEF_tbody_select");
-        const len = tblBody.rows.length;
-        if (new_filter && len){
-// ---  filter rows in table select_employee
-            const filter_dict = t_Filter_SelectRows(tblBody, new_filter);
-// ---  if filter results have only one employee: put selected employee in el_MSEF_input_employee
-            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
-            const selected_value = get_dict_value(filter_dict, ["selected_value"])
-            if (selected_pk) {
-                el_MSEF_input_employee.value = selected_value;
-// ---  put pk of selected employee selected_MSEF_pk
-                selected_MSEF_pk = selected_pk;
-                selected_MSEF_code = selected_value;
-// ---  Set focus to btn_save
-                el_MSEF_btn_save.focus()
-            }  //  if (!!selected_pk) {
-        }
-    }; // MSEF_InputKeyup
-
 //========= MSEF_Fill_SelectTable  ============= PR2020--09-17
     function MSEF_Fill_SelectTable() {
         //console.log("===== MSEF_Fill_SelectTable ===== ");
@@ -4016,6 +3949,59 @@ document.addEventListener('DOMContentLoaded', function() {
         const placeholder_text = loc.Type_letters_and_select + ( (selected_MSEF_btn === "functioncode") ? loc.a_function : loc.an_employee ) + loc.in__the_list
         document.getElementById("id_MSEF_input_employee").placeholder = placeholder_text
     }  // MSEF_headertext
+
+//=========  MSEF_SelectEmployee  ================ PR2020-01-09
+    function MSEF_SelectEmployee(tblRow) {
+        //console.log( "===== MSEF_SelectEmployee ========= ");
+        //console.log( tblRow);
+        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
+// ---  get clicked tablerow
+        if(tblRow) {
+// ---  deselect all highlighted rows
+            DeselectHighlightedRows(tblRow, cls_selected)
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+// ---  get pk en code from id of select_tblRow
+            selected_MSEF_pk = get_attr_from_el_int(tblRow, "data-pk");
+            selected_MSEF_code = get_attr_from_el(tblRow, "data-value");
+        //console.log( "selected_MSEF_pk", selected_MSEF_pk);
+        //console.log( "selected_MSEF_code", selected_MSEF_code);
+
+
+// ---  filter rows wth selected pk
+            MSEF_Save()
+        }
+// ---  put value in input box, reste when no tblRow
+            el_MSEF_input_employee.value = get_attr_from_el(tblRow, "data-value")
+            MSEF_headertext();
+
+    }  // MSEF_SelectEmployee
+
+//=========  MSEF_InputKeyup  ================ PR2020-09-19
+    function MSEF_InputKeyup() {
+        //console.log( "===== MSEF_InputKeyup  ========= ");
+
+// ---  get value of new_filter
+        let new_filter = el_MSEF_input_employee.value
+
+        let tblBody = document.getElementById("id_MSEF_tbody_select");
+        const len = tblBody.rows.length;
+        if (new_filter && len){
+// ---  filter rows in table select_employee
+            const filter_dict = t_Filter_SelectRows(tblBody, new_filter);
+// ---  if filter results have only one employee: put selected employee in el_MSEF_input_employee
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            const selected_value = get_dict_value(filter_dict, ["selected_value"])
+            if (selected_pk) {
+                el_MSEF_input_employee.value = selected_value;
+// ---  put pk of selected employee selected_MSEF_pk
+                selected_MSEF_pk = selected_pk;
+                selected_MSEF_code = selected_value;
+// ---  Set focus to btn_save
+                el_MSEF_btn_save.focus()
+            }  //  if (!!selected_pk) {
+        }
+    }; // MSEF_InputKeyup
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -5836,6 +5822,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //###########################################################################
 // +++++++++++++++++ REFRESH ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
 //=========  fill_datamap  ================ PR2020-09-06
     function fill_datamap(data_map, rows) {
         //console.log(" --- fill_datamap  ---");
@@ -5869,7 +5856,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const map_id = update_dict.mapid;
         const old_map_dict = data_map.get(map_id);
 
-        const is_deleted = update_dict.isdeleted;
+        const is_deleted = update_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
         let updated_columns = [];

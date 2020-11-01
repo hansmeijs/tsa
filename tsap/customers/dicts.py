@@ -97,7 +97,7 @@ def create_companyinvoice_dict(companyinvoice):
 
 
 def create_customer_list(company, customer_pk=None, is_absence=None, is_template=None, is_inactive=None):
-    #logger.debug(' --- create_customer_list --- ')
+    logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
     company_pk = company.pk
@@ -151,9 +151,10 @@ def create_customer_list(company, customer_pk=None, is_absence=None, is_template
     customer_rows = f.dictfetchall(newcursor)
 
     customer_list = []
-    for customer in customer_rows:
+    for row in customer_rows:
+        logger.debug(row)
         item_dict = {}
-        create_order_dict_from_sql(customer, item_dict)
+        create_customer_dict_from_sql(row, item_dict)
 
         if item_dict:
             customer_list.append(item_dict)
@@ -162,24 +163,22 @@ def create_customer_list(company, customer_pk=None, is_absence=None, is_template
 
 def create_customer_dict_from_sql(row, item_dict):
     # --- create dict of this customer from teched sql_row PR2020-08-18
+    # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
+    #                     'contactname', 'address', 'zipcode', 'city', 'country',
+    #                    'email', 'telephone', 'interval', 'invoicecode', 'inactive', 'locked')
     if row:
         for field in c.FIELDS_CUSTOMER:
             # --- get field_dict from  item_dict  if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
-            item_dict['pk'] = row.id
+            item_dict['pk'] = row.get('id')
 
             if field == 'id':
-                field_dict['pk'] = row.id
-                field_dict['ppk'] = row.comp_id
+                field_dict['pk'] = row.get('id')
+                field_dict['ppk'] = row.get('comp_id')
                 field_dict['table'] = 'customer'
-                field_dict['isabsence'] = row.isabsence
-                field_dict['istemplate'] = row.istemplate
-
-            elif field == 'code':
-                value = row.get('c_code')
-                if value:
-                    field_dict['value'] = value
+                field_dict['isabsence'] = row.get('isabsence')
+                field_dict['istemplate'] = row.get('istemplate')
 
             elif field == 'invoicecode':
                 value = row.get('invoicecode_id')

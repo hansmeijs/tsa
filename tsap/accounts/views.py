@@ -824,7 +824,7 @@ def SignupActivateView(request, uidb64, token):
             # don't activate user and company until user has submitted valid password
             #update_wrap['uidb64'] = uidb64
         else:
-            update_wrap['msg_01'] = _('The link to activate your account is not valid.')
+            update_wrap['msg_01'] = _('The link to activate the account is valid for 7 days and has expired.')
             update_wrap['msg_02'] = _('You cannot activate your account.')
 
     #logger.debug('update_wrap: ' + str(update_wrap))

@@ -923,49 +923,54 @@ let planning_list = [] // for export and printing - can replace map?
         tblHead_datatable.innerText = null
 
 // +++  insert header and filter row ++++++++++++++++++++++++++++++++
-        let tblHeadRow = tblHead_datatable.insertRow (-1);
-        let tblFilterRow = tblHead_datatable.insertRow (-1);
+        let tblRow_header = tblHead_datatable.insertRow (-1);
+        let tblRow_filter = tblHead_datatable.insertRow (-1);
 
 // ---  create header_row, put caption in columns
         for (let j = 0, len = field_settings[tblName].field_names.length; j < len; j++) {
             const field_name = field_settings[tblName].field_names[j];
             const key = field_settings[tblName].field_caption[j];
             const caption = (loc[key]) ? loc[key] : "";
+            const filter_tag = field_settings[tblName].filter_tags[j];
             const class_width = "tw_" + field_settings[tblName].field_width[j];
             const class_align = "ta_" + field_settings[tblName].field_align[j];
 
-// +++ add th to tblHeadRow +++
+// ++++++++++ create header row +++++++++++++++
+// +++ add th to tblRow_header +++
             let th = document.createElement("th");
-                let el = document.createElement("div");
-                el.innerText = caption;
-                el.classList.add(class_width, class_align);
-                th.appendChild(el);
-            tblHeadRow.appendChild(th);
+                let el_header = document.createElement("div");
+                    el_header.innerText = caption;
+                    el_header.classList.add(class_width, class_align);
+                th.appendChild(el_header);
+            tblRow_header.appendChild(th);
 
-// +++ add th to tblFilterRow +++
-            th = document.createElement("th");
-                const field_tag = (["inactive", "delete", "select"].indexOf(field_name) > -1) ? "div" : "input";
-                el = document.createElement(field_tag);
-                    el.setAttribute("data-field", field_settings[tblName].field_names[j]);
-                    el.setAttribute("data-filtertag", field_settings[tblName].filter_tags[j]);
+// ++++++++++ create filter row +++++++++++++++
+// +++ add th to tblRow_filter +++
+            const th_filter = document.createElement("th");
+                const el_tag = (["inactive", "delete", "select"].indexOf(field_name) > -1) ? "div" : "input";
+                const el_filter = document.createElement(el_tag);
+                    el_filter.setAttribute("data-field", field_name);
+                    el_filter.setAttribute("data-filtertag", filter_tag);
                     //if ([5, 7, 11].indexOf(j) > -1) {
+// --- add EventListener to el_filter
                     if (field_name === "inactive") {
-                        el.addEventListener("click", function(event){HandleFilterInactive(el, j)});
-                        el.title = (tblName === "customer") ? loc.Cick_show_inactive_customers : loc.Cick_show_inactive_orders;
-                        // --- add div for image inactive
+                        el_filter.addEventListener("click", function(event){HandleFilterInactive(el_filter, j)});
+        // --- add title
+                        el_filter.title = (tblName === "customer") ? loc.Cick_show_inactive_customers : loc.Cick_show_inactive_orders;
+        // --- add div for image inactive
                         let el_div = document.createElement("div");
                             el_div.classList.add("inactive_0_2")
-                            el.appendChild(el_div);
-                        el.classList.add("pointer_show");
+                            el_filter.appendChild(el_div);
+                        el_filter.classList.add("pointer_show");
                     } else {
-                        el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event)});
-                        el.setAttribute("autocomplete", "off");
-                        el.setAttribute("ondragstart", "return false;");
-                        el.setAttribute("ondrop", "return false;");
+                        el_filter.addEventListener("keyup", function(event){HandleFilterKeyup(el_filter, j, event.key)});
+                        el_filter.setAttribute("autocomplete", "off");
+                        el_filter.setAttribute("ondragstart", "return false;");
+                        el_filter.setAttribute("ondrop", "return false;");
                     }
-                    el.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
-                th.appendChild(el);
-            tblFilterRow.appendChild(th);
+                    el_filter.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
+                th_filter.appendChild(el_filter);
+            tblRow_filter.appendChild(th_filter);
         }  // for (let j = 0,
     };  // CreateTblHeader
 
@@ -1108,14 +1113,20 @@ let planning_list = [] // for export and printing - can replace map?
             if(fldName){
                 if (fldName === "select") {
                     // TODO add select multiple users option PR2020-08-18
+                    // TODO filter_value not in use yet PR2020-10-18
                 } else if (fldName === "inactive") {
-                     const el_img = el_div.children[0]
-                     add_or_remove_class (el_img, "inactive_1_3", map_dict.inactive, "inactive_0_2");
+                    const el_img = el_div.children[0]
+                    add_or_remove_class (el_img, "inactive_1_3", map_dict.inactive, "inactive_0_2");
+                    const filter_value = (fld_value) ? "1" : "0"
+                    el_div.setAttribute("data-filtervalue", fld_value)
                 } else if (["datefirst", "datelast"].indexOf(fldName) > -1){
                     // format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long)
                     el_div.innerText = format_dateISO_vanilla (loc, map_dict[fldName], true, false);
+                    el_div.setAttribute("data-filtervalue", fld_value)
                 } else {
                     el_div.innerText = fld_value;
+                    const filter_value = (fld_value) ? fld_value.toLowerCase() : ""
+                    el_div.setAttribute("data-filtervalue",filter_value)
                }
             };  // if(fldName){
         } //  if(el_div)
@@ -1450,7 +1461,7 @@ let planning_list = [] // for export and printing - can replace map?
         const old_map_dict = data_map.get(map_id);
         //console.log("old_map_dict", old_map_dict);
 
-        const is_deleted = updated_dict.isdeleted;
+        const is_deleted = updated_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
         let updated_columns = [];
@@ -4834,7 +4845,7 @@ let planning_list = [] // for export and printing - can replace map?
     };
 
 //========= HandleFilterKeyup  =====  PR2020-08-27
-    function HandleFilterKeyup(el, index, event) {
+    function HandleFilterKeyup(el, index, event_key) {
         //console.log( "===== HandleFilterKeyup  ========= ");
         //console.log( "el_key", el_key);
 
@@ -4843,7 +4854,7 @@ let planning_list = [] // for export and printing - can replace map?
         // skip filter if filter value has not changed, update filter_dict[index]
 
         let skip_filter = false
-        if (event.key === "Escape") {
+        if (event_key === "Escape") {
             filter_dict = {}
 
             let tblRow = get_tablerow_selected(el);

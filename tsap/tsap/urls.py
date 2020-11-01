@@ -189,6 +189,7 @@ urlpatterns = [
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
         path('emplhour_download', planning_views.EmplhourDownloadView.as_view(), name='emplhour_download_url'),
         path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        path('emplhournote_upload', planning_views.EmplhournoteUploadView.as_view(), name='emplhournote_upload_url'),
     ])),
 
     path('review/', include([

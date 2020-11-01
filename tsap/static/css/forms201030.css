@@ -530,3 +530,14 @@ color: #000;
 .modal {
   overflow-y:auto;
 }
+
+.tsa_note {
+  resize: none;
+}
+
+.tsa_textarea_resize {
+  resize: vertical;
+
+}.tsa_textarea_div {
+   margin: 4px 16px 0px 16px;  /* top, right, bottom, left:
+}

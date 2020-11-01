@@ -1,0 +1,75 @@
+{% load i18n %}
+{% load static %}
+
+<!-- =================== MODAL STATUS  =================== -->
+        <div class="modal " id="id_mod_status" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+                <div class="modal-content">
+
+                    <div class="modal-header tsa_bc_lightlightgrey">
+                        <h4 id="id_mod_status_header" class="modal-title mx-2" >{% trans 'Status' %}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div  id="id_mod_status_body" class="modal-body">
+                        <div class="modal_container">
+                            <div class="modal_body_left">
+                                <h6 class="modal-title mx-2" >{% trans 'Order' %}:</h6>
+                            </div>
+                            <div class="modal_body_right">
+                                <h6 id="id_mod_status_order" class="modal-title mx-2" ></h6>
+                            </div>
+                        </div>
+                        <div class="modal_container">
+                            <div class="modal_body_left">
+                                <h6 class="modal-title mx-2" >{% trans 'Employee' %}:</h6>
+                            </div>
+                            <div class="modal_body_right">
+                                <h6 id="id_mod_status_employee" class="modal-title mx-2" ></h6>
+                            </div>
+                        </div>
+                        <div class="modal_container">
+                            <div class="modal_body_left">
+                                <h6 class="modal-title mx-2" >{% trans 'Shift' %}:</h6>
+                            </div>
+                            <div class="modal_body_right">
+                                <h6 id="id_mod_status_shift" class="modal-title mx-2" ></h6>
+                            </div>
+                        </div>
+                         <div class="modal_container">
+                            <div class="modal_body_left">
+                                <div class="form-group">
+                               <label id="id_mod_status_time_label" for="id_mod_status_time" class="mx-2 mt-4"></label>
+                                <input id="id_mod_status_time" type="text"
+                                       autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+
+                        <div class="modal_container">
+                            <div class="modal_body_left">
+                                <div class="form-group">
+                                    <label for="id_mod_status_note" class="mx-2 my-2">{% trans 'Notes' %}:</label>
+                                    <input id="id_mod_status_note"
+                                        type="textarea"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal_container">
+                            <h6 id="id_mod_status_ftr_msg" class="modal-title mx-2"></h6>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button id="id_mod_status_btn_save" type="button" class="btn btn-primary">{% trans 'Confirm' %}</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>

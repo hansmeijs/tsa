@@ -697,6 +697,7 @@ def create_absence_rows(filter_dict, teammember_pk, msg_dict, request):
         s.datefirst AS s_df, s.datelast AS s_dl, 
         o.datefirst AS o_df, o.datelast AS o_dl, 
         e.datefirst AS e_df, e.datelast AS e_dl, 
+        rpl.datefirst AS rpl_df, rpl.datelast AS rpl_dl, 
 
         si_sh_sub.si_id_arr,
         si_sh_sub.sh_id_arr,
@@ -717,21 +718,20 @@ def create_absence_rows(filter_dict, teammember_pk, msg_dict, request):
         LEFT JOIN companies_employee AS rpl ON (rpl.id = tm.replacement_id) 
         LEFT JOIN (""" + sql_schemeitem_shift + """) AS si_sh_sub ON (si_sh_sub.t_id = t.id)    
 
-        WHERE (c.company_id = %(compid)s::INT) 
-        AND (c.isabsence)""")
+        WHERE c.company_id = %(compid)s::INT AND c.isabsence
+        """)
 
     if teammember_pk:
-        sql_list.append('AND tm.id = CAST(%(tm_id)s AS INTEGER)')
+        sql_list.append('AND tm.id = %(tm_id)s::INT')
         sql_keys['tm_id'] = teammember_pk
     else:
-        sql_list.append("""
-            AND (s.datelast >= CAST(%(df)s AS DATE) OR %(df)s IS NULL)
-            AND (s.datefirst <= CAST(%(dl)s AS DATE) OR %(dl)s IS NULL)
-            ORDER BY LOWER(e.code), tm.datefirst NULLS LAST, s.datefirst NULLS LAST
-            """)
-        sql_keys['df'] = period_datefirst
-        sql_keys['dl'] = period_datelast
-
+        if period_datefirst:
+            sql_list.append('AND s.datelast >= %(df)s::DATE')
+            sql_keys['df'] = period_datefirst
+        if period_datelast:
+            sql_list.append('AND s.datefirst <= %(dl)s::DATE')
+            sql_keys['dl'] = period_datelast
+        sql_list.append('ORDER BY LOWER(e.code), tm.datefirst NULLS LAST, s.datefirst NULLS LAST')
     sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()
@@ -1200,7 +1200,7 @@ def create_payroll_detail_list(payroll_period, request):
             while rosterdate_dte <= datelast_dte:
                 if rosterdate_dte not in rosterdate_rows:
                     # - get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this date
-                    is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_rosterdate(
+                    is_saturday, is_sunday, is_publicholiday, is_companyholiday = f.get_issat_issun_isph_isch_from_calendar(
                         rosterdate_dte, request)
                     # - create list with all teammembers of this_rosterdate
                     # this functions retrieves a list of tuples with data from the database

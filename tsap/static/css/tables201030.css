@@ -217,8 +217,8 @@
 .stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6,
 .inactive_0_0, .inactive_0_1, .inactive_0_2, .inactive_0_3,
 .inactive_1_0, .inactive_1_1, .inactive_1_2, .inactive_1_3,
-.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4,
-.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4,
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5,
+.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5,
 .xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3,
 .exclamation_0_0, .exclamation_0_1, .exclamation_0_2,
 .tickmark_0_0, .tickmark_0_1, .tickmark_0_2,
@@ -268,21 +268,23 @@
 .inactive_1_2 { background-position: -40px -20px;}
 .inactive_1_3 { background-position: -60px -20px;}
 
-.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4,
-.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4 {
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5,
+.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5 {
     background-image: url('/static/img/editor.png');
-    background-size: 100px 40px;
+    background-size: 120px 40px;
 }
 .edit_0_0 { background-position: -0px -0px;}
 .edit_0_1 { background-position: -20px -0px;}
 .edit_0_2 { background-position: -40px -0px;}
 .edit_0_3 { background-position: -60px -0px;}
 .edit_0_4 { background-position: -80px -0px;}
+.edit_0_5 { background-position: -100px -0px;}
 .edit_1_0 { background-position: -0px -20px;}
 .edit_1_1 { background-position: -20px -20px;}
 .edit_1_2 { background-position: -40px -20px;}
 .edit_1_3 { background-position: -60px -20px;}
 .edit_1_4 { background-position: -80px -20px;}
+.edit_1_5 { background-position: -100px -20px;}
 
 .xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3 {
     background-image: url('/static/img/xmark.png');

@@ -435,7 +435,7 @@
 
 //========= f_get_periodtext_sidebar  ==================================== PR 2020-03-13 PR2020-07-11
     function f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso) {
-        //console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
+        console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
         let period_text = "";
         let prefix = ""; //  loc.Period + ": ";
         if (datefirst_iso && !datelast_iso) {
@@ -471,12 +471,14 @@
                 period_text = datefirst_formatted + datelast_formatted
             }  else {
                 // display: '20 jan 2019
-                period_text = format_dateISO_vanilla (loc, datefirst_iso, true, false) + " - ";
+                period_text = format_dateISO_vanilla (loc, datefirst_iso, true, false);
             }
         } else if(datelast_iso) {
                 period_text = format_dateISO_vanilla(loc, datelast_iso, true, false)
         }
+        // display: 'm.i.v. 23 okt 2020'  or  't/m 30 okt 2020'
         period_text = prefix + " " + period_text;
+        console.log( "period_text", period_text);
         return period_text;
     }  // f_get_periodtext_sidebar
 
@@ -1283,17 +1285,11 @@
 
 //========= f_create_shift_code  ============= PR2020-02-02 PR2020-05-27
     function f_create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code, is_restshift) {
-        console.log( "=== f_create_shift_code ");
+        //console.log( "=== f_create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
         // const lastCharCode = shift_code.charCodeAt(shift_code.length - 1);
         // let shift_code_without_restchar = (lastCharCode === 9790) ? shift_code.slice(0, -1) : shift_code
-
-        console.log( "offset_start", offset_start);
-        console.log( "offset_end", offset_end);
-        console.log( "time_duration", time_duration);
-        console.log( "cur_shift_code", cur_shift_code);
-        console.log( "is_restshift", is_restshift);
 
         if(cur_shift_code == null) {cur_shift_code = ""};
         let code_trimmed = cur_shift_code.trim();
@@ -1317,12 +1313,7 @@
         //console.log( "may_override: ", may_override, typeof may_override);
         if (may_override){
             if (offset_start != null || offset_end != null) {
-        console.log( "offset_start != null || offset_end != null");
-        console.log( "offset_start", offset_start);
-        console.log( "offset_end", offset_end);
                 new_shift_code = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, true)  // true = skip_hour_suffix
-
-        console.log( "offset_start != null || offset_end != null");
             } else if (!!time_duration) {
                 new_shift_code = display_duration (time_duration, loc.user_lang, loc.Hour, loc.Hours);
             }

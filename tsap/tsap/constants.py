@@ -280,8 +280,6 @@ COLDEF_EMPLOYEE = ( {'tsaKey': 'code', 'caption': _('Short name')},
                     # {'tsaKey': 'wagecode', 'caption': 'Wage code'}
                    )
 
-
-
 CAPTION_IMPORT =  {'no_file': _('No file is currently selected'),
                                  'link_columns': _('Link columns'),
                                  'click_items': _('Click items to link or unlink columns'),
@@ -373,8 +371,8 @@ FIELDS_EMPLHOUR = ('id', 'orderhour',
                    'amount', 'addition', 'tax',
                    'status', 'haschanged','overlap',
                    'schemeitemid', 'teammemberid', 'locked',
-                   'order', 'shift', 'confirmstart', 'confirmend')
-                    # fields: order, shift, confirmstart and confirmend are not model fields,
+                   'order', 'shiftcode', 'confirmstart', 'confirmend')
+                    # fields: order, shiftcode, confirmstart and confirmend are not model fields,
                    # but necessary to update abssence_category, shift_code and status
                    # 'issplitshift'
 

@@ -58,9 +58,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Select'] = _('Select ')
 
     dict['Customer'] = TXT_Customer
-    dict['Customers'] = TXT_Customers
-    dict['All_customers'] = TXT_All_customers
-    dict['No_customers'] = TXT_No_customers
+    dict['Customers'] =  _('Customers')
+    dict['All_customers'] = _('All customers')
+    dict['No_customers'] = _('No customers')
     dict['Customers_and_orders'] = _('Customers and orders') if not is_custom else 'Klanten en projecten'
 
     dict['Order'] = TXT_Order if not is_custom else 'Project'
@@ -202,22 +202,29 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     elif page == 'employee':
         # submenu
         dict['Upload_employees'] = TXT_Upload_employees
-        dict['Print_planning'] = TXT_Print_planning
-        dict['Print_planning'] = TXT_Print_planning
         dict['Preview_planning'] = TXT_Preview_planning
+        dict['Download_planning'] = TXT_Download_planning
         dict['Export_to_Excel'] = TXT_Export_to_Excel
 
         dict['This_employee'] = TXT_This_employee
-        dict['Replacement_employee'] = TXT_Replacement_employee
-        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
         dict['Add_employee'] = TXT_Add_employee
         dict['Delete_employee'] = TXT_Delete_employee
 
-        dict['Employee_list'] = TXT_Employee_list
+
+        dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Replacement_employees'] = TXT_Replacement_employees
+        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
+        dict['No_replacement_employees'] = TXT_No_replacement_employees
+
+
+
         dict['Employee_data'] = TXT_Employee_data
         dict['Click_show_inactive_employees'] = _('Click to show or hide inactive employees.')
         dict['Click_to_make_this_employee_inactive'] = _('Click to make this employee inactive.')
         dict['Click_to_make_this_employee_active'] = _('Click to make this employee active.')
+
+
+        dict['Employee_list'] = TXT_Employee_list
 
         dict['Short_name'] = TXT_Short_name
         dict['First_name'] = TXT_First_name
@@ -260,6 +267,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Full_day'] = TXT_Full_day
         dict['As_of'] = TXT_As_of
 
+        dict['Select_customer'] = TXT_Select_customer
+        dict['Select_order'] = TXT_Select_order
+
         dict['Absence'] = TXT_Absence
         dict['Total'] = TXT_Total
 
@@ -271,6 +281,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['No_absence_categories'] = TXT_No_absence_categories
         dict['Absence_hours'] = TXT_Absence_hours
 
+        dict['Function'] = TXT_Function
+        dict['Functions'] = TXT_Functions
         dict['No_functions'] = TXT_No_functions
         dict['period_select_list'] = TXT_Period_planning_list
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
@@ -662,11 +674,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['This_shift'] = TXT_This_shift
         dict['Add_shift'] = TXT_Add_shift
         dict['Delete_shift'] = TXT_Delete_shift
-        dict['No_shift_selected'] = TXT_No_shift_selected
+        dict['No_shift_selected'] = _('No shift selected.')
 
         dict['Add_team'] = TXT_Add_team
         dict['New_team'] = TXT_New_team
+        dict['Delete_team'] = TXT_Delete_team
         dict['Save_and_add_team'] = TXT_Save_and_add_team
+        dict['No_team_selected'] = _('No team selected.')
         dict['This_team'] = TXT_This_team
         dict['has'] = TXT_has
         dict['This_teammember'] = TXT_This_teammember
@@ -678,8 +692,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['All_schemeitems_willbe_deleted'] = _('All shifts of this scheme will be deleted.')
         dict['Delete_scheme_shifts'] = _('Delete scheme shifts.')
 
-        #dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Replacement_employees'] = TXT_Replacement_employees
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
+        dict['No_replacement_employees'] = TXT_No_replacement_employees
 
         dict['Select_team_first'] = _('You must select a team first,')
         dict['before_add_or_remove_a_shift'] = _('before you can add or remove a shift.')
@@ -956,7 +971,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Nodates_thatcanbe_switched'] = _('No dates with shifts that can be switched')
         dict['Noshifts_thatcanbe_switched'] = _('No shifts that can be switched')
 
-        dict['Split_time'] = TXT_Split_time
+        dict['Absent_till'] = _('Absent till')
+        dict['Absent_from'] = _('Absent from')
+        dict['Split_time'] =  _('Split time')
 
         # report
         dict['Break_hours_2lines'] = TXT_Break_hours_2lines
@@ -969,6 +986,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Modified_by'] = TXT_Modified_by
         dict['_on_'] = TXT_date_prefix_on
+
+        dict['Type_your_note_here'] = _('Type your note here')
+        dict['wrote_on'] = _(' wrote on ')
 
 # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
@@ -1203,14 +1223,12 @@ TXT_Status = _('Status')
 
 TXT_Company = _('Company')
 TXT_Customer = _('Customer')
-TXT_Customers = _('Customers')
 TXT_Customer_name = _('Customer name')
 TXT_Select_customer = _('Select customer')
 TXT_Select_customer_and_order = _('Select customer and order')
 TXT_No_customer_selected = _('There is no customer selected.')
 TXT_No_order_selected = _('There is no order selected.')
 TXT_Customer_list = _('Customer list')
-TXT_No_customers = _('No customers')
 TXT_Identifier = _('Identifier')
 TXT_Identifier_2lines = pgettext_lazy('Identifier_2lines', 'Identifier')
 TXT_ID_number = _('ID number')
@@ -1300,18 +1318,19 @@ TXT_Add_shift = _('Add shift')
 TXT_to = pgettext_lazy('part of: Add shift to', 'to')
 TXT_This_shift = _('This shift')
 TXT_Delete_shift = _('Delete shift')
-TXT_No_shift_selected = _('No shift selected.')
 TXT_Rest_shift = _('Rest shift')
 TXT_Rest_shifts = _('Rest shifts')
 
-TXT_Split_time = _('Split time')
 
 TXT_Teams = _('Teams')
 TXT_New_team = _('New team')
 TXT_This_team = _('This team')
 TXT_has = _(' has ')
 TXT_Add_team = _('Add team')
+TXT_Delete_team = _('Delete team')
+
 TXT_Save_and_add_team = _('Save and add team')
+
 TXT_This_teammember = _('This teammember')
 TXT_Add_teammember = _('Add teammember')
 TXT_Delete_teammember  = _('Delete teammember')
@@ -1341,7 +1360,9 @@ TXT_Please_select_wagecode_first = _('Please select a wage code first.')
 TXT_Please_select_payrollperiod_first = _('Please select a payroll period first.')
 
 TXT_Replacement_employee = _('Replacement employee')
+TXT_Replacement_employees = _('Replacement employees')
 TXT_Select_replacement_employee = _('Select replacement employee')
+TXT_No_replacement_employees = _('No replacement employees')
 
 TXT_Employee_list = _('Employee list')
 TXT_Employee_data = _('Employee data')
@@ -1484,7 +1505,6 @@ TXT_thismonth = _('This month')
 TXT_lastmonth = _('Last month')
 
 TXT_customperiod = _('Custom period...')
-TXT_All_customers = _('All customers')
 TXT_All_orders = _('All orders')
 
 TXT_err_msg_error = _('An error occurred.')

@@ -346,6 +346,27 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
     inactive = None
 
 
+class Published(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+
+    note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+
+    datepublished = DateField()
+    status = PositiveSmallIntegerField(default=0)
+
+    ispayroll = BooleanField(default=False)
+    isinvoice = BooleanField(default=False)
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+
+    locked = None
+    inactive = None
+
+
 class Paydatecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
@@ -516,7 +537,7 @@ class Scheme(TsaBaseModel):
     excludecompanyholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
-    # nopay in scheme is not in use (yet) PR2020-09-17
+    # nopay and nosat etc in scheme are not in use (yet) PR2020-09-17
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
     nohoursonsunday = BooleanField(default=False)
@@ -873,6 +894,9 @@ class Emplhour(TsaBaseModel):
     lockedpaydate = BooleanField(default=False)
     nopay = BooleanField(default=False)    # nopay: wage will be zero
 
+    payrollpublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
+    invoicepublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
+
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
     timeduration = IntegerField(default=0)
@@ -897,13 +921,14 @@ class Emplhour(TsaBaseModel):
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     addition = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     tax = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
-
+    # note must be removed
     note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
     haschanged  = BooleanField(default=False)  # haschanged will show an orange diamond on the roster page
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
+    hasnote = BooleanField(default=False)  # hasnotes will show a note icon on the roster page
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
     # used in FilRosterdate to skip existing shifts (happens when same rosterdate is created for the second time)
@@ -985,6 +1010,26 @@ class Emplhourlog(TsaBaseModel):
     datelast = None
     locked = None
     inactive = None
+
+
+
+class Emplhournote(TsaBaseModel):
+    objects = TsaManager()
+
+    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=CASCADE)
+    note = CharField(max_length=2048, null=True, blank=True)
+    isusernote = BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-modifiedat']
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
+
 
 
 class Orderhournotes(TsaBaseModel):
@@ -1162,7 +1207,6 @@ class Companysetting(Model):  # PR2019-03-09
             row.save()
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-
 def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
     #logger.debug('-----  delete_emplhour  -----')
     # function first saves record in log  with isdeleted=True
@@ -1196,7 +1240,7 @@ def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
 # - create deleted_row
         deleted_row = {'pk': emplhour.pk,
                            'mapid': 'emplhour_' + str(emplhour.pk),
-                           'isdeleted': True}
+                           'deleted': True}
 # - delete emplhour record
         try:
             emplhour.delete()
@@ -1271,7 +1315,7 @@ def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def get_parent(table, ppk_int, update_dict, request):
+def get_parent_NIU(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
     parent = None
     #logger.debug(' --- get_parent --- ')
@@ -1303,47 +1347,7 @@ def get_parent(table, ppk_int, update_dict, request):
     return parent
 
 
-def get_instance(table, pk_int, parent, update_dict=None):
-    # function returns instance of table PR2019-07-30
-    #logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
-
-    instance = None
-
-    if table and pk_int and parent:
-        if table == 'employee':
-            instance = Employee.objects.get_or_none(id=pk_int, company=parent)
-        elif table == 'customer':
-            instance = Customer.objects.get_or_none(id=pk_int, company=parent)
-        elif table == 'order':
-            instance = Order.objects.get_or_none(id=pk_int, customer=parent)
-        elif table == 'orderhour':
-            instance = Orderhour.objects.get_or_none(id=pk_int, order=parent)
-        elif table == 'scheme':
-            instance = Scheme.objects.get_or_none(id=pk_int, order=parent)
-        elif table == 'shift':
-            instance = Shift.objects.get_or_none(id=pk_int, scheme=parent)
-        elif table == 'team':
-            instance = Team.objects.get_or_none(id=pk_int, scheme=parent)
-        elif table == 'teammember':
-            instance = Teammember.objects.get_or_none(id=pk_int, team=parent)
-        elif table == 'schemeitem':
-            instance = Schemeitem.objects.get_or_none(id=pk_int, scheme=parent)
-        elif table == 'orderhour':
-            instance = Orderhour.objects.get_or_none(id=pk_int, order=parent)
-        elif table == 'emplhour':
-            instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
-
-        if instance:
-            if update_dict:
-                if 'id' not in update_dict:
-                    update_dict['id'] = {}
-                update_dict['id']['pk'] = instance.pk
-                update_dict['pk'] = instance.pk
-                # update_dict['id']['table'] = table. This is added in get_parent
-    return instance
-
-
-def delete_instance(instance, update_dict, msg_dict, request, this_text=None):
+def delete_instance(instance, msg_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
     deleted_ok = False
 

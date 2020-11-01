@@ -5,15 +5,10 @@ from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth import password_validation # PR2018-10-10
 from django.core.validators import RegexValidator
 from django.shortcuts import render
-from django.utils.translation import ugettext_lazy as _
-
-from accounts.models import User
-from companies.models import Company
+from django.utils.translation import activate, ugettext_lazy as _
 
 from django.forms.widgets import PasswordInput
 from django.core.exceptions import ValidationError
-
-from tsap.constants import NAME_MAX_LENGTH, ROLE_01_COMPANY, ROLE_02_SYSTEM, PERMIT_01_READ, IS_ACTIVE_CHOICES
 
 from collections import OrderedDict
 
@@ -21,6 +16,9 @@ from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm,
 )
 
+from accounts.models import User
+from companies.models import Company
+from tsap import constants as c
 import unicodedata
 
 # PR2018-05-04
@@ -34,6 +32,13 @@ class CompanyAuthenticationForm(AuthenticationForm):
         label=_("Company"),
         widget=TextInput(attrs={'autofocus': True})
     )
+    error_messages = {
+        'invalid_login': _(
+            "Please enter a correct company name, username and password. Note that the password is case-sensitive."
+        ),
+        'inactive': _("This account is inactive. You cannot login."),
+    }
+
 
     def __init__(self, request, *args, **kwargs):
         super(CompanyAuthenticationForm, self).__init__(request=request, *args, **kwargs)
@@ -46,11 +51,13 @@ class CompanyAuthenticationForm(AuthenticationForm):
     def clean(self):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
-
+        #logger.debug('username: ' + str(username))
+        #logger.debug('password: ' + str(password))
         if username:
             # put companyprefix in front of username PR2019-03-13
             company = None
             companycode = self.cleaned_data.get('companycode')
+            #logger.debug('companycode: ' + str(companycode))
             if companycode:
                 company = Company.objects.filter(code__iexact=companycode).first()
             if company:
@@ -58,11 +65,42 @@ class CompanyAuthenticationForm(AuthenticationForm):
             else:
                 username = "xxxxxx" + username
 
+            #logger.debug('company: ' + str(company))
+            #logger.debug('username: ' + str(username))
+
         self.user_cache = authenticate(self.request, username=username, password=password)
+
+        #logger.debug('self.user_cache: ' + str(self.user_cache))
+        # PR2020-10-22 from https://stackoverflow.com/questions/46459258/how-to-inform-a-user-that-he-is-not-active-in-django-login-view
         if self.user_cache is None:
-            raise self.get_invalid_login_error()
-        else:
-            self.confirm_login_allowed(self.user_cache)
+            #logger.debug('self.user_cache is None username: ' + str(username))
+            user_temp = User.objects.get_or_none(username=username)
+            #logger.debug('user_temp: ' + str(user_temp))
+            try:
+                user_temp = User.objects.get(username=username)
+            except:
+                user_temp = None
+
+            #logger.debug('user_temp: ' + str(user_temp))
+            # - set language so the return message can be sent in the language of the user
+            if user_temp is not None:
+                user_lang = user_temp.lang if user_temp.lang else c.LANG_DEFAULT
+                activate(user_lang)
+
+            if user_temp is not None and user_temp.check_password(password):
+                self.confirm_login_allowed(user_temp)
+            else:
+                raise self.get_invalid_login_error()
+        #//////////////////////////////////////////////////
+
+
+
+
+        # qwas:
+        #if self.user_cache is None:
+        #    raise self.get_invalid_login_error()
+        #else:
+        #    self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
 
@@ -84,19 +122,19 @@ class UserAddForm(UserCreationForm):
         super(UserAddForm, self).__init__(*args, **kwargs)
 
         self.request_user = self.request.user
-        # logger.debug('UserAddForm: __init__ request_user: ' + str(request_user))
+        #logger.debug('UserAddForm: __init__ request_user: ' + str(request_user))
         self.request_user_company = None
         if self.request_user.company:
             self.request_user_company = self.request_user.company
-        # logger.debug('UserAddForm self.request_user_company: ' + str(self.request_user_company))
+        #logger.debug('UserAddForm self.request_user_company: ' + str(self.request_user_company))
 
             # ======= field 'last_name' ============
             # field 'first_name' is not in use
             self.fields['last_name'] = CharField(
-                max_length=NAME_MAX_LENGTH,
+                max_length=c.NAME_MAX_LENGTH,
                 required=True,
                 label=_('Full name'),
-                help_text=_('Required, %(len)s characters or fewer.') % {'len': NAME_MAX_LENGTH},
+                help_text=_('Required, %(len)s characters or fewer.') % {'len': c.NAME_MAX_LENGTH},
             )
 
         # ======= field 'Role_list' ============
@@ -104,9 +142,9 @@ class UserAddForm(UserCreationForm):
         # request.user with role=Insp can set role=Insp and role=School
         # request.user with role=System can set all roles
         # PR2018-08-04
-        self.choices = [(ROLE_01_COMPANY, _('Company')), ]
+        self.choices = [(c.ROLE_01_COMPANY, _('Company')), ]
         if self.request_user.is_role_system:
-            self.choices.append((ROLE_02_SYSTEM, _('System')))
+            self.choices.append((c.ROLE_02_SYSTEM, _('System')))
 
         self.fields['role_list'] = ChoiceField(
             required=True,
@@ -117,8 +155,6 @@ class UserAddForm(UserCreationForm):
         )
         self.fields['role_list'].disabled = not self.request_user.is_role_system
 
-
-
     # ======= field 'Permits' ============
         # permits_choices_tuple: ((1, 'Read'), (2, 'Write'), (4, 'Authorize'), (8, 'Admin'))
         self.fields['permit_list'] = MultipleChoiceField(
@@ -127,7 +163,7 @@ class UserAddForm(UserCreationForm):
             choices=self.request_user.permits_choices,  # choises must be tuple or list, dictionary gives error: 'int' object is not iterable
             label='Permissions',
             help_text=_('Select one or more permissions from the list. Press the Ctrl button to select multiple permissions.'),
-            initial= PERMIT_01_READ
+            initial= c.PERMIT_01_READ
         )
 
 
@@ -152,9 +188,9 @@ class UserActivateForm(ModelForm):
         fields = ('last_name', 'email') # , 'password1', 'password2',)
 
     def __init__(self, *args, **kwargs):
-        logger.debug('UserActivateForm __init__  kwargs: ' + str(kwargs))
+        #logger.debug('UserActivateForm __init__  kwargs: ' + str(kwargs))
         self.request = kwargs.pop('request', None)  # pop() removes and returns an element from a dictionary, second argument is default when not found
-        logger.debug('UserActivateForm __init__ request: ' + str(self.request))
+        #logger.debug('UserActivateForm __init__ request: ' + str(self.request))
         super(UserActivateForm, self).__init__(*args, **kwargs)
 
         self.fields['password1'] = CharField(max_length=32, label='Password') # label -='' works, but appears again after formerror
@@ -190,15 +226,15 @@ class UserEditForm(ModelForm):
         super(UserEditForm, self).__init__(*args, **kwargs)
 
         self.request_user = self.request.user
-        # logger.debug('UserEditForm __init__ request_user ' + str(self.request_user))
+        #logger.debug('UserEditForm __init__ request_user ' + str(self.request_user))
 
         self.requestuser_company_id = 0
         if self.request_user.company:
             self.requestuser_company_id = self.request_user.company.id
-        # logger.debug('UserEditForm __init__ self.requestuser_countryid ' + str(self.requestuser_countryid))
+        #logger.debug('UserEditForm __init__ self.requestuser_countryid ' + str(self.requestuser_countryid))
 
         self.this_instance = kwargs.get('instance')
-        logger.debug('UserEditForm __init__ instance ' + str(self.this_instance))
+        #logger.debug('UserEditForm __init__ instance ' + str(self.this_instance))
 
         # this one doesn't work - selected_username does not show in form PPR2019-07-29
         #kwargs.update({'selected_username': self.this_instance.username_sliced})
@@ -207,7 +243,7 @@ class UserEditForm(ModelForm):
         self.selecteduser_company_id = 0
         if self.this_instance.company:
             self.selecteduser_company_id = self.this_instance.company.id
-        # logger.debug('UserEditForm __init__ self.selecteduser_countryid ' + str(self.selecteduser_countryid))
+        #logger.debug('UserEditForm __init__ self.selecteduser_countryid ' + str(self.selecteduser_countryid))
 
 
      # ======= field 'Company' ============
@@ -273,9 +309,9 @@ class UserEditForm(ModelForm):
         __initial_is_active = 0
         if self.this_instance.is_active is not None:
             __initial_is_active = int(self.this_instance.is_active)
-        # logger.debug('UserEditForm __init__ instance ' + str(self.this_instance) + ' __initial_is_active: ' + str(__initial_is_active) + ' type : ' + str(type(__initial_is_active)))
+        #logger.debug('UserEditForm __init__ instance ' + str(self.this_instance) + ' __initial_is_active: ' + str(__initial_is_active) + ' type : ' + str(type(__initial_is_active)))
         self.fields['field_is_active'] = ChoiceField(
-            choices=IS_ACTIVE_CHOICES,
+            choices=c.IS_ACTIVE_CHOICES,
             label=_('Active'),
             initial=__initial_is_active
         )
@@ -291,9 +327,9 @@ class TESTSignUpSetPasswordForm(PasswordChangeForm):  # PR2020-03-27
         fields = ('password1', 'password2',)
 
     def __init__(self, *args, **kwargs):
-        logger.debug('TESTSignUpSetPasswordForm __init__  kwargs: ' + str(kwargs))
+        #logger.debug('TESTSignUpSetPasswordForm __init__  kwargs: ' + str(kwargs))
         self.request = kwargs.pop('request', None)  # pop() removes and returns an element from a dictionary, second argument is default when not found
-        logger.debug('TESTSignUpSetPasswordForm __init__ request: ' + str(self.request))
+        #logger.debug('TESTSignUpSetPasswordForm __init__ request: ' + str(self.request))
         super(TESTSignUpSetPasswordForm, self).__init__(*args, **kwargs)
 
         self.fields['password1'] = CharField(max_length=32, label='Password') # label -='' works, but appears again after formerror
@@ -367,14 +403,14 @@ class UserResetPasswordForm(Form):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
-        logger.debug('UserResetPasswordForm __init__ kwargs ' + str(kwargs))
-        logger.debug('UserResetPasswordForm __init__ self.user ' + str(self.user))
+        #logger.debug('UserResetPasswordForm __init__ kwargs ' + str(kwargs))
+        #logger.debug('UserResetPasswordForm __init__ self.user ' + str(self.user))
 
     def clean_new_password2(self):
         password1 = self.cleaned_data.get('new_password1')
         password2 = self.cleaned_data.get('new_password2')
-        logger.debug('UserResetPasswordForm password1 ' + str(password1))
-        logger.debug('UserResetPasswordForm password2 ' + str(password2))
+        #logger.debug('UserResetPasswordForm password1 ' + str(password1))
+        #logger.debug('UserResetPasswordForm password2 ' + str(password2))
 
         if password1 and password2:
             if password1 != password2:
@@ -384,36 +420,36 @@ class UserResetPasswordForm(Form):
                 )
         password_validation.validate_password(password2, self.user)
 
-        logger.debug('UserResetPasswordForm password_validation ' + str(password2))
+        #logger.debug('UserResetPasswordForm password_validation ' + str(password2))
         return password2
 
     def save(self, commit=True):
         password = self.cleaned_data["new_password1"]
-        logger.debug('UserResetPasswordForm save password ' + str(password))
-        logger.debug('UserResetPasswordForm self.user ' + str(self.user))
+        #logger.debug('UserResetPasswordForm save password ' + str(password))
+        #logger.debug('UserResetPasswordForm self.user ' + str(self.user))
         self.user.set_password(password)
         if commit:
-            logger.debug('UserResetPasswordForm before save password: ' + self.user.password)
-            logger.debug('UserResetPasswordForm before save has_usable_password: ' + str(self.user.has_usable_password()))
-            logger.debug('UserResetPasswordForm before save modifiedat: ' + str(self.user.modifiedat))
+            #logger.debug('UserResetPasswordForm before save password: ' + self.user.password)
+            #logger.debug('UserResetPasswordForm before save has_usable_password: ' + str(self.user.has_usable_password()))
+            #logger.debug('UserResetPasswordForm before save modifiedat: ' + str(self.user.modifiedat))
             self.user.modifiedat = timezone.now
             self.user.save()
-            logger.debug('UserResetPasswordForm password saved')
-            logger.debug('UserResetPasswordForm after save password: ' + self.user.password)
-            logger.debug('UserResetPasswordForm after save has_usable_password: ' + str(self.user.has_usable_password()))
-            logger.debug('UserResetPasswordForm after save modifiedat: ' + str(self.user.modifiedat))
+            #logger.debug('UserResetPasswordForm password saved')
+            #logger.debug('UserResetPasswordForm after save password: ' + self.user.password)
+            #logger.debug('UserResetPasswordForm after save has_usable_password: ' + str(self.user.has_usable_password()))
+            #logger.debug('UserResetPasswordForm after save modifiedat: ' + str(self.user.modifiedat))
 
             checked = self.user.check_password('jumper77')
-            logger.debug('UserResetPasswordForm password checked: ' + str(checked))
+            #logger.debug('UserResetPasswordForm password checked: ' + str(checked))
 
         from accounts.models import User
         thisusr = User.objects.filter(username='InspCur').first()
-        logger.debug('UserSetPasswordForm password thisusr: ' + str(thisusr.username))
+        #logger.debug('UserSetPasswordForm password thisusr: ' + str(thisusr.username))
         checked = self.user.check_password('jumper77')
-        logger.debug('UserSetPasswordForm password InspCur jumper77: ' + str(checked))
-        logger.debug('UserSetPasswordForm password jumper77: ' + str(checked))
+        #logger.debug('UserSetPasswordForm password InspCur jumper77: ' + str(checked))
+        #logger.debug('UserSetPasswordForm password jumper77: ' + str(checked))
         checked = self.user.check_password('jumper55')
-        logger.debug('UserSetPasswordForm password jumper55: ' + str(checked))
+        #logger.debug('UserSetPasswordForm password jumper55: ' + str(checked))
 
         return self.user
 """

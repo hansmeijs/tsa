@@ -6,7 +6,7 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import ArrayField, JSONField
 
 from tsap import authentication as auth
 from tsap import constants as c
@@ -69,6 +69,8 @@ class User(AbstractUser):
         choices=c.CHOICES_ROLE
     )
     permits = PositiveSmallIntegerField(default=0)
+    permitcustomers = ArrayField(IntegerField(), null=True)
+    permitorders = ArrayField(IntegerField(), null=True)
 
     activated = BooleanField(default=False)
     activatedat = DateTimeField(null=True)
@@ -82,6 +84,7 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ['username',]
+
 
     def __str__(self):
         return self.username[6:]

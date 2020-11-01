@@ -872,15 +872,22 @@ function CalcMinMax(dict) {
         return shift_dict
      }  // mtp_calc_timeduration_minmax
 
-//========= get_minoffset  ========================= PR2020-04-12
+//========= get_minoffset  ======  PR2020-04-12 PR2020-10-03
     function get_minoffset(fldName, offset_start, break_duration) {
         //console.log( "--- get_minoffset  ");
         //console.log( "fldName: ", fldName);
         //console.log( "offset_start: ", offset_start);
         //console.log( "break_duration: ", break_duration);
+
+        // fldName:  offsetsplit, offset_split_before, offset_split_after
         let minoffset = 0;
         if(!break_duration) {break_duration = 0};
-        if (["offsetstart", "timestart"].indexOf(fldName) > -1) {
+        if(fldName === "offset_split_before"){
+            // offset_start can be 0, don't use (offset_start) or (offset_start != null)
+             minoffset = (offset_start !== null) ? offset_start : 0;
+        } else if(fldName === "offset_split_after"){
+            minoffset = (offset_start !== null) ? offset_start + break_duration : 0;
+        } else  if (["offsetstart", "timestart"].indexOf(fldName) > -1) {
             minoffset = -720;
         } else if (["offsetend", "timeend", "offsetsplit"].indexOf(fldName) > -1) {
             if (!!offset_start && offset_start + break_duration >= 0) { minoffset = offset_start + break_duration };
@@ -891,10 +898,17 @@ function CalcMinMax(dict) {
 
 //========= get_maxoffset  ========================= PR2020-04-12
     function get_maxoffset(fldName, offset_start, offset_end, break_duration) {
-        //console.log( "--- get_minmax_offset  ");
+        //console.log( "--- get_maxoffset  ");
+        //console.log( "fldName: ", fldName);
+
         let maxoffset = 1440;
         if(!break_duration) {break_duration = 0};
-        if (["offsetstart", "timestart", "offsetsplit"].indexOf(fldName) > -1) {
+        if(fldName === "offset_split_before"){
+            // offset_end can be 0, don't use (offset_end) or (offset_end != null)
+             maxoffset = (offset_end !== null) ? offset_end - break_duration : 1440;
+        } else if(fldName === "offset_split_after"){
+             maxoffset = (offset_end !== null) ? offset_end : 1440;
+        } else if (["offsetstart", "timestart"].indexOf(fldName) > -1) {
             if (!!offset_end && offset_end - break_duration <= 1440) {
                 maxoffset = offset_end - break_duration
             };
@@ -905,6 +919,7 @@ function CalcMinMax(dict) {
                 maxoffset = offset_end - offset_start
             }
         }
+        //console.log( "maxoffset: ", maxoffset);
         return maxoffset
     }
 

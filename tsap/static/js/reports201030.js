@@ -875,10 +875,10 @@
     }  // PrintOrderPlanning
 
 // ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
-    function PrintEmployeePlanning(option, selected_period, planning_map, company_dict, loc) {
-        //console.log("PrintEmployeePlanning")
-        //console.log("selected_period", selected_period)
-
+    function PrintEmployeePlanning(option, selected_period, planning_list, company_dict, loc) {
+        console.log("PrintEmployeePlanning")
+        console.log("planning_list", planning_list)
+        // only called by employee page, menubtn print planning
         const today_JS = new Date();
         const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
 
@@ -918,7 +918,8 @@
         const endWeekIndex = enddateJS.getWeekIndex();
         //console.log("endWeekIndex", endWeekIndex)
 
-        const selected_employee_pk = get_dict_value(selected_period, ["selected_employee_pk"]);
+        // PR2020-11-01 not in use any more, filter is done outside this function
+        //const selected_employee_pk = get_dict_value(selected_period, ["selected_employee_pk"]);
 
         let doc = new jsPDF("landscape","mm","A4");
 
@@ -943,14 +944,14 @@
 
         let week_list;
 
-        //console.log("planning_map", planning_map)
-//======================== loop through planning map
-        for (const [map_id, item_dict] of planning_map.entries()) {
-    //console.log("=========================: loop through planning map")
+    //console.log("planning_list", planning_list)
+//======================== loop through planning_list map
+            for (let i = 0, item_dict; item_dict = planning_list[i]; i++) {
+    //console.log("=========================: loop through planning_list")
     //console.log("item_dict: ", item_dict)
 
 // -------- get weekindex and weekday of this_rosterdate
-            this_rosterdate_iso = get_dict_value(item_dict, ["rosterdate", "value"], "");
+            this_rosterdate_iso = item_dict.rosterdate;
             this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
             this_weekIndex = this_rosterdate_JS.getWeekIndex();
             this_weekday = this_rosterdate_JS.getDay()
@@ -958,8 +959,10 @@
     //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
 
 // -------- filter employee
-            const employee_pk = get_dict_value(item_dict, ["employee", "pk"], 0);
-            const add_row = ( (!selected_employee_pk) || (selected_employee_pk && employee_pk === selected_employee_pk) );
+            const employee_pk = (item_dict.e_id) ? item_dict.e_id : 0
+            //const add_row = ( (!selected_employee_pk) || (selected_employee_pk && employee_pk === selected_employee_pk) );
+            // PR2020-11-01 filter is done outside this functions
+            const add_row = true
             if(add_row){
 //======================== detect change in employee
                 if (employee_pk !== this_employee_pk){
@@ -984,9 +987,9 @@
                     pos.top = setting.margin_top;
 
     //---------- get employee values
-                    const code = get_dict_value(item_dict, ["employee", "code"], "");
-                    const namelast = get_dict_value(item_dict, ["employee", "namelast"], "");
-                    const namefirst = get_dict_value(item_dict, ["employee", "namefirst"], "");
+                    const code = (item_dict.e_code) ? item_dict.e_code : "---";
+                    const namelast = (item_dict.e_nl) ? item_dict.e_nl : "";
+                    const namefirst =(item_dict.e_nf) ? item_dict.e_nf : "";
                     rpthdr_values[0][2] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
 
     //----------  print employee header
@@ -1029,22 +1032,22 @@
     //======================== get shift info
         //console.log("======================== get shift info: ")
         //console.log("item_dict: ", item_dict)
-                const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
-                const order_code = get_dict_value(item_dict, ["order", "code"], "");
-                const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
+                const shift_code = (item_dict.sh_code) ? item_dict.sh_code : "";
+                const order_code = (item_dict.o_code) ? item_dict.o_code : "";
+                const customer_code = (item_dict.c_code) ? item_dict.c_code : "";
                 const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
 
                 //let display_time = null;
-                const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
-                const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
-                const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);
+                const offset_start = (item_dict.offsetstart) ? item_dict.offsetstart : null;
+                const offset_end =  (item_dict.offsetend) ? item_dict.offsetend : null;
+                const time_duration =  (item_dict.timedur) ? item_dict.timedur : null;
 
                 const skip_prefix_suffix = true;
                 const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
 
                 if(!!time_duration) {this_duration_sum += time_duration};
-
-                const overlap = get_dict_value(item_dict, ["overlap", "value"], false);
+                // TODO
+                const overlap =  (item_dict.overlap) ? item_dict.overlap : false;
 
                 //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
                 let shift_list = [];

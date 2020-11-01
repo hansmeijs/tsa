@@ -1576,19 +1576,21 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     else:
         sel_btn = saved_period_dict.get('sel_btn')
 
-# +++  get col_hidden - col_hidden ia a tuple of the fieldnames that must be hidden
-    if 'col_hidden' in period_dict:
-        col_hidden = period_dict.get('col_hidden')
-        save_setting = True
-    else:
-        col_hidden = saved_period_dict.get('col_hidden')
-
 # +++  get sel_view
     if 'sel_view' in period_dict:
         sel_view = period_dict.get('sel_view')
         save_setting = True
     else:
         sel_view = saved_period_dict.get('sel_view')
+    if sel_view is None:
+        sel_view = 'calendarperiod'
+
+# +++  get col_hidden - col_hidden ia a tuple of the fieldnames that must be hidden
+    if 'col_hidden' in period_dict:
+        col_hidden = period_dict.get('col_hidden')
+        save_setting = True
+    else:
+        col_hidden = saved_period_dict.get('col_hidden')
 
 # +++  get period tag
     period_tag = period_dict.get('period_tag')
@@ -1652,15 +1654,15 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             setting_tobe_saved['paydateitem_datelast'] = paydateitem_datelast
             setting_tobe_saved['paydateitem_year'] = paydateitem_year
 
-        logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
+        #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
         #logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 # 5. create update_dict
     update_dict = {'key': key,
                    'sel_btn': sel_btn,
-                   'col_hidden': col_hidden,
                    'sel_view': sel_view,
+                   'col_hidden': col_hidden,
                    'comp_timezone': comp_timezone,
                    'timeformat': timeformat,
                    'interval': interval,
@@ -1704,8 +1706,6 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['paydateitem_datefirst'] = paydateitem_datefirst
         update_dict['paydateitem_datelast'] = paydateitem_datelast
 
-
-
     if extend_offset:
         update_dict['extend_offset'] = extend_offset
     if is_absence is not None:
@@ -1742,7 +1742,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
                                                                        periodend_datetimelocal, timeformat, user_lang)
 
-    if paydatecode_pk:
+    if sel_view == 'payrollperiod':
         paydateitem_datefirst_dte = f.get_dateobj_from_dateISOstring(paydateitem_datefirst)
         paydateitem_datelast_dte = f.get_dateobj_from_dateISOstring(paydateitem_datelast)
         update_dict['dates_display_long'] = f.format_period_from_date(paydateitem_datefirst_dte, paydateitem_datelast_dte, False,
@@ -1932,7 +1932,7 @@ def create_emplhour_deletedrows(period_dict, request, last_emplhour_check):
 def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_deleted=False):  # PR2019-11-16 PR2020-08-20
     #logger.debug(' ============= create_emplhour_rows ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
-
+    # called by EmplhourUploadView and FillRosterdateView.create_emplhour_list and DatalistDownloadView.create_emplhour_list
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
 
@@ -2062,7 +2062,7 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             eh.overlap AS eh_ov,
             eh.modifiedat AS eh_modat,
             COALESCE(SUBSTRING (u.username, 7), '') AS u_usr,
-            eh.note
+            eh.hasnote
 
             FROM companies_emplhour AS eh 
             INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
@@ -2131,7 +2131,8 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             if periodend_datetime_utc_withtimezone is not None:
                 sql_list.append('AND (eh.timestart < %(pte)s OR eh.timestart IS NULL)')
                 sql_keys['pte'] = periodend_datetime_utc_withtimezone
-# when last_emplhour_check: get only records that are updated after last_mod date, except rthe ones updated by this user
+
+# when last_emplhour_check: get only records that are updated after last_mod date
             if last_emplhour_check is not None:
                 sql_list.append('AND (eh.modifiedat > %(last_mod)s)')
                 sql_keys['last_mod'] = last_emplhour_check
@@ -2150,38 +2151,47 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
 # ---  end of create_emplhour_rows
 
 # ========================================================================
-
 def create_emplhour_list(period_dict, is_emplhour_check, request):
     # PR2019-11-16 PR2020-08-06
-    #logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug(' ============= create_emplhour_list ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
-    #logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
-    #logger.debug('request.user: ' + str(request.user.username_sliced))
+    logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
+    logger.debug('request.user: ' + str(request.user.username_sliced))
 
     last_emplhour_check = None
     no_updates, no_deletes = False, False
     #retrun value is temp for testing
-    last_emplhour_updated, new_last_emplhour_check = None, None
+    #last_emplhour_updated, new_last_emplhour_check = None, None
+    last_emplhour_check_format, last_emplhour_updated_format, last_emplhour_deleted_format, new_last_emplhour_check_format = None, None, None, None
 
     if is_emplhour_check:
 # - get datetime when this user last checked for updates. This is stored in Usersetting key: last_emplhour_check
         key = 'last_emplhour_check'
         last_emplhour_check = Usersetting.get_datetimesetting(key, request.user)
-        #logger.debug('last_emplhour_check: ' + str(last_emplhour_check.isoformat()))
+
+        last_emplhour_check_format = last_emplhour_check.isoformat().replace('T', ' ')[0:19]
+        logger.debug('last_emplhour_check: ' + last_emplhour_check_format)
+
 # - set new datetime in last_emplhour_check in Usersetting
         # get now without timezone
         now_utc_naive = datetime.utcnow()
         # convert now to timezone utc
         new_last_emplhour_check = now_utc_naive.replace(tzinfo=pytz.utc)
         Usersetting.set_datetimesetting(key, new_last_emplhour_check, request.user)
-        #logger.debug('new_last_emplhour_check: ' + str(new_last_emplhour_check.isoformat()))
+
+        new_last_emplhour_check_format = new_last_emplhour_check.isoformat().replace('T', ' ')[0:19]
+        logger.debug('new_emplhour_check:  ' + new_last_emplhour_check_format)
 
 # - get datetime when last emplhour records are updated from Companysetting
     # - is stored in CompanySetting, to mak it faster then checking the emplhour table itself
         key = 'last_emplhour_updated'
         last_emplhour_updated, last_emplhour_deleted = m.Companysetting.get_datetimesetting(key, request.user.company)
-        #logger.debug('last_emplhour_updated: ' + str(last_emplhour_updated.isoformat()))
-        #logger.debug('last_emplhour_deleted: ' + str(last_emplhour_deleted.isoformat()))
+
+        last_emplhour_updated_format = last_emplhour_updated.isoformat().replace('T', ' ')[0:19]
+        logger.debug('last_emplhr_updated: ' + last_emplhour_updated_format)
+
+        last_emplhour_deleted_format = last_emplhour_deleted.isoformat().replace('T', ' ')[0:19]
+        logger.debug('last_emplhr_deleted: ' + last_emplhour_deleted_format)
 
 # if there are no updated records since last update: skip create_emplhour_rows,
         # also when last_emplhour_updated has no value yet
@@ -2195,7 +2205,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         elif last_emplhour_check and last_emplhour_deleted < last_emplhour_check:
             no_deletes = True
 
-    #logger.debug('no_deletes: ' + str(no_deletes))
+    logger.debug('no_updates: ' + str(no_updates))
+    logger.debug('no_deletes: ' + str(no_deletes))
 # - get updated emplhour records, including deleted records
     emplhour_rows = []
     if not no_updates:
@@ -2207,7 +2218,9 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
             emplhour_rows.extend(emplhours_deleted_rows)
     no_changes = no_updates and no_deletes
 
-    return emplhour_rows, no_changes, last_emplhour_check, last_emplhour_updated, new_last_emplhour_check
+    #return emplhour_rows, no_changes, last_emplhour_check, last_emplhour_updated, new_last_emplhour_check
+    return emplhour_rows, no_changes, last_emplhour_check_format, last_emplhour_updated_format, last_emplhour_deleted_format, new_last_emplhour_check_format
+
 
 def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
     #logger.debug(' === create_emplhour_itemdict_from_row ==')
@@ -2431,6 +2444,66 @@ def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeforma
 # --- end of create_emplhour_itemdict_from_row
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
+def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR2020-10-14
+    #logger.debug(' ============= create_emplhournote_rows ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
+
+    company_pk = request.user.company.pk
+    rosterdatefirst = period_dict.get('period_datefirst')
+    rosterdatelast = period_dict.get('period_datelast')
+    emplhour_pk_list = period_dict.get('eplh_update_list')
+
+    emplhournote_rows = {}
+    sql_list = []
+    sql_keys = {'comp_id': company_pk}
+    if company_pk:
+        sql_sub = """SELECT ehn.id, ehn.emplhour_id, ehn.note, ehn.isusernote, ehn.modifiedat,
+            COALESCE(SUBSTRING (u.username, 7), '') AS modifiedby
+
+            FROM companies_emplhournote AS ehn 
+            LEFT JOIN accounts_user AS u ON (u.id = ehn.modifiedby_id)
+
+            ORDER BY ehn.modifiedat
+        """
+        sql_list.append("""SELECT eh.id,             
+            ARRAY_AGG(ehn_sub.id ORDER BY ehn_sub.id) AS ehn_id_agg,
+            ARRAY_AGG(ehn_sub.note ORDER BY ehn_sub.id) AS note_agg,
+            ARRAY_AGG(ehn_sub.modifiedby ORDER BY ehn_sub.id) AS modifiedby_agg,
+            ARRAY_AGG(ehn_sub.modifiedat ORDER BY ehn_sub.id) AS modifiedat_agg,
+            COUNT(CASE WHEN ehn_sub.isusernote THEN 1 END) AS usernote_count
+
+            FROM companies_emplhour AS eh
+            INNER JOIN (""" + sql_sub + """) AS ehn_sub ON (ehn_sub.emplhour_id = eh.id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+            WHERE c.company_id = %(comp_id)s::INT
+        """)
+        if emplhour_pk_list:
+            # when emplhour_pk_list has value: skip other filters
+            sql_list.append('AND eh.id IN ( SELECT UNNEST( %(eh_id_arr)s::INT[] ) )')
+            sql_keys['eh_id_arr'] = emplhour_pk_list
+
+        elif rosterdatefirst and rosterdatelast:
+            sql_keys['rdf'] = rosterdatefirst
+            sql_keys['rdl'] = rosterdatelast
+            sql_list.append('AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE')
+
+# when last_emplhour_check: get only records that are updated after last_mod date
+        if last_emplhour_check is not None:
+            sql_list.append('AND (eh.modifiedat > %(last_mod)s)')
+            sql_keys['last_mod'] = last_emplhour_check
+
+        sql_list.append('GROUP BY eh.id')
+        sql = ' '.join(sql_list)
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        emplhournote_rows = f.dictfetchrows(newcursor)
+
+    return emplhournote_rows
 
 
 def create_teammemberabsence_list(dict, company):
@@ -3760,6 +3833,3 @@ def create_scheme_dict_extended(scheme, item_dict, user_lang):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
-
-
-

@@ -118,13 +118,16 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
                                 if instance:
                                     this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
-                                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
+                                    # delete_instance
+                                    # msg_dict is not in use yet PR2020-10-14
+                                    msg_dict = {}
+                                    deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
                                         # - create deleted_dict
                                         deleted_dict = {'pk': pk_int,
                                                        'mapid': 'customer_' + str(pk_int),
-                                                       'isdeleted': True}
+                                                       'deleted': True}
                                         updated_customer_rows.append(deleted_dict)
                             else:
 # D. Create new customer
@@ -184,13 +187,16 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                                 if instance:
                                     this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                                    deleted_ok = m.delete_instance(instance, update_dict, {}, request, this_text)
+                                    # delete_instance
+                                    # msg_dict is not in use yet PR2020-10-14
+                                    msg_dict = {}
+                                    deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
                             # - create deleted_dict
                                         deleted_dict = {'pk': pk_int,
                                                        'mapid': 'order_' + str(pk_int),
-                                                       'isdeleted': True}
+                                                       'deleted': True}
                                         updated_order_rows.append(deleted_dict)
                             else:
 # D. Create new order
@@ -198,7 +204,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     instance = create_order(parent, upload_dict, update_dict, request)
 # E. Get existing order
                                 else:
-                                    # was: instance = m.get_instanceXX(table, pk_int, parent, update_dict)
                                     instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
 
 # F. update order, also when it is created
@@ -273,8 +278,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
                         #logger.debug('parent: ' + str(parent))
                         if parent:
-                            instance = m.get_instance##(table, pk_int, parent, update_dict)
-                            # TODO to be replaced by: instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
+                            instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                             #logger.debug('parent: ' + str(instance))
                             if instance:
                                 update_order(instance, parent, upload_dict, update_dict, user_lang, request)
@@ -289,12 +293,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             row_index=row_index)
 
                         parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
-                        #logger.debug('SCHEME parent: ' + str(parent))
                         if parent:
-                            instance = m.get_instance(table, pk_int, parent, update_dict)
-                            # TODO to be replaced by: instance = m.Scheme.objects.get_or_none(id=pk_int, order=parent)
-
-                            #logger.debug('SCHEME instance: ' + str(instance))
+                            instance = m.Scheme.objects.get_or_none(id=pk_int, order=parent)
                             if instance:
                                 update_scheme(instance, upload_dict, update_dict, request)
                         f.remove_empty_attr_from_dict(update_dict)
@@ -309,9 +309,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                         parent = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
                         #logger.debug('SHIFT parent: ' + str(parent))
                         if parent:
-                            instance = m.get_instance(table, pk_int, parent, update_dict)
-                            # TODO to be replaced by: instance = m.Shift.objects.get_or_none(id=pk_int, scheme=parent)
-                            #logger.debug('SHIFT instance: ' + str(instance))
+                            instance = m.Shift.objects.get_or_none(id=pk_int, scheme=parent)
                             if instance:
                                 update_shift_instance(instance, parent, upload_dict, update_dict, user_lang, request)
                         f.remove_empty_attr_from_dict(update_dict)
@@ -595,7 +593,6 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
         # a. get old value
                         new_value = field_dict.get('value', False)
                         saved_value = getattr(instance, field, False)
-                        # fields 'code', 'name' are required
                         if new_value != saved_value:
         # c. save field if changed
                             setattr(instance, field, new_value)
