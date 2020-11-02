@@ -108,7 +108,7 @@ class CompanyListView(View):
 class CompanySelectView(View):
 
     def get(self, request, pk):
-        # logger.debug('ExamyearSelectView get: ' + str(request) + ' pk: ' + str(pk))
+        #logger.debug('ExamyearSelectView get: ' + str(request) + ' pk: ' + str(pk))
         if pk is not None:
             # PR2018-05-18 getting examyear from object not necessary, but let it stay for safety
             try:
@@ -142,7 +142,7 @@ class CompanyAddView(CreateView):
         form = CompanyAddForm(self.request.POST, request=self.request)  # this one doesn't work: form = ExamyearAddForm(request=request)
 
         if form.is_valid():
-            logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
+            #logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
 
             # save without commit
             self.new_company = form.save(commit=False)
@@ -208,14 +208,14 @@ class CompanyDeleteView(DeleteView):
 class InvoiceAddView(CreateView):
 
     def get(self, request, *args, **kwargs):
-        logger.debug('InvoiceAddView get request: ' + str(request))
+        #logger.debug('InvoiceAddView get request: ' + str(request))
         # permission:  user_is_system_admin
 
         form = InvoiceAddForm(request=request)
 
         # set headerbar parameters PR 2018-08-06
         param = get_headerbar_param(request, {'form': form})
-        logger.debug('InvoiceAddView param: ' + str(param))
+        #logger.debug('InvoiceAddView param: ' + str(param))
 
         # render(request, template_name, context=None (A dictionary of values to add to the template context), content_type=None, status=None, using=None)
         return render(request, 'invoice_add.html', param)
@@ -227,7 +227,7 @@ class InvoiceAddView(CreateView):
         form = CompanyAddForm(self.request.POST, request=self.request)  # this one doesn't work: form = ExamyearAddForm(request=request)
 
         if form.is_valid():
-            logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
+            #logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
 
             # save without commit
             self.new_company = form.save(commit=False)

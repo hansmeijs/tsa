@@ -204,8 +204,8 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 class TeammemberUploadView(UpdateView):  # PR2019-12-06
     # this function is called bij employee.js, customer.js and scheme.js
     def post(self, request, *args, **kwargs):
-        logger.debug('  ')
-        logger.debug(' ===================== TeammemberUploadView ===================== ')
+        #logger.debug('  ')
+        #logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
         has_permit = False
@@ -226,7 +226,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
             # quicksave is saved in UploadUserSettings
@@ -234,7 +234,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 # 4. get iddict variables
                 # mode = f.get_dict_value(upload_dict, ('id','mode'))
                 shift_option = f.get_dict_value(upload_dict, ('id', 'shiftoption'))
-                logger.debug('shift_option: ' + str(shift_option))
+                #logger.debug('shift_option: ' + str(shift_option))
 
                 # key 'mode' is used in calendar_employee_upload etc .
                 # from customer_calendar shiftoption': 'schemeshift'
@@ -306,7 +306,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 #######################################
 
 def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang): # PR2019-12-06
-    logger.debug('============= grid_team_upload ============= ')
+    #logger.debug('============= grid_team_upload ============= ')
     # this function is called by TeammemberUploadView shift_option 'grid_team'
 
     """
@@ -349,11 +349,11 @@ def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
     if team is None:
         # team is deleted
         team_update = upload_team_dict
-        logger.debug('........... team is None - team_update: ' + str(team_update))
+        #logger.debug('........... team is None - team_update: ' + str(team_update))
         updates['team_update_list'] = [team_update]
     else:
         team_update = pld.create_team_dict(team, upload_team_dict)
-        logger.debug('........... team is not None - team_update: ' + str(team_update))
+        #logger.debug('........... team is not None - team_update: ' + str(team_update))
         updates['team_update_list'] = [team_update]
 
 # ++++++++++++++++  update teammember from upload_dict ++++++++++++++++
@@ -990,19 +990,19 @@ def update_teams_from_uploaddict (teams_list, mapped_schemepk_dict, scheme, user
 
 
 def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_lang, request):
-    logger.debug(' ')
-    logger.debug(' ++++++++++++++++  update_teammembers_from_uploaddict ++++++++++++++++ ')
+    #logger.debug(' ')
+    #logger.debug(' ++++++++++++++++  update_teammembers_from_uploaddict ++++++++++++++++ ')
 
     teammember_updates = []
     if teammembers_list:
         table = 'teammember'
         for item_dict in teammembers_list:
-            logger.debug('item_dict: ' + str(item_dict))
+            #logger.debug('item_dict: ' + str(item_dict))
 
     # replace parent 'team_pk' = 'new7' by pk of saved item, using mapped_pks
             team_pk = f.get_dict_value(item_dict, ('id', 'ppk'))
-            logger.debug('team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
-            logger.debug('mapped_teampks: ' + str(mapped_teampks))
+            #logger.debug('team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
+            #logger.debug('mapped_teampks: ' + str(mapped_teampks))
             if mapped_teampks and team_pk in mapped_teampks:
                 team_pk = mapped_teampks.get(team_pk)
     # get parent 'team'
@@ -1016,9 +1016,9 @@ def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_l
 
     # return teammember_dict when row is updated, created or deleted
                     teammember_update = ed.create_teammember_dict_from_model(teammember, item_dict)
-                    logger.debug('.......... item_dict: ' + str(item_dict))
+                    #logger.debug('.......... item_dict: ' + str(item_dict))
                     teammember_updates.append(teammember_update)
-                    logger.debug('teammember_update: ' + str(teammember_update))
+                    #logger.debug('teammember_update: ' + str(teammember_update))
     return teammember_updates
 # === end of update_teammembers_from_uploaddict
 
@@ -1077,10 +1077,10 @@ def update_schemeitems_from_list (schemeitems_list, mapped_schemepk_dict, mapped
 def update_instance_from_item_dict (table, item_dict, parent, user_lang, request):
     #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
     logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
-    logger.debug('----------------  update instance from items_dict ------------------ ')
-    logger.debug('table: ' + str(table))
-    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
-    logger.debug('item_dict: ' + str(item_dict))
+    #logger.debug('----------------  update instance from items_dict ------------------ ')
+    #logger.debug('table: ' + str(table))
+    #logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+    #logger.debug('item_dict: ' + str(item_dict))
 
     # item_dict: {'id': {'pk': 'new9', 'ppk': '1424', 'table': 'scheme', 'mode': 'create', 'shiftoption': 'isabsence', 'cycle': 1},
     #       'code': 'Colpa de WH', 'datefirst': '2020-02-05', 'datelast': '2020-02-07', 'excludepublicholiday': False, 'excludecompanyholiday': False}
@@ -1142,7 +1142,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                                             inactive=False,
                                             )
 
-            logger.debug('instance: ' + str(instance) +  ' ' + str(type(instance)))
+            #logger.debug('instance: ' + str(instance) +  ' ' + str(type(instance)))
             if instance:
                 instance.save(request=request)
                 mapped_pk_dict[pk] = instance.pk
@@ -1169,7 +1169,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 instance = m.Schemeitem.objects.get_or_none(pk=pk,
                     scheme__order__customer__company=request.user.company)
 
-            logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
+            #logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
             if instance and (is_delete or mode == 'delete'):
                 has_schemeitems_tobe_deleted = False
                 if table == 'shift':
@@ -1206,9 +1206,9 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 # field 'scheme' occurs in table 'shift', 'team' and 'schemeitem', it cannot be changed
                 # PR2020-06-07 debug: 'update' gave error TODO get rid of 'update', i dont think its necessary
                 if field != 'id' and field != 'rosterdate' and field != 'scheme' and field != 'update':
-                    logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
+                    #logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
                     old_value = getattr(instance, field)
-                    logger.debug('old_value: ' + str(old_value) + ' ' + str(type(old_value)))
+                    #logger.debug('old_value: ' + str(old_value) + ' ' + str(type(old_value)))
 
             # get new_value
                     new_value = None
@@ -1263,17 +1263,17 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                             new_value = False
 
                     # only save when value has changed
-                    logger.debug('new_value: ' + str(new_value) + ' ' + str(type(new_value)))
+                    #logger.debug('new_value: ' + str(new_value) + ' ' + str(type(new_value)))
                     if new_value != old_value:
                         setattr(instance, field, new_value)
                         is_updated = True
-                        logger.debug('is_updated: ' + str(is_updated) )
+                        #logger.debug('is_updated: ' + str(is_updated) )
                         # datefirst / datelast could be str, gave error. Changed to dict. Let isinstance stay
                         if isinstance(field_dict, dict):
                             field_dict['updated'] = True
                             if 'update' in field_dict:
                                 field_dict.pop('update')
-                        logger.debug('is_updated: ' + str(is_updated) )
+                        #logger.debug('is_updated: ' + str(is_updated) )
             if is_updated:
                 instance.save(request=request)
                 if not is_created and not is_deleted:
@@ -1290,8 +1290,8 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
 #######################################
 
 def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28  PR2020-10-10
-    logger.debug(' --- absence_upload ---')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- absence_upload ---')
+    #logger.debug('upload_dict: ' + str(upload_dict))
     # upload_dict: {'id': {'pk': 2053, 'shiftoption': 'isabsence'},
     #               'replacement': {'pk': 2606, 'ppk': 3, 'update': True}}
 
@@ -1404,12 +1404,12 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28
         replacement = None
         replacement_pk = f.get_dict_value (upload_dict, ('replacement', 'pk'))
         replacement_is_update = f.get_dict_value (upload_dict, ('replacement', 'update'), False)
-        logger.debug('replacement_pk: ' + str(replacement_pk))
+        #logger.debug('replacement_pk: ' + str(replacement_pk))
         if replacement_pk:
             replacement = m.Employee.objects.get_or_none(
                 pk=replacement_pk,
                 company=request.user.company)
-        logger.debug('replacement: ' + str(replacement))
+        #logger.debug('replacement: ' + str(replacement))
 
 # C: if is_create: create new scheme, shift, team, teammember and schemeitem
         teammember = None

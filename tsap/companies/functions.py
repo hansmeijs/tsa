@@ -22,7 +22,7 @@ def company_choices(cls, request_user):
             if request_user.company:
                 company_name = request_user.company.name
                 choices = [(request_user.company.id, company_name)]
-    logger.debug('company_choices: ', str(choices))
+    #logger.debug('company_choices: ', str(choices))
     return choices
 
 

@@ -97,7 +97,7 @@ def create_companyinvoice_dict(companyinvoice):
 
 
 def create_customer_list(company, customer_pk=None, is_absence=None, is_template=None, is_inactive=None):
-    logger.debug(' --- create_customer_list --- ')
+    #logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
     company_pk = company.pk
@@ -152,7 +152,7 @@ def create_customer_list(company, customer_pk=None, is_absence=None, is_template
 
     customer_list = []
     for row in customer_rows:
-        logger.debug(row)
+        #logger.debug(row)
         item_dict = {}
         create_customer_dict_from_sql(row, item_dict)
 

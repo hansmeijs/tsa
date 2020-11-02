@@ -2153,10 +2153,10 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
 # ========================================================================
 def create_emplhour_list(period_dict, is_emplhour_check, request):
     # PR2019-11-16 PR2020-08-06
-    logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug(' ============= create_emplhour_list ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
-    logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
-    logger.debug('request.user: ' + str(request.user.username_sliced))
+    #logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
+    #logger.debug('request.user: ' + str(request.user.username_sliced))
 
     last_emplhour_check = None
     no_updates, no_deletes = False, False
@@ -2170,7 +2170,7 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         last_emplhour_check = Usersetting.get_datetimesetting(key, request.user)
 
         last_emplhour_check_format = last_emplhour_check.isoformat().replace('T', ' ')[0:19]
-        logger.debug('last_emplhour_check: ' + last_emplhour_check_format)
+        #logger.debug('last_emplhour_check: ' + last_emplhour_check_format)
 
 # - set new datetime in last_emplhour_check in Usersetting
         # get now without timezone
@@ -2180,7 +2180,7 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         Usersetting.set_datetimesetting(key, new_last_emplhour_check, request.user)
 
         new_last_emplhour_check_format = new_last_emplhour_check.isoformat().replace('T', ' ')[0:19]
-        logger.debug('new_emplhour_check:  ' + new_last_emplhour_check_format)
+        #logger.debug('new_emplhour_check:  ' + new_last_emplhour_check_format)
 
 # - get datetime when last emplhour records are updated from Companysetting
     # - is stored in CompanySetting, to mak it faster then checking the emplhour table itself
@@ -2188,10 +2188,10 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         last_emplhour_updated, last_emplhour_deleted = m.Companysetting.get_datetimesetting(key, request.user.company)
 
         last_emplhour_updated_format = last_emplhour_updated.isoformat().replace('T', ' ')[0:19]
-        logger.debug('last_emplhr_updated: ' + last_emplhour_updated_format)
+        #logger.debug('last_emplhr_updated: ' + last_emplhour_updated_format)
 
         last_emplhour_deleted_format = last_emplhour_deleted.isoformat().replace('T', ' ')[0:19]
-        logger.debug('last_emplhr_deleted: ' + last_emplhour_deleted_format)
+        #logger.debug('last_emplhr_deleted: ' + last_emplhour_deleted_format)
 
 # if there are no updated records since last update: skip create_emplhour_rows,
         # also when last_emplhour_updated has no value yet
@@ -2205,8 +2205,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         elif last_emplhour_check and last_emplhour_deleted < last_emplhour_check:
             no_deletes = True
 
-    logger.debug('no_updates: ' + str(no_updates))
-    logger.debug('no_deletes: ' + str(no_deletes))
+    #logger.debug('no_updates: ' + str(no_updates))
+    #logger.debug('no_deletes: ' + str(no_deletes))
 # - get updated emplhour records, including deleted records
     emplhour_rows = []
     if not no_updates:

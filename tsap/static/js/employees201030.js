@@ -2368,14 +2368,17 @@ if(pgeName === "absence"){
         const el_label = document.getElementById("id_SBR_label_select_employee")
         el_label.innerText = label_caption;
         let header_text = null;
-        if(!selected_MSEF_btn){
-           header_text = loc.All + loc.Employees.toLowerCase();
-        } else if (selected_MSEF_pk > -1) {
-            header_text = selected_MSEF_code;
-        } else if(selected_MSEF_btn === "functioncode"){
-            header_text = loc.All + loc.Functions.toLowerCase();
-        } else {
-              header_text = loc.All + loc.Employees.toLowerCase();
+        // PR2020-11-01 debug loc may not have value yet (don't know why)
+        if(loc){
+            if(!selected_MSEF_btn){
+               header_text = loc.All + loc.Employees.toLowerCase();
+            } else if (selected_MSEF_pk > -1) {
+                header_text = selected_MSEF_code;
+            } else if(selected_MSEF_btn === "functioncode"){
+                header_text = loc.All + loc.Functions.toLowerCase();
+            } else {
+                header_text = loc.All + loc.Employees.toLowerCase();
+            }
         }
         el_SBR_select_employee_function.value = header_text;
 

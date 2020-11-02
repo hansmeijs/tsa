@@ -205,8 +205,8 @@ def create_price_list(filter_dict, request):  # PR2020-03-02
 
     price_list = []
     if request.user.company:
-        logger.debug(' ============= create_price_list ============= ')
-        logger.debug('filter_dict:  ' + str(filter_dict))
+        #logger.debug(' ============= create_price_list ============= ')
+        #logger.debug('filter_dict:  ' + str(filter_dict))
         rosterdate = filter_dict.get('rosterdate')
         rosterdate = rosterdate if rosterdate else None
 
@@ -307,7 +307,7 @@ def create_pricecode_list(rosterdate, request):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_pricecode(field, pricecode_rate, pricecode_note, date_first, request):
-    logger.debug(' --- create_pricecode --- ')
+    #logger.debug(' --- create_pricecode --- ')
     # --- create pricecode PR2020-03-05
 
     is_price = True if field == 'pricecode' else False
@@ -415,8 +415,8 @@ def create_pricecode_dict(pricecode, item_dict, request):
 class PricesUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= PricesUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= PricesUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_accman:
@@ -425,7 +425,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 field = f.get_dict_value(upload_dict, ('id', 'field'))
                 field_dict = upload_dict.get(field)
@@ -451,7 +451,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                         instance = m.Shift.objects.get_or_none(id=pk_int, scheme__order__customer__company=request.user.company)
                         if instance:
                             shift_pk = instance.pk
-                    logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
+                    #logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
 
                     if instance:
                         must_update_isbillable_and_recalc_baat = False
@@ -499,20 +499,20 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 # TODO give date_first value
                             date_first = f.get_date_from_ISO('2000-01-01')  # was f.get_today_dateobj()
 
-                            logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
-                            logger.debug('is_update: ' + str(is_update) + ' type: ' + str(type(is_update)))
-                            logger.debug('field: ' + str(field) )
-                            logger.debug('pc_id: ' + str(pc_id) + ' type: ' + str(type(pc_id)))
-                            logger.debug('pricecode_note: ' + str(pricecode_note))
+                            #logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
+                            #logger.debug('is_update: ' + str(is_update) + ' type: ' + str(type(is_update)))
+                            #logger.debug('field: ' + str(field) )
+                            #logger.debug('pc_id: ' + str(pc_id) + ' type: ' + str(type(pc_id)))
+                            #logger.debug('pricecode_note: ' + str(pricecode_note))
 
                             if is_create:
                                 price_rate = f.get_dict_value(upload_dict, (field, 'pricerate'))
-                                logger.debug('price_rate' + str(price_rate))
+                                #logger.debug('price_rate' + str(price_rate))
                                #  date_first = f.get_dict_value(upload_dict, (field, 'datefirst'))
                                 pc_id = create_pricecode(
                                     field, price_rate, pricecode_note, date_first, request)
 
-                                logger.debug('.........pc_id' + str(pc_id))
+                                #logger.debug('.........pc_id' + str(pc_id))
                                 must_update_pricecodelist = True
 
                             prc_instance = None
@@ -535,14 +535,14 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                                 prc_instance_pk = prc_instance.pk
 
                             if prc_instance_pk != saved_prc_pk:
-                                logger.debug('prc_instance_pk: ' + str(prc_instance_pk))
+                                #logger.debug('prc_instance_pk: ' + str(prc_instance_pk))
 # - save prc_instance
                                 # because company.pricecode_pk has no foreign field relationship:
                                 # must use prc_instance_pk instead of prc_instance
                                 fieldname = field + '_id'
                                 setattr(instance, fieldname, prc_instance_pk)
                                 instance.save(request=request)
-                                logger.debug('instance.saved: ' + str(instance))
+                                #logger.debug('instance.saved: ' + str(instance))
 
                                 update_dict[field + '_updated'] = True
                                 must_update_pat_code_and_recalc_baat = True
@@ -652,10 +652,10 @@ def reset_patfield_billable_in_subtables(table, fieldname, reset_value, order_pk
 
 
 def update_patcode_in_orderhour(table, field, instance, new_pat_code, request):
-    logger.debug(' --- update_patcode_in_orderhour --- ') # PR2020-07-05
-    logger.debug('table: ' + str(table)) # PR2020-07-05
-    logger.debug('field: ' + str(field)) # PR2020-07-05
-    logger.debug('new_pat_code: ' + str(new_pat_code)) # PR2020-07-05
+    #logger.debug(' --- update_patcode_in_orderhour --- ') # PR2020-07-05
+    #logger.debug('table: ' + str(table)) # PR2020-07-05
+    #logger.debug('field: ' + str(field)) # PR2020-07-05
+    #logger.debug('new_pat_code: ' + str(new_pat_code)) # PR2020-07-05
     # - update  pricerate and amount and tax in table orderhour
 
     crit = Q(order__customer__company=request.user.company) & \
@@ -738,9 +738,9 @@ def get_pricecode_data(pricecode_id, date_first, request):
 
 
 def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
-    logger.debug(' --- update_isbillable_and_recalc_baat --- ') # PR2020-07-23
-    logger.debug('orderhour_pk: ' + str(order_pk))
-    logger.debug('shift_pk: ' + str(shift_pk))
+    #logger.debug(' --- update_isbillable_and_recalc_baat --- ') # PR2020-07-23
+    #logger.debug('orderhour_pk: ' + str(order_pk))
+    #logger.debug('shift_pk: ' + str(shift_pk))
 
 # - update field isbillable in orderhour records that are not locked
     sql_schemeitem = """
@@ -782,11 +782,11 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
             'o_id': order_pk,
             'sh_id': shift_pk,
         })
-        rows = cursor.fetchall()
+        #rows = cursor.fetchall()
         # rows[(10192,), (10183,), (10082,), (10185,), (10184,)]
-        logger.debug('...................................')
-        logger.debug('rows' + str(rows))
-        logger.debug('...................................')
+        #logger.debug('...................................')
+        #logger.debug('rows' + str(rows))
+        #logger.debug('...................................')
 
 # - update field billingduration in emplhour records that are not locked
     recalc_baat(None, order_pk, shift_pk, request)
@@ -795,9 +795,9 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
 
 
 def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
-    logger.debug(' --- recalc_baat --- ') # PR2020-07-29
-    logger.debug('orderhour_pk: ' + str(orderhour_pk))
-    logger.debug('shift_pk: ' + str(shift_pk))
+    #logger.debug(' --- recalc_baat --- ') # PR2020-07-29
+    #logger.debug('orderhour_pk: ' + str(orderhour_pk))
+    #logger.debug('shift_pk: ' + str(shift_pk))
 
 # - update field billingduration in emplhour records that are not locked
     sql_oh_sub1 = """
@@ -856,19 +856,18 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
             'sh_id': shift_pk,
             'oh_id': orderhour_pk
         })
-        rows = f.dictfetchall(cursor)
-        logger.debug('...................................')
-        for dictrow in rows:
-            logger.debug('...................................')
-            logger.debug('sql_emplhour row' + str(dictrow))
-        logger.debug('...................................')
+        #rows = f.dictfetchall(cursor)
+        #logger.debug('...................................')
+        #for dictrow in rows:
+        #    logger.debug('...................................')
+        #    logger.debug('sql_emplhour row' + str(dictrow))
+        #logger.debug('...................................')
 # ---  end of recalc_baat
 
 
 def update_pat_code_and_recalc_baat(pat_field, pricecode_pk, shift_pk, order_pk, request):
-    logger.debug(' --- update_pat_code_and_recalc_baat --- ') # PR2020-07-29
-
-    logger.debug('pricecode_pk: ' + str(pricecode_pk))
+    #logger.debug(' --- update_pat_code_and_recalc_baat --- ') # PR2020-07-29
+    #logger.debug('pricecode_pk: ' + str(pricecode_pk))
 
     sql_sh_sub = """
         SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
@@ -966,18 +965,18 @@ def update_pat_code_and_recalc_baat(pat_field, pricecode_pk, shift_pk, order_pk,
             'o_id': order_pk,
             'sh_id': shift_pk,
         })
-        rows = f.dictfetchall(cursor)
-        logger.debug('...................................')
-        for dictrow in rows:
-            logger.debug('sql_pricecode_rate_by_refdate' + str(dictrow))
-        logger.debug('...................................')
+        #rows = f.dictfetchall(cursor)
+        #logger.debug('...................................')
+        #for dictrow in rows:
+        #    logger.debug('sql_pricecode_rate_by_refdate' + str(dictrow))
+        #logger.debug('...................................')
 
 # - update field billingduration in emplhour records that are not locked
     recalc_baat(None, None, None, request)
 # ---  end of update_pat_rate_in_orderhour
 
 def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, request):
-    logger.debug(' --- update_amount_addition_tax_in_emplhour --- ')  # PR2020-07-27
+    #logger.debug(' --- update_amount_addition_tax_in_emplhour --- ')  # PR2020-07-27
     # - update field billable, amount, addition, tax in all orderhour records that are not locked
 
     # - update field billingduration in emplhour records that are not locked

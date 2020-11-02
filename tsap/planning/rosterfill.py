@@ -2690,15 +2690,15 @@ def get_employee_calendar_rows(rosterdate_dte, is_saturday, is_sunday, is_public
     rows = newcursor.fetchall()
 
     #FOR TESTING ONLY
-    logger.debug('--------------------- sql_teammember_sub08_FASTER --------------------- ')
-    logger.debug(sql)
+    #logger.debug('--------------------- sql_teammember_sub08_FASTER --------------------- ')
+    #logger.debug(sql)
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte.isoformat()) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('employee_pk: ' + str(employee_pk) + ' order_pk: ' + str(order_pk) + ' customer_pk: ' + str(customer_pk))
-    newcursor.execute(sql,sql_keys)
-    dictrows = f.dictfetchall(newcursor)
-    for dictrow in dictrows:
-        logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
-        logger.debug(str(dictrow))
+    #newcursor.execute(sql,sql_keys)
+    #dictrows = f.dictfetchall(newcursor)
+    #for dictrow in dictrows:
+    #    logger.debug('---------------------' + str(rosterdate_dte.isoformat()))
+    #    logger.debug(str(dictrow))
 
 
     # TODO to filter multiple order_pk's Works, but add 'Show All orders

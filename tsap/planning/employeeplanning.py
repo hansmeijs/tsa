@@ -577,7 +577,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
 
 # >>>>> SHIFT IS NORMAL SHIFT
     else:
-        logger.debug('SHIFT IS NORMAL SHIFT')
+        #logger.debug('SHIFT IS NORMAL SHIFT')
         """       
         employee_dictlist: { 2608: {'id': 2608, 'comp_id': 3, 'code': 'Colpa de, William', 
                                     'datefirst': datetime.date(1991, 11, 25), 'datelast': None, 'namelast': 'Colpa de', 

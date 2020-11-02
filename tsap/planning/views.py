@@ -4739,8 +4739,8 @@ def recalc_paydate(rosterdate_dte, paydatecode):  # PR2020-06-22
 class EmplhournoteUploadView(UpdateView):  # PR2020-10-14
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhournoteUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhournoteUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:

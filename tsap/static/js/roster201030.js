@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
-        //let intervalID = window.setInterval(CheckForUpdates, 30000);  // every 30 seconds
+        let intervalID = window.setInterval(CheckForUpdates, 30000);  // every 30 seconds
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
 
 // ---  set selected menu button active
