@@ -17,7 +17,7 @@ def create_user_list(request, user_pk=None):
             'user' AS table,
             
             SUBSTRING(au.username, 7) AS username,
-            au.last_name, au.email, au.role, au.permits,
+            au.last_name, au.email, au.role, au.permits, au.permitcustomers, au.permitorders,
             
             (TRUNC(au.permits / 64) = 1) AS perm64_sysadmin, 
             (TRUNC( MOD(au.permits, 64) / 32) = 1) AS perm32_accman, 

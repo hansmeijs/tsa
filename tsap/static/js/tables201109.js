@@ -357,6 +357,215 @@
 
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
 
+// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
+//========= t_Filter_SelectRows  ==================================== PR2020-01-17
+    function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk, col_index) {
+        //console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "filter_text: <" + filter_text + ">");
+        //console.log( "has_ppk_filter: " + has_ppk_filter);
+        //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
+
+        const filter_text_lower = (filter_text) ? filter_text.toLowerCase() : "";
+        if(!col_index){col_index = 0}
+        let has_selection = false, has_multiple = false;
+        let sel_value = null, sel_pk = null, sel_ppk = null, sel_display = null, sel_rowid = null;
+        let row_count = 0;
+        for (let i = 0, tblRow; tblRow = tblBody_select.rows[i]; i++) {
+            if (!!tblRow){
+                let hide_row = false
+// ---  show only rows of selected_ppk_str, only if has_ppk_filter = true
+                if(has_ppk_filter){
+                    const ppk_str = get_attr_from_el(tblRow, "data-ppk")
+                    if(selected_ppk){
+                        hide_row = (ppk_str !== selected_ppk.toString())
+                    } else {
+                        hide_row = true;
+                }};
+// ---  hide inactive rows when filter_show_inactive = false
+                if(!hide_row && !filter_show_inactive){
+                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
+                    if (!!inactive_str) {
+                        hide_row = (inactive_str.toLowerCase() === "true")
+                }};
+// ---  show all rows if filter_text = ""
+                if (!hide_row && filter_text_lower){
+                    let found = false
+                    // PR2020-11-02 col_index added to be able to filter on second column
+                    const cell = tblRow.cells[col_index];
+                    if(cell){
+                        const el_div = cell.children[0];
+                        if(el_div){
+                            let el_value = el_div.innerText;
+                            if(el_value){
+                                el_value = el_value.toLowerCase();
+                                found = (el_value.indexOf(filter_text_lower) !== -1)
+                            }
+                        }
+                    }
+                    hide_row = (!found)
+                };
+                if (hide_row) {
+                    tblRow.classList.add(cls_hide)
+                } else {
+                    tblRow.classList.remove(cls_hide);
+                    row_count += 1;
+// ---  put values from first row that is shown in select_value etc
+                    if(!has_selection ) {
+                        sel_pk = get_attr_from_el(tblRow, "data-pk");
+                        sel_ppk = get_attr_from_el(tblRow, "data-ppk");
+                        sel_value = get_attr_from_el(tblRow, "data-value");
+                        sel_display = get_attr_from_el(tblRow, "data-display");
+                        sel_rowid = get_attr_from_el(tblRow, "id");
+                    } else {
+                        has_multiple = true;
+                    }
+                    has_selection = true;
+        }}};
+// ---  set select_value etc null when multiple items found
+        if (has_multiple){
+            sel_pk = null;
+            sel_ppk = null;
+            sel_value = null,
+            sel_display = null;
+            sel_rowid = null;
+        }
+        return {row_count: row_count, selected_pk: sel_pk, selected_ppk: sel_ppk,
+                selected_value: sel_value, selected_display: sel_display, selected_rowid: sel_rowid};
+    }; // t_Filter_SelectRows
+
+//========= t_Filter_TableRows  ==================================== PR2020-01-17// PR2019-06-24
+    function t_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {
+        //console.log( "===== t_Filter_TableRows  ========= ", tblName);
+        //console.log( "filter_dict", filter_dict);
+        //console.log( "filter_show_inactive", filter_show_inactive);
+        //console.log( "has_ppk_filter", has_ppk_filter);
+        //console.log( "selected_ppk", selected_ppk);
+
+        let tblRows = tblBody.rows
+        //console.log( "tblBody", tblBody);
+        const len = tblBody.rows.length;
+        //console.log( "tblBody.rows.length", len);
+        if (len){
+            for (let i = 0, tblRow, show_row; i < len; i++) {
+                tblRow = tblBody.rows[i]
+                show_row = t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
+                if (show_row) {
+                    tblRow.classList.remove(cls_hide)
+                } else {
+                    tblRow.classList.add(cls_hide)
+                };
+            }
+        } //  if (!!len){
+    }; // t_Filter_TableRows
+
+//========= t_ShowTableRow  ==================================== PR2020-01-17
+    function t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15
+        //console.log( "===== t_ShowTableRow  ========= ", tblName);
+        //console.log("filter_show_inactive", filter_show_inactive);
+        //console.log("tblRow", tblRow);
+
+        // function filters by inactive and substring of fields
+        // also filters selected customer pk in table order
+        //  - iterates through cells of tblRow
+        //  - skips filter of new row (new row is always visible) -> 'data-addnew' = 'true'
+        //  - filters on parent-pk -> 'data-ppk' = selected_ppk
+        //  - if filter_name is not null:
+        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
+        //       - returns show_row = true when filter_name found in value
+        // filters on blank when filter_text = "#"
+        //  - if col_inactive has value >= 0 and hide_inactive = true:
+        //       - checks -> 'data-inactive' = 'true'
+        //       - hides row if inactive = true
+        // gets value of :
+        // when tag = 'select': value = selectedIndex.text
+        // when tag = 'input': value = el.value
+        // else: (excl tag = 'a'): value = el.innerText
+        // when not found:  value = 'data-value'
+        let hide_row = false;
+        if (tblRow){
+
+// 1. skip new row
+    // check if row is_addnew_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
+            const is_addnew_row = (get_attr_from_el(tblRow, "data-addnew") === "true");
+            if(!is_addnew_row){
+
+        // show only rows of selected_ppk, only if selected_ppk has value
+                if(!!has_ppk_filter && !!selected_ppk){
+                    const ppk_str = get_attr_from_el(tblRow, "data-ppk")
+        //console.log("ppk_str", ppk_str);
+                    if(!!selected_ppk){
+                        hide_row = (ppk_str !== selected_ppk.toString())
+                    } else {
+                        hide_row = true;
+                    }
+                }
+        //console.log( "hide_row after selected_ppk: ", has_ppk_filter, selected_ppk,  hide_row);
+
+// hide inactive rows if filter_show_inactive
+                if(!hide_row && !filter_show_inactive){
+                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
+        //console.log("inactive_str", inactive_str);
+                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
+                        hide_row = true;
+                    }
+       //console.log("hide_row", hide_row);
+                }
+       //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
+
+        //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
+// show all rows if filter_name = ""
+                if (!hide_row && !isEmpty(filter_dict)){
+                    Object.keys(filter_dict).forEach(function(key) {
+                        const filter_text = filter_dict[key];
+        //console.log("filter_text", filter_text);
+                        const filter_blank = (filter_text === "#")
+                        const filter_non_blank = (filter_text === "@")
+                        let tbl_cell = tblRow.cells[key];
+                        if (tbl_cell){
+                            let el = tbl_cell.children[0];
+                            if (el) {
+                        // skip if no filter on this colums
+                                if(filter_text){
+                        // get value from el.value, innerText or data-value
+                                    const el_tagName = el.tagName.toLowerCase()
+                                    let el_value = null;
+                                    if (el_tagName === "select"){
+                                        el_value = el.options[el.selectedIndex].text;
+                                    } else if (el_tagName === "input"){
+                                        el_value = el.value;
+                                    } else if (el_tagName === "a"){
+                                        // skip
+                                    } else {
+                                        el_value = el.innerText;
+                                    }
+                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
+        //console.log("el_tagName", el_tagName, "el_value",  el_value);
+
+                                    // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
+                                    if (filter_blank){
+                                        if (el_value){hide_row = true};
+                                    } else if (filter_non_blank){
+                                        if (!el_value){hide_row = true};
+                                    } else if (!el_value){
+                                        hide_row = true;
+                                    } else {
+                                        const el_value_lc = el_value.toLowerCase() ;
+                                        // hide row if filter_text not found
+                                        if (el_value_lc.indexOf(filter_text) === -1) {hide_row = true};
+                                    }
+                                }  //  if(!!filter_text)
+                            }  // if (!!el) {
+                        }  //  if (!!tbl_cell){
+                    });  // Object.keys(filter_dict).forEach(function(key) {
+                }  // if (!hide_row)
+
+        //console.log( "hide_row after filter_dict: ", filter_dict, hide_row);
+            } //  if(!is_addnew_row){
+        }  // if (!!tblRow)
+        return !hide_row
+    }; // t_ShowTableRow
+// ++++++++++++  END OF FILTER +++++++++++++++++++++++++++++++++++++++
+
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12 PR2020-08-29
     function t_SetExtendedFilterDict(el, col_index, filter_dict, event_key) {
@@ -631,8 +840,8 @@
         }
         return filter_row
     }; // t_create_filter_row
-
 // ++++++++++++  END OF FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
+
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
@@ -913,8 +1122,6 @@
         return order_by;
     }  //   t_get_orderby_exceldate_cocode_excelstart
 
-
-
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
     function remove_err_del_cre_updated__from_itemdict(item_dict) {
@@ -1123,6 +1330,7 @@
             value = default_value}
         return value
     }
+
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
     // to be replaced by get_dict_value in base.js
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
@@ -1288,8 +1496,6 @@
 
         } // if(!!el_input && msg_err)
     }
-
-
 
 //=========  AppendIcon  ================ PR2019-05-31
     function AppendChildIcon(el, img_src, height) {
@@ -1483,8 +1689,6 @@
                         }}}}};
     }  // ChangeBackgroundRows
 
-
-
 //========= found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
         // PR2019-01-22 returns true if ;value; is found in list_str
@@ -1534,211 +1738,6 @@
     //})();
 
 
-// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//========= t_Filter_SelectRows  ==================================== PR2020-01-17
-    function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        //console.log( "===== t_Filter_SelectRows  ========= ");
-        //console.log( "filter_text: <" + filter_text + ">");
-        //console.log( "has_ppk_filter: " + has_ppk_filter);
-        //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
-
-        const filter_text_lower = (filter_text) ? filter_text.toLowerCase() : "";
-        let has_selection = false, has_multiple = false;
-        let sel_value = null, sel_pk = null, sel_ppk = null, sel_display = null, sel_rowid = null;
-        let row_count = 0;
-        for (let i = 0, tblRow; tblRow = tblBody_select.rows[i]; i++) {
-            if (!!tblRow){
-                let hide_row = false
-// ---  show only rows of selected_ppk_str, only if has_ppk_filter = true
-                if(has_ppk_filter){
-                    const ppk_str = get_attr_from_el(tblRow, "data-ppk")
-                    if(selected_ppk){
-                        hide_row = (ppk_str !== selected_ppk.toString())
-                    } else {
-                        hide_row = true;
-                }};
-// ---  hide inactive rows when filter_show_inactive = false
-                if(!hide_row && !filter_show_inactive){
-                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
-                    if (!!inactive_str) {
-                        hide_row = (inactive_str.toLowerCase() === "true")
-                }};
-                //console.log( "hide_row" + hide_row);
-// ---  show all rows if filter_text = ""
-                if (!hide_row && filter_text_lower){
-                    let found = false
-                    if (!!tblRow.cells[0] && !!tblRow.cells[0].children[0]) {
-                        let el_value = tblRow.cells[0].children[0].innerText;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-// ---  show row if filter_text_lower is found in el_value
-                            found = (el_value.indexOf(filter_text_lower) !== -1)
-                    }};
-                    hide_row = (!found)
-                };
-                if (hide_row) {
-                    tblRow.classList.add(cls_hide)
-                } else {
-                    tblRow.classList.remove(cls_hide);
-                    row_count += 1;
-// ---  put values from first row that is shown in select_value etc
-                    if(!has_selection ) {
-                        sel_pk = get_attr_from_el(tblRow, "data-pk");
-                        sel_ppk = get_attr_from_el(tblRow, "data-ppk");
-                        sel_value = get_attr_from_el(tblRow, "data-value");
-                        sel_display = get_attr_from_el(tblRow, "data-display");
-                        sel_rowid = get_attr_from_el(tblRow, "id");
-                    } else {
-                        has_multiple = true;
-                    }
-                    has_selection = true;
-        }}};
-// ---  set select_value etc null when multiple items found
-        if (has_multiple){
-            sel_pk = null;
-            sel_ppk = null;
-            sel_value = null,
-            sel_display = null;
-            sel_rowid = null;
-        }
-        return {row_count: row_count, selected_pk: sel_pk, selected_ppk: sel_ppk,
-                selected_value: sel_value, selected_display: sel_display, selected_rowid: sel_rowid};
-    }; // t_Filter_SelectRows
-
-//========= t_Filter_TableRows  ==================================== PR2020-01-17// PR2019-06-24
-    function t_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        //console.log( "===== t_Filter_TableRows  ========= ", tblName);
-        //console.log( "filter_dict", filter_dict);
-        //console.log( "filter_show_inactive", filter_show_inactive);
-        //console.log( "has_ppk_filter", has_ppk_filter);
-        //console.log( "selected_ppk", selected_ppk);
-
-        let tblRows = tblBody.rows
-        //console.log( "tblBody", tblBody);
-        const len = tblBody.rows.length;
-        //console.log( "tblBody.rows.length", len);
-        if (len){
-            for (let i = 0, tblRow, show_row; i < len; i++) {
-                tblRow = tblBody.rows[i]
-                show_row = t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
-            }
-        } //  if (!!len){
-    }; // t_Filter_TableRows
-
-//========= t_ShowTableRow  ==================================== PR2020-01-17
-    function t_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15
-        //console.log( "===== t_ShowTableRow  ========= ", tblName);
-        //console.log("filter_show_inactive", filter_show_inactive);
-        //console.log("tblRow", tblRow);
-
-        // function filters by inactive and substring of fields
-        // also filters selected customer pk in table order
-        //  - iterates through cells of tblRow
-        //  - skips filter of new row (new row is always visible) -> 'data-addnew' = 'true'
-        //  - filters on parent-pk -> 'data-ppk' = selected_ppk
-        //  - if filter_name is not null:
-        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
-        //       - returns show_row = true when filter_name found in value
-        // filters on blank when filter_text = "#"
-        //  - if col_inactive has value >= 0 and hide_inactive = true:
-        //       - checks -> 'data-inactive' = 'true'
-        //       - hides row if inactive = true
-        // gets value of :
-        // when tag = 'select': value = selectedIndex.text
-        // when tag = 'input': value = el.value
-        // else: (excl tag = 'a'): value = el.innerText
-        // when not found:  value = 'data-value'
-        let hide_row = false;
-        if (tblRow){
-
-// 1. skip new row
-    // check if row is_addnew_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
-            const is_addnew_row = (get_attr_from_el(tblRow, "data-addnew") === "true");
-            if(!is_addnew_row){
-
-        // show only rows of selected_ppk, only if selected_ppk has value
-                if(!!has_ppk_filter && !!selected_ppk){
-                    const ppk_str = get_attr_from_el(tblRow, "data-ppk")
-        //console.log("ppk_str", ppk_str);
-                    if(!!selected_ppk){
-                        hide_row = (ppk_str !== selected_ppk.toString())
-                    } else {
-                        hide_row = true;
-                    }
-                }
-        //console.log( "hide_row after selected_ppk: ", has_ppk_filter, selected_ppk,  hide_row);
-
-// hide inactive rows if filter_show_inactive
-                if(!hide_row && !filter_show_inactive){
-                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
-        //console.log("inactive_str", inactive_str);
-                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
-                        hide_row = true;
-                    }
-       //console.log("hide_row", hide_row);
-                }
-       //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
-
-        //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
-// show all rows if filter_name = ""
-                if (!hide_row && !isEmpty(filter_dict)){
-                    Object.keys(filter_dict).forEach(function(key) {
-                        const filter_text = filter_dict[key];
-        //console.log("filter_text", filter_text);
-                        const filter_blank = (filter_text === "#")
-                        const filter_non_blank = (filter_text === "@")
-                        let tbl_cell = tblRow.cells[key];
-                        if (tbl_cell){
-                            let el = tbl_cell.children[0];
-                            if (el) {
-                        // skip if no filter on this colums
-                                if(filter_text){
-                        // get value from el.value, innerText or data-value
-                                    const el_tagName = el.tagName.toLowerCase()
-                                    let el_value = null;
-                                    if (el_tagName === "select"){
-                                        el_value = el.options[el.selectedIndex].text;
-                                    } else if (el_tagName === "input"){
-                                        el_value = el.value;
-                                    } else if (el_tagName === "a"){
-                                        // skip
-                                    } else {
-                                        el_value = el.innerText;
-                                    }
-                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-        //console.log("el_tagName", el_tagName, "el_value",  el_value);
-
-                                    // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
-                                    if (filter_blank){
-                                        if (el_value){hide_row = true};
-                                    } else if (filter_non_blank){
-                                        if (!el_value){hide_row = true};
-                                    } else if (!el_value){
-                                        hide_row = true;
-                                    } else {
-                                        const el_value_lc = el_value.toLowerCase() ;
-                                        // hide row if filter_text not found
-                                        if (el_value_lc.indexOf(filter_text) === -1) {hide_row = true};
-                                    }
-                                }  //  if(!!filter_text)
-                            }  // if (!!el) {
-                        }  //  if (!!tbl_cell){
-                    });  // Object.keys(filter_dict).forEach(function(key) {
-                }  // if (!hide_row)
-
-        //console.log( "hide_row after filter_dict: ", filter_dict, hide_row);
-            } //  if(!is_addnew_row){
-        }  // if (!!tblRow)
-        return !hide_row
-    }; // t_ShowTableRow
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //  ======= ReplaceItemDict ========
     function ReplaceItemDict (item_list, item_dict){
@@ -1784,7 +1783,6 @@
         //console.log (sorted_list)
         return sorted_list
     };  // SortItemList
-
 
 //  ======= SortItem ========
     function SortItem (sorted_list, item_str, field,user_lang ){
@@ -1926,7 +1924,6 @@
         }
         el_select.innerHTML = option_text;
     }  // t_FillOptionsWeekdays
-
 
 //=========  t_CreateTblModSelectPeriod  ================ PR2019-11-16 PR2020-07-11
     function t_CreateTblModSelectPeriod(loc, ModPeriodSelect, add_period_extend) {
@@ -2568,3 +2565,260 @@
         };
     }
 
+//###########################################################################
+// +++++++++++++++++ EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++++
+//========= t_calc_employeeplanning_agg_dict  ==================================== PR2020-11-04
+    function t_calc_employeeplanning_agg_dict(rows, period_dict, employee_map) {
+        //console.log( "===== t_calc_employeeplanning_agg_dict  ========= ");
+
+        // dict = { fid: "1790_3719_2020-07-08", employee_code: "*Regales RDT", customer_code: "Centrum", order_code: "Mahaai"
+        // rosterdate: "2020-07-08", shift_code: "20.00 - 01.00 >", offsetstart: 1200, offsetend: 1500,
+        // breakduration: 0, timeduration: 300, isabsence: false, isrestshift: false }
+
+        const period_workingdays = get_dict_value(period_dict, ["period_workingdays"], 0)
+        const period_datefirst_iso = get_dict_value(period_dict, ["period_datefirst"])
+        const period_datelast_iso = get_dict_value(period_dict, ["period_datelast"])
+
+        let planning_agg_list = [];
+// convert rows row into agg_dict
+        // agg_dict = { employee_pk: [employee_pk, employee_code, contracthours_sum, workinghours_sum, absence_sum] }
+        let agg_dict = {}
+        rows.forEach(function (dict, index) {
+            //console.log( "index ", index,  "rows dict ", dict);
+            const employee_pk = (dict.e_id) ? dict.e_id : -1;
+
+            if (!(employee_pk in agg_dict) ) {
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
+                const employee_code = (dict.e_code) ? dict.e_code : "---";
+                const workhoursperday = get_dict_value(map_dict, ["workhoursperweek", "value"], 0 ) / 5
+                const contracthours_sum =  period_workingdays * workhoursperday;
+
+                agg_dict[employee_pk] = [
+                    employee_pk,
+                    employee_code,
+                    contracthours_sum,
+                    0, //  agg_row[3] = plannedhours
+                    0  // agg_row[4] = absencehours
+                ];
+            }
+            if(dict.plandur) { agg_dict[employee_pk][3] += dict.plandur};
+            if(dict.absdur) { agg_dict[employee_pk][4] += dict.absdur};
+        });
+
+        //console.log( "agg_dict ", agg_dict);
+
+        let row_count = 0
+//--- add row with empty employee, if any
+        // employee_pk = -1 means no employee
+        if(-1 in agg_dict) {
+            const agg_row = get_dict_value(agg_dict, [-1])
+            let plannedhours = 0;
+            if (agg_row){ plannedhours = agg_row[3]};
+            const row = [-1, "---", period_workingdays, 0, plannedhours, 0, 0];
+            planning_agg_list.push(row)
+            row_count += 1;
+        }
+
+        if (employee_map.size){
+//--- loop through employee_map
+            for (const [map_id, map_dict] of employee_map.entries()) {
+                const employee_pk = map_dict.id;
+                const employee_code = (map_dict.code) ? map_dict.code :  "---";
+                const is_inactive = (map_dict.inactive) ? map_dict.inactive : false;
+                let row = []
+                // check first date in service / last date in service
+                let fdis_full = false, fdis_not = false, ldis_full = false, ldis_not = false
+                if(!map_dict.datefirst || map_dict.datefirst <= period_datefirst_iso ) {
+                    // in service ( first date in service on or before start of period )
+                    fdis_full = true;
+                } else if(map_dict.datefirst > period_datelast_iso) {
+                    // not in service ( first date in service after end of period )
+                    fdis_not = true;
+                }
+                if(!map_dict.datelast || map_dict.datelast >= period_datelast_iso ) {
+                    // in service ( last date in service on or after end of period )
+                    ldis_full = true;
+                } else if(map_dict.datelast < period_datefirst_iso) {
+                    // not in service ( last date in service before start of period )
+                    ldis_not = true;
+                }
+                // skip if employee is not in service during period, unless is has shifts during that period
+                if ( (fdis_not || ldis_not || is_inactive ) && !(employee_pk in agg_dict) ) {
+                    // skip employee that is not in service or is_inactive, except when in agg_dict
+                } else {
+                    let contracthours = 0, plannedhours = 0, absencehours = 0, difference = 0, workingdays = 0
+                    if (fdis_full && ldis_full) {
+                        workingdays = period_workingdays;
+                    } else {
+                        workingdays = calculate_workingdays(period_datefirst_iso, period_datelast_iso, map_dict.datefirst, map_dict.datelast);
+                    }
+                    contracthours = workingdays * map_dict.workhoursperweek / 5;
+
+                    const agg_row = get_dict_value(agg_dict, [employee_pk])
+                    if (agg_row){
+                        plannedhours = agg_row[3];
+                        absencehours = agg_row[4];
+                    }
+                    difference = plannedhours + absencehours - contracthours;
+
+                    row = [employee_pk, employee_code, workingdays, contracthours, plannedhours, absencehours, difference]
+
+                    planning_agg_list.push(row)
+                } // if (fdis_not || ldis_not ) && !(employee_pk in agg_dict) {
+                row_count += 1;
+            } // for (const [map_id, item_dict] of employee_map.entries())
+        }  //  if (employee_map.size === 0)
+        return planning_agg_list
+    }  // t_calc_employeeplanning_agg_dict
+
+//========= CreateHTML_planning_agg_list  ==================================== PR2020-07-10
+    function t_CreateHTML_planning_agg_list(loc, planning_agg_list, html_planning_agg_list) {
+        //console.log("==== CreateHTML_planning_agg_list  ========= ");
+        //console.log(" planning_agg_list", planning_agg_list);
+
+        // html_planning_agg_list = [ 0:employee_pk, 1: employee_code 2: contract_hours, 3:worked_hours,
+        //                             4:absence_hours, 5:difference ]
+        // table columns: [ 0: employee_code 1: contract_hours, 2: worked_hours,
+        //                             3: absence_hours, 4: difference ]
+        //  detail_rows = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+
+        html_planning_agg_list = [];
+        for (let i = 0, item; item = planning_agg_list[i]; i++) {
+            let td_html = [];
+            const employee_pk = item[0];
+            const employee_code = (item[1]) ? item[1] : "";
+
+// --- put values of agg_dict in proper column
+            let row_data = item;
+// add margin column
+            td_html[0] =  "<td><div class=\"ta_c\"></div></td>"
+// add employee_code
+            const display_text = (employee_code) ? employee_code : "---";
+            td_html[1] = "<td><div>" + display_text + "</div></td>"
+// add working days
+            td_html[2] = "<td><div class=\"ta_c\">" + item[2], + "</div></td>"
+// --- add contract_hours worked_hours, absence_hours, difference
+            for (let i = 3; i < 7; i++) {
+                let duration_formatted = format_total_duration (item[i], loc.user_lang);
+
+                td_html[i] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
+            }
+// add margin at the end
+            td_html[7] = "<td><div class=\"ta_c\"></div></td>"
+// --- add filter_data
+            let filter_data = [];
+            filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
+            filter_data[2] = (item[2]) ? item[2] : null
+            for (let i = 3; i < 7; i++) {
+                filter_data[i] = (item[i]) ? item[i] : null
+            }
+
+//--- put td's together
+            let row_html = "";
+            for (let j = 0, item; item = td_html[j]; j++) {
+                if(item){row_html += item};
+            }
+            //  html_planning_agg_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+            const row = [true, employee_pk, filter_data, row_data, row_html];
+            html_planning_agg_list.push(row);
+        }  //  for (let i = 0, item;
+
+    }  // CreateHTML_planning_agg_list
+
+//========= CreateHTML_planning_detail_list  ==================================== PR2020-07-10
+    function t_CreateHTML_planning_detail_list(loc, rows, html_planning_detail_list) {
+        //console.log("==== CreateHTML_planning_detail_list  ========= ");
+
+        // html_planning_agg_list = [ 0:employee_pk, 1: employee_code 2: contract_hours, 3:worked_hours,
+        //                             4:absence_hours, 5:difference ]
+        // table columns: [ 0: employee_code 1: contract_hours, 2: worked_hours,
+        //                             3: absence_hours, 4: difference ]
+        //  html_planning_detail_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+
+        html_planning_detail_list = [];
+        for (let i = 0, item; item = rows[i]; i++) {
+            const employee_pk = (item.e_id) ? item.e_id : -1;  // employee_pk = -1 means no emplyee
+            const employee_code = (item.e_code) ? item.e_code : "---";
+            const cust_ord_code = (item.c_o_code) ? item.c_o_code : "";
+            const shift_code = (item.sh_code) ? item.sh_code : "";
+            const rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(item.rosterdate), false, true);
+            const planned_hours = (item.plandur) ? item.plandur : 0
+            const absence_hours = (item.absdur) ? item.absdur : 0
+            const planned_hours_formatted = format_total_duration (planned_hours, loc.user_lang);
+            const absence_hours_formatted = format_total_duration (absence_hours, loc.user_lang);
+
+        //console.log("item", item);
+        //console.log("employee_code", employee_code);
+        //console.log("cust_ord_code", cust_ord_code);
+        //console.log("planned_hours_formatted", planned_hours_formatted);
+
+// --- put values of agg_dict in proper column
+            let td_html = [], row_data = [],  filter_data = [];
+// add margin column
+            td_html[0] = "<td><div class=\"ta_c\"></div></td>";
+// ---  add rosterdate in second column
+            row_data[1] = item.rosterdate;
+            filter_data[1] = (rosterdate_formatted) ? rosterdate_formatted : null;
+            td_html[1] = "<td><div class=\"ta_l\">" + rosterdate_formatted + "</div></td>";
+// ---  add customer and order
+            row_data[2] = cust_ord_code;
+            filter_data[2] = (cust_ord_code) ? cust_ord_code.toLowerCase() : null;
+            td_html[2] = "<td><div class=\"ta_l\">" + cust_ord_code + "</div></td>"
+// ---  add shift
+            row_data[3] = shift_code;
+            filter_data[3] = (shift_code) ? shift_code.toLowerCase() : null;
+            td_html[3] = "<td><div class=\"ta_l\">" + shift_code + "</div></td>";
+// ---  add planned hours
+            row_data[4] = planned_hours;
+            filter_data[4] = (planned_hours) ? planned_hours : null;
+            td_html[4] = "<td><div class=\"ta_r\">" + planned_hours_formatted + "</div></td>";
+// ---  add absence_hours hours
+            row_data[5] = absence_hours;
+            filter_data[5] = (absence_hours) ? absence_hours : null;
+            td_html[5] = "<td><div class=\"ta_r\">" + absence_hours_formatted + "</div></td>";
+// add margin at the end
+            td_html[6] = "<td><div class=\"ta_c\"></div></td>"
+
+//--- put td's together
+            let row_html = "";
+            for (let j = 0, item; item = td_html[j]; j++) {
+                if(item){row_html += item};
+            }
+            //  html_planning_detail_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html, 5: fid, 6: c_id, 7: o_id ]
+            const row = [true, employee_pk, filter_data, row_data, row_html, item.fid, item.c_id, item.o_id];
+            html_planning_detail_list.push(row);
+        }  //  for (let i = 0, item; item = html_planning_detail_list[i]; i++) {
+    }  // CreateHTML_planning_detail_list
+
+
+//========= calculate_workingdays  ====================================
+    function t_calculate_workingdays(period_datefirst_iso, period_datelast_iso, employee_datefirst_iso, employee_datelast_iso) {
+         //console.log( "calculate_workingdays");
+        let workingdays = 0;
+
+        if (period_datefirst_iso && period_datelast_iso) {
+            const datefirst_iso = (employee_datefirst_iso && employee_datefirst_iso > period_datefirst_iso ) ? employee_datefirst_iso : period_datefirst_iso
+            const datelast_iso = (employee_datelast_iso && employee_datelast_iso < period_datelast_iso ) ? employee_datelast_iso : period_datelast_iso
+
+            let date_iso = datefirst_iso
+            let date_JS = get_dateJS_from_dateISO_vanilla(date_iso);
+            // In Do While loop, condition is tested at the end of the loop so, Do While executes the statements in the code block at least once
+            while (date_iso <= datelast_iso ) {
+                // check weekday of date_JS
+                let weekday_index = (date_JS.getDay()) ? date_JS.getDay() : 7
+                // skip saturday and sunday
+                if([6,7].indexOf(weekday_index) === -1 ) {
+                // skip public holday
+                    const is_ph = get_dict_value(selected_planning_period, [date_iso, "ispublicholiday"], false);
+                    if (!is_ph) {
+                        workingdays += 1
+                    }
+                }
+                change_dayJS_with_daysadd_vanilla(date_JS, 1)
+                date_iso = get_dateISO_from_dateJS(date_JS)
+            };
+        };
+        return workingdays;
+    }  // calculate_workingdays
+
+// +++++++++++++++++ END OF EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++++

@@ -1,22 +1,22 @@
 // PR2019-11-09
 
     "use strict";
-        let setting = {margin_left: 15,
-                        margin_top: 15,
-                        page_height: 180,
-                        column00_width: 20,
-                        column_width: 35,
-                        thead_height: 10,
-                        weekheader_height: 7,
-                        header_width: 260,
-                        line_height: 5,
-                        font_height: 4,
-                        dist_underline: 1, // distance between bottom text and undeline
-                        max_char: 20, // maximum characters on one line in weekday
-                        fontsize_weekheader: 12,
-                        fontsize_line: 10,
-                        fontsize_footer: 8,
-                        padding_left: 2};
+    let rpt_setting = {margin_left: 15,
+                    margin_top: 15,
+                    page_height: 180,
+                    column00_width: 20,
+                    column_width: 35,
+                    thead_height: 10,
+                    weekheader_height: 7,
+                    header_width: 260,
+                    line_height: 5,
+                    font_height: 4,
+                    dist_underline: 1, // distance between bottom text and undeline
+                    max_char: 20, // maximum characters on one line in weekday
+                    fontsize_weekheader: 12,
+                    fontsize_line: 10,
+                    fontsize_footer: 8,
+                    padding_left: 2};
 
     const key00_sort = 0, key01_display = 1;
     const key02_comp_pk = 2, key03_cust_pk = 3, key04_ordr_pk = 4, key05_empl_pk = 5, key06_ehoh_pk = 6, key07_rosterdate = 7;
@@ -63,13 +63,13 @@
 // --- create variables
             const today_JS = new Date();
             const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
-            let pos = {left: setting.margin_left,
-                       top: setting.margin_top,
+            let pos = {left: rpt_setting.margin_left,
+                       top: rpt_setting.margin_top,
                        today: today_str,
                        page: 1}
 
 // ---  create new PDF document
-            setting.page_height = 285
+            rpt_setting.page_height = 285
             let doc = new jsPDF("portrait","mm","A4");
             const doc_title = loc.Overview_customer_hours + " " + today_str
             doc.setProperties({ title: doc_title});
@@ -83,17 +83,17 @@
 
             // array and dict arguments are passed by reference
             // from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 
 // ---  print column headers
             const first_col_text = loc.Customer + " / " + loc.Order + "\n" + loc.Date + " / " + loc.Employee;
             const colhdr_list = [first_col_text, loc.Shift, loc.Start_time, loc.End_time,
                                  loc.Break_hours_2lines, loc.Worked_hours_2lines, loc.Absence_2lines]
-            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
+            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
 
 // ---  print grand total from sorted_rows[0]
             const subtotal_arr = sorted_rows[0];
-            PrintSubtotalHeader("rpt_roster", "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+            PrintSubtotalHeader("rpt_roster", "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc)
 // ---  end of print grand total
 
 // +++++++ loop through rows from sorted_rows[1] +++++++++++++++++++++++++
@@ -109,11 +109,11 @@
                 // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 // ---  add new page when total height exceeds page_height, reset pos.top
                 let total_height_needed = 30;
-                if (pos.top + total_height_needed > setting.page_height){
-                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                if (pos.top + total_height_needed > rpt_setting.page_height){
+                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                 }
 // ---  print rosterdate total row
-                PrintSubtotalHeader("rpt_roster", "rosterdate", "NIU", tab_list, pos, doc, img_warning, rosterdate_header_row, setting, loc)
+                PrintSubtotalHeader("rpt_roster", "rosterdate", "NIU", tab_list, pos, doc, img_warning, rosterdate_header_row, rpt_setting, loc)
 
                 for (let i = 0, len = customer_rows.length; i < len; i++) {
                     const customer_header_row = customer_rows[i][0];
@@ -125,12 +125,12 @@
                     // means there must be 2 x 8 + 5 mm  = 21 mm space > 22 mm available. If not: add page
 // ---  add new page when total height exceeds page_height, reset pos.top
                     total_height_needed = 22;
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                    if (pos.top + total_height_needed > rpt_setting.page_height){
+                        AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                     }
 // ---  print customer total row
                     //const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, "total"]);
-                    PrintSubtotalHeader("rpt_roster", "customer", "NIU", tab_list, pos, doc, img_warning, customer_header_row, setting, loc)
+                    PrintSubtotalHeader("rpt_roster", "customer", "NIU", tab_list, pos, doc, img_warning, customer_header_row, rpt_setting, loc)
 
                     for (let i = 0, len = order_rows.length; i < len; i++) {
                         const order_header_row = order_rows[i][0];
@@ -144,11 +144,11 @@
                         // means there must be 1 x 8 + 5 mm  = 13 mm space > 14 mm available. If not: add page
                         total_height_needed = 14;
 // ---  add new page when total height exceeds page_height, reset pos.top
-                        if (pos.top + total_height_needed > setting.page_height){
-                            AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                        if (pos.top + total_height_needed > rpt_setting.page_height){
+                            AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                         }
 
-                        PrintSubtotalHeader("rpt_roster", "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, setting, loc)
+                        PrintSubtotalHeader("rpt_roster", "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, rpt_setting, loc)
 
                         for (let i = 0, len = employee_rows.length; i < len; i++) {
                             const employee_header_row = employee_rows[i][0];
@@ -162,8 +162,8 @@
                             // means there must be 1 x 5 mm  = 5 mm space > 6 mm available. If not: add page
                             total_height_needed = 6;
 // ---  add new page when total height exceeds page_height, reset pos.top
-                            if (pos.top + total_height_needed > setting.page_height){
-                                AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                            if (pos.top + total_height_needed > rpt_setting.page_height){
+                                AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                             }
 
                             const employee_code = employee_header_row[1];
@@ -176,14 +176,14 @@
 
                             const cell_values = [employee_code, shift_code,
                                                 time_start, time_end, break_format, worked_format, absence_format];
-                            PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+                            PrintRow(cell_values, tab_list, pos, rpt_setting.fontsize_line, doc, img_warning);
 
 //======================== print draw grey line 1 mm under detail row
                            // doc.setDrawColor(204,204,204);
                             //doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
                             //doc.setDrawColor(0,0,0);
 
-                            pos.top += setting.line_height;
+                            pos.top += rpt_setting.line_height;
                         }  // for (let i = 0, len = employee_rows.length; i < len; i++)
                     }  // for (let i = 0, len = order_rows.length; i < len; i++) {
                 }  // for (let i = 0, len = customer_rows.length; i < len; i++)
@@ -191,7 +191,7 @@
 // +++++++ end of loop through rows  +++++++++++++++++++++++++
 
 // ---  print footer on last page
-                PrintFooter(pos, doc, setting, loc)
+                PrintFooter(pos, doc, rpt_setting, loc)
 
 // ================ print To View  ==================
             if(is_preview){
@@ -225,13 +225,13 @@
 // --- create variables
             const today_JS = new Date();
             const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
-            let pos = {left: setting.margin_left,
-                       top: setting.margin_top,
+            let pos = {left: rpt_setting.margin_left,
+                       top: rpt_setting.margin_top,
                        today: today_str,
                        page: 1}
 
 // ---  create new PDF document
-            setting.page_height = 285
+            rpt_setting.page_height = 285
             let doc = new jsPDF("portrait","mm","A4");
             const doc_title = loc.Overview_customer_hours + " " + today_str
             doc.setProperties({ title: doc_title});
@@ -245,19 +245,19 @@
 
             // array and dict arguments are passed by reference
             // from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 
 //----------  print column headers
             const first_col_text = loc.Customer + " / " + loc.Order + "\n" + loc.Date + " / " + loc.Employee;
             const colhdr_list = [first_col_text, loc.Shift, loc.Planned_hours_2lines, loc.Worked_hours_2lines, loc.Billing_hours_2lines, loc.Difference]
-            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
+            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
 
 // ---  print grand total from sorted_rows[0]
             const subtotal_arr = sorted_rows[0];
             //console.log("subtotal_arr: ", subtotal_arr)
             //console.log("sorted_rows.length: ", sorted_rows.length)
             //console.log("sorted_rows[1]: ", sorted_rows[1])
-            PrintSubtotalHeader("rpt_review_cust", "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+            PrintSubtotalHeader("rpt_review_cust", "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc)
 // ---  end of print grand total
 
 // +++++++ loop through customer_rows +++++++++++++++++++++++++
@@ -275,11 +275,11 @@
                 // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                 const total_height_needed = 30;
-                if (pos.top + total_height_needed > setting.page_height){
-                    AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                if (pos.top + total_height_needed > rpt_setting.page_height){
+                    AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                 }
 //--------- print subtotal row
-                PrintSubtotalHeader("rpt_review_cust", "customer", "NIU", tab_list, pos, doc, img_warning, customer_header_row, setting, loc)
+                PrintSubtotalHeader("rpt_review_cust", "customer", "NIU", tab_list, pos, doc, img_warning, customer_header_row, rpt_setting, loc)
 
 // +++++++ loop through order_rows +++++++++++++++++++++++++
                for (let i = 0, len = order_rows.length; i < len; i++) {
@@ -295,11 +295,11 @@
                     // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                     const total_height_needed = 22;
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                    if (pos.top + total_height_needed > rpt_setting.page_height){
+                        AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                     }
 //--------- print subtotal row
-                    PrintSubtotalHeader("rpt_review_cust", "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, setting, loc)
+                    PrintSubtotalHeader("rpt_review_cust", "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, rpt_setting, loc)
 
 // +++++++ loop through rosterdate_rows +++++++++++++++++++++++++
                    for (let i = 0, len = rosterdate_rows.length; i < len; i++) {
@@ -316,11 +316,11 @@
                         // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                         const total_height_needed = 14;
-                        if (pos.top + total_height_needed > setting.page_height){
-                            AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                        if (pos.top + total_height_needed > rpt_setting.page_height){
+                            AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                         }
 //--------- print subtotal row
-                        PrintSubtotalHeader("rpt_review_cust", "rosterdate", "NIU", tab_list, pos, doc, img_warning, rosterdate_header_row, setting, loc)
+                        PrintSubtotalHeader("rpt_review_cust", "rosterdate", "NIU", tab_list, pos, doc, img_warning, rosterdate_header_row, rpt_setting, loc)
 
 // +++++++ loop through detail rows +++++++++++++++++++++++++
                        for (let i = 0, len = detail_rows.length; i < len; i++) {
@@ -337,11 +337,11 @@
                             // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                             const total_height_needed = 6;
-                            if (pos.top + total_height_needed > setting.page_height){
-                                AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                            if (pos.top + total_height_needed > rpt_setting.page_height){
+                                AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                             }
 //--------- print subtotal row
-                            PrintDetailRow("rpt_review_cust", tab_list, pos, doc, img_warning, detail_header_row, detail_dict, setting, loc)
+                            PrintDetailRow("rpt_review_cust", tab_list, pos, doc, img_warning, detail_header_row, detail_dict, rpt_setting, loc)
 
                         } // for (let i = 0, len = rosterdate_rows.length; i < len; i++)
                     } // for (let i = 0, len = rosterdate_rows.length; i < len; i++)
@@ -350,7 +350,7 @@
 // +++++++ end of loop through rows  +++++++++++++++++++++++++
 
 // ---  print footer on last page
-                PrintFooter(pos, doc, setting, loc)
+                PrintFooter(pos, doc, rpt_setting, loc)
     // ================ print To View  ==================
             if(is_preview){
                 let string = doc.output('datauristring');
@@ -384,13 +384,13 @@
 // --- create variables
             const today_JS = new Date();
             const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
-            let pos = {left: setting.margin_left,
-                       top: setting.margin_top,
+            let pos = {left: rpt_setting.margin_left,
+                       top: rpt_setting.margin_top,
                        today: today_str,
                        page: 1}
 
 // ---  create new PDF document
-            setting.page_height = 285
+            rpt_setting.page_height = 285
             let doc = new jsPDF("portrait","mm","A4");
             const doc_title = loc.Overview_customer_hours + " " + today_str
             doc.setProperties({ title: doc_title});
@@ -404,16 +404,16 @@
 
             // array and dict arguments are passed by reference
             // from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 
 // ---  print column headers
             const first_col_text = loc.Customer + " / " + loc.Order + "\n" + loc.Date + " / " + loc.Employee;
             const colhdr_list = [first_col_text, loc.Shift, loc.Planned_hours_2lines, loc.Worked_hours_2lines, loc.Difference, loc.Absence_2lines]
-            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
+            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
 
 // ---  print grand total from sorted_rows[0]
             const subtotal_arr = sorted_rows[0];
-            PrintSubtotalHeader(rptName, "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+            PrintSubtotalHeader(rptName, "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc)
 
 // ---  end of print grand total
 
@@ -432,12 +432,12 @@
                 // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                 const total_height_needed = 30;
-                if (pos.top + total_height_needed > setting.page_height){
-                    AddNewPage("rpt_review_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                if (pos.top + total_height_needed > rpt_setting.page_height){
+                    AddNewPage("rpt_review_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                 }
 
 //--------- print subtotal row
-                PrintSubtotalHeader(rptName, "employee", "NIU", tab_list, pos, doc, img_warning, employee_header_row, setting, loc)
+                PrintSubtotalHeader(rptName, "employee", "NIU", tab_list, pos, doc, img_warning, employee_header_row, rpt_setting, loc)
 
 // +++++++ loop through order_rows +++++++++++++++++++++++++
                for (let i = 0, len = order_rows.length; i < len; i++) {
@@ -453,11 +453,11 @@
                     // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                     const total_height_needed = 22;
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage(rptName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                    if (pos.top + total_height_needed > rpt_setting.page_height){
+                        AddNewPage(rptName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                     }
 //--------- print subtotal row
-                    PrintSubtotalHeader(rptName, "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, setting, loc)
+                    PrintSubtotalHeader(rptName, "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, rpt_setting, loc)
 
 // +++++++ loop through detail rows +++++++++++++++++++++++++
                    for (let i = 0, len = detail_rows.length; i < len; i++) {
@@ -473,18 +473,18 @@
                         // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                         const total_height_needed = 6;
-                        if (pos.top + total_height_needed > setting.page_height){
-                            AddNewPage(rptName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                        if (pos.top + total_height_needed > rpt_setting.page_height){
+                            AddNewPage(rptName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                         }
 //--------- print subtotal row
-                            PrintDetailRow(rptName, tab_list, pos, doc, img_warning, detail_header_row, detail_dict, setting, loc)
+                            PrintDetailRow(rptName, tab_list, pos, doc, img_warning, detail_header_row, detail_dict, rpt_setting, loc)
                     } //  for (let i = 0, len = detail_rows.length; i < len; i++)
             } // for (let i = 0, len = order_rows.length; i < len; i++)
           } // for (let i = 0, len = customer_rows.length; i < len; i++)
 // +++++++ end of loop through rows  +++++++++++++++++++++++++
 
 // ---  print footer on last page
-                PrintFooter(pos, doc, setting, loc)
+                PrintFooter(pos, doc, rpt_setting, loc)
     // ================ print To View  ==================
             if(is_preview){
                 let string = doc.output('datauristring');
@@ -498,7 +498,6 @@
             }
         }  // if (len > 0)
     }  // PrintReviewEmployee
-
 
 // ++++++++++++  PRINT REVIEW EMPLOYEE OLD+++++++++++++++++++++++++++++++
     function PrintReviewEmployeeOLD(option, selected_period, review_list, subtotals, company_dict, loc, imgsrc_warning) {
@@ -530,13 +529,13 @@
 
             let prev_employee_pk = 0
 
-            let pos = {left: setting.margin_left,
-                       top: setting.margin_top,
+            let pos = {left: rpt_setting.margin_left,
+                       top: rpt_setting.margin_top,
                        today: today_str,
                        page: 1}
 
 // ---  create new PDF document
-            setting.page_height = 285
+            rpt_setting.page_height = 285
             let doc = new jsPDF("portrait","mm","A4");
             const doc_title = loc.Overview_employee_hours + " " + today_str
             doc.setProperties({ title: doc_title});
@@ -550,16 +549,16 @@
 
             // array and dict arguments are passed by reference
             // from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 
 //----------  print column headers
             const colhdr_list = [loc.Employee + "\n" + loc.Date,  loc.Customer + " / " + loc.Order, loc.Shift,
                                  loc.Planned_hours_2lines, loc.Worked_hours_2lines, loc.Difference, loc.Absence_2lines]
-            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
+            PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
 
 //--------  print grand total
             const subtotal_arr = get_dict_value(subtotals, ["total"]);
-            PrintSubtotalHeader("rpt_empl", "grand_total", loc.Total_hours, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+            PrintSubtotalHeader("rpt_empl", "grand_total", loc.Total_hours, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc)
 
 // +++++++ loop through rows  +++++++++++++++++++++++++
            for (let i = 0; i < len; i++) {
@@ -593,12 +592,12 @@
                     // means there msut be 1 x 8 + 5 mm  = 13 mm space > 14 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
                     const total_height_needed = 14;
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage("rpt_empl", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                    if (pos.top + total_height_needed > rpt_setting.page_height){
+                        AddNewPage("rpt_empl", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                     }
 //--------- print employee total row
                     const subtotal_arr = get_dict_value(subtotals, [empl_key, "total"]);
-                    PrintSubtotalHeader("rpt_empl", "employee", this_employee_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+                    PrintSubtotalHeader("rpt_empl", "employee", this_employee_code, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc)
                 }
 //========= print detail row
                 // pos.top is at the bottom of the printed text
@@ -608,8 +607,8 @@
                 // means there must be 1 x 5 mm  = 5 mm space > 6 mm available. If not: add page
                 const total_height_needed = 6;
 //--------- add new page when total height exceeds page_height, reset pos.top
-                if (pos.top + total_height_needed > setting.page_height){
-                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                if (pos.top + total_height_needed > rpt_setting.page_height){
+                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
                 }
                 // filter (!row.c_isabsence && !row.oh_isrestshift) is part of SQL
                 const plan_dur_format = format_total_duration (row.eh_plandur, loc.user_lang)
@@ -620,19 +619,19 @@
                 const cust_ordr_code = row.cust_code + " - " + row.ordr_code;
 
                 let cell_values = [rosterdate_formatted, cust_ordr_code, this_shift_code, plan_dur_format, time_dur_format, diff_format, abs_dur_format];
-                PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+                PrintRow(cell_values, tab_list, pos, rpt_setting.fontsize_line, doc, img_warning);
 
 //======================== print draw grey line 1 mm under detail row
                // doc.setDrawColor(204,204,204);
                 //doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
                 //doc.setDrawColor(0,0,0);
 
-                pos.top += setting.line_height;
+                pos.top += rpt_setting.line_height;
             }
 // +++++++ end of loop through rows  +++++++++++++++++++++++++
 
 //---------- print footer on last page
-                PrintFooter(pos, doc, setting, loc)
+                PrintFooter(pos, doc, rpt_setting, loc)
 
     // ================ print To View  ==================
             if(is_preview){
@@ -649,215 +648,138 @@
         }  // if (len > 0)
     }  // PrintReviewEmployee
 
-// ++++++++++++  PRINT ORDER PLANNING +++++++++++++++++++++++++++++++++++++++
-    function PrintOrderPlanning(option, selected_period, planning_map, display_duration_total, loc) {
-        //console.log("PrintOrderPlanning")
-        //console.log("month_list", month_list)
-        //console.log("selected_period", selected_period)
+// ++++++++++++  PRINT EMPLOYEE- OR ORDER PLANNING +++++++++++++++++++++++++++++++++++++++
+    function r_PrintEmployeeOrOrderPlanning(loc, planning_agg_dict, option, is_order_planning) {  // PR2020-11-06
+        console.log(" ===========  r_PrintEmployeeOrOrderPlanning ===========================" );
+        console.log("planning_agg_dict", planning_agg_dict)
 
         const rpt_tabs = [0, 30, 40, 160, 185, 195];
-        const rpthdr_labels = [loc.Customer + " - " + loc.Order, loc.Total_hours, loc.Planning + " " + loc.of, loc.Print_date];
-
         const rpthdr_tabs = [["0", "30", "40", "160", "185", "195"],
                              ["0", "30", "40", "160", "185", "195"]]; // count from left margin
 
         const pos_x_list = [6, 65, 105, 130, 155, 185];
         const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
 
-        //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
-        //const company = get_dict_value(company_dict, ["name", "value"], "");
-        const period_txt = get_period_formatted(selected_period, loc);
-
-        const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
-        //console.log("datefirst_iso", datefirst_iso)
-
-        const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
-        let datefirst_weekday = datefirst_JS.getDay()
-        if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
-        // when weekday = 1 it starts at first column (monday) if not , get monday before datefirst_weekday
-        const startdateJS = add_daysJS(datefirst_JS, + 1 - datefirst_weekday)
-        const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
-
-        const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
-        const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
-        let datelast_weekday = datelast_JS.getDay()
-        if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
-        // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
-        const enddateJS = add_daysJS(datelast_JS, + 7 - datelast_weekday)
-        //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
-        const endWeekIndex = enddateJS.getWeekIndex();
-        //console.log("endWeekIndex", endWeekIndex)
-
-        let doc = new jsPDF("landscape","mm","A4");
 
         const today_JS = new Date();
         const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
-        let pos = {left: setting.margin_left,
-                   top: setting.margin_top,
+        let pos = {left: rpt_setting.margin_left,
+                   top: rpt_setting.margin_top,
                    today: today_str,
                    page: 1}
 
-        let this_order_pk = 0
         let is_first_page = true;
 
-        let this_rosterdate_iso = null
-        let this_rosterdate_JS = null
-        let this_weekIndex = null
-        let this_weekday = null
-        let this_duration_sum = 0;
+        const company_name = planning_agg_dict.company;
+        const period_text = planning_agg_dict.period;
 
-        let prev_rosterdate_iso = null
-        let prev_weekIndex = null
-        let prev_duration_sum = 0;
-        let prev_duration_total = 0;
+// ---  create new PDF document
+        //rpt_setting.page_height = 285
+        let doc = new jsPDF("landscape","mm","A4");
+        const doc_title = (is_order_planning) ? (loc.Planning + " " + loc.Order.toLowerCase() + " " + today_str) :
+                                                (loc.Planning + " " + loc.Employees.toLowerCase() + " " + today_str);
+        doc.setProperties({ title: doc_title});
+        console.log("doc_title", doc_title)
+// +++++  LOOP THROUGH ORDERS_SORTED
+        // loop through soorted list and look up info from agg_dict
+        planning_agg_dict.sorted_list.forEach(function (arr) {
+            // planning_agg_dict.sorted_list = [ [1519, "mcb bank - saliña"] ]
+            // or : planning_agg_dict.sorted_list = [ [0, "---"], [2977, "janssens, andreas"] ]
+            const order_dict = planning_agg_dict[arr[0]]
+            if(order_dict){
 
-        let week_list;
-        let rpthdr_values; // needed to store values for last page, after ending loop
-
-        //console.log("planning_map", planning_map)
-//+++++++++++++++++++ loop through planning map
-        for (const [map_id, item_dict] of planning_map.entries()) {
-            //console.log("item_dict: ", item_dict)
-
-// -------- get weekindex and weekday of this_rosterdate
-            this_rosterdate_iso = get_dict_value(item_dict, ["rosterdate", "value"], "");
-            this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
-            this_weekIndex = this_rosterdate_JS.getWeekIndex();
-            this_weekday = this_rosterdate_JS.getDay()
-            if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
-            //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
-
-//---------- get order values
-            const order_pk = get_dict_value(item_dict, ["order", "pk"], 0);
-            const order_code = get_dict_value(item_dict, ["order", "code"], "");
-            const customer_code = get_dict_value(item_dict, ["customer", "code"], "");
-
-
-            rpthdr_values = [[loc.Customer + " - " + loc.Order, ":", customer_code + " - " + order_code,
-                                            loc.Total_hours, ":", display_duration_total ],
-                                   [loc.Planning + " " + loc.of , ":", get_period_formatted(selected_period, loc),
-                                    loc.Print_date, ":", today_str]];
-
-
-//======================== change in order
-// -------- detect change in order
-            if (order_pk !== this_order_pk){
-
-//---------- skip addPage on first page
+// ---  skip addPage on first page
                 if(is_first_page){
                     is_first_page = false
                 } else {
-
-//---------- print last week of previous order
-                    PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                                rpthdr_tabs, rpthdr_values, loc, doc)
-
-//---------- print new page
+// ---  print new page
                     doc.addPage();
                 }
 
-//---------- reset values
-                this_order_pk = order_pk;
-                prev_rosterdate_iso = null;
-                prev_weekIndex = null;
-                week_list = [ [], [], [], [], [], [], [], [] ];
+// ---  reset pos
+                pos.left = rpt_setting.margin_left;
+                pos.top = rpt_setting.margin_top;
 
-                // reset pos y
-                pos.left = setting.margin_left;
-                pos.top = setting.margin_top;
+                const order_pk = (arr[0]) ? arr[0] : null;
+                const e_c_o_label = (is_order_planning) ? loc.Customer + " - " + loc.Order : loc.Employee
+                const e_c_o_code = (is_order_planning) ? order_dict.c_o_code : order_dict.e_code
 
-//----------  print order header
+                const first_line = [e_c_o_label, ":", e_c_o_code, loc.Company, ":", company_name];
+                const second_line = [loc.Planning + " " + loc.of , ":", period_text, loc.Print_date, ":", today_str];
+                const rpthdr_values = [first_line, second_line];
+
+                //console.log("e_c_o_code: ", e_c_o_code)
+// ---  print order header
                 // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
+                PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 
-                PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+// +++++  LOOP THROUGH WEEKINDICES
+                for (const [this_weekIndex, weekindex_dict] of Object.entries(order_dict)) {
+                    //console.log("this_weekIndex: ", this_weekIndex, "weekindex_dict: ", weekindex_dict)
+                    const key = (is_order_planning) ?  "c_o_code" : "e_code"
+                    if (this_weekIndex !== key){
 
-//----------  print table header NOT IN USE
-                //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
-                //console.log("TblHeader_height", TblHeader_height )
-                //pos.y += TblHeader_height
-               //console.log("printTblHeader pos.y", pos.y )
-            }  // if (order_pk !== this_order_pk){
+                        const week = (weekindex_dict.week) ? weekindex_dict.week : ["-"];
+                        const this_monday_iso = weekindex_dict.monday;
+                        const week_header_list =  [week, this_monday_iso];
 
-//======================== change in this_rosterdate
-// -------- detect change in this_rosterdate
-            // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
-            if (this_weekIndex !== prev_weekIndex){
+                        const week_list = [ [], [], [], [], [], [], [], [] ];
 
-//------------- print Week
-                // print printWeekHeader and printWeekData before updating prev_weekIndex
-                PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                            rpthdr_tabs, rpthdr_values, loc, doc)
+// +++++  LOOP THROUGH ROSTERDATES
+                        // PR2020-11-04 from https://stackoverflow.com/questions/34913675/how-to-iterate-keys-values-in-javascript
+                        for (const [this_rosterdate_iso, rosterdate_dict] of Object.entries(weekindex_dict)) {
+                    //console.log("this_rosterdate_iso: ", this_rosterdate_iso, "rosterdate_dict: ", rosterdate_dict)
+                            if (["week", "monday"].indexOf(this_rosterdate_iso) === -1){
+                                const weekday_index = (rosterdate_dict.weekday_index) ? rosterdate_dict.weekday_index : 0;
+                    //console.log("weekday_index: ", weekday_index)
+// +++++  LOOP THROUGH SHIFTS
+                                // - week_list has 8 items: max_shifts, day_list1 -  day_list7
+                                // - day_list has 0 ore more shift_lists
+                                // - shift_list contains [time, shift, list of employees]
+                                const day_list = [];
+                                for (const [this_shift_pk, shift_dict] of Object.entries(rosterdate_dict)) {
+                                    if (this_shift_pk !== "weekday_index"){
+                                        // first value in shift_list contains overlap, is not printed
+                                        // shift_list = [false, "14.00 - 22.00", "14.00 - 21.00", "Merenciana, Tyann", "Riki JR"]
+                                        const shift_list = [];
+                                        // TODO add overlap
+                                        const overlap = false; // get_dict_value(item_dict, ["overlap", "value"], false);
+                                        shift_list.push(overlap);
 
-//------------- put current values in prev_ variables
-                prev_rosterdate_iso = this_rosterdate_iso
-                prev_weekIndex = this_weekIndex
-                prev_duration_sum = this_duration_sum
-                prev_duration_total += this_duration_sum
-                this_duration_sum = 0;
+                                         // display_time  = "" when display_time is substring of shift_code
+                                         // this is done in r_calc_customerplanning_agg_dict
+                                        if(shift_dict.sh_code) {shift_list.push(shift_dict.sh_code)};
+                                        if(shift_dict.display_time) {shift_list.push(shift_dict.display_time)};
 
-//------------- then reset week_list
-                // week_list has 8 items: max_shifts, day_list1 -  day_list7
-                // day_list has 0 ore more shift_listst
-                // shift_list contains [time, shift, cust, order]
-                week_list = [ [], [], [], [], [], [], [], [] ];
-                this_duration_sum = 0;
+                                        if(is_order_planning){
+                                            // PR2020-11-05 ... is the spread operator
+                                            // from https://medium.com/@luke_smaki/javascript-es6-spread-operator-and-rest-parameters-b3e89d112281
+                                            // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
+                                            const employee_code_list = (shift_dict.e_codes) ? shift_dict.e_codes : "";
+                                            shift_list.push(...employee_code_list);
+                                        } else {
+                                            if(shift_dict.c_code) {shift_list.push(shift_dict.c_code)};
+                                            if(shift_dict.o_code) {shift_list.push(shift_dict.o_code)};
+                                        }
+    // ---  add shift to day_list
+                                        if(shift_list && shift_list.length){
+                                            day_list.push(shift_list);
+                                        };
+                                    }  // if (["week", "monday"].indexOf(this_rosterdate_iso) === -1){
+                                }  // for (const [this_shift_pk, shift_dict]
+// ---  add day_list to week_list
+            //console.log("day_list", day_list)
+                                week_list[weekday_index] = day_list
+                            } //if (this_rosterdate_iso !== "week")
+                        };  //  for (const [this_rosterdate_iso, rosterdate_dict]
+// ---  print week
+                        PrintWeekNew(week_header_list, week_list, pos, rpt_setting, rpthdr_tabs, rpthdr_values, loc, doc)
+                    }  //  if (weekindex !== "c_o_code")
 
-            }  //  if (weekIndex !== this_weekIndex){
-
-//======================== get employee info
-            const shift_code = get_dict_value(item_dict, ["shift", "code"], "");
-            const employee_code_list = get_dict_value(item_dict, ["employee", "code"], "");
-            const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, false, false, false);
-
-            let display_time = null;
-            const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
-            const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
-
-            if(!!offset_start || !!offset_end){
-                const offsetstart_formatted = display_offset_time (loc, offset_start, true); // true = skip_prefix_suffix
-                const offsetend_formatted = display_offset_time (loc, offset_end, true); // true = skip_prefix_suffix
-                display_time = offsetstart_formatted + " - " + offsetend_formatted
-            }
-            const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);
-
-            const overlap = false; // get_dict_value(item_dict, ["overlap", "value"], false);
-
-            //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
-            let shift_list = [];
-            // first value in shift_list contains overlap, is not printed
-            shift_list.push(overlap);
-            if(!!display_time) {shift_list.push(display_time)};
-
-        //console.log("................shift_code: ", shift_code)
-        //console.log("................display_time: ", display_time)
-
-            // skip shift_code if shift_code and display_time are equal
-            if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
-            let shift_timeduration = 0;
-            if(!!employee_code_list) {
-                for (let i = 0, len = employee_code_list.length; i < len; i++) {
-                    let employee_code = employee_code_list[i];
-                    if(!!employee_code){
-                        shift_list.push(employee_code)
-                    }
-                    // count time_duration for each teammember, also without employee
-                    if(!!time_duration) {shift_timeduration += time_duration};
-                }
-            };
-            if(!!shift_timeduration) {this_duration_sum += shift_timeduration};
-        //console.log("shift_timeduration: ", shift_timeduration)
-            // don't show time_duration. is for testing
-           // if(!!shift_timeduration) { shift_list.push(display_duration (shift_timeduration, loc.user_lang))};
-
-            let day_list = week_list[this_weekday]
-            day_list.push(shift_list);
-            week_list[this_weekday] = day_list
-        }  //  for (const [map_id, item_dict] of planning_map.entries()) {
-
-// ================ print last Week of last employee
-        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                    rpthdr_tabs, rpthdr_values, loc, doc)
+                }  // for (const [key, weekindex_dict]
+            } // if(order_dict)
+        }); // sorted_list.forEach
 
 // ================ print To View  ==================
         if(is_preview){
@@ -872,224 +794,11 @@
             doc.save('planning');
         }
 
-    }  // PrintOrderPlanning
-
-// ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
-    function PrintEmployeePlanning(option, selected_period, planning_list, company_dict, loc) {
-        console.log("PrintEmployeePlanning")
-        console.log("planning_list", planning_list)
-        // only called by employee page, menubtn print planning
-        const today_JS = new Date();
-        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
-
-        const rpt_tabs = [0, 30, 40, 160, 185, 195];
-        const rpthdr_labelsOLD = [loc.Employee, loc.Company, loc.Planning + " " + loc.of, loc.Print_date];
-        let rpthdr_valuesOLD = ["",
-                            get_dict_value(company_dict, ["name", "value"], ""),
-                            get_period_formatted(selected_period, loc),
-                            today_str];
-        const rpthdr_tabs = [["0", "30", "40", "160", "185", "195"],
-                             ["0", "30", "40", "160", "185", "195"]]; // count from left margin
-        const rpthdr_values = [[loc.Employee, ":", "", loc.Company, ":", get_dict_value(company_dict, ["name", "value"], "") ],
-                              [loc.Planning + " " + loc.of , ":", get_period_formatted(selected_period, loc),
-                                loc.Print_date, ":", today_str]];
-
-        const pos_x_list = [6, 65, 105, 130, 155, 185];
-        const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
-
-        const is_preview = (option === "preview");
-        const period_txt = get_period_formatted(selected_period, loc);
-
-        const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
-        const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
-        let datefirst_weekday = datefirst_JS.getDay()
-        if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
-        // when weekday = 1 it starts at first column (monday) if not , get monday before datefirst_weekday
-        const startdateJS = add_daysJS(datefirst_JS, + 1 - datefirst_weekday)
-        const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
-
-        const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
-        const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
-        let datelast_weekday = datelast_JS.getDay()
-        if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
-        // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
-        const enddateJS = add_daysJS(datelast_JS, + 7 - datelast_weekday)
-        //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
-        const endWeekIndex = enddateJS.getWeekIndex();
-        //console.log("endWeekIndex", endWeekIndex)
-
-        // PR2020-11-01 not in use any more, filter is done outside this function
-        //const selected_employee_pk = get_dict_value(selected_period, ["selected_employee_pk"]);
-
-        let doc = new jsPDF("landscape","mm","A4");
-
-        let pos = {left: setting.margin_left,
-                   top: setting.margin_top,
-                   today: today_str,
-                   page: 1}
-
-        let this_employee_pk = 0
-        let is_first_page = true;
-
-        let this_rosterdate_iso = null
-        let this_rosterdate_JS = null
-        let this_weekIndex = null
-        let this_weekday = null
-        let this_duration_sum = 0;
-
-        let prev_rosterdate_iso = null
-        let prev_weekIndex = null
-        let prev_duration_sum = 0;
-        let prev_duration_total = 0;
-
-        let week_list;
-
-    //console.log("planning_list", planning_list)
-//======================== loop through planning_list map
-            for (let i = 0, item_dict; item_dict = planning_list[i]; i++) {
-    //console.log("=========================: loop through planning_list")
-    //console.log("item_dict: ", item_dict)
-
-// -------- get weekindex and weekday of this_rosterdate
-            this_rosterdate_iso = item_dict.rosterdate;
-            this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
-            this_weekIndex = this_rosterdate_JS.getWeekIndex();
-            this_weekday = this_rosterdate_JS.getDay()
-            if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
-    //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
-
-// -------- filter employee
-            const employee_pk = (item_dict.e_id) ? item_dict.e_id : 0
-            //const add_row = ( (!selected_employee_pk) || (selected_employee_pk && employee_pk === selected_employee_pk) );
-            // PR2020-11-01 filter is done outside this functions
-            const add_row = true
-            if(add_row){
-//======================== detect change in employee
-                if (employee_pk !== this_employee_pk){
-    //---------- skip addPage on first page
-                    if(is_first_page){
-                        is_first_page = false
-                    } else {
-    //---------- print last week of previous employee
-                        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                                    rpthdr_tabs, rpthdr_values, loc, doc)
-    //---------- print new page
-                        doc.addPage();
-                    }
-    //---------- reset values
-                    this_employee_pk = employee_pk;
-                    prev_rosterdate_iso = null;
-                    prev_weekIndex = null;
-                    week_list = [ [], [], [], [], [], [], [], [] ];
-
-                    // reset pos y
-                    pos.left = setting.margin_left;
-                    pos.top = setting.margin_top;
-
-    //---------- get employee values
-                    const code = (item_dict.e_code) ? item_dict.e_code : "---";
-                    const namelast = (item_dict.e_nl) ? item_dict.e_nl : "";
-                    const namefirst =(item_dict.e_nf) ? item_dict.e_nf : "";
-                    rpthdr_values[0][2] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
-
-    //----------  print employee header
-                    // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-    // ---  print report header
-                    PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
-
-    //----------  print table header NOT IN USE
-                    //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
-                    //console.log("TblHeader_height", TblHeader_height )
-                    //pos.y += TblHeader_height
-                   //console.log("printTblHeader pos.y", pos.y )
-                }  // if (employee_pk !== this_employee_pk){
-
-    //======================== change in this_rosterdate
-    // -------- detect change in this_rosterdate
-                // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
-                  if (this_weekIndex !== prev_weekIndex){
-
-    //------------- print Week
-                    // print printWeekHeader and printWeekData before updating prev_weekIndex
-                    PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                                rpthdr_tabs, rpthdr_values, loc, doc)
-
-    //------------- put current values in prev_ variables
-                    prev_rosterdate_iso = this_rosterdate_iso;
-                    prev_weekIndex = this_weekIndex;
-                    prev_duration_sum = this_duration_sum;
-                    prev_duration_total += this_duration_sum;
-                    this_duration_sum = 0;
-
-    //------------- then reset week_list
-                    // week_list has 8 items: max_shifts, day_list1 -  day_list7
-                    // day_list has 0 ore more shift_listst
-                    // shift_list contains [time, shift, cust, order]
-                    week_list = [ [], [], [], [], [], [], [], [] ];
-                    this_duration_sum = 0;
-                }  //  if (weekIndex !== this_weekIndex){
-
-    //======================== get shift info
-        //console.log("======================== get shift info: ")
-        //console.log("item_dict: ", item_dict)
-                const shift_code = (item_dict.sh_code) ? item_dict.sh_code : "";
-                const order_code = (item_dict.o_code) ? item_dict.o_code : "";
-                const customer_code = (item_dict.c_code) ? item_dict.c_code : "";
-                const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
-
-                //let display_time = null;
-                const offset_start = (item_dict.offsetstart) ? item_dict.offsetstart : null;
-                const offset_end =  (item_dict.offsetend) ? item_dict.offsetend : null;
-                const time_duration =  (item_dict.timedur) ? item_dict.timedur : null;
-
-                const skip_prefix_suffix = true;
-                const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
-
-                if(!!time_duration) {this_duration_sum += time_duration};
-                // TODO
-                const overlap =  (item_dict.overlap) ? item_dict.overlap : false;
-
-                //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
-                let shift_list = [];
-                // first item in shift_list contains overlap, is not printed
-                shift_list.push(overlap);
-                if(!!display_time) {shift_list.push(display_time)};
-                // skip shift_code if shift_code and display_time are equal
-                if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
-
-                if(!!customer_code) { shift_list.push(customer_code)};
-                if(!!order_code) { shift_list.push(order_code)};
-        // don't show time_duration. is for testing
-                //if(!!time_duration) { shift_list.push(display_duration (time_duration, loc.user_lang))};
-
-                let day_list = week_list[this_weekday]
-                day_list.push(shift_list);
-                week_list[this_weekday] = day_list
-
-            }  // if(add_row){
-        }  //  for (const [map_id, item_dict] of planning_map.entries()) {
-
-// ================ print last Week of last employee
-        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting,
-                    rpthdr_tabs, rpthdr_values, loc, doc)
-
-// ================ print To View  ==================
-        if(is_preview){
-            let string = doc.output('datauristring');
-            let embed = "<embed width='100%' height='100%' src='" + string + "'/>"
-            let wndw = window.open();
-            wndw.document.open();
-            wndw.document.write(embed);
-            wndw.document.close();
-        } else {
-        //To Save
-            doc.save('planning');
-        }
-    }  // PrintEmployeePlanning
+    }  // r_PrintEmployeeOrOrderPlanning
 
 // ++++++++++++  END OF PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
 
-    function PrintReportHeader(tab_list, txt_list, pos, setting, doc){
+    function PrintReportHeader(tab_list, txt_list, pos, rpt_setting, doc){
         //console.log(" --- PrintReportHeader --- ")
         //console.log("tab_list: ", tab_list)
         //console.log("txt_list: ", txt_list)
@@ -1098,7 +807,7 @@
         const lineheight = 6;
         let row_height = 0
 
-        doc.setFontSize(setting.fontsize_weekheader);
+        doc.setFontSize(rpt_setting.fontsize_weekheader);
         const pos_start = pos.top
         let pos_y = pos.top;
         if(!!txt_list && txt_list.length > 0 && !!tab_list && tab_list.length > 0 ){
@@ -1130,7 +839,7 @@
     }
 
 //========= PrintColumnHeader  ====================================
-    function PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning){
+    function PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning){
         //console.log("-----  PrintColumnHeader -----")
         const len = tab_list.length;
     //----------  print column headers
@@ -1147,35 +856,35 @@
         }
 
         doc.setFontType("bold");
-        PrintRow(colhdr_list, colhdr_tab_list, pos, setting.fontsize_line, doc, img_warning);
+        PrintRow(colhdr_list, colhdr_tab_list, pos, rpt_setting.fontsize_line, doc, img_warning);
         doc.setFontType("normal");
 
-        pos.top += 2 * setting.line_height ; // column header has 2 lines
-        y1 = pos.top + setting.dist_underline
+        pos.top += 2 * rpt_setting.line_height ; // column header has 2 lines
+        y1 = pos.top + rpt_setting.dist_underline
         doc.line(x1, y1, x2, y1);
-        pos.top += setting.line_height + 2;
+        pos.top += rpt_setting.line_height + 2;
     }
 
 //========= PrintFooter  ====================================
-    function PrintFooter(pos, doc, setting, loc){
+    function PrintFooter(pos, doc, rpt_setting, loc){
         //console.log("-----  PrintFooter -----")
         //console.log("pos: ", pos)
         const tab_list = ["0", "185r"];
         const values = [ loc.Print_date + ":  " + pos.today, loc.Page + "  " + pos.page.toString()]
-        pos.top = setting.page_height
+        pos.top = rpt_setting.page_height
         const x1 = pos.left + parseInt(tab_list[0], 10);
         const x2 = pos.left + parseInt(tab_list[tab_list.length - 1], 10);
-        let y1 = pos.top - setting.line_height;
+        let y1 = pos.top - rpt_setting.line_height;
         doc.line(x1, y1, x2, y1);
 
-        PrintRow(values, tab_list, pos, setting.fontsize_footer, doc);
+        PrintRow(values, tab_list, pos, rpt_setting.fontsize_footer, doc);
     }
 
 //========= PrintSubtotalHeader  ====================================
-    function PrintSubtotalHeader(rptName, fldName, code_display, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc){
+    function PrintSubtotalHeader(rptName, fldName, code_display, tab_list, pos, doc, img_warning, subtotal_arr, rpt_setting, loc){
         //console.log("-----  PrintSubtotalHeader -----")
         //console.log("pos: ", pos)
-        //console.log("setting: ", setting)
+        //console.log("rpt_setting: ", rpt_setting)
         //console.log("subtotal_arr: ", subtotal_arr)
 
         let cell_values = [];
@@ -1236,7 +945,7 @@
         pos.top += 2  // distance between upper line and previous row
         const x1 = pos.left + parseInt(tab_list[0], 10);
         const x2 = pos.left + parseInt(tab_list[tab_list.length - 1], 10);
-        let y1 = pos.top - setting.line_height;
+        let y1 = pos.top - rpt_setting.line_height;
 
         // draw upper line of subtotal row
         doc.line(x1, y1, x2, y1);
@@ -1247,19 +956,19 @@
             (rptName === "rpt_roster" && fldName === "rosterdate") ) {
             doc.setFontType("bold")
         };
-        PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+        PrintRow(cell_values, tab_list, pos, rpt_setting.fontsize_line, doc, img_warning);
         doc.setFontType("normal");
 
         // draw lower line of subtotal row
-        y1 = pos.top + setting.dist_underline
+        y1 = pos.top + rpt_setting.dist_underline
         doc.line(x1, y1, x2, y1);
 
         // distance between lower line of subtotal and next row
-        pos.top += setting.line_height + 1;
+        pos.top += rpt_setting.line_height + 1;
     }  // PrintSubtotalHeader
 
 //========= PrintSubtotalHeader  ====================================
-    function PrintDetailRow(rptName, tab_list, pos, doc, img_warning, detail_header_row, detail_dict, setting, loc){
+    function PrintDetailRow(rptName, tab_list, pos, doc, img_warning, detail_header_row, detail_dict, rpt_setting, loc){
         //console.log("-----  PrintDetailRow -----")
         //console.log("rptName: ", rptName)
         //console.log("detail_dict: ", detail_dict)
@@ -1292,33 +1001,33 @@
                                 tot_diff_format, tot_absence_format]
         }
 
-        PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+        PrintRow(cell_values, tab_list, pos, rpt_setting.fontsize_line, doc, img_warning);
 
         //======================== print draw grey line 1 mm under detail row
         // doc.setDrawColor(204,204,204);
         //doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
         //doc.setDrawColor(0,0,0);
 
-        pos.top += setting.line_height;
+        pos.top += rpt_setting.line_height;
 
     }  // PrintDetailRow
 
 //=========  AddNewPage ================ PR2020-02-28
-    function AddNewPage(tblName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning) {
+    function AddNewPage(tblName, tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, rpt_setting, img_warning) {
 //----- draw line at footer
-        PrintFooter(pos, doc, setting, loc)
+        PrintFooter(pos, doc, rpt_setting, loc)
 //----- add Page
         doc.addPage();
 //----- print report header
         pos.page += 1;
-        pos.top = setting.margin_top;
-        PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+        pos.top = rpt_setting.margin_top;
+        PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
 //----- print column header
-        PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
+        PrintColumnHeader(tab_list, colhdr_list, pos, doc, loc, rpt_setting, img_warning)
     }
 
 // ================ PrintWeek  ==================
-    function PrintWeek(prev_rosterdate_iso, week_list, duration_sum, pos, setting,
+    function PrintWeek(prev_rosterdate_iso, week_list, duration_sum, pos, rpt_setting,
                         rpthdr_tabs, rpthdr_values, loc, doc){
         //console.log(" ===========  PrintWeek ===========================" );
         //console.log("week_list", week_list );
@@ -1331,49 +1040,52 @@
             if (prev_weekday === 0 ) {prev_weekday = 7}// JS sunday = 0, iso sunday = 7
             const prev_mondayJS = add_daysJS(prev_rosterdate_JS, + 1 - prev_weekday)
 
+
+
+
     // --- calculate height of the week shifts, to check if it fits on page
             const padding_top = 2;
-            const height_weekdata = padding_top + calc_weekdata_height(week_list, duration_sum, setting)
+            const height_weekdata = padding_top + calc_weekdata_height(week_list, duration_sum, rpt_setting)
             //console.log("height_weekdata", height_weekdata );
 
     // add new page when total height exceeds page_height, reset pos.top
-            if (pos.top + height_weekdata > setting.page_height){
+            if (pos.top + height_weekdata > rpt_setting.page_height){
                 doc.addPage();
-                pos.top = setting.margin_top;
+                pos.top = rpt_setting.margin_top;
 
                 //console.log("------------- addPage: ")
                 //const rpthdr_tabs = [0, 30, 40, 160, 185, 195];
-                PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, setting, doc)
+                PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
             }
 
     // --- print Week Header
     //console.log(" --- printWeekHeader")
-            printWeekHeader(prev_mondayJS, pos, setting, loc, doc)
+            printWeekHeader(prev_mondayJS, pos, rpt_setting, loc, doc)
 
     // --- print WeeknrColumn wth duration_sum
             let maxheight = 0;
-            printWeeknrColumn(duration_sum, pos, setting, loc, doc);
+            printWeeknrColumn(duration_sum, pos, rpt_setting, loc, doc);
 
     // --- print Week Data
-    //console.log(" --- printWeekData")
-            printWeekData(week_list, pos, setting, doc);
+            printWeekData(week_list, pos, rpt_setting, doc);
             pos.top += height_weekdata;
             //console.log("pos.top", pos.top);
         }  // if (!!prev_rosterdate_iso)
 
     }  // function printWeek
 
-    function printWeekHeader(this_dayJS, pos, setting, loc, doc){
+    function printWeekHeader(this_dayJS, pos, rpt_setting, loc, doc){
         //console.log("printWeekHeader" )
         //console.log("this_dayJS", this_dayJS )
+        // weekheader is:  wk 44    ma 26 okt  di 27 okt  wo 28 okt do 29 okt  vr 30 okt  za 31 okt zo 1 nov
 
-        const pad_x = setting.padding_left, headerwidth = setting.header_width, lineheight = setting.weekheader_height;
+        const pad_x = rpt_setting.padding_left, headerwidth = rpt_setting.header_width, lineheight = rpt_setting.weekheader_height;
 
         let pos_x = pos.left
         let pos_y = pos.top
 
         //doc.rect(pos.left, pos.top, 250, 10); // x, y, w, h
-        doc.setFontSize(setting.fontsize_weekheader);
+        doc.setFontSize(rpt_setting.fontsize_weekheader);
 
 // horizontal line at top of header
         //doc.setDrawColor(255,0,0);  // draw red lines
@@ -1403,27 +1115,27 @@
                 this_dayJS = add_daysJS(this_dayJS, + 1 )
             }
             doc.text(pos_x + pad_x, pos_y - 2, text_str);
-            pos_x = (weekday === 0) ? pos_x + setting.column00_width : pos_x + setting.column_width
+            pos_x = (weekday === 0) ? pos_x + rpt_setting.column00_width : pos_x + rpt_setting.column_width
         }
         pos.top = pos_y;
     }  //  printWeekHeader
 
-    function printWeekData(week_list, pos, setting, doc){
+    function printWeekData(week_list, pos, rpt_setting, doc){
         //console.log(" --- printWeekData" )
-        //console.log("week_list" )
-        //console.log(week_list)
+        //console.log("week_list", week_list)
         //console.log("pos.top: ", pos.top )
         let pos_x = pos.left;
         let pos_y = pos.top;
         for (let weekday = 1, day_list, shift_list, text_str, pos_x, height; weekday <= 7; weekday++) {
             // print one line of one shift of one weekday
             day_list = week_list[weekday];
-            pos_x = setting.margin_left + setting.column00_width + setting.column_width * (weekday - 1);
-            printDayData(day_list, pos_x, pos_y, setting, doc);
-        }
-    }  //  printWeekData(week_list, pos, setting, doc){
 
-    function printWeeknrColumn(duration_sum, pos, setting, user_lang, doc){
+            pos_x = rpt_setting.margin_left + rpt_setting.column00_width + rpt_setting.column_width * (weekday - 1);
+            printDayData(day_list, pos_x, pos_y, rpt_setting, doc);
+        }
+    }  //  printWeekData(week_list, pos, rpt_setting, doc){
+
+    function printWeeknrColumn(duration_sum, pos, rpt_setting, user_lang, doc){
         //console.log(" ------------------- printWeeknrColumn -------------" )
         //console.log("duration_sum", duration_sum )
 
@@ -1432,64 +1144,66 @@
             let pos_y = pos.top;
 
             const duration_sum_str = display_duration (duration_sum, user_lang);
-            doc.setFontSize(setting.fontsize_line);
+            doc.setFontSize(rpt_setting.fontsize_line);
 
-            pos_y += setting.line_height;
-            doc.text(pos_x + setting.padding_left, pos_y, duration_sum_str);
+            pos_y += rpt_setting.line_height;
+            doc.text(pos_x + rpt_setting.padding_left, pos_y, duration_sum_str);
         }
     }  //  printWeeknrColumn
 
-    function printDayData(day_list, pos_x, pos_y, setting, doc){
-       //.log(" --- printDayData" )
+    function printDayData(day_list, pos_x, pos_y, rpt_setting, doc){
+        //console.log(" --- printDayData" )
         //console.log("day_list", day_list )
         // skip first item of shift_list, it contains 'has_overlap'
-        // day_list = [ [false, "23.30 - 07.00", "nacht", "MCB", "Punda"],  [...]  ]
-        // setting = {"left": margin_left,  "top": margin_top, "column_width": 35,"line_height": 5, "fontsize_line": 10,"padding_left": 2, "header_width": 260, "header_height": 7,"max_dayheight": 0}
+        // day_list contains a list of the shifts of one day (mostly one, can be multiple)
+        // shift_list contains a list of lines of a shift to be printed. The first item of shift_list contains 'has_overlap', not to be printed.
+        // day_list = [ [false, "N 23.30 - 07.00", "23.30 - 06.00", "MCB", "Punda"],  [...]  ]
+        // rpt_setting = {"left": margin_left,  "top": margin_top, "column_width": 35,"line_height": 5, "fontsize_line": 10,"padding_left": 2, "header_width": 260, "header_height": 7,"max_dayheight": 0}
 
-        const paddingleft = setting.padding_left;
-        const colwidth = setting.column_width;
-        const lineheight = setting.line_height;
+        const paddingleft = rpt_setting.padding_left;
+        const colwidth = rpt_setting.column_width;
+        const lineheight = rpt_setting.line_height;
 
         //doc.rect(pos.left, pos.top, 250, 10); // x, y, w, h
-        doc.setFontSize(setting.fontsize_line);
+        doc.setFontSize(rpt_setting.fontsize_line);
 
 // shift are the shifts of one day (mostly one, can be multiple)
-        for (let i = 0, shift_list, len = day_list.length; i < len; i++) {
-            // writ horizontal line at top of shift, skip first shift
-            if(!!i){
-                pos_y += 2;
-                doc.setDrawColor(128, 128, 128);  // dark grey
-                doc.line(pos_x, pos_y, pos_x + colwidth, pos_y)
-            }; // horizontal line at top of shift, skip first shift
+        if(day_list){
+            for (let i = 0, shift_list, len = day_list.length; i < len; i++) {
+                // write horizontal line at top of shift, skip first shift
+                if(i){
+                    pos_y += 2;
+                    doc.setDrawColor(128, 128, 128);  // dark grey
+                    doc.line(pos_x, pos_y, pos_x + colwidth, pos_y)
+                }; // horizontal line at top of shift, skip first shift
 
-            shift_list = day_list[i];  // [ "07.00 - 16.00", "dag", "MCB", "Punda" ]
+                shift_list = day_list[i];  // [false, "N 23.30 - 07.00", "23.30 - 06.00", "MCB", "Punda"]
 
-            // print overlappin shift red
-            const overlap = shift_list[0];
-            if(overlap){doc.setTextColor(224,0,0)}  // VenV red
+                // print overlapping shift red
+                const overlap = shift_list[0];
+                if(overlap){doc.setTextColor(224,0,0)}  // VenV red
 
-            for (let j = 1, text_str, len = shift_list.length ; j < len; j++) {
-                //doc.text(100, 30, doc.splitTextToSize(text_str, colwidth));
-                text_str = shift_list[j];
+                for (let j = 1, text_str, len = shift_list.length ; j < len; j++) {
+                    text_str = shift_list[j];
 
-                if(!!text_str){
-                    pos_y += lineheight;
-                    //doc.text(left + paddingleft, pos_y, text_str);
-                    doc.text(pos_x + paddingleft, pos_y, doc.splitTextToSize(text_str, colwidth));
+                    if(!!text_str){
+                        pos_y += lineheight;
+                        doc.text(pos_x + paddingleft, pos_y, doc.splitTextToSize(text_str, colwidth));
 
-                    // add extra lines when text is wrapped
-                    const extr_lines = Math.floor(text_str.length/setting.max_char)
-                    if(!!extr_lines){
-                        pos_y += setting.font_height * Math.floor(text_str.length/setting.max_char)
+                        // add extra lines when text is wrapped
+                        const extr_lines = Math.floor(text_str.length / rpt_setting.max_char)
+                        if(!!extr_lines){
+                            pos_y += rpt_setting.font_height * Math.floor(text_str.length / rpt_setting.max_char)
+                        }
                     }
-                }
 
-            }  // for (let j = 0,
-            doc.setTextColor(0, 0, 0);
-            //doc.setDrawColor(0, 255,0);  // draw red lines
-            //doc.line(pos_x, pos_y, pos_x + colwidth, pos_y ); // horizontal line bottom of shift
-        }  // for (let shift = 0;
-    }  //  printDayData(day_list, setting, doc){
+                }  // for (let j = 0,
+                doc.setTextColor(0, 0, 0);
+                //doc.setDrawColor(0, 255,0);  // draw red lines
+                //doc.line(pos_x, pos_y, pos_x + colwidth, pos_y ); // horizontal line bottom of shift
+            }  // for (let shift = 0;
+        }
+    }  //  printDayData(day_list, rpt_setting, doc){
 
     function PrintRow(txt_list, tab_list, pos, fontsize, doc, img_warning){
         //console.log (" --- PrintRow ---: ")
@@ -1521,38 +1235,41 @@
     }  // PrintRow
 
 ////////////////////////
-    function calc_weekdata_height(week_list, duration_sum, setting){
+    function calc_weekdata_height(week_list, duration_sum, rpt_setting){
         let maxheight = 0
         // column weeknr with total duraction
         if(!!duration_sum){
-            maxheight = setting.line_height;
+            maxheight = rpt_setting.line_height;
         }
         for (let weekday = 1, height; weekday <= 7; weekday++) {
-            height = calc_daydata_height(week_list[weekday], setting);
+            height = calc_daydata_height(week_list[weekday], rpt_setting);
             if(height > maxheight) { maxheight = height}
         }
        return maxheight;
     }
-    function calc_daydata_height(day_list, setting){
+
+    function calc_daydata_height(day_list, rpt_setting){
         let height = 0;
         const padding_top = 2;
-        for (let i = 0, shift_list, len = day_list.length; i < len; i++) {
-            // add padding when multiple shifts in one day
-            if(!!i){ height += padding_top;};
-            shift_list = day_list[i];
-            //console.log("shift_list", shift_list)
-            // first value of shift_list contains 'has_overlap'
-            // in order_planning: [false, "09.00 - 16.00", ["---", "Wilmans RS"], "06:30"]
-            // in employee_planning: [false, "09:00 - 16:00", "09.00 - 16.00", "MCB bank", "Barber TEST", "06:30"]
-            // skip fiirst item of shift_list, it contains 'has_overlap'
-            const len = shift_list.length;
-            if (len > 1) {
-                for (let j = 1,txt, txt_len, lines; j < len; j++) {
-                    txt = shift_list[j];
-                    txt_len = txt.length;
-                    if(!!txt){
-                        lines = 1 + Math.floor(txt_len/setting.max_char)
-                        height += lines * setting.line_height
+        if(day_list){
+            for (let i = 0, shift_list, len = day_list.length; i < len; i++) {
+                // add padding when multiple shifts in one day
+                if(!!i){ height += padding_top;};
+                shift_list = day_list[i];
+                //console.log("shift_list", shift_list)
+                // first value of shift_list contains 'has_overlap'
+                // in order_planning: [false, "09.00 - 16.00", ["---", "Wilmans RS"], "06:30"]
+                // in employee_planning: [false, "09:00 - 16:00", "09.00 - 16.00", "MCB bank", "Barber TEST", "06:30"]
+                // skip fiirst item of shift_list, it contains 'has_overlap'
+                const len = shift_list.length;
+                if (len > 1) {
+                    for (let j = 1,txt, txt_len, lines; j < len; j++) {
+                        txt = shift_list[j];
+                        txt_len = txt.length;
+                        if(!!txt){
+                            lines = 1 + Math.floor(txt_len / rpt_setting.max_char)
+                            height += lines * rpt_setting.line_height
+                        }
                     }
                 }
             }
@@ -1560,18 +1277,6 @@
         return height ;
     }
 
-//=========  get_period_formatted ================ PR2019-11-03
-    function get_period_formatted(period_dict, loc) {
-        //console.log( "===== get_period_formatted  ========= ");
-        let period_formatted = "";
-        if(!isEmpty(period_dict)){
-            const datefirst_ISO = get_dict_value(period_dict, ["period_datefirst"]);
-            const datelast_ISO = get_dict_value(period_dict, ["period_datelast"]);
-            period_formatted = format_period(loc, datefirst_ISO, datelast_ISO)
-        }
-        return period_formatted;
-
-    }
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
@@ -2124,4 +1829,576 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
     };
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// ================ PrintWeekNew  ========== PR2020-11-05
+    function PrintWeekNew(week_header_list, week_list, pos, rpt_setting, rpthdr_tabs, rpthdr_values, loc, doc){
+        //console.log(" ===========  PrintWeekNew ===========================" );
+        //console.log("week_header_list", week_header_list );
+        //console.log("week_list", week_list );
+
+// --- calculate height of the week shifts, to check if it fits on page
+        const padding_top = 2;
+        const duration_sum = 0  // not in use yet
+        const height_weekdata = padding_top + calc_weekdata_height(week_list, duration_sum, rpt_setting)
+        //console.log("pos.top", pos.top );
+        //console.log("height_weekdata", height_weekdata );
+        //console.log("setting.page_height", rpt_setting.page_height );
+
+// add new page when total height exceeds page_height, reset pos.top
+        if (pos.top + height_weekdata > rpt_setting.page_height){
+            doc.addPage();
+            pos.top = rpt_setting.margin_top;
+            //console.log("------------- addPage: ")
+            //console.log("pos.top", pos.top );
+            //const rpthdr_tabs = [0, 30, 40, 160, 185, 195];
+            PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
+        }
+
+// --- print Week Header
+        printWeekHeaderNew(week_header_list, pos, rpt_setting, loc, doc)
+
+// --- print WeeknrColumn wth duration_sum
+        let maxheight = 0;
+        printWeeknrColumn(duration_sum, pos, rpt_setting, loc, doc);
+
+// --- print Week Data
+//console.log(" --- printWeekData")
+        printWeekData(week_list, pos, rpt_setting, doc);
+        pos.top += height_weekdata;
+        //console.log("pos.top", pos.top);
+
+    }  // function printWeekNew
+
+
+    function printWeekHeaderNew(week_header_list, pos, rpt_setting, loc, doc){
+        //console.log("  -----  printWeekHeader  ----- " )
+        //console.log("week_header_list", week_header_list )
+        // weekheader will be:   wk 44    ma 26 okt  di 27 okt  wo 28 okt do 29 okt  vr 30 okt  za 31 okt zo 1 nov
+        // week_header_list = ["wk 45", "2020-11-02"]
+        const week_number = (week_header_list[0]) ? week_header_list[0] : "-";
+        const this_mondayJS = (week_header_list[1]) ? get_dateJS_from_dateISO (week_header_list[1]) : null;
+        //console.log("this_mondayJS", this_mondayJS )
+
+        const pad_x = rpt_setting.padding_left, headerwidth = rpt_setting.header_width, lineheight = rpt_setting.weekheader_height;
+
+        let pos_x = pos.left
+        let pos_y = pos.top
+
+        //doc.rect(pos.left, pos.top, 250, 10); // x, y, w, h
+        doc.setFontSize(rpt_setting.fontsize_weekheader);
+
+// horizontal line at top of header
+        //doc.setDrawColor(255,0,0);  // draw red lines
+        doc.line(pos_x, pos_y, pos_x + headerwidth, pos_y);
+
+// horizontal line at bottom of header
+        pos_y += lineheight;
+        doc.line(pos_x, pos_y , pos_x + headerwidth, pos_y );
+
+        for (let weekday = 0, text_str, pad_x; weekday <= 7; weekday++) {
+            pad_x = (weekday === 0) ? 2 : 2  // 2 : 5
+            if(weekday === 0) {
+            // print week number
+                text_str = week_number;
+            } else {
+                const this_dayJS = add_daysJS(this_mondayJS, weekday - 1)
+                const date_str = this_dayJS.getDate().toString()
+                let day_index = this_dayJS.getDay();
+                if(day_index ===0) {day_index = 7};
+                const day_str = loc.weekdays_abbrev[day_index];
+                const month_index = this_dayJS.getMonth();
+                const month_str = loc.months_abbrev[month_index+ 1];
+                if (loc.user_lang === "en"){
+                    text_str = day_str + ", " +  month_str + " " + date_str;
+                } else {
+                    text_str =  day_str + " " +   date_str + " " + month_str;
+                }
+            }
+            doc.text(pos_x + pad_x, pos_y - 2, text_str);
+            pos_x = (weekday === 0) ? pos_x + rpt_setting.column00_width : pos_x + rpt_setting.column_width
+        }
+        pos.top = pos_y;
+    }  //  printWeekHeader
+
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+//========= r_calc_customerplanning_agg_dict  ==================================== PR2020-11-04
+    function r_calc_customerplanning_agg_dict(loc, rows, company_dict, selected_period, selected_customer_pk, selected_order_pk){  //PR2020-11-04
+        //console.log("=== r_calc_customerplanning_agg_dict ===")
+        //console.log("selected_order_pk", selected_order_pk, typeof selected_order_pk)
+        // dict = { fid: "1790_3719_2020-07-08", employee_code: "*Regales RDT", customer_code: "Centrum", order_code: "Mahaai"
+        // rosterdate: "2020-07-08", shift_code: "20.00 - 01.00 >", offsetstart: 1200, offsetend: 1500,
+        // breakduration: 0, timeduration: 300, isabsence: false, isrestshift: false }
+
+        const orders_sorted = [];
+        const shift_sort = [];
+
+// --- function converts rows row into nested agg_dict
+        /* agg_dict = {
+            (o_id)      1448: {
+                            c_o_code: "Afwezig - Ziek",
+            (weekindex)     202045: {
+                                monday: "2020-11-02",
+                                week: "wk 45",
+            (rosterdate)        2020-11-06: {
+                                    date_display: "vr 6 nov",
+                                    weekday_index: 5
+            (sh_id)                 1675: {
+                                        display_time: null,
+                                        e_codes: ["Sambo SMJ"],
+                                        offsetstart: 0,
+                                        sh_code: "-" }
+                                    }
+                                }
+                            }
+                        }
+        */
+        const company_name = get_dict_value(company_dict, ["name", "value"], "");
+        const period_txt = get_period_formatted(selected_period, loc);
+
+        const agg_dict = {company: company_name, period: period_txt}
+        rows.forEach(function (dict, index) {
+            const c_id = dict.c_id
+            const o_id = dict.o_id
+            const sh_id = dict.sh_id
+            let skip = false;
+            if (!c_id || !o_id){
+                skip = true;
+            } else if (selected_order_pk){
+                skip = (o_id !== selected_order_pk)
+            } else if (selected_customer_pk){
+                skip = (c_id !== selected_customer_pk)
+            }
+            if (!skip){
+    // -------- get this_rosterdate and weekindex
+                const rosterdate_iso = dict.rosterdate
+                const rosterdate_JS = get_dateJS_from_dateISO (rosterdate_iso)
+                const weekIndex = rosterdate_JS.getWeekIndex();
+                let weekday_index = rosterdate_JS.getDay()
+                if (weekday_index === 0 ) {weekday_index = 7}// JS sunday = 0, iso sunday = 7
+
+                const e_code = dict.e_code
+                let display_time = calc_display_time(loc, dict);
+
+                let shift_code = dict.sh_code;
+                // absence has shiftcode '-'. Replace them by '' (although absence not shown in customer planning, but let is stay
+                if (shift_code === "-") { shift_code = ""}
+                if (shift_code && shift_code.includes(display_time)) {
+                    display_time = null;
+                }
+
+                if (!(o_id in agg_dict) ) {
+                    const c_o_code = (dict.c_o_code) ? dict.c_o_code : "";
+                    const c_o_code_lc = c_o_code.toLowerCase();
+                    agg_dict[o_id] = {c_o_code: c_o_code};
+                    if (!orders_sorted.includes([o_id, c_o_code_lc ])){
+                        orders_sorted.push([o_id, c_o_code_lc])
+                    }
+                }
+                const order_dict = agg_dict[o_id]
+                if (!(weekIndex in order_dict) ) {
+                    const week_str = "wk " + rosterdate_JS.getWeek().toString();
+        // ---  get Monday of this week
+                    let rosterdate_weekday = rosterdate_JS.getDay()
+                    if (rosterdate_weekday === 0 ) {rosterdate_weekday = 7}// JS sunday = 0, iso sunday = 7
+                    const this_mondayJS = add_daysJS(rosterdate_JS, + 1 - rosterdate_weekday)
+                    const this_monday_iso = get_dateISO_from_dateJS(this_mondayJS)
+
+                    order_dict[weekIndex] = {week: week_str, monday: this_monday_iso};
+                }
+                const weekindex_dict = order_dict[weekIndex];
+
+                if (!(rosterdate_iso in weekindex_dict) ) {
+        // ---  get date text of  this_rosterdate 'do 5 nov'
+                    //const weekday_str = loc.weekdays_abbrev[weekday_index];
+                    //const date_str = rosterdate_JS.getDate().toString()
+                    //const month_index = rosterdate_JS.getMonth();
+                    //const month_str = loc.months_abbrev[month_index + 1];
+                    //const date_display = (loc.user_lang === "en") ?
+                    //(weekday_str + ", " +  month_str + " " + date_str) :
+                    //(weekday_str + " " +   date_str + " " + month_str);
+
+                    //weekindex_dict[rosterdate_iso] = {date_display: date_display, weekday_index: weekday_index };
+                    weekindex_dict[rosterdate_iso] = {weekday_index: weekday_index};
+                }
+                const rosterdate_dict = weekindex_dict[rosterdate_iso];
+
+                if (!(sh_id in rosterdate_dict) ) {
+                    const offsetstart = (dict.offsetstart) ? dict.offsetstart : 0;
+                    rosterdate_dict[sh_id] = {offsetstart: offsetstart, sh_code: shift_code, display_time: display_time, e_codes: []};
+                }
+                 const shift_list = rosterdate_dict[sh_id];
+                 shift_list.e_codes.push(e_code)
+
+            }  // if (!skip)
+        } ) //  rows.forEach
+
+// PR2020-11-05 from https://stackoverflow.com/questions/34599303/javascript-sort-list-of-lists-by-sublist-second-entry
+        orders_sorted.sort(function(a,b){return a[1].localeCompare(b[1]);});
+
+        agg_dict.sorted_list = orders_sorted
+        //console.log(agg_dict)
+        return agg_dict
+    }  // r_calc_customerplanning_agg_dict
+
+
+//========= r_calc_employeeplanning_agg_dict  ==================================== PR2020-11-06
+    function r_calc_employeeplanning_agg_dict(loc, rows, company_dict, selected_period, selected_employee_list){  //PR2020-11-04
+        //console.log("=== r_calc_employeeplanning_agg_dict ===")
+        //console.log("selected_employee_list", selected_employee_list, typeof selected_employee_list)
+        // dict = { fid: "1790_3719_2020-07-08", employee_code: "*Regales RDT", customer_code: "Centrum", order_code: "Mahaai"
+        // rosterdate: "2020-07-08", shift_code: "20.00 - 01.00 >", offsetstart: 1200, offsetend: 1500,
+        // breakduration: 0, timeduration: 300, isabsence: false, isrestshift: false }
+
+        const employees_sorted = [];
+        const shift_sort = [];
+
+// --- function converts rows row into nested agg_dict
+        /* agg_dict = {
+            (o_id)      1448: {
+                            c_o_code: "Afwezig - Ziek",
+            (weekindex)     202045: {
+                                monday: "2020-11-02",
+                                week: "wk 45",
+            (rosterdate)        2020-11-06: {
+                                    date_display: "vr 6 nov",
+                                    weekday_index: 5
+            (sh_id)                 1675: {
+                                        display_time: null,
+                                        e_codes: ["Sambo SMJ"],
+                                        offsetstart: 0,
+                                        sh_code: "-" }
+                                    }
+                                }
+                            }
+                        }
+        */
+        const company_name = get_dict_value(company_dict, ["name", "value"], "");
+        const period_txt = get_period_formatted(selected_period, loc);
+
+        const agg_dict = {company: company_name, period: period_txt}
+        rows.forEach(function (dict, index) {
+            const e_id = (dict.e_id) ? dict.e_id : 0;
+
+            let skip = false;
+            if (selected_employee_list && selected_employee_list.length){
+                skip = (!selected_employee_list.includes(e_id))
+            }
+            if (!skip){
+    // -------- get this_rosterdate and weekindex
+                const rosterdate_iso = dict.rosterdate
+                const rosterdate_JS = get_dateJS_from_dateISO (rosterdate_iso)
+                const weekIndex = rosterdate_JS.getWeekIndex();
+                let weekday_index = rosterdate_JS.getDay()
+                if (weekday_index === 0 ) {weekday_index = 7}// JS sunday = 0, iso sunday = 7
+
+                const e_code = (dict.e_code) ? dict.e_code : "";
+                let display_time = calc_display_time(loc, dict);
+
+                let shift_code = dict.sh_code;
+                // absence has shiftcode '-'. Replace them by ''
+                if (shift_code === "-") { shift_code = ""}
+                if (shift_code && shift_code.includes(display_time)) {
+                    display_time = null;
+                }
+
+                if (!(e_id in agg_dict) ) {
+                    const e_code_lc = e_code.toLowerCase();
+                    agg_dict[e_id] = {e_code: e_code};
+                    if (!employees_sorted.includes([e_id, e_code_lc ])){
+                        employees_sorted.push([e_id, e_code_lc])
+                    }
+                }
+                const employee_dict = agg_dict[e_id]
+                if (!(weekIndex in employee_dict) ) {
+                    const week_str = "wk " + rosterdate_JS.getWeek().toString();
+        // ---  get Monday of this week
+                    let rosterdate_weekday = rosterdate_JS.getDay()
+                    if (rosterdate_weekday === 0 ) {rosterdate_weekday = 7}// JS sunday = 0, iso sunday = 7
+                    const this_mondayJS = add_daysJS(rosterdate_JS, + 1 - rosterdate_weekday)
+                    const this_monday_iso = get_dateISO_from_dateJS(this_mondayJS)
+
+                    employee_dict[weekIndex] = {week: week_str, monday: this_monday_iso};
+                }
+                const weekindex_dict = employee_dict[weekIndex];
+
+                if (!(rosterdate_iso in weekindex_dict) ) {
+        // ---  get date text of  this_rosterdate 'do 5 nov'
+                    //const weekday_str = loc.weekdays_abbrev[weekday_index];
+                    //const date_str = rosterdate_JS.getDate().toString()
+                    //const month_index = rosterdate_JS.getMonth();
+                    //const month_str = loc.months_abbrev[month_index + 1];
+                    //const date_display = (loc.user_lang === "en") ?
+                    //(weekday_str + ", " +  month_str + " " + date_str) :
+                    //(weekday_str + " " +   date_str + " " + month_str);
+
+        //console.log("selected_employee_list", selected_employee_list, typeof selected_employee_list)
+
+                    //weekindex_dict[rosterdate_iso] = {date_display: date_display, weekday_index: weekday_index };
+                    weekindex_dict[rosterdate_iso] = {weekday_index: weekday_index};
+                }
+                const rosterdate_dict = weekindex_dict[rosterdate_iso];
+
+                const sh_id = dict.sh_id;
+                if (!(sh_id in rosterdate_dict) ) {
+                    const customer_code = (dict.c_code) ? dict.c_code : "-";
+                    const order_code = (dict.o_code) ? dict.o_code : "-";
+                    const offsetstart = (dict.offsetstart) ? dict.offsetstart : 0;
+                    rosterdate_dict[sh_id] = {offsetstart: offsetstart,
+                                                c_code: customer_code,
+                                                o_code: order_code,
+                                                sh_code: shift_code,
+                                                display_time: display_time};
+                }
+                 //const shift_list = rosterdate_dict[sh_id];
+                 //shift_list.e_codes.push(e_code)
+
+            }  // if (!skip)
+        } ) //  rows.forEach
+
+// PR2020-11-05 from https://stackoverflow.com/questions/34599303/javascript-sort-list-of-lists-by-sublist-second-entry
+        employees_sorted.sort(function(a,b){return a[1].localeCompare(b[1]);});
+
+        agg_dict.sorted_list = employees_sorted
+        //console.log(agg_dict)
+        return agg_dict
+    }  // r_calc_employeeplanning_agg_dict
+
+
+//========= calc_display_time  ==================================== PR2020-11-04
+    function calc_display_time(loc, item_dict){  //PR2020-11-04
+        //console.log("=== calc_display_time ===")
+
+        let display_time = null;
+        const offset_start = (item_dict.offsetstart) ? item_dict.offsetstart : null; //was: get_dict_value(item_dict, ["shift", "offsetstart"]);
+        const offset_end =  (item_dict.offsetend) ? item_dict.offsetend : null; //was: get_dict_value(item_dict, ["shift", "offsetend"]);
+
+        if(offset_start || offset_end){
+            const offsetstart_formatted = display_offset_time (loc, offset_start, true); // true = skip_prefix_suffix
+            const offsetend_formatted = display_offset_time (loc, offset_end, true); // true = skip_prefix_suffix
+            display_time = offsetstart_formatted + " - " + offsetend_formatted
+        }
+        return display_time;
+    }  // calc_display_time
+
+
+// ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
+    function PrintEmployeePlanning(option, selected_period, planning_list, company_dict, loc) {
+        console.log("PrintEmployeePlanning")
+        console.log("planning_list", planning_list)
+        // only called by employee page, menubtn print planning
+        const today_JS = new Date();
+        const today_str = format_dateJS_vanilla (loc, today_JS, true, false)
+
+        const rpt_tabs = [0, 30, 40, 160, 185, 195];
+        const rpthdr_labelsOLD = [loc.Employee, loc.Company, loc.Planning + " " + loc.of, loc.Print_date];
+        let rpthdr_valuesOLD = ["",
+                            get_dict_value(company_dict, ["name", "value"], ""),
+                            get_period_formatted(selected_period, loc),
+                            today_str];
+        const rpthdr_tabs = [["0", "30", "40", "160", "185", "195"],
+                             ["0", "30", "40", "160", "185", "195"]]; // count from left margin
+        const rpthdr_values = [[loc.Employee, ":", "", loc.Company, ":", get_dict_value(company_dict, ["name", "value"], "") ],
+                              [loc.Planning + " " + loc.of , ":", get_period_formatted(selected_period, loc),
+                                loc.Print_date, ":", today_str]];
+
+        const pos_x_list = [6, 65, 105, 130, 155, 185];
+        const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
+
+        const is_preview = (option === "preview");
+        const period_txt = get_period_formatted(selected_period, loc);
+
+        const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
+        const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
+        let datefirst_weekday = datefirst_JS.getDay()
+        if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
+        // when weekday = 1 it starts at first column (monday) if not , get monday before datefirst_weekday
+        const startdateJS = add_daysJS(datefirst_JS, + 1 - datefirst_weekday)
+
+        const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
+        const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
+        let datelast_weekday = datelast_JS.getDay()
+        if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
+        // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
+        const enddateJS = add_daysJS(datelast_JS, + 7 - datelast_weekday)
+        // not in use:, getWeek is used in printWeekHeader PR2020-11-04
+        // const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
+        // const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
+        // const endWeekIndex = enddateJS.getWeekIndex();
+
+        // PR2020-11-01 not in use any more, filter is done outside this function
+        //const selected_employee_pk = get_dict_value(selected_period, ["selected_employee_pk"]);
+
+        let doc = new jsPDF("landscape","mm","A4");
+
+        let pos = {left: rpt_setting.margin_left,
+                   top: rpt_setting.margin_top,
+                   today: today_str,
+                   page: 1}
+
+        let this_employee_pk = 0
+        let is_first_page = true;
+
+        let this_rosterdate_iso = null
+        let this_rosterdate_JS = null
+        let this_weekIndex = null
+        let this_weekday = null
+        let this_duration_sum = 0;
+
+        let prev_rosterdate_iso = null
+        let prev_weekIndex = null
+        let prev_duration_sum = 0;
+        let prev_duration_total = 0;
+
+        let week_list;
+
+    //console.log("planning_list", planning_list)
+//======================== loop through planning_list map
+            for (let i = 0, item_dict; item_dict = planning_list[i]; i++) {
+    //console.log("=========================: loop through planning_list")
+    //console.log("item_dict: ", item_dict)
+
+// -------- get weekindex and weekday of this_rosterdate
+            this_rosterdate_iso = item_dict.rosterdate;
+            this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
+            this_weekIndex = this_rosterdate_JS.getWeekIndex();
+            this_weekday = this_rosterdate_JS.getDay()
+            if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
+    //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
+
+// -------- filter employee
+            const employee_pk = (item_dict.e_id) ? item_dict.e_id : 0
+            //const add_row = ( (!selected_employee_pk) || (selected_employee_pk && employee_pk === selected_employee_pk) );
+            // PR2020-11-01 filter is done outside this functions
+            const add_row = true
+            if(add_row){
+//======================== detect change in employee
+                if (employee_pk !== this_employee_pk){
+    //---------- skip addPage on first page
+                    if(is_first_page){
+                        is_first_page = false
+                    } else {
+    //---------- print last week of previous employee
+                        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, rpt_setting,
+                                    rpthdr_tabs, rpthdr_values, loc, doc)
+    //---------- print new page
+                        doc.addPage();
+                    }
+    //---------- reset values
+                    this_employee_pk = employee_pk;
+                    prev_rosterdate_iso = null;
+                    prev_weekIndex = null;
+                    week_list = [ [], [], [], [], [], [], [], [] ];
+
+                    // reset pos y
+                    pos.left = rpt_setting.margin_left;
+                    pos.top = rpt_setting.margin_top;
+
+    //---------- get employee values
+                    const code = (item_dict.e_code) ? item_dict.e_code : "---";
+                    const namelast = (item_dict.e_nl) ? item_dict.e_nl : "";
+                    const namefirst =(item_dict.e_nf) ? item_dict.e_nf : "";
+                    rpthdr_values[0][2] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
+
+    //----------  print employee header
+                    // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
+    // ---  print report header
+                    PrintReportHeader(rpthdr_tabs, rpthdr_values, pos, rpt_setting, doc)
+
+    //----------  print table header NOT IN USE
+                    //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, rpt_setting, doc)
+                    //console.log("TblHeader_height", TblHeader_height )
+                    //pos.y += TblHeader_height
+                   //console.log("printTblHeader pos.y", pos.y )
+                }  // if (employee_pk !== this_employee_pk){
+
+    //======================== change in this_rosterdate
+    // -------- detect change in this_rosterdate
+                // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
+                  if (this_weekIndex !== prev_weekIndex){
+
+    //------------- print Week
+                    // print printWeekHeader and printWeekData before updating prev_weekIndex
+                    PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, rpt_setting,
+                                rpthdr_tabs, rpthdr_values, loc, doc)
+
+    //------------- put current values in prev_ variables
+                    prev_rosterdate_iso = this_rosterdate_iso;
+                    prev_weekIndex = this_weekIndex;
+                    prev_duration_sum = this_duration_sum;
+                    prev_duration_total += this_duration_sum;
+                    this_duration_sum = 0;
+
+    //------------- then reset week_list
+                    // week_list has 8 items: max_shifts, day_list1 -  day_list7
+                    // day_list has 0 ore more shift_listst
+                    // shift_list contains [time, shift, cust, order]
+                    week_list = [ [], [], [], [], [], [], [], [] ];
+                    this_duration_sum = 0;
+                }  //  if (weekIndex !== this_weekIndex){
+
+    //======================== get shift info
+        //console.log("======================== get shift info: ")
+        //console.log("item_dict: ", item_dict)
+                const shift_code = (item_dict.sh_code) ? item_dict.sh_code : "";
+                const order_code = (item_dict.o_code) ? item_dict.o_code : "";
+                const customer_code = (item_dict.c_code) ? item_dict.c_code : "";
+                const rosterdate_formatted = format_dateISO_vanilla (loc, this_rosterdate_iso, false, true, false, false);
+
+                //let display_time = null;
+                const offset_start = (item_dict.offsetstart) ? item_dict.offsetstart : null;
+                const offset_end =  (item_dict.offsetend) ? item_dict.offsetend : null;
+                const time_duration =  (item_dict.timedur) ? item_dict.timedur : null;
+
+                const skip_prefix_suffix = true;
+                const display_time = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
+
+                if(!!time_duration) {this_duration_sum += time_duration};
+                // TODO
+                const overlap =  (item_dict.overlap) ? item_dict.overlap : false;
+
+                //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
+                let shift_list = [];
+                // first item in shift_list contains overlap, is not printed
+                shift_list.push(overlap);
+                if(!!display_time) {shift_list.push(display_time)};
+                // skip shift_code if shift_code and display_time are equal
+                if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
+
+                if(!!customer_code) { shift_list.push(customer_code)};
+                if(!!order_code) { shift_list.push(order_code)};
+        // don't show time_duration. is for testing
+                //if(!!time_duration) { shift_list.push(display_duration (time_duration, loc.user_lang))};
+
+                let day_list = week_list[this_weekday]
+                day_list.push(shift_list);
+                week_list[this_weekday] = day_list
+
+            }  // if(add_row){
+        }  //  for (const [map_id, item_dict] of planning_map.entries()) {
+
+// ================ print last Week of last employee
+
+    console.log(" --- PrintWeek")
+    console.log("week_list", week_list)
+
+        PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, rpt_setting,
+                    rpthdr_tabs, rpthdr_values, loc, doc)
+
+// ================ print To View  ==================
+        if(is_preview){
+            let string = doc.output('datauristring');
+            let embed = "<embed width='100%' height='100%' src='" + string + "'/>"
+            let wndw = window.open();
+            wndw.document.open();
+            wndw.document.write(embed);
+            wndw.document.close();
+        } else {
+        //To Save
+            doc.save('planning');
+        }
+    }  // PrintEmployeePlanning
+
 

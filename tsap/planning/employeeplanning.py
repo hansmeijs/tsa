@@ -6,44 +6,80 @@ from datetime import timedelta
 from timeit import default_timer as timer
 
 from tsap import functions as f
+from tsap import constants as c
 
+from operator import itemgetter
 import logging
 logger = logging.getLogger(__name__)
 
 
-def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, request):  #PR2020-10-25
+def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
     #logger.debug('   ')
     #logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
     #logger.debug('planning_period_dict: ' + str(planning_period_dict))
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
     datelast_iso = planning_period_dict.get('period_datelast')
-    include_inactive = planning_period_dict.get('include_inactive')
     employee_pk_list = planning_period_dict.get('employee_pk_list')
     functioncode_pk_list = planning_period_dict.get('functioncode_pk_list')
 
+    planning_list, customer_dictlist, order_dictlist, elapsed_seconds = [], [], [], 0
     if datefirst_iso and datelast_iso:
         # - convert datefirst and datelast into date_objects
         datefirst_dte = f.get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
         datelast_dte = f.get_date_from_ISO(datelast_iso)
 
-        # - check if calendar contains dates of this year, fill if necessary
+# - check if calendar contains dates of this year, fill if necessary
         starttime = timer()
         f.check_and_fill_calendar(datefirst_dte, datelast_dte, request)
-        #logger.debug( 'check_and_fill_calendar.extend: ' + str(time() - starttime))
+        #logger.debug( 'check_and_fill_calendar: ' + str(timer() - starttime))
+
         planning_list = []
         customer_dictlist = {}
         order_dictlist = {}
-        # ---  create employee_list with employees:
-        # - not inactive
-        # - in service on rosterdate
-        # calculate for each rosterdate, to get proper 'in service' value
 
-        employee_dictlist = create_employee_dictlist(request=request,
-                                                     datefirst_iso=datefirst_iso,
-                                                     datelast_iso=datelast_iso,
-                                                     employee_pk_list=employee_pk_list,
-                                                     functioncode_pk_list=functioncode_pk_list)
+# - when only shifts of order_pk are selected
+        # - employee_pk_list is a list of all employees and replacements and empty employee of this order
+        # - order_pk_list is a list of all orders of these employees (except empty employee)
+        # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
+        employee_pk_list, employee_pk_nonull, order_pk_list = [], [], []
+        if order_pk:
+            # this function first a list of all employees and replacements of this order
+            # - only when order and customer are active and not istemplate
+            # note: list includes employees that are inactive or not in service
+            # PR2020-11-09 debug: must also add absence replacement employees
+            employee_pk_list = get_employeeplanning_employee_pk_list(order_pk, request)
+            employee_pk_nonull = get_employees_active_inservce(employee_pk_list, datefirst_iso, datelast_iso, request)
+            # make a list of absence replacements of the employees in employee_pk_nonull
+            # - replacements that are also in employee_pk_nonull are skipped
+            # - add absence replacements to employee_pk_nonull
+            absence_replacement_pk_list = get_employeeplanning_absence_replacement_pk_list (employee_pk_nonull, datefirst_iso, datelast_iso, request)
+            if absence_replacement_pk_list:
+                employee_pk_nonull.extend(absence_replacement_pk_list)
+            #logger.debug('..... employee_pk_list: ' + str(employee_pk_list))
+            #logger.debug('..... absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
+            #logger.debug('..... employee_pk_nonull: ' + str(employee_pk_nonull))
+
+            # this function first makes  a list of all orders of the employees of the selected order_pk
+            # - only when customer, order and scheme are active and not istemplate
+            # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
+            order_pk_list = get_employeeplanning_order_list(employee_pk_nonull, request)
+
+# ---  create employee_list with employees:
+        # - not inactive
+        # - in service in range datefirst_iso - datelast_iso
+        # was: calculate for each rosterdate, to get proper 'in service' value
+        # replaced by: create once for whole period, check for proper 'in service' value before adding to shift
+
+        #logger.debug('employee_pk_list: ' + str(employee_pk_list))
+        #employee_dictlist = create_employee_dictlist(request=request,
+        #                                             datefirst_iso=datefirst_iso,
+        #                                             datelast_iso=datelast_iso,
+        #                                             employee_pk_list=employee_pk_nonull,
+        #                                             functioncode_pk_list=functioncode_pk_list)
+        #logger.debug('employee_dictlist: ')
+        #for key, value in employee_dictlist.items():
+        #    #logger.debug( '..... ' + str(key) + ': code: ' + str(value.get('code', '---')))
 
 # +++++ +++++ +++++ +++++ +++++ +++++
 # +++++ loop through dates +++++
@@ -55,11 +91,19 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
             rosterdate_iso = rosterdate_dte.isoformat()
             #logger.debug('  ===================  rosterdate_iso: ' + str(rosterdate_iso) + ' ===================')
 
-            #logger.debug( 'employee_dictlist: ' + str(employee_dictlist))
-            #for key, value in employee_dictlist.items():
-            #    logger.debug( 'employee_dict: ' + str(key) + ' code: ' + str(value.get('code', '---')))
+            #logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
 
-# ---  create list of teammember- / absence- / restshifts of this rosterdate with employee of this rosterdate
+            employee_dictlist = create_employee_dictlist(request=request,
+                                                         datefirst_iso=rosterdate_iso,
+                                                         datelast_iso=rosterdate_iso,
+                                                         employee_pk_list=employee_pk_nonull,
+                                                         functioncode_pk_list=functioncode_pk_list)
+
+            #logger.debug( 'employee_dictlist: ')
+            #for key, value in employee_dictlist.items():
+                #logger.debug( '     ' + str(key) + ': ' + str(value.get('code', '---')))
+
+# ---  create list of teammember- / absence- / restshifts of this rosterdate as dict with key = employee_pk
             # PR2020-10-13
             # Why two dictlists? : one with only key=e_id and value = arr(tm_si_id)
             #                      other with key tm_si_id and values of teammember;
@@ -71,12 +115,14 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
                 rosterdate_iso=rosterdate_iso,
                 is_publicholiday=is_publicholiday,
                 is_companyholiday=is_companyholiday,
-                absrest_only=False,
-                employee_pk_list=employee_pk_list,
+                employee_pk_list=employee_pk_nonull,
                 functioncode_pk_list=functioncode_pk_list
             )
+            #logger.debug('eid_tmsid_arr: ')
+            #for row in eid_tmsid_arr:
+            #    #logger.debug('..... ' + str(row))
 
-# ---  create list with info of teammember- / absence- / restshifts of this rosterdate
+# ---  create list with info of teammember- / absence- / restshifts of this rosterdate as dict with key = tm_si_id
             #  tm_si_id_info = { '1802_3998': {'tm_si_id': '1802_3998', 'tm_id': 1802, 'si_id': 3998, 'e_id': 2620,
             #                                       'rpl_id': 2619, 'switch_id': None, 'isabs': False, 'isrest': True,
             #                                       'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'o_seq': -1},
@@ -85,27 +131,41 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
                 rosterdate_iso=rosterdate_iso,
                 is_publicholiday=is_publicholiday,
                 is_companyholiday=is_companyholiday,
-                employee_pk_list=employee_pk_list,
+                employee_pk_list=employee_pk_nonull,
                 functioncode_pk_list=functioncode_pk_list
             )
 
-# ---  remove overlapping absence- / restshifts
+    # ---  remove overlapping absence- / restshifts
             remove_double_absence_restrows(eid_tmsid_arr, tm_si_id_info)  # PR2020-10-23
             #logger.debug('----- tm_si_id_info after remove: ')
             #for key, value in tm_si_id_info.items():
-            #    logger.debug('     ' + str(key) + ': ' + str(value))
+            #    #logger.debug('..... ' + str(key) + ': ' + str(value))
 
-# ---  create list of teammembers:
+# ---  create list of shifts (teammembers):
             # - this company
             # - not istemplate,
             # - with absence, also when absence_order is inactive (is that ok?)
             # - customer, order, scheme not inactive, except when isabsence
             # - with rosterdate within range datefirst-datelast of teammember, scheme and order
             # - with schemeitem that matches rosterdate or is divergentonpublicholiday schemeitem when is_publicholiday
+            # when order_pk has value: get only the shifts of the orders in order_pk_list
             teammember_list = create_teammember_list(request=request,
                                     rosterdate_iso=rosterdate_iso,
                                     is_publicholiday=is_publicholiday,
-                                    is_companyholiday=is_companyholiday)
+                                    is_companyholiday=is_companyholiday,
+                                    order_pk_list=order_pk_list)
+            #logger.debug('----- teammember_list: ')
+            #for value in teammember_list:
+            #    #logger.debug('..... ' + str(value))
+
+# - sort rows
+            # TODO test
+            # PR2020-11-08 from https://stackoverflow.com/questions/72899/how-do-i-sort-a-list-of-dictionaries-by-a-value-of-the-dictionary
+
+            # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
+            # caused bij idx_e_code = None. Coalesce added in query.
+            #  Idem with idx_sh_os_nonull. idx_sh_os must stay, may have null value for updating
+            sorted_rows = sorted(teammember_list, key=itemgetter('sh_os_nonull', 'c_code', 'o_code'))
 
 # ---  loop through list of teammembers:
             for i, row in enumerate(teammember_list):
@@ -113,9 +173,6 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
                 #logger.debug(' ')
                 #logger.debug(' ------------------- row  -------------------------------')
                 #logger.debug('row: ' + str(row))
-                # TODO create filter
-                employee_pk, functioncode_pk, paydatecode_pk = None, None, None
-                skip_absence_and_restshifts, add_shifts_without_employee = False, False
 
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
                 add_row = calculate_add_row_to_dictNEW(
@@ -123,15 +180,10 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
                     employee_dictlist=employee_dictlist,
                     eid_tmsid_arr=eid_tmsid_arr,
                     tm_si_id_info=tm_si_id_info,
-                    rosterdate_dte=rosterdate_dte,
-                    filter_employee_pk=employee_pk,
-                    filter_functioncode_pk=functioncode_pk,
-                    filter_paydatecode_pk=paydatecode_pk,
-                    skip_absence_and_restshifts=skip_absence_and_restshifts,
-                    add_shifts_without_employee=add_shifts_without_employee
+                    rosterdate_dte=rosterdate_dte
                     )
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-                # logger.debug( 'row: ' + str(row))
+                # #logger.debug( 'row: ' + str(row))
 
 # - add row to planning
                 if add_row:
@@ -141,6 +193,7 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
                             employee_dictlist=employee_dictlist,
                             customer_dictlist=customer_dictlist,
                             order_dictlist=order_dictlist,
+                            tm_si_id_info=tm_si_id_info,
                             is_saturday=is_saturday,
                             is_sunday=is_sunday,
                             is_publicholiday=is_publicholiday,
@@ -166,18 +219,14 @@ def create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, 
         #sorted_rows = sorted(planning_list, key=lambda k: (k['e_code'].lower(), k['rosterdate'], k['c_o_code'].lower()))
         #logger.debug('sorted_rows' + str(sorted_rows))
 
-# PR2020-05-23 debug: datalists = {} gives parse error.
-        # elapsed_seconds to the rescue: now datalists will never be empty
         elapsed_seconds = timer() - starttime
-        datalists['employee_planning_list_elapsed_seconds'] = elapsed_seconds
 
-        datalists['employee_planning_listNEW'] = planning_list
-        datalists['employee_planning_customer_dictlist'] = customer_dictlist
-        datalists['employee_planning_order_dictlist'] = order_dictlist
+    return planning_list, customer_dictlist, order_dictlist, elapsed_seconds
 
 
-def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlist, order_dictlist, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
-                           comp_timezone, request):  # PR2020-01-5 PR2020-08-14
+def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlist, order_dictlist, tm_si_id_info,
+                        is_saturday, is_sunday, is_publicholiday, is_companyholiday,
+                        comp_timezone, request):  # PR2020-01-5 PR2020-08-14
     #logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('row: ' + str(row))
     """
@@ -187,7 +236,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
      'e_id': 2625, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 
      's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
      'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 
-     'sh_os': 510, 'sh_oe': 1020, 'sh_bd': 90, 'sh_td': 420, 'sh_wfc_id': 11, 'sh_wfc_code': 'W100', 'sh_wfc_rate': 1000000, 'o_nopay': False, 
+     'sh_os': 510, 'sh_oe': 1020, 'sh_bd': 90, 'sh_td': 420, 'sh_wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 'o_nopay': False,
      'isreplacement': False}
     """
 
@@ -195,7 +244,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
     if row:
         e_id = row.get('e_id')
         e_code, e_identifier, e_payrollcode = None, None, None
-        e_fnc_id, e_fnc_code, e_wgc_id, e_wgc_code,  e_pdc_id, e_pdc_code = None, None, None, None, None, None
+        fnc_id, fnc_code, wgc_id, wgc_code,  pdc_id, pdc_code = None, None, None, None, None, None
 
         if e_id:
             employee_dict = employee_dictlist.get(e_id)
@@ -206,14 +255,14 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                 e_identifier = employee_dict.get('identifier')
                 e_payrollcode = employee_dict.get('payrollcode')
 
-                e_fnc_id = employee_dict.get('fnc_id')
-                e_fnc_code = employee_dict.get('fnc_code')
+                fnc_id = employee_dict.get('fnc_id')
+                fnc_code = employee_dict.get('fnc_code')
 
-                e_wgc_id = employee_dict.get('wgc_id')
-                e_wgc_code = employee_dict.get('wgc_code')
+                wgc_id = employee_dict.get('wgc_id')
+                wgc_code = employee_dict.get('wgc_code')
 
-                e_pdc_id = employee_dict.get('pdc_id')
-                e_pdc_code = employee_dict.get('pdc_code')
+                pdc_id = employee_dict.get('pdc_id')
+                pdc_code = employee_dict.get('pdc_code')
 
         if e_code is None:
             # necessary for sorted list
@@ -224,15 +273,16 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         note = None
         if note_absent_eid is not None:
             # employee_dictlist: { 2608: {'id': 2608, 'comp_id': 3, 'code': 'Colpa de, William',
+            #logger.debug('note_absent_eid: ' + str(note_absent_eid))
             absent_employee_dict = employee_dictlist.get(note_absent_eid)
+            #logger.debug('absent_employee_dict: ' + str(absent_employee_dict))
             if absent_employee_dict:
                 absent_e_code = absent_employee_dict.get('code')
+                #logger.debug('absent_e_code: ' + str(absent_e_code))
                 if absent_e_code:
-                    is_replacement = row.get('isreplacement', False)
-                    if is_replacement:
-                        note = str(_('replaces ')) + absent_e_code
-                    else:
-                        note = absent_e_code  + str(_(' is absent'))
+                    note = absent_e_code + str(_(' is absent'))
+                #logger.debug('note: ' + str(note))
+            #logger.debug('employee_dictlist: ' + str(employee_dictlist))
 
         mode = row.get('si_mod')
         is_absence = (mode == 'a')
@@ -246,6 +296,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         tm_id = row.get('tm_id')
         o_code = row.get('o_code')
         c_code = row.get('c_code')
+        sh_id = row.get('sh_id')
         sh_code = row.get('sh_code')
 
         # - get is_billable info from shift, order, company
@@ -267,7 +318,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         employee_pk = row.get('e_id')
 
         #  row['isreplacement'] is added in function calculate_add_row_to_dict
-        is_replacement = row.get('isreplacement')
+        is_replacement = row.get('isreplacement', False)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
@@ -281,7 +332,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         timedur = 0 if is_absence else time_duration
         totaldur = time_duration
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+# customer_list and order_list contain list of e_id's (None= -1), for filtering planning per order
 # add employee to order_list, for filtering planning per order
         if c_id and o_id and not is_absence:
             e_id_nonull = -1
@@ -303,6 +354,13 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         #logger.debug('planned_duration: ' + str(planned_duration))
         #logger.debug('time_duration: ' + str(time_duration))
 
+        wfc_id = row.get('wfc_id')
+        wfc_code = row.get('wfc_code')
+        wfc_rate = row.get('wfc_rate')
+        if wfc_rate is None:
+            wfc_rate = 0
+        o_nopay = row.get('o_nopay', False)
+
         planning_dict_short = {
                     'fid': '_'.join([str(tm_id), str(si_id), str(tm_rd)]),
                     'e_id': e_id,
@@ -318,11 +376,12 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     'c_code': c_code,
                     'c_o_code': ' '.join( (c_code, '-', o_code)),
 
+                    'sh_id': sh_id,
                     'sh_code': sh_code,
                     'rosterdate': tm_rd,
-                    'offsetstart': row.get('sh_os'),
-                    'offsetend': row.get('sh_oe'),
-                    'breakduration': row.get('sh_bd'),
+                    'offsetstart': sh_os,
+                    'offsetend': sh_oe,
+                    'breakduration': sh_bd,
                     'isrestshift': is_restshift,
                     'isabsence': is_absence,
 
@@ -336,23 +395,25 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     'absdur': absdur,
                     'totaldur': totaldur,
 
-                    'e_fnc_id': e_fnc_id,
-                    'e_fnc_code': e_fnc_code,
-                    'e_wgc_id': e_wgc_id,
-                    'e_wgc_code': e_wgc_code,
-                    'e_pdc_id': e_pdc_id,
-                    'e_pdc_code': e_pdc_code,
+                    'fnc_id': fnc_id,
+                    'fnc_code': fnc_code,
+                    'wgc_id': wgc_id,
+                    'wgc_code': wgc_code,
+                    'pdc_id': pdc_id,
+                    'pdc_code': pdc_code,
 
-                    'sh_wfc_id': row.get('sh_wfc_id'),
-                    'sh_wfc_code': row.get('sh_wfc_code'),
-                    'sh_wfc_rate': row.get('sh_wfc_rate'),
-                    'o_nopay': row.get('o_nopay'),
+                    'wfc_id': wfc_id,
+                    'wfc_code': wfc_code,
+                    'wfc_rate': wfc_rate,
+                    'o_nopay': o_nopay,
 
                     'note': note,
-                    'note_absent_eid': row.get('note_absent_eid'),
+                    'note_absent_eid': note_absent_eid,
                     'isreplacement': is_replacement
         }
-
+        #if note_absent_eid:
+            #logger.debug('===============planning_dict_short with note_absent_eid========================')
+            #logger.debug(planning_dict_short)
     ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     return planning_dict_short
@@ -361,44 +422,44 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 def create_employee_dictlist(request, datefirst_iso, datelast_iso, employee_pk_list, functioncode_pk_list):
     #logger.debug(' =============== create_employee_dictlist ============= ')
     #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' datelast_iso: ' + str(datelast_iso))
-    # --- create rows of employees of this company, in servie on rosterdate, not inactive PR2020-10-11
+    # --- create rows of employees of this company, in servie in range, not inactive PR2020-10-11
 
     employee_dict = {}
     if request.user.company.pk:
         sql_keys = {'comp_id': request.user.company.pk}
 
-        sql_list = [""" SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,
-            e.namelast, e.namefirst, 
-            e.identifier, e.payrollcode, 
-            fnc.id AS fnc_id, fnc.code AS fnc_code, 
-            wgc.id AS wgc_id, wgc.code AS wgc_code, 
-            pdc.id AS pdc_id, pdc.code AS pdc_code, 
-            e.locked, e.inactive
+        sql_list = ["SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,",
+            "e.namelast, e.namefirst, e.identifier, e.payrollcode,",
+            "fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
+            "e.pricecode_id AS prc_id, e.additioncode_id AS adc_id,",
+            "CASE WHEN e.workminutesperday IS NULL OR e.workminutesperday = 0 ",
+                "THEN COALESCE(comp.workminutesperday, " + str(c.EMPLOYEE_DEFAULT_WORKMINUTES) + ")",
+                 "ELSE e.workminutesperday  END AS wmpd,",
+            "e.locked, e.inactive "
     
-            FROM companies_employee AS e 
-            LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id) 
-            LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id) 
-            LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
-    
-            WHERE (e.company_id = %(comp_id)s::INT)
-            """]
-        # don't filter on range or inactive when filter on employee_pk_list or functioncode_pk_list
+            "FROM companies_employee AS e",
+            "INNER JOIN companies_company AS comp ON (comp.id = e.company_id)",
+            "LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id)",
+            "LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id)",
+            "LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id)",
+
+            "WHERE (e.company_id = %(comp_id)s::INT) AND (NOT e.inactive)"]
+
+        if datefirst_iso:
+            sql_list.append("AND (e.datelast >= %(df)s::DATE OR e.datelast IS NULL)")
+            sql_keys['df'] = datefirst_iso
+        if datelast_iso:
+            sql_list.append("AND (e.datefirst <= %(dl)s::DATE OR e.datefirst IS NULL)")
+            sql_keys['dl'] = datelast_iso
+
         if employee_pk_list:
-            sql_list.append('AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )' )
+            sql_list.append("AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )" )
             sql_keys['eid_arr'] = employee_pk_list
         elif functioncode_pk_list:
-            sql_list.append('AND e.functioncode_id IN ( SELECT UNNEST( %(fncid_arr)s::INT[] ) )')
+            sql_list.append("AND e.functioncode_id IN ( SELECT UNNEST( %(fncid_arr)s::INT[] ) )")
             sql_keys['fncid_arr'] = employee_pk_list
-        else:
-            sql_list.append('AND (NOT e.inactive)')
-            if datefirst_iso:
-                sql_list.append('AND (e.datelast >= %(df)s::DATE OR e.datelast IS NULL)')
-                sql_keys['df'] = datefirst_iso
-            if datelast_iso:
-                sql_list.append('AND (e.datefirst <= %(dl)s::DATE OR e.datefirst IS NULL)')
-                sql_keys['dl'] = datelast_iso
 
-        sql_list.append('ORDER BY LOWER(e.code)')
+        sql_list.append("ORDER BY LOWER(e.code)")
 
         sql_employee = ' '.join(sql_list)
 
@@ -409,42 +470,34 @@ def create_employee_dictlist(request, datefirst_iso, datelast_iso, employee_pk_l
         #newcursor.execute(sql_employee, sql_keys)
         #logger.debug('create_employee_dictlist: ')
         #for value in f.dictfetchall(newcursor):
-        #    logger.debug(str(value))
+        #    #logger.debug(str(value))
         #logger.debug('  ---------------------------')
 
     return employee_dict
 # --- end of create_employee_dictlist
 
 
-def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday):
+def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list):
     #logger.debug(' ------------- create_teammember_dict ----------------- ')
+    #logger.debug('order_pk_list' + str(order_pk_list))
     #logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
     # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11
 
+    # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
+    sql_keys = {'comp_id': request.user.company.pk,
+                'rd': rosterdate_iso,
+                'ph': is_publicholiday,
+                'ch': is_companyholiday}
+
     sql_schemeitem = get_sql_schemeitem()
 
-    sql_teammember = """
-        SELECT 
-        tm.id AS tm_id,
-        CONCAT(tm.id::TEXT, '_', si_sub.si_id::TEXT) AS tm_si_id,
-        
-        %(rd)s::DATE AS tm_rd,
-        t.id AS t_id, 
-        COALESCE(t.code,'') AS t_code,
-        s.id AS s_id,
-        COALESCE(s.code,'') AS s_code,
-        o.id AS o_id,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code,     
-        COALESCE(o.identifier,'') AS o_identifier, 
-        c.id AS c_id, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-        c.company_id AS comp_id, 
+    sql_list = ["SELECT tm.id AS tm_id, CONCAT(tm.id::TEXT, '_', si_sub.si_id::TEXT) AS tm_si_id, %(rd)s::DATE AS tm_rd,",
+        "t.id AS t_id,  COALESCE(t.code,'') AS t_code, s.id AS s_id, COALESCE(s.code,'') AS s_code,",
+        "o.id AS o_id, COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, COALESCE(o.identifier,'') AS o_identifier,",
+        "c.id AS c_id, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, c.company_id AS comp_id,",
+        "si_sub.si_id, si_sub.sh_id, COALESCE(si_sub.sh_code,'') AS sh_code,",
 
-        si_sub.si_id,
-        si_sub.sh_id,
-        COALESCE(si_sub.sh_code,'') AS sh_code,
-
-        CASE WHEN c.isabsence OR si_sub.sh_rest THEN FALSE ELSE
+        """CASE WHEN c.isabsence OR si_sub.sh_rest THEN FALSE ELSE
             CASE WHEN si_sub.sh_bill = 0 OR si_sub.sh_bill IS NULL THEN
                 CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
                     CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
@@ -455,71 +508,57 @@ def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_company
                 CASE WHEN si_sub.sh_bill = 2 THEN TRUE ELSE FALSE END
             END 
         END AS sh_isbill,
+        """,
 
-        CASE WHEN c.isabsence THEN o.sequence ELSE -1 END AS o_seq,
+        "CASE WHEN c.isabsence THEN o.sequence ELSE -1 END AS o_seq,",
+        "si_sub.si_mod,",
+        "tm.employee_id AS e_id, tm.replacement_id AS rpl_id, tm.switch_id AS switch_id, tm.datefirst AS tm_df, tm.datelast AS tm_dl,",
+        "s.datefirst AS s_df, s.datelast AS s_dl, s.cycle AS s_cycle,",
+        "s.excludepublicholiday AS s_exph, s.excludecompanyholiday AS s_exch, s.divergentonpublicholiday AS s_dvgph,",
+        "CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,",
+        "CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,",
+        "CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,",
+        "CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,",
+        "si_sub.sh_os, si_sub.sh_oe, si_sub.sh_os_nonull, si_sub.sh_oe_nonull, si_sub.sh_bd, si_sub.sh_td,",
+        "CASE WHEN si_sub.wfc_id IS NULL THEN comp.wagefactorcode_id ELSE si_sub.wfc_id END AS wfc_id,",
+        "CASE WHEN si_sub.wfc_id IS NULL THEN wfc.code ELSE si_sub.wfc_code END AS wfc_code,",
+        "CASE WHEN si_sub.wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.wfc_rate END AS wfc_rate,",
 
-        si_sub.si_mod,
+        "o.nopay AS o_nopay",
 
-        tm.employee_id AS e_id,
-        tm.replacement_id AS rpl_id, 
-        tm.switch_id AS switch_id, 
-        tm.datefirst AS tm_df,
-        tm.datelast AS tm_dl,
-        s.datefirst AS s_df,
-        s.datelast AS s_dl,
-        s.cycle AS s_cycle,
-        
+        "FROM companies_teammember AS tm",
+        "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+        "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+        "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "INNER JOIN companies_company AS comp ON (comp.id = c.company_id)",
+        "INNER JOIN  ( " + sql_schemeitem + " ) AS si_sub ON (si_sub.t_id = t.id)",
 
-        s.excludepublicholiday AS s_exph,
-        s.excludecompanyholiday AS s_exch,
-        s.divergentonpublicholiday AS s_dvgph,
+        "LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)",
 
-        CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
-        CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
-        CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
-        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
+        "WHERE (c.company_id = %(comp_id)s)",
+        "AND (NOT c.inactive OR c.isabsence) AND (NOT o.inactive OR o.isabsence) AND (NOT s.inactive OR s.isabsence)",
+        "AND (NOT o.istemplate)",
+        "AND (tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL) AND (tm.datelast  >= %(rd)s::DATE OR tm.datelast IS NULL)",
+        "AND (s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL) AND (s.datelast  >= %(rd)s::DATE OR s.datelast IS NULL)",
+        "AND (o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL) AND (o.datelast  >= %(rd)s::DATE OR o.datelast IS NULL)"]
 
-        si_sub.sh_os, si_sub.sh_oe, si_sub.sh_bd, si_sub.sh_td,
+    if order_pk_list:
+        sql_list.append('AND o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[] ) )')
+        sql_keys['oid_arr'] = order_pk_list
 
-        CASE WHEN si_sub.sh_wfc_id IS NULL THEN comp.wagefactorcode_id ELSE si_sub.sh_wfc_id END AS sh_wfc_id,
-        CASE WHEN si_sub.sh_wfc_id IS NULL THEN wfc.code ELSE si_sub.sh_wfc_code END AS sh_wfc_code,
-        CASE WHEN si_sub.sh_wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.sh_wfc_rate END AS sh_wfc_rate,
-
-        o.nopay AS o_nopay
-
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        INNER JOIN companies_company AS comp ON (comp.id = c.company_id) 
-    
-        INNER JOIN  ( """ + sql_schemeitem + """ ) AS si_sub ON (si_sub.t_id = t.id)
-    
-        LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)
-    
-        WHERE (c.company_id = %(comp_id)s)
-        AND (NOT c.inactive OR c.isabsence) AND (NOT o.inactive OR o.isabsence) AND (NOT s.inactive OR s.isabsence)
-        AND (NOT o.istemplate)
-        AND (tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL) AND (tm.datelast  >= %(rd)s::DATE OR tm.datelast IS NULL)
-        AND (s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL) AND (s.datelast  >= %(rd)s::DATE OR s.datelast IS NULL)
-        AND (o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL) AND (o.datelast  >= %(rd)s::DATE OR o.datelast IS NULL)
-    """
-
-    # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
-    sql_keys = {'comp_id': request.user.company.pk,
-                'rd':rosterdate_iso,
-                'ph': is_publicholiday,
-                'ch': is_companyholiday}
+    sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()
-    newcursor.execute(sql_teammember, sql_keys)
+    newcursor.execute(sql, sql_keys)
     rows = f.dictfetchall(newcursor)
 
-    #newcursor.execute(sql_teammember, sql_keys)
+    #newcursor.execute(sql, sql_keys)
+    #logger.debug('sql_teammember: ')
     #frows = f.dictfetchall(newcursor)
-    #for value in frows:
-    #    logger.debug('sql_teammember: ' + str(value))
+    #for row in frows:
+    #    #logger.debug('     ' + str(row.get('c_code')) + ' - ' + str(row.get('o_code')) + ' sh_code: ' + str(row.get('sh_code')) +
+    #                  ' e_id: ' + str(row.get('e_id')) + ' rpl_id: ' + str(row.get('rpl_id')) )
     #logger.debug('  ---------------------------')
 
     return rows
@@ -527,9 +566,8 @@ def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_company
 # --- end of create_employee_rows
 
 #######################################################
-def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte,
-                                 filter_employee_pk, filter_functioncode_pk, filter_paydatecode_pk,
-                                 skip_absence_and_restshifts, add_shifts_without_employee):
+def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte):
+    #logger.debug('  ')
     #logger.debug('------------ calculate_add_row_to_dictNEW ------------------------------ ')
     #logger.debug('row: ' + str(row))
     #logger.debug('filter_employee_pk' + str(filter_employee_pk))
@@ -543,6 +581,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
     add_row_to_dict = False
     # row['isreplacement'] is added in this function
     is_replacement = False
+    rpl_id = None
 
     si_mod = row.get('si_mod')
     e_id = row.get('e_id')
@@ -550,10 +589,12 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
     si_id = row.get('si_id')
     tm_si_id = '_'.join((str(tm_id), str(si_id))) if tm_id and si_id else None
 
-    c_code_FOR_TESTING = f.get_dict_value(row, ('c_code',))
-    o_code_FOR_TESTING = f.get_dict_value(row, ('o_code',))
-    e_code_FOR_TESTING = f.get_dict_value(employee_dictlist, (e_id, 'code'))
-    #logger.debug( '--- ' + str(e_code_FOR_TESTING) + ' - ' + str(c_code_FOR_TESTING) + ' - ' + str(o_code_FOR_TESTING) + ' si_mod: ' + str(si_mod))
+    #c_code_FOR_TESTING = row.get('c_code', '-')
+    #o_code_FOR_TESTING = row.get('o_code', '-')
+    #e_code_FOR_TESTING = f.get_dict_value(employee_dictlist, (e_id, 'code'), '--')
+    #sh_code_FOR_TESTING = row.get('sh_code', '-')
+    #logger.debug( '--- ' + str(e_id) + ' ' + str(e_code_FOR_TESTING) + ' - ' + str(c_code_FOR_TESTING) + ' - ' + str(o_code_FOR_TESTING) + ' - ' +
+    #              str(sh_code_FOR_TESTING) + ' si_mod: ' + str(si_mod))
 
 # >>>>> SHIFT IS INACTIVE
     # inactive shifts are filtered out in get_sql_schemeitem
@@ -561,19 +602,18 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
     if si_mod in ('a', 'r'):
         #logger.debug('SHIFT IS ABSENCE OR REST SHIFT')
 
-        if not skip_absence_and_restshifts:
-            if filter_employee_is_replacement:
-                # no #logfile made when called by create_employee_planning
-                pass
-            elif e_id:
+        if filter_employee_is_replacement:
+            # no #logfile made when called by create_employee_planning
+            pass
+        elif e_id:
 # - don't add absence or rest shift when employee is None
 # - check if tm_si_id in tm_si_id_info. if not: the absence / restshift is removed because it is a double
-                #logger.debug('tm_si_id: ' + str(tm_si_id))
-                if tm_si_id in tm_si_id_info:
-                    add_row_to_dict = True
-                    #logger.debug('tm_si_id in tm_si_id_info ---> add_row_to_dict')
-                #else:
-                #    logger.debug('tm_si_id not in tm_si_id_info')
+            #logger.debug('tm_si_id: ' + str(tm_si_id))
+            if tm_si_id in tm_si_id_info:
+                add_row_to_dict = True
+                #logger.debug('tm_si_id in tm_si_id_info ---> add_row_to_dict')
+            #else:
+                #logger.debug('tm_si_id not in tm_si_id_info')
 
 # >>>>> SHIFT IS NORMAL SHIFT
     else:
@@ -594,7 +634,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
             'o_id': 1541, 'o_code': 'ZRO', 'o_identifier': '', 'o_seq': -1, 'c_id': 757, 'c_code': 'Zero Securitas', 'comp_id': 3, 
             'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False,  'o_s_noch': False, 
             'sh_id': 1348, 'sh_code': '14.00 - 22.00', 'sh_isbill': False, 'sh_os': 840, 'sh_oe': 1260, 'sh_bd': 0, 'sh_td': 420, 
-            'sh_wfc_id': 11, 'sh_wfc_code': 'W100', 'sh_wfc_rate': 1000000, 'o_nopay': False
+            'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 'o_nopay': False
             'e_id': 2621, 'rpl_id': None, 'switch_id': None} 
         """
 
@@ -608,18 +648,37 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
         if employee_exists_inservice_active:
     # -  employee exists, is in service and is active:
             #logger.debug('teammember has employee: ' + str(e_id))
-            has_overlap, rpl_id, absent_from_tm_si_id = \
+            has_overlap, lookup_rpl_id, absence_tm_si_id = \
                 check_employee_for_absence_or_overlap(
                     row=row,
                     e_id=e_id,
                     eid_tmsid_arr=eid_tmsid_arr,
                     tm_si_id_info=tm_si_id_info,
                     is_replacement=False)
+            #logger.debug('teammember has overlap: ' + str(has_overlap) + ' lookup_rpl_id: ' + str(lookup_rpl_id) + ' absence_tm_si_id: ' + str(                 #absence_tm_si_id))
             if has_overlap:
+                rpl_id = lookup_rpl_id
                 row['note_absent_eid'] = e_id
+                row['note_absence_tm_si_id'] = absence_tm_si_id
                 #logger.debug('employee has_overlap')
                 # TODO add 'absent from to absent row
+                absence_tm_si_id_dict = tm_si_id_info.get(absence_tm_si_id)
+                if absence_tm_si_id_dict:
+                    row_sh_code = row.get('sh_code')
+                    row_o_code = row.get('o_code')
+                    row_c_code = row.get('c_code')
+                    c_o_code = row_c_code if row_c_code else ''
+                    if row_o_code:
+                        c_o_code += ' - ' + row_o_code
+                    if row_sh_code:
+                        c_o_code += ', ' + row_sh_code
+                    note = str(_('Absent from ')) + c_o_code
+                    if note:
+                        absence_tm_si_id_dict['note_absent_from'] = note
+                #logger.debug('++++++++++++++++++ absence_tm_si_id_dict: ' + str(absence_tm_si_id_dict))
                 e_id = None
+            #else:
+                #logger.debug('employee has no overlap, rpl_id not added')
         else:
             e_id = None
 
@@ -639,7 +698,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
             if replacement_exists_inservice_active:
                 #logger.debug('replacement exists, is inservice and is active')
     # - check if replacement employee is absent or has rest shift or has overlap with other shift:
-                replacement_has_overlap, rpl_idNIU, absent_from_tm_si_id = \
+                replacement_has_overlap, rpl_idNIU, absence_tm_si_idNIU = \
                     check_employee_for_absence_or_overlap(
                         row=row,
                         e_id=rpl_id,
@@ -802,31 +861,44 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
 
     has_overlap = False
     rpl_id = None
-    absent_from_tm_si_id = None
+    absence_tm_si_id = None
     if e_id is not None:
 
 # - get list of teammembers (shifts) of employee
-        #logger.debug('employee: ' + str(e_id))
         # eid_tmsid_arr:  {2608: ['2084_4170', '2058_3826']}
         tm_si_id_arr = eid_tmsid_arr.get(e_id)
+        #logger.debug('     tm_si_id_arr: ' + str(tm_si_id_arr))
         if tm_si_id_arr is not None:
             # tm_si_id_arr: ['2084_4170', '2058_3826']
-            #logger.debug('employee has tm_si_id_arr: ' + str(tm_si_id_arr))
 
-            # ---  get info from row
+    # ---   get info from row
             row_tm_id = row.get('tm_id')
             row_si_id = row.get('si_id')
+
+            # PR202011-01 debug: row.get('sh_os', 0) still gives error in function 'has_overlap_with_other_shift':
+            #                    Exception Value: '>=' not supported between instances of 'NoneType' and 'int'
+            # solved by adding: if row_os_nonull is None:   row_os_nonull = 0
             row_os_nonull = row.get('sh_os', 0)
+            if row_os_nonull is None:
+                row_os_nonull = 0
             row_oe_nonull = row.get('sh_oe', 1440)
+            if row_oe_nonull is None:
+                row_oe_nonull = 1440
 
             absence_rpl_id = None
-# - if employee has teammembers: loop through tm_si_id_arr to check for absence
+# +++  if employee has teammembers: loop through tm_si_id_arr to check for absence
             for tm_si_id in tm_si_id_arr:
                 tm_si_info = tm_si_id_info.get(tm_si_id)
-# - skip when tmsid_info_dict is None: tm_si_info might be removed because it is a double
+        # - skip when tmsid_info_dict is None: tm_si_info might be removed because it is a double
                 if tm_si_info is not None:
-                    #logger.debug('tm_si_info: ' + str(tm_si_info))
-# ---  check if employee is absent or has rest shift:
+                    #logger.debug('     tm_si_info: ' + str(tm_si_id) +
+                    #             ' e_id: ' + str(f.get_dict_value(tm_si_info, ('e_id',))) +
+                    #             ' rpl_id: ' + str(f.get_dict_value(tm_si_info, ('rpl_id',))) +
+                    #             ' isabs: ' + str(f.get_dict_value(tm_si_info, ('isabs',))) +
+                    #             ' isrest: ' + str(f.get_dict_value(tm_si_info, ('isrest',))) +
+                    #             ' order: ' + str(f.get_dict_value(tm_si_info, ('c_code',))) + ' ' + str(f.get_dict_value(tm_si_info, ('o_code',))) )
+
+        # ---  check if employee is absent or has rest shift:
                     # - when full day absence or rest shift:
                     #   - always skip shift
                     # - when absence or rest shift is part of day:
@@ -834,37 +906,43 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
                     # - when is_replacement:
                     #   - also skip shift when shift has overlap with a normal shift of replacement
 
-                    this_tm_has_overlap, this_tm_rpl_id, lookup_tm_si_id = has_overlap_with_other_shift(
-                        row_tm_id=row_tm_id,
-                        row_si_id=row_si_id,
-                        row_os_nonull=row_os_nonull,
-                        row_oe_nonull=row_oe_nonull,
-                        tm_si_info=tm_si_info,
-                        check_replacement_employee=is_replacement)
+                    this_tm_has_overlap, this_tm_rpl_id, lookup_tm_si_id = \
+                        has_overlap_with_other_shift(
+                            row_tm_id=row_tm_id,
+                            row_si_id=row_si_id,
+                            row_os_nonull=row_os_nonull,
+                            row_oe_nonull=row_oe_nonull,
+                            tm_si_info=tm_si_info,
+                            check_replacement_employee=is_replacement)
 
                     if this_tm_has_overlap:
                         has_overlap = True
                         if this_tm_rpl_id is not None and absence_rpl_id is None:
                             absence_rpl_id = this_tm_rpl_id
 
-                        # used to put not 'absent from' in absence row
+                        # used to put 'absent from' in absence row
                         if lookup_tm_si_id:
-                            absent_from_tm_si_id = lookup_tm_si_id
+                            absence_tm_si_id = lookup_tm_si_id
 
 # ---  check if teammember has replacement employee:
 # ---  if not check if absence has replacement employee:
             rpl_id = row.get('rpl_id')
-            #logger.debug('teammember replacement employee = ' + str(rpl_id))
-            #logger.debug('absence replacement employee = ' + str(absence_rpl_id))
-            if rpl_id is None and absence_rpl_id is not None:
-                rpl_id = absence_rpl_id
-
+            if rpl_id is None:
+                #logger.debug('     teammember has no replacement')
+                if absence_rpl_id is None:
+                    #logger.debug('     absence has no replacement')
+                    pass
+                else:
+                    rpl_id = absence_rpl_id
+                    #logger.debug('     absence has replacement: ' + str(absence_rpl_id))
+            #else:
+                #logger.debug('     teammember has replacement: ' + str(rpl_id))
 # - TODO check if employee has the right funtioncode_pk / paydatecode_pk when filter is on. PR2020-09-28
 
     #logger.debug('     has_overlap: ' + str(has_overlap) + ' replacement employee: ' + str(rpl_id))
     #logger.debug('------------ end of check_employee_for_absence_or_overlap ----------------------- ')
 
-    return has_overlap, rpl_id, absent_from_tm_si_id
+    return has_overlap, rpl_id, absence_tm_si_id
 #  ----- end of check_employee_for_absence_or_overlap
 
 
@@ -935,6 +1013,8 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
 # lookup_tm_si_id is used to put note 'absent from' in absent row
     if not has_overlap:
         lookup_tm_si_id = None
+    #logger.debug('     has_overlap: ' + str(has_overlap) + ' absence_rpl_id: ' + str(absence_rpl_id) + ' lookup_tm_si_id: ' + str(lookup_tm_si_id) )
+    #logger.debug('---')
     return has_overlap, absence_rpl_id, lookup_tm_si_id
 # --- end of has_overlap_with_other_shift
 
@@ -945,6 +1025,7 @@ def get_sql_schemeitem():
             si.team_id AS t_id, 
             si.shift_id AS sh_id, 
             sh.code AS sh_code,
+            CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
             si.isabsence AS si_abs,
             CASE WHEN sh.id IS NULL THEN FALSE ELSE sh.isrestshift END AS sh_rest,
             si.inactive AS si_inactive,
@@ -983,9 +1064,9 @@ def get_sql_schemeitem():
             sh.additioncode_id AS sh_adc_id,
             sh.taxcode_id AS sh_txc_id,
 
-            sh.wagefactorcode_id AS sh_wfc_id,
-            wfc.code AS sh_wfc_code,
-            COALESCE(wfc.wagerate, 0) AS sh_wfc_rate
+            sh.wagefactorcode_id AS wfc_id,
+            wfc.code AS wfc_code,
+            COALESCE(wfc.wagerate, 0) AS wfc_rate
 
             FROM companies_schemeitem AS si 
             INNER JOIN companies_scheme AS s ON (s.id = si.scheme_id) 
@@ -1012,30 +1093,36 @@ def get_sql_schemeitem():
             """
 # --- end of get_sql_schemeitem
 
-def get_eid_tmsid_arr(request, rosterdate_iso, is_publicholiday, is_companyholiday, absrest_only,
+
+def get_eid_tmsid_arr(request, rosterdate_iso, is_publicholiday, is_companyholiday,
                          employee_pk_list=None, functioncode_pk_list=None):
     #logger.debug('  -----  get_eid_tmsid_arr  ----- is_publicholiday: ' + str(is_publicholiday))
+    #logger.debug('employee_pk_list' + str(employee_pk_list))
     # PR2020-10-13
     # two dictlists: one with only key=e_id and value = arr(tm_si_id)
     # other with key tm_si_id and values of teammember;
     # instead of everything in AGGARR: because it must be possible to delete double abensce shifts. Is only possible with separate tm  abs listlsit
+    # PR2020-11-09 debug: employee was skipped because it had restshift in inactive order. Solved by filter NOT inactive
+    # -only show active schemes, orders, customers
+    # only show employees, schemes, orders, customers within range
 
     sql_schemeitem = get_sql_schemeitem()
-    sql_list = ["""
-        SELECT tm.employee_id AS e_id, CONCAT(tm.id , '_', si_sub.si_id) AS tm_si_id
+    sql_list = ["SELECT tm.employee_id AS e_id, CONCAT(tm.id , '_', si_sub.si_id) AS tm_si_id",
+                "FROM companies_teammember AS tm",
+                "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+                "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+                "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+                "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                "INNER JOIN companies_employee AS e ON (e.id = tm.employee_id)",
+                "INNER JOIN  ( " + sql_schemeitem + " ) AS si_sub ON (si_sub.t_id = t.id)",
+                "WHERE c.company_id = %(comp_id)s",
+                "AND NOT c.istemplate",
+                "AND NOT e.inactive AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive",
+                "AND ( tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL ) AND ( tm.datelast >= %(rd)s::DATE OR tm.datelast IS NULL )",
+                "AND ( s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL ) AND ( s.datelast >= %(rd)s::DATE OR s.datelast IS NULL )",
+                "AND ( o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL ) AND ( o.datelast >= %(rd)s::DATE OR o.datelast IS NULL )",
+                "AND ( e.datefirst <= %(rd)s::DATE OR e.datefirst IS NULL ) AND ( e.datelast >= %(rd)s::DATE OR e.datelast IS NULL )"]
 
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        INNER JOIN companies_employee AS e ON (e.id = tm.employee_id) 
-
-        INNER JOIN  ( """ + sql_schemeitem + """ ) AS si_sub ON (si_sub.t_id = t.id)
-
-        WHERE (c.company_id = %(comp_id)s)
-        AND ( NOT o.istemplate )
-    """]
     # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
     sql_keys = {'comp_id': request.user.company.pk,
                 'rd':rosterdate_iso,
@@ -1044,37 +1131,33 @@ def get_eid_tmsid_arr(request, rosterdate_iso, is_publicholiday, is_companyholid
     # don't filter on range or inactive when filter on employee_pk_list or functioncode_pk_list
 
     if employee_pk_list:
+        # used when called by create_employee_planningNEW
+        # TODO check if filter range is in place
         sql_list.append('AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
         sql_keys['eid_arr'] = employee_pk_list
     elif functioncode_pk_list:
         sql_list.append('AND e.functioncode_id IN ( SELECT UNNEST( %(fncid_arr)s::INT[] ) )')
         sql_keys['fncid_arr'] = employee_pk_list
     else:
+        # used when called by FillRosterdate
+        # TODO check if this must be removed
+        """
         if absrest_only:
-            sql_list.append('AND ( (c.isabsence) OR (si_sub.sh_rest AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive ) )')
+            sql_list.append("AND ( (c.isabsence) OR (si_sub.sh_rest AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive ) )")
         else:
-            sql_list.append('AND ( (c.isabsence) OR (NOT c.isabsence AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive) )')
-        sql_list.append("""
-            AND ( tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL ) AND ( tm.datelast >= %(rd)s::DATE OR tm.datelast IS NULL )
-            AND ( s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL ) AND ( s.datelast >= %(rd)s::DATE OR s.datelast IS NULL )
-            AND ( o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL ) AND ( o.datelast >= %(rd)s::DATE OR o.datelast IS NULL )
-            AND ( NOT e.inactive )
-            AND ( e.datefirst <= %(rd)s::DATE OR e.datefirst IS NULL ) AND ( e.datelast >= %(rd)s::DATE OR e.datelast IS NULL )
-        """)
+            sql_list.append("AND ( (c.isabsence) OR (NOT c.isabsence AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive) )")
+        """
     sql = ' '.join(sql_list)
 
-    sql_teammember_aggr = """
-        SELECT sq.e_id, ARRAY_AGG(sq.tm_si_id) AS tm_si_id_arr
-        FROM (""" + sql + """) AS sq 
-        GROUP BY sq.e_id
-    """
+    sql_teammember_aggr = "SELECT sq.e_id, ARRAY_AGG(sq.tm_si_id) AS tm_si_id_arr FROM (" + sql + ") AS sq  GROUP BY sq.e_id"
+
     newcursor = connection.cursor()
     newcursor.execute(sql_teammember_aggr, sql_keys)
     rows = dict(newcursor.fetchall())
 
     #logger.debug('----- sql_teammember_aggr: ')
     #for key, value in rows.items():
-    #  logger.debug('     ' + str(key) + ': ' + str(value))
+        #logger.debug('     ' + str(key) + ': ' + str(value))
 
     # returns: {2608: ['2084_4179'], 2617: ['2058_4178'], 2625: ['1821_4177', '2089_4214']}
     return rows
@@ -1089,33 +1172,22 @@ def get_teammember_info(request, rosterdate_iso, is_publicholiday, is_companyhol
     # PR2020-10-14
     # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
     sql_schemeitem = get_sql_schemeitem()
-    sql_list = ["""
-        SELECT CONCAT(tm.id , '_', si_sub.si_id) AS tm_si_id, 
-            tm.id AS tm_id, 
-            si_sub.si_id,
-            tm.employee_id AS e_id,
-            tm.replacement_id AS rpl_id, 
-            tm.switch_id AS switch_id, 
-            c.isabsence AS isabs,
-            si_sub.sh_rest AS isrest,
-            si_sub.sh_os_nonull,
-            si_sub.sh_oe_nonull,
-            c.code AS c_code,
-            o.code AS o_code,
-            CASE WHEN c.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq
+    sql_list = ["SELECT CONCAT(tm.id , '_', si_sub.si_id) AS tm_si_id,",
+            "tm.id AS tm_id, si_sub.si_id, tm.employee_id AS e_id, tm.replacement_id AS rpl_id, tm.switch_id AS switch_id,",
+            "si_sub.sh_os_nonull, si_sub.sh_oe_nonull, si_sub.sh_prc_id, si_sub.sh_adc_id, si_sub.sh_txc_id,",
+            "c.isabsence AS isabs, si_sub.sh_rest AS isrest, c.code AS c_code, o.code AS o_code,",
+            "CASE WHEN c.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq",
+        "FROM companies_teammember AS tm",
+        "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+        "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+        "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "INNER JOIN companies_employee AS e ON (e.id = tm.employee_id)",
+        "INNER JOIN  ( " + sql_schemeitem + " ) AS si_sub ON (si_sub.t_id = t.id)",
 
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        INNER JOIN companies_employee AS e ON (e.id = tm.employee_id) 
+        "WHERE ( c.company_id = %(comp_id)s )",
+        "AND ( NOT o.istemplate )"]
 
-        INNER JOIN  ( """ + sql_schemeitem + """ ) AS si_sub ON (si_sub.t_id = t.id)
-
-        WHERE ( c.company_id = %(comp_id)s )
-        AND ( NOT o.istemplate ) 
-    """]
     # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
     sql_keys = {'comp_id': request.user.company.pk,
                 'rd': rosterdate_iso,
@@ -1124,20 +1196,18 @@ def get_teammember_info(request, rosterdate_iso, is_publicholiday, is_companyhol
     # don't filter on range or inactive when filter on employee_pk_list or functioncode_pk_list
 
     if employee_pk_list:
-        sql_list.append('AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
+        sql_list.append("AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )")
         sql_keys['eid_arr'] = employee_pk_list
     elif functioncode_pk_list:
-        sql_list.append('AND e.functioncode_id IN ( SELECT UNNEST( %(fncid_arr)s::INT[] ) )')
+        sql_list.append("AND e.functioncode_id IN ( SELECT UNNEST( %(fncid_arr)s::INT[] ) )")
         sql_keys['fncid_arr'] = employee_pk_list
     else:
-        sql_list.append("""
-            AND ( (c.isabsence) OR (NOT c.isabsence AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive) )
-            AND ( tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL ) AND ( tm.datelast >= %(rd)s::DATE OR tm.datelast IS NULL )
-            AND ( s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL ) AND ( s.datelast >= %(rd)s::DATE OR s.datelast IS NULL )
-            AND ( o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL ) AND ( o.datelast >= %(rd)s::DATE OR o.datelast IS NULL )
-            AND ( NOT e.inactive )
-            AND ( e.datefirst <= %(rd)s::DATE OR e.datefirst IS NULL ) AND ( e.datelast >= %(rd)s::DATE OR e.datelast IS NULL )
-        """)
+        sql_list.extend(["AND ( (c.isabsence) OR (NOT c.isabsence AND NOT c.inactive AND NOT o.inactive AND NOT s.inactive) )",
+            "AND ( tm.datefirst <= %(rd)s::DATE OR tm.datefirst IS NULL ) AND ( tm.datelast >= %(rd)s::DATE OR tm.datelast IS NULL )",
+            "AND ( s.datefirst <= %(rd)s::DATE OR s.datefirst IS NULL ) AND ( s.datelast >= %(rd)s::DATE OR s.datelast IS NULL )",
+            "AND ( o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL ) AND ( o.datelast >= %(rd)s::DATE OR o.datelast IS NULL )",
+            "AND ( NOT e.inactive )",
+            "AND ( e.datefirst <= %(rd)s::DATE OR e.datefirst IS NULL ) AND ( e.datelast >= %(rd)s::DATE OR e.datelast IS NULL )"])
     sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()
@@ -1146,8 +1216,170 @@ def get_teammember_info(request, rosterdate_iso, is_publicholiday, is_companyhol
 
     #logger.debug('----- teammember_info: ')
     #for key, value in rows.items():
-    #  logger.debug('     ' + str(key) + ': ' + str(value))
+    #  #logger.debug('     ' + str(key) + ': ' + str(value))
     return rows
 # --- end of get_teammember_info
+
+
+def get_employeeplanning_employee_pk_list(order_pk, request):
+    #logger.debug('  -----  get_employeeplanning_employee_pk_list   -----')
+    # PR2020-11-05
+    # this function first makes a list of all employees and replacements of this order
+    # - only when customer and order are active and not istemplate
+    # then makes a list of all orders of the employees
+    # in this way you can print a planning of the employees of one order tyha talso contain the shifts of other orders
+
+    employee_pk_list = []
+    if order_pk:
+        sql_list = ["SELECT tm.employee_id AS e_id, tm.replacement_id AS rpl_id",
+                    "FROM companies_teammember AS tm",
+                    "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+                    "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+                    "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+                    "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                    "WHERE c.company_id = %(comp_id)s::INT",
+                    "AND o.id = %(o_id)s::INT AND NOT o.inactive AND NOT c.inactive AND NOT c.istemplate",
+                    "GROUP BY tm.employee_id, tm.replacement_id"]
+        sql_keys = {'comp_id': request.user.company.pk,
+                    'o_id': order_pk}
+        sql = ' '.join(sql_list)
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        rows = newcursor.fetchall()
+
+        for row in rows:
+            # also addd when id is None
+            if row[0] not in employee_pk_list:
+                employee_pk_list.append(row[0])
+            if row[1] not in employee_pk_list:
+                employee_pk_list.append(row[1])
+
+    return employee_pk_list
+
+
+def get_employeeplanning_order_list(employee_pk_nonull, request):
+    #logger.debug('  -----  get_employeeplanning_order_list   -----')
+    # PR2020-11-05
+    # this function first makes  a list of all orders of the employees of the selected order_pk
+    # - only when customer, order and scheme are active and not istemplate
+    # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
+
+    order_pk_list = []
+    if employee_pk_nonull:
+        sql_list = ["SELECT o.id AS o_id",
+                    "FROM companies_teammember AS tm",
+                    "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+                    "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+                    "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+                    "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+
+                    "WHERE c.company_id = %(comp_id)s::INT",
+                    "AND NOT s.inactive AND NOT o.inactive AND NOT c.inactive AND NOT c.istemplate",
+                    "AND tm.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+                    "GROUP BY o.id"]
+        sql_keys = {'comp_id': request.user.company.pk,
+                    'eid_arr': employee_pk_nonull}
+        sql = ' '.join(sql_list)
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        rows = newcursor.fetchall()
+
+        for row in rows:
+            if row[0] and row[0] not in order_pk_list:
+                order_pk_list.append(row[0])
+
+    #logger.debug('order_pk_list: ' + str(order_pk_list))
+    return order_pk_list
+
+
+def get_employees_active_inservce(employee_pk_list, datefirst_iso, datelast_iso, request):
+    #logger.debug('  -----  get_employees_active_inservce   -----')
+    # PR2020-11-05
+    # this function first makes a list of all employees and replacements of this order
+    # - only when customer and order are active and not istemplate
+    # then makes a list of all orders of the employees
+    # in this way you can print a planning of the employees of one order tyha talso contain the shifts of other orders
+
+    # PR2020-11-09 debug: UNNEST list can not contain NULL values
+
+    employees_active_inservce_list = []
+    if employee_pk_list:
+        # PR2020-11-09 debug: UNNEST list can not contain NULL values
+        # remove None from list
+        employee_pk_nonull = []
+        for pk in employee_pk_list:
+            if pk:
+                employee_pk_nonull.append(pk)
+        if employee_pk_nonull:
+            sql_keys = {'comp_id': request.user.company.pk,
+                        'eid_arr': employee_pk_nonull}
+            sql_list = ["SELECT e.id AS e_id FROM companies_employee AS e",
+                        "WHERE e.company_id = %(comp_id)s::INT AND NOT e.inactive ",
+                        "AND ( e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) )"]
+            if datefirst_iso:
+                sql_list.append("AND (e.datelast >= %(df)s::DATE OR e.datelast IS NULL)")
+                sql_keys['df'] = datefirst_iso
+            if datelast_iso:
+                sql_list.append("AND (e.datefirst <= %(dl)s::DATE OR e.datefirst IS NULL)")
+                sql_keys['dl'] = datelast_iso
+            sql_list.append("GROUP BY e.id")
+            sql = ' '.join(sql_list)
+
+            newcursor = connection.cursor()
+            newcursor.execute(sql, sql_keys)
+            rows = newcursor.fetchall()
+
+            for row in rows:
+                if row[0] not in employees_active_inservce_list:
+                    employees_active_inservce_list.append(row[0])
+
+    return employees_active_inservce_list
+
+
+def get_employeeplanning_absence_replacement_pk_list(employee_pk_nonull, datefirst_iso, datelast_iso, request):
+    #logger.debug('  -----  get_employeeplanning_absence_replacement_pk_list   -----')
+    #logger.debug('     employee_pk_nonull: ' + str(employee_pk_nonull))
+    # PR2020-11-09
+    # this function makes a list of absence replacements of the employees in employee_pk_nonull
+    # - replacements that are also in employee_pk_nonull are skipped
+
+    replacement_pk_list = []
+    if employee_pk_nonull:
+        sql_keys = {'comp_id': request.user.company.pk,
+                    'eid_arr': employee_pk_nonull}
+        sql_list = ["SELECT tm.replacement_id",
+                    "FROM companies_teammember AS tm",
+                    "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+                    "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+                    "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+                    "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                    "WHERE c.company_id = %(comp_id)s::INT",
+                    "AND c.isabsence AND NOT c.istemplate",
+                    "AND tm.replacement_id IS NOT NULL",
+                    "AND ( tm.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) )"]
+        if datefirst_iso:
+            sql_list.extend(["AND (tm.datelast >= %(df)s::DATE OR tm.datelast IS NULL)",
+                            "AND (s.datelast >= %(df)s::DATE OR s.datelast IS NULL)",
+                            "AND (o.datelast >= %(df)s::DATE OR o.datelast IS NULL)"])
+            sql_keys['df'] = datefirst_iso
+        if datelast_iso:
+            sql_list.extend(["AND (tm.datefirst <= %(dl)s::DATE OR tm.datefirst IS NULL)",
+                            "AND (s.datefirst <= %(dl)s::DATE OR s.datefirst IS NULL)",
+                            "AND (o.datefirst <= %(dl)s::DATE OR o.datefirst IS NULL)"])
+            sql_keys['dl'] = datelast_iso
+        sql_list.append("GROUP BY tm.replacement_id")
+        sql = ' '.join(sql_list)
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        rows = newcursor.fetchall()
+
+        for row in rows:
+            # value None is already filtered out in query, but let it stay
+            if row[0] :
+                if row[0] not in replacement_pk_list and row[0] not in employee_pk_nonull:
+                    replacement_pk_list.append(row[0])
+
+    #logger.debug('     replacement_pk_list: ' + str(replacement_pk_list))
+    return replacement_pk_list
 
 

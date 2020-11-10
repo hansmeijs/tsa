@@ -904,8 +904,8 @@ class UserUploadView(View):
     #  when ok: it also sends an email to the user
 
     def post(self, request):
-        #logger.debug('  ')
-        #logger.debug(' ========== UserUploadView ===============')
+        logger.debug('  ')
+        logger.debug(' ========== UserUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
@@ -915,7 +915,7 @@ class UserUploadView(View):
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
                 # upload_dict: {'mode': 'validate', 'company_pk': 3, 'pk_int': 114, 'user_ppk': 3,
                 # 'employee_pk': None, 'employee_code': None, 'username': 'Giterson_Lisette', 'last_name': 'Lisette Sylvia enzo Giterson', 'email': 'hmeijs@gmail.com'}
@@ -1152,8 +1152,9 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
 # === update_user_instance ========== PR2020-08-16
 def update_user_instance(instance, user_pk, upload_dict, is_validate_only, request):
-    #logger.debug('-----  update_user_instance  -----')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('-----  update_user_instance  -----')
+    logger.debug('upload_dict: ' + str(upload_dict))
+
     has_error = False
     err_dict = {}
     ok_dict = {}
@@ -1161,7 +1162,7 @@ def update_user_instance(instance, user_pk, upload_dict, is_validate_only, reque
     if instance:
         company = request.user.company
         data_has_changed = False
-        fields = ('username', 'last_name', 'email', 'employee', 'permits', 'is_active')
+        fields = ('username', 'last_name', 'email', 'employee', 'permits', 'permitcustomers', 'permitorders', 'is_active')
         for field in fields:
             # --- get field_dict from  item_dict  if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
@@ -1227,6 +1228,11 @@ def update_user_instance(instance, user_pk, upload_dict, is_validate_only, reque
                     if not has_error and new_permits != instance.permits:
                         instance.permits = new_permits
                         data_has_changed = True
+
+                elif field in ('permitcustomers', 'permitorders'):
+                    new_value = field_dict.get('value', [])
+                    setattr(instance, field, new_value)
+                    data_has_changed = True
 
                 elif field == 'is_active':
                     new_isactive = field_dict.get('value', False)

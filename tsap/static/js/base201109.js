@@ -363,10 +363,11 @@
         }
     }  // set_focus_on_id_with_timeout
 
-//========= set_focus_on_el_with_timeout  =========== PR2020-05-09
-    function set_focus_on_el_with_timeout(el, ms) {
-        if(!!el && ms){
-            setTimeout(function() { el.focus() }, ms);
+//========= set_focus_on_el_with_timeout  =========== PR2020-05-09 PR2020-11-06
+    function set_focus_on_el_with_timeout(el_focus, ms) {
+        if(!ms){ms = 50};
+        if(el_focus){
+            setTimeout(function() { el_focus.focus() }, ms);
         }
     }  // set_focus_on_el_with_timeout
 
@@ -493,6 +494,20 @@
     }  // b_get_updated_fields_list
 
 
+//=========  fill_datamap  ================ PR2020-09-06
+    function fill_datamap(data_map, rows) {
+        //console.log(" --- fill_datamap  ---");
+        //console.log("rows", rows);
+        data_map.clear();
+        if (rows && rows.length) {
+            for (let i = 0, dict; dict = rows[i]; i++) {
+                data_map.set(dict.mapid, dict);
+            }
+        }
+        //console.log("data_map", data_map);
+        //console.log("data_map.size", data_map.size)
+    };  // fill_datamap
+
 //========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
     function refresh_datamap(data_list, data_map, tblName) {
         //console.log(" --- refresh_datamap ---")
@@ -563,7 +578,7 @@
 
 //========= b_comparator_e_code  =========  PR2020-09-03
 // PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
-// function used in Array.sort to sort by key 'code', null or '---' last
+// function used in Array.sort to sort list of dicts by key 'code', null or '---' last
     function b_comparator_e_code(a, b) {
         const max_len = 24 // CODE_MAX_LENGTH = 24;
         const z_str = "z".repeat(max_len);
@@ -585,9 +600,10 @@
         if (a_lc > b_lc) return 1;
         return 0;
     }  // b_comparator_code
+
 //========= b_comparator_c_o_code  =========  PR2020-09-01
 // PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
-// function used in Array.sort to sort by key 'code', null or '---' last
+// function used in Array.sort to sort list of dicts by key 'code', null or '---' last
     function b_comparator_c_o_code(a, b) {
         const max_len = 24 // CODE_MAX_LENGTH = 24;
         const z_str = "z".repeat(max_len);
@@ -603,6 +619,16 @@
         if (a_c_o_code > b_c_o_code) return 1;
         return 0;
     }  // b_comparator_c_o_code
+
+//========= arrayEquals  =========
+// PR2020-11-02 from https://masteringjs.io/tutorials/fundamentals/compare-arrays
+    function arrayEquals(a, b) {
+      return Array.isArray(a) &&
+        Array.isArray(b) &&
+        a.length === b.length &&
+        a.every((val, index) => val === b[index]);
+    }
+
 
 //========= insertAtIndex  ================== PR2020-01-20 PR2020-08-11
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map

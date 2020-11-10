@@ -233,8 +233,8 @@ document.addEventListener('DOMContentLoaded', function() {
             price: {table: "customer"},
             pricecode: {rosterdate: null},
             billing_list: {mode: "get", order_pk: null},
-            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             employee_list: {inactive: false}
         };
 
@@ -2323,7 +2323,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
 
 // ---  show modal
-         $("#id_modselectorder").modal({backdrop: true});
+         $("#id_modselectcustomerorder").modal({backdrop: true});
 
 }; // MSO_Open
 
@@ -2347,7 +2347,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         DatalistDownload(datalist_request, "MSO_Save");
 // hide modal
-        $("#id_modselectorder").modal("hide");
+        $("#id_modselectcustomerorder").modal("hide");
     }  // MSO_Save
 
 //=========  MSO_SelectCustomer  ================ PR2020-01-09

@@ -1857,15 +1857,20 @@ def get_iddict_variables(id_dict):
 
 def get_dict_value(dictionry, key_tuple, default_value=None):
     # PR2020-02-04 like in base.js Iterate through key_tuple till value found
+    #logger.debug('  -----  get_dict_value  -----')
+    #logger.debug('     dictionry: ' + str(dictionry))
     if key_tuple and dictionry:  # don't use 'dictionary' - is PyCharm reserved word
         for key in key_tuple:
+            #logger.debug('     key: ' + str(key) + ' key_tuple: ' + str(key_tuple))
             if isinstance(dictionry, dict) and key in dictionry:
                 dictionry = dictionry[key]
+                #logger.debug('     new dictionry: ' + str(dictionry))
             else:
                 dictionry = None
                 break
     if dictionry is None and default_value is not None:
         dictionry = default_value
+    #logger.debug('     return dictionry: ' + str(dictionry))
     return dictionry
 
 
@@ -2849,7 +2854,6 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-    #logger.debug('new_timeduration: ' + str(new_timeduration))
 
     # Note: when is_publicholiday or is_companyholiday rows with 'excl_ph' or 'excl_ch' are filtered out.
     #    Maybe these rows are still necessary TODO PR2020-08-14
@@ -2882,7 +2886,8 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     #  -  nohoursonsaturday not (yet) in use for non-absence rows,
     #       but probably it will be necessary for employees that have paid shifts without worked time
     #       (i.e when they dont have to work on public holiday but still get paid)
-
+    
+    time_duration = 0
     if (is_restshift) or \
             (row_employee_pk is None) or \
             (is_sat and row_nosat) or \
@@ -2890,8 +2895,11 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             (is_ph and row_noph) or \
             (is_ch and row_noch):
         time_duration = 0
-    elif (is_absence):
-        time_duration = new_timeduration if new_timeduration else row_employee_wmpd
+    elif is_absence:
+        if new_timeduration:
+            time_duration = new_timeduration
+        elif row_employee_wmpd:
+            time_duration = new_timeduration
     else:
         time_duration = new_timeduration
 
@@ -3497,3 +3505,62 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
     # 9059: {'start': [9057, 9058]},
     #logger.debug('overlap_dict' + str(overlap_dict))
     return overlap_dict
+
+
+
+def get_allowed_employees_and_replacements(request):
+    #logger.debug(' --- get_allowed_employees_and_replacements --- ')
+    # - get list of employees and replacements of allowed customers / orders  PR2020-11-07
+    # returns empty list when all employees are allowed
+
+    sql_list = ["SELECT tm.employee_id, tm.replacement_id",
+                "FROM companies_teammember AS tm",
+                "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+                "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+                "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+                "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                "WHERE c.company_id = %(compid)s"]
+
+    sql_keys = {'compid': request.user.company.pk}
+
+    permitcustomers_list = []
+    if request.user.permitcustomers:
+        for c_id in request.user.permitcustomers:
+            permitcustomers_list.append(c_id)
+
+    permitorders_list = []
+    if request.user.permitorders:
+        for o_id in request.user.permitorders:
+            permitorders_list.append(o_id)
+
+    allowed_employees_list = []
+    if permitcustomers_list or permitorders_list:
+        if permitcustomers_list and permitorders_list:
+            sql_list.append('AND ( c.id IN ( SELECT UNNEST( %(cid_arr)s::INT[])) OR o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[])) )')
+            sql_keys['cid_arr'] = permitcustomers_list
+            sql_keys['oid_arr'] = permitorders_list
+        elif permitcustomers_list:
+            sql_list.append('AND ( c.id IN ( SELECT UNNEST( %(cid_arr)s::INT[])) )')
+            sql_keys['cid_arr'] = permitcustomers_list
+        elif permitorders_list:
+            sql_list.append('AND ( o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[])) )')
+            sql_keys['oid_arr'] = permitorders_list
+
+        sql = ' '.join(sql_list)
+
+        #logger.debug('sql: ' + str(sql))
+        allowed_employees_list = []
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        for row in newcursor.fetchall():
+            if row[0] and row[0] not in allowed_employees_list:
+                allowed_employees_list.append(row[0])
+            if row[1] and row[1] not in allowed_employees_list:
+                allowed_employees_list.append(row[1])
+
+    #logger.debug('permitcustomers_list: ' + str(permitcustomers_list))
+    #logger.debug('permitorders_list: ' + str(permitorders_list))
+    #logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
+    return allowed_employees_list
+# --- end of get_allowed_employees_and_replacements ---

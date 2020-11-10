@@ -307,8 +307,8 @@ let planning_list = [] // for export and printing - can replace map?
             planning_period: {now: now_arr},
             calendar_period: {now: now_arr},
             company: {value: true},
-            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             scheme: {istemplate: false, inactive: null, issingleshift: null},
             schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
@@ -5273,7 +5273,7 @@ let planning_list = [] // for export and printing - can replace map?
                     DatalistDownload_Planning("PrintPlanning");
                 }
             } else {
-                PrintOrderPlanning("preview", selected_planning_period, planning_customer_map, planning_display_duration_total, loc)
+                //PrintEmployeeOrOrderPlanning("preview", selected_planning_period, planning_customer_map, planning_display_duration_total, loc)
             }
         } else {
 

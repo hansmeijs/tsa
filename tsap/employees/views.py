@@ -3188,7 +3188,7 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
                     if emplhourlog_list:
                         update_wrap['emplhourlog_list'] = emplhourlog_list
                 if refresh_employeelist_needed:
-                    dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
+                    dict_list = ed.create_employee_list(request=request, user_lang=user_lang)
                     update_wrap['employee_list'] = dict_list
 # - return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -4297,40 +4297,36 @@ def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees,
     # Note: at this time paydatecode is linked to employee, therefore filter by employee_pk_list is allowed
     sql_keys = {'comp_id': request.user.company.pk, 'pdc_id': paydatecode_pk}
     sql = None
-
-    if paydatecode_pk is None:
-# ---   remove paydatecode_pk and paydate from empl emplhour records  when no paydatecode_pk:
-        #  - that are not lockedpaydate
-        #  - only of employees in employee_pk_list
-        #  - skip when all_employees = True
-        if employee_pk_list:
-            sql = """
-                UPDATE companies_emplhour SET paydatecode_id = NULL, paydate = NULL
-                WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
-                RETURNING employee_id, paydatecode_id, paydate
-            """
-    elif employee_pk_list:
-# ---   update paydatecode_id in all emplhour records:
-        #  - that are not lockedpaydate
-        #  - only of employees in employee_pk_list
-        #  - skip when all_employees = True
-        sql_keys['eid_arr'] = employee_pk_list
-        sql = """
-            UPDATE companies_emplhour  SET paydatecode_id = %(pdc_id)s
-            WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
-            RETURNING employee_id, paydatecode_id, paydate
-        """
+    sql_list = []
+    if employee_pk_list:
+        if paydatecode_pk is None:
+    # ---   remove paydatecode_pk and paydate from empl emplhour records  when no paydatecode_pk:
+            #  - that are not lockedpaydate
+            #  - only of employees in employee_pk_list
+            #  - skip when all_employees = True
+            sql_keys['eid_arr'] = employee_pk_list
+            sql_list = ["UPDATE companies_emplhour SET paydatecode_id = NULL, paydate = NULL",
+                        "WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+                        "RETURNING employee_id, paydatecode_id, paydate"]
+        else:
+    # ---   update paydatecode_id in all emplhour records:
+            #  - that are not lockedpaydate
+            #  - only of employees in employee_pk_list
+            #  - skip when all_employees = True
+            sql_keys['eid_arr'] = employee_pk_list
+            sql_list = ["UPDATE companies_emplhour  SET paydatecode_id = %(pdc_id)s",
+                        "WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+                        "RETURNING employee_id, paydatecode_id, paydate"]
     elif all_employees:
 # ---   update field paydatecode_id in table emplhour with paydatecode_id of related employee record
         #  - that are not lockedpaydate , filter company_id
-        sql = """
-            UPDATE companies_emplhour SET paydatecode_id = companies_employee.paydatecode_id
-            FROM companies_employee 
-            WHERE NOT companies_emplhour.lockedpaydate 
-            AND companies_employee.company_id = %(comp_id)s::INT 
-            AND companies_emplhour.employee_id = companies_employee.id
-            RETURNING companies_emplhour.employee_id, companies_employee.code, companies_emplhour.paydatecode_id, companies_emplhour.paydate
-        """
+        sql_list = ["UPDATE companies_emplhour SET paydatecode_id = companies_employee.paydatecode_id",
+                    "FROM companies_employee",
+                    "WHERE NOT companies_emplhour.lockedpaydate",
+                    "AND companies_employee.company_id = %(comp_id)s::INT",
+                    "AND companies_emplhour.employee_id = companies_employee.id",
+                    "RETURNING companies_emplhour.employee_id, companies_employee.code, companies_emplhour.paydatecode_id, companies_emplhour.paydate"]
+    sql = ' '.join(sql_list)
     # for testing: RETURNING id, employee_id, paydatecode_id, paydate;
     if sql:
         with connection.cursor() as cursor:
@@ -4343,15 +4339,14 @@ def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees,
     # paydate is already removed above in this function
     if paydatecode_pk:
 # ---   get first and last rosterdate of not locked emplhour records
-        sql_list = ["""
-            SELECT MIN(eh.rosterdate), MAX(eh.rosterdate) 
-            FROM companies_emplhour AS eh
-            INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)
-            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            WHERE NOT eh.lockedpaydate AND eh.paydatecode_id = %(pdc_id)s::INT
-            """]
+        sql_list = ["SELECT MIN(eh.rosterdate), MAX(eh.rosterdate)",
+                    "FROM companies_emplhour AS eh",
+                    "INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)",
+                    "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+                    "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+                    "INNER JOIN companies_customer AS c ON (c.id = o.customer_id) ",
+                    "WHERE NOT eh.lockedpaydate AND eh.paydatecode_id = %(pdc_id)s::INT"]
+
         if employee_pk_list:
             sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
         elif all_employees:
@@ -4393,14 +4388,12 @@ def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees,
                                 'rd': rosterdate_dte,
                                 'pdc_id': paydatecode_pk,
                                 'paydate': new_paydate_dte}
-                    sql_list = ["""
-                        UPDATE companies_emplhour AS eh SET paydate = %(paydate)s::DATE
-                        FROM companies_employee AS e
-                        WHERE NOT lockedpaydate AND e.company_id = %(comp_id)s::INT 
-                        AND eh.employee_id = e.id
-                        AND eh.rosterdate = %(rd)s::DATE  
-                        AND eh.paydatecode_id = %(pdc_id)s::INT
-                    """]
+                    sql_list = ["UPDATE companies_emplhour AS eh SET paydate = %(paydate)s::DATE",
+                                "FROM companies_employee AS e",
+                                "WHERE NOT lockedpaydate AND e.company_id = %(comp_id)s::INT",
+                                "AND eh.employee_id = e.id",
+                                "AND eh.rosterdate = %(rd)s::DATE",
+                                "AND eh.paydatecode_id = %(pdc_id)s::INT"]
                     if employee_pk_list:
                         sql_keys['eid_arr'] = employee_pk_list
                         sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')

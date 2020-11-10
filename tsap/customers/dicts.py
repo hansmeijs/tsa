@@ -35,7 +35,7 @@ def create_company_list(company):
 
 # ====== create_companyinvoice_list ======= PR2020-04-14
 def create_companyinvoice_list(company):
-    #logger.debug(' --- create_customer_list --- ')
+    #logger.debug(' --- create_companyinvoice_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
     # --- create list of customers of this company PR2019-09-03
@@ -96,14 +96,15 @@ def create_companyinvoice_dict(companyinvoice):
     return item_dict
 
 
-def create_customer_list(company, customer_pk=None, is_absence=None, is_template=None, is_inactive=None):
+
+def create_customer_list(request, customer_pk=None, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
-    company_pk = company.pk
+    company_pk = request.user.company.pk
     sql_keys = {'compid': company_pk}
-
     sql_list = []
+
     sql_list.append(""" 
         SELECT c.id, 
         c.company_id AS comp_id,
@@ -118,6 +119,32 @@ def create_customer_list(company, customer_pk=None, is_absence=None, is_template
         FROM companies_customer AS c   
         WHERE c.company_id = %(compid)s
         """)
+
+# +++ filter allowed customer when used has 'permitcustomers'
+    # <PERMITS> PR2020-11-02
+    # show only customers in request.user.permitcustomers or request.user.permitorders, show all when empty
+    # PR2020-11-03 debug: was: permitcustomers_list = request.user.permitcustomers
+    # but adding pk's to permitcustomers_list also adds them to request.user.permitcustomers
+    # this results in retrieving all orders from added customer_pk in create_order_list
+    # Solution: create new list of customer_pk's
+    permitcustomers_list = []
+    if request.user.permitcustomers:
+        for c_id in request.user.permitcustomers:
+            permitcustomers_list.append(c_id)
+    # no items are added to permitorders_list, therefore 'permitorders_list = request.user.permitorders' can be used
+    permitorders_list = request.user.permitorders
+    if permitcustomers_list or permitorders_list:
+        # if permitorders exist: lookup their customers and add them to the list
+        if permitorders_list:
+            for order_pk in permitorders_list:
+                order = m.Order.objects.get_or_none(pk=order_pk)
+                if order:
+                    c_id = order.customer_id
+                    if c_id and c_id not in permitcustomers_list:
+                        permitcustomers_list.append(c_id)
+        sql_list.append('AND c.id IN ( SELECT UNNEST( %(cid_arr)s::INT[]))')
+        sql_keys['cid_arr'] = permitcustomers_list
+
     if customer_pk:
         sql_list.append('AND (c.id = %(cid)s)')
         sql_keys['cid'] = customer_pk
@@ -152,7 +179,6 @@ def create_customer_list(company, customer_pk=None, is_absence=None, is_template
 
     customer_list = []
     for row in customer_rows:
-        #logger.debug(row)
         item_dict = {}
         create_customer_dict_from_sql(row, item_dict)
 
@@ -253,94 +279,106 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, order_pk=None, is_absence=None, is_template=None, is_inactive=None):
+def create_order_list(request, order_pk=None, is_absence=None, is_template=None, is_inactive=None):
     #logger.debug(' --- create_order_list --- ')
+    #logger.debug('is_absence: ' + str(is_absence))
+    #logger.debug('is_template: ' + str(is_template))
+    #logger.debug('is_inactive: ' + str(is_inactive))
     # Order of absence and template are made by system and cannot be updated
     # absence orders are loaded in create_abscat_list
 
     # date filter not in use (yet)
     period_datefirst, period_datelast = None, None
 
-    company_pk = company.pk
+    company_pk = request.user.company.pk
     sql_keys = {'compid': company_pk}
 
-    sql_list = []
-    sql_list.append(""" 
-        SELECT o.id, 
-        c.id AS c_id, 
+    sql_list = [ "SELECT o.id, c.id AS c_id, CONCAT('order_', o.id::TEXT) AS mapid,",
+                "COALESCE(REPLACE (o.code, '~', ''),'') AS code,",
+                "COALESCE(REPLACE (c.code, '~', ''),'') AS c_code,",
+                "CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,",
+                "o.name, o.contactname, o.address, o.zipcode,  o.city,  o.country,  o.identifier,",
+                "o.billable AS o_billable, o.sequence AS o_sequence,",
+                "o.pricecode_id AS o_pc_id, o.additioncode_id AS o_ac_id,  o.taxcode_id AS o_tc_id,  o.invoicecode_id AS o_ic_id,",
+                "o.datefirst, o.datelast, o.isabsence, o.istemplate, o.inactive, c.inactive AS c_inactive",
+                "FROM companies_order AS o",
+                "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                "WHERE c.company_id = %(compid)s"]
 
-        COALESCE(REPLACE (o.code, '~', ''),'') AS code, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-        CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')) AS c_o_code,
+# +++ filter allowed orders when user has 'permitcustomers' or 'permitorders'
+    # <PERMITS> PR2020-11-02
+    #     # show only customers in request.user.permitcustomers or request.user.permitorders, show all when empty
 
-        o.name,
-        o.contactname, o.address, o.zipcode,  o.city,  o.country, 
-        o.identifier, 
+    permitcustomers_list = request.user.permitcustomers
+    permitorders_list = request.user.permitorders
 
-        o.billable AS o_billable,
-        o.sequence AS o_sequence,
+    if permitcustomers_list or permitorders_list:
+        if permitcustomers_list:
+            if permitorders_list:
+                sql_list.append(
+                    "AND ( o.customer_id IN ( SELECT UNNEST( %(cid_arr)s::INT[])) OR o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[] )))")
+                sql_keys['cid_arr'] = permitcustomers_list
+                sql_keys['oid_arr'] = permitorders_list
+            else:
+                sql_list.append("AND o.customer_id IN ( SELECT UNNEST( %(cid_arr)s::INT[]))")
+                sql_keys['cid_arr'] = permitcustomers_list
+        else:
+            if permitorders_list:
+                sql_list.append("AND o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[]))")
+                sql_keys['oid_arr'] = permitorders_list
 
-        o.pricecode_id AS o_pc_id, 
-        o.additioncode_id AS o_ac_id, 
-        o.taxcode_id AS o_tc_id, 
-        o.invoicecode_id AS o_ic_id,  
-        
-        o.datefirst, o.datelast,
-        o.isabsence, o.istemplate,
-        o.inactive,
-        c.inactive AS c_inactive,
-        
-        CONCAT('order_', o.id::TEXT) AS mapid
-
-        FROM companies_order AS o 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)  
-
-        WHERE c.company_id = %(compid)s
-        """)
     if order_pk:
-        sql_list.append('AND (o.id = %(oid)s)')
+        sql_list.append("AND (o.id = %(oid)s)")
         sql_keys['oid'] = order_pk
     else:
         if period_datefirst:
-            sql_list.append('AND (o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL)')
+            sql_list.append("AND (o.datelast >= CAST(%(rdf)s AS DATE) OR o.datelast IS NULL)")
             sql_keys['rdf'] = period_datefirst
 
         if period_datelast:
-            sql_list.append('AND (o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL)')
+            sql_list.append("AND (o.datefirst <= CAST(%(rdl)s AS DATE) OR o.datefirst IS NULL)")
             sql_keys['rdl'] = period_datelast
 
         if is_absence is not None:
             if is_absence:
-                sql_list.append('AND c.isabsence')
+                sql_list.append("AND c.isabsence")
             else:
-                sql_list.append('AND NOT c.isabsence')
+                sql_list.append("AND NOT c.isabsence")
             sql_keys['isabsence'] = is_absence
 
         if is_template is not None:
             if is_template:
-                sql_list.append('AND c.istemplate')
+                sql_list.append("AND c.istemplate")
             else:
-                sql_list.append('AND NOT c.istemplate')
+                sql_list.append("AND NOT c.istemplate")
             sql_keys['istemplate'] = is_template
 
         if is_inactive is not None:
             if is_inactive:
-                sql_list.append('AND o.inactive')
+                sql_list.append("AND c.inactive AND o.inactive")
             else:
-                sql_list.append('AND NOT o.inactive')
+                sql_list.append("AND NOT c.inactive AND NOT o.inactive")
             sql_keys['inactive'] = is_inactive
 
-        sql_list.append('ORDER BY LOWER(c.code), LOWER(o.code)')
+        sql_list.append("ORDER BY LOWER(c.code), LOWER(o.code)")
     sql = ' '.join(sql_list)
-
+    #logger.debug('sql: ' + str(sql))
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     order_rows = f.dictfetchall(newcursor)
 
+    #logger.debug(' ')
+    #logger.debug('connection.queries:')
+    #logger.debug('sql_keys: ' + str(sql_keys))
+    #for query in connection.queries:
+    #    logger.debug(str(query))
+    #logger.debug('queries: ' + str(connection.queries))
+
     order_list = []
-    for order in order_rows:
+    for order_row in order_rows:
+        #logger.debug('order_row: ' + str(order_row))
         item_dict = {}
-        create_order_dict_from_sql(order, item_dict)
+        create_order_dict_from_sql(order_row, item_dict)
 
         if item_dict:
             order_list.append(item_dict)

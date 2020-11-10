@@ -137,27 +137,28 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- employee
                     request_item = datalist_request.get('employee_list')
                     if request_item:
-                        employee_list, employee_rows = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
+                        employee_list, employee_rows = ed.create_employee_list(request=request, user_lang=user_lang)
                         datalists['employee_list'] = employee_list
                     request_item = datalist_request.get('employee_rows')
                     if request_item:
                         datalists['employee_rows'] = ed.create_employee_rows(request_item, {}, request)
 
 # ----- customer
-                    request_item = datalist_request.get('customer_list')
+                    request_item = datalist_request.get('customer_rows')
                     if request_item:
                         customer_list, customer_rows = cust_dicts.create_customer_list(
-                            company=request.user.company,
+                            request=request,
                             is_absence=request_item.get('isabsence'),
                             is_template=request_item.get('istemplate'),
                             is_inactive=request_item.get('inactive'))
                         datalists['customer_list'] = customer_list
                         datalists['customer_rows'] = customer_rows
 # ----- order
-                    request_item = datalist_request.get('order_list')
+                    request_item = datalist_request.get('order_rows')
                     if request_item:
+                        # show all when isabsence / istemplate / inactive is None
                         order_list, order_rows = cust_dicts.create_order_list(
-                            company=request.user.company,
+                            request=request,
                             is_absence=request_item.get('isabsence'),
                             is_template=request_item.get('istemplate'),
                             is_inactive=request_item.get('inactive'))
@@ -369,6 +370,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['functioncode_rows'] = ed.create_functioncode_rows(None, {}, request)
 
 # ----- employee_calendar
+                    """
                     request_item = datalist_request.get('employee_calendar')
                     calendar_period_dict = datalists.get('calendar_period')
                     # TODO 'employee_calendar' and 'employee_planning' use same function create_employee_planning
@@ -389,6 +391,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         download_customer_calendar(request_item, calendar_period_dict, datalists, saved_order_pk,
                                                    user_lang, comp_timezone, timeformat, request)
+                   """
 # ----- employee_planning OLD
                     #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
                    # request_item = datalist_request.get('employee_planningOLD')
@@ -409,17 +412,29 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # employee_planning is also called by page_customer
                     if (request_item is not None and planning_period_dict) or \
                             (saved_btn == 'planning' and planning_period_dict):
-                        emplan.create_employee_planningNEW(planning_period_dict, datalists, comp_timezone, request)
+                        order_pk = f.get_dict_value(request_item, ('order_pk',))
 
+                        planning_list, customer_dictlist, order_dictlist, elapsed_seconds = \
+                            emplan.create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request)
+
+                        # PR2020-05-23 debug: datalists = {} gives parse error.
+                        # elapsed_seconds to the rescue: now datalists will never be empty
+                        datalists['employee_planning_list_elapsed_seconds'] = elapsed_seconds
+                        datalists['employee_planning_listNEW'] = planning_list
+                        datalists['employee_planning_customer_dictlist'] = customer_dictlist
+                        datalists['employee_planning_order_dictlist'] = order_dictlist
                     #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
+
 # ----- customer_planning
+                    # TODO
+                    """
                     request_item = datalist_request.get('customer_planning')
                     # also get customer_planning at startup of page
                     if (request_item is not None and planning_period_dict) or \
                             (sel_page == 'page_customer' and saved_btn == 'planning' and planning_period_dict):
                         download_customer_planning(request_item, planning_period_dict, datalists, saved_customer_pk,
                                                    saved_order_pk, user_lang, comp_timezone, timeformat, request)
-
+                    """
 # ----- rosterdate_check
                     request_item = datalist_request.get('rosterdate_check')
                     if request_item:
@@ -452,6 +467,24 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                         'comp_timezone': comp_timezone,
                         'timeformat': timeformat,
                         'interval': interval}
+    # <PERMIT>
+    # put all permits in new_setting_dict
+    if request.user.is_perm_employee:
+        new_setting_dict['requsr_perm_employee'] = request.user.is_perm_employee
+    if request.user.is_perm_planner:
+        new_setting_dict['requsr_perm_planner'] = request.user.is_perm_planner
+    if request.user.is_perm_supervisor:
+        new_setting_dict['requsr_perm_supervisor'] = request.user.is_perm_supervisor
+    if request.user.is_perm_hrman:
+        new_setting_dict['requsr_perm_hrman'] = request.user.is_perm_hrman
+    if request.user.is_perm_accman:
+        new_setting_dict['requsr_perm_accman'] = request.user.is_perm_accman
+    if request.user.is_perm_sysadmin:
+        new_setting_dict['requsr_perm_sysadmin'] = request.user.is_perm_sysadmin
+    if request.user.permitcustomers:
+        new_setting_dict['requsr_perm_customers'] = request.user.permitcustomers
+    if request.user.permitorders:
+        new_setting_dict['requsr_perm_orders'] = request.user.permitorders
 
     # request_item: {'selected_pk': {'sel_paydatecode_pk': 23, 'sel_paydate_iso': '2020-05-22'}}
     if request_item:
@@ -597,14 +630,24 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
         datalists['teammember_list'] = dict_list
 
     else:
+
+        # +++ filter allowed orders when user has 'permitcustomers' or 'permitorders'
+        # <PERMITS> PR2020-11-02
+        #     # show only customers in request.user.permitcustomers or request.user.permitorders, show all when empty
+        permitcustomers_list = request.user.permitcustomers
+        permitorders_list = request.user.permitorders
+        if permitcustomers_list or permitorders_list:
+            pass
+
         filter_dict = {'customer_pk': absence_customer_pk, 'order_pk': new_order_pk, 'isabsence': is_absence}
         # PR2020-05-23 get all all schemes, shifts, teams, schemeitems and teammembers of selected order
-        checked_customer_pk, checked_order_pk = d.create_page_scheme_list(
-            filter_dict=filter_dict,
-            datalists=datalists,
-            company=request.user.company,
-            comp_timezone=comp_timezone,
-            user_lang=user_lang)
+        checked_customer_pk, checked_order_pk = \
+            d.create_page_scheme_list(
+                filter_dict=filter_dict,
+                datalists=datalists,
+                company=request.user.company,
+                comp_timezone=comp_timezone,
+                user_lang=user_lang)
 
         #logger.debug('checked_customer_pk' + str(checked_customer_pk))
         #logger.debug('checked_order_pk' + str(checked_order_pk))
@@ -2286,8 +2329,6 @@ class ReviewView(View):
                 timeformat = request.user.company.timeformat
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
-
-
 
             param = get_headerbar_param(request, {
                 'lang': lang,

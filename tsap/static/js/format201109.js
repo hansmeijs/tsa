@@ -433,9 +433,24 @@
 
     }; // function get_period_text
 
+
+//=========  get_period_formatted ================ PR2019-11-03
+    function get_period_formatted(period_dict, loc) {
+        //console.log( "===== get_period_formatted  ========= ");
+        // used in r_calc_customerplanning_agg_dict for report PR2020-11-05
+        let period_formatted = "";
+        if(!isEmpty(period_dict)){
+            const datefirst_ISO = get_dict_value(period_dict, ["period_datefirst"]);
+            const datelast_ISO = get_dict_value(period_dict, ["period_datelast"]);
+            period_formatted = format_period(loc, datefirst_ISO, datelast_ISO)
+        }
+        return period_formatted;
+
+    }
+
 //========= f_get_periodtext_sidebar  ==================================== PR 2020-03-13 PR2020-07-11
     function f_get_periodtext_sidebar(loc, datefirst_iso, datelast_iso) {
-        console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
+        //console.log( " --- f_get_periodtext_sidebar --- ", datefirst_iso, datelast_iso);
         let period_text = "";
         let prefix = ""; //  loc.Period + ": ";
         if (datefirst_iso && !datelast_iso) {
@@ -478,7 +493,7 @@
         }
         // display: 'm.i.v. 23 okt 2020'  or  't/m 30 okt 2020'
         period_text = prefix + " " + period_text;
-        console.log( "period_text", period_text);
+
         return period_text;
     }  // f_get_periodtext_sidebar
 

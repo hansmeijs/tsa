@@ -570,7 +570,12 @@
     height: 390px;
     width: 220px;
 }
-
+.tbl_div_390_360 {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 390px;
+    width: 360px;
+}
 .tbl_div_50vh_200 {
     overflow-x: hidden;
     overflow-y: auto;

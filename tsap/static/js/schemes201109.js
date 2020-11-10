@@ -4,6 +4,20 @@
 document.addEventListener('DOMContentLoaded', function() {
         "use strict";
 
+        // <PERMIT> PR2020-11-07
+        // - only planner has acces to page 'schemes'
+        // - planner can add / edit / delete items
+        // - when perm_customers and/or perm_orders have value:
+        //   - tab absence is hidden
+        //   - not allowed to view / add / edit / delete absence
+
+        // permits get value when setting_dict is downloaded
+        //let permit_view_add_edit_delete_absence = false;
+        let allowed_customers = [];  // list of allowed customers of request_user PR2020-11-03
+        let allowed_orders = [];  // list of allowed orders of request_user PR2020-11-03
+        let has_allowed_customers = false;
+        let has_allowed_orders = false;
+
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_highl = "tr_highlighted";
@@ -21,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const id_sel_prefix = "sel_"
         let rosterdate_dict = {};
 
+        let company_dict = {};
         let employee_map = new Map();
         let order_map = new Map();
         let scheme_map = new Map();
@@ -64,6 +79,20 @@ document.addEventListener('DOMContentLoaded', function() {
         let filter_dict = {};
         let is_template_mode = false;
         let is_absence_mode = false;
+
+// ---  variables for print planning PR2020-11-04
+        let selected_planning_period = {}
+        let employee_planning_customer_dictlist = {}
+        let employee_planning_order_dictlist = {}
+        let employee_planning_selected_customer = null;  // null = all, -1 = no employee
+        let employee_planning_selected_order = null;  // null = all, -1 = no employee
+        let employee_planning_selected_employee_pk = null;
+        let employee_planning_selected_employee_code = "";
+        let planning_short_list_sorted = [];
+        let employee_planning_print_ispending = false;
+
+        let html_planning_agg_list = [];
+        let html_planning_detail_list = [];
 
 // ---  Select Scheme
         // EventHandler HandleSelect_Row is added in FillSelectTable
@@ -117,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_width:  ["016", "180", "180", "120", "120", "090", "090", "120", "180", "020"],
                         field_align: ["c", "l", "l", "r", "r", "r", "r", "r", "l",  "c"]},
             }
-
         const mapped_absence_fields = {e_code: "employee", o_code: "abscat", s_df: "datefirst", s_dl: "datelast",
             sh_os_arr: "offsetstart" , sh_oe_arr: "offsetend", sh_bd_arr: "breakduration", sh_td_arr: "timeduration", rpl_code: "replacement"}
 
@@ -146,23 +174,23 @@ document.addEventListener('DOMContentLoaded', function() {
 //  ========== EVENT LISTENERS  ======================
 
 // ---  Sidebar - Select Order
-        let el_sidebar_select_order = document.getElementById("id_SBR_select_order");
+        const el_sidebar_select_order = document.getElementById("id_SBR_select_order");
             el_sidebar_select_order.addEventListener("click", function() {MSCO_Open()}, false );
             add_hover(el_sidebar_select_order);
 // --- create EventListener for buttons in btn_container
-        let btns = document.getElementById("id_btn_container").children;
-        for (let i = 0, btn; btn = btns[i]; i++) {
+        const el_btn_container = document.getElementById("id_btn_container").children;
+        for (let i = 0, btn; btn = el_btn_container[i]; i++) {
             const data_btn = get_attr_from_el(btn,"data-btn")
             btn.addEventListener("click", function() {HandleBtnSelect(data_btn)}, false )
         }
 // ---  create EventListener for buttons above table schemeitems
-        btns = document.getElementById("id_btns_grid").children;
-        for (let i = 0, btn; btn = btns[i]; i++) {
+        const el_btns_grid = document.getElementById("id_btns_grid").children;
+        for (let i = 0, btn; btn = el_btns_grid[i]; i++) {
             btn.addEventListener("click", function() {Grid_Nocycle_Goto(event)}, false )
         }
 
 // ---  create EventListener of elements in scheme box grid page
-        let elements = document.getElementById("id_grid_scheme_container").querySelectorAll(".tsa_input_text")
+        const elements = document.getElementById("id_grid_scheme_container").querySelectorAll(".tsa_input_text")
         for (let i = 0, el; el = elements[i]; i++) {
             el.addEventListener("click", function() {MSCH_Open(el)}, false);
             add_hover(el);
@@ -171,43 +199,43 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===================== EventListener for MODAL ===================================
 
 // ---  MOD SELECT CUSTOMER / ORDER ------------------------------
-        let el_MSCO_tblbody_custorder = document.getElementById("id_MSCO_tbody_select");
-        let el_MSCO_input_custorder = document.getElementById("id_MSCO_input_custorder")
+        const el_MSCO_tblbody_custorder = document.getElementById("id_MSCO_tbody_select");
+        const el_MSCO_input_custorder = document.getElementById("id_MSCO_input_custorder")
             el_MSCO_input_custorder.addEventListener("keyup", function(event){
                 setTimeout(function() {MSCO_FilterCustOrder()}, 50)});
-        let el_MSCO_btn_save = document.getElementById("id_MSCO_btn_save")
+        const el_MSCO_btn_save = document.getElementById("id_MSCO_btn_save")
             el_MSCO_btn_save.addEventListener("click", function() {MSCO_Save()}, false )
 
 // ---  MOD GRID TEAM ------------------------------------
-        let el_MGT_teamcode = document.getElementById("id_MGT_teamcode");
+        const el_MGT_teamcode = document.getElementById("id_MGT_teamcode");
             el_MGT_teamcode.addEventListener("change", function() {MGT_TeamcodeChanged(el_MGT_teamcode)}, false)
 
-        let el_MGT_btn_save = document.getElementById("id_MGT_btn_save");
+        const el_MGT_btn_save = document.getElementById("id_MGT_btn_save");
                 el_MGT_btn_save.addEventListener("click", function() {MGT_Save("update")}, false )
-        let el_MGT_btn_delete = document.getElementById("id_MGT_btn_delete");
+        const el_MGT_btn_delete = document.getElementById("id_MGT_btn_delete");
                 el_MGT_btn_delete.addEventListener("click", function() {MGT_Save("delete")}, false )
 
 // ---  MOD GRID SHIFT ------------------------------------
-        let el_MGS_shiftcode = document.getElementById("id_MGS_shiftcode");
+        const el_MGS_shiftcode = document.getElementById("id_MGS_shiftcode");
             el_MGS_shiftcode.addEventListener("change", function() {MGS_ShiftcodeChanged(el_MGS_shiftcode)}, false);
-        let el_MGS_offsetstart = document.getElementById("id_MGS_offsetstart");
+        const el_MGS_offsetstart = document.getElementById("id_MGS_offsetstart");
             el_MGS_offsetstart.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetstart, "grid_shift")}, false);
-        let el_MGS_offsetend = document.getElementById("id_MGS_offsetend");
+        const el_MGS_offsetend = document.getElementById("id_MGS_offsetend");
             el_MGS_offsetend.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_offsetend, "grid_shift")}, false);
-        let el_MGS_breakduration = document.getElementById("id_MGS_breakduration");
+        const el_MGS_breakduration = document.getElementById("id_MGS_breakduration");
             el_MGS_breakduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_breakduration, "grid_shift")}, false);
-        let el_MGS_timeduration = document.getElementById("id_MGS_timeduration");
+        const el_MGS_timeduration = document.getElementById("id_MGS_timeduration");
             el_MGS_timeduration.addEventListener("click", function() {MGS_TimepickerOpen(el_MGS_timeduration, "grid_shift")}, false);
-        let el_MGS_restshift = document.getElementById("id_MGS_isrestshift");
+        const el_MGS_restshift = document.getElementById("id_MGS_isrestshift");
             el_MGS_restshift.addEventListener("change", function() {MGS_RestshiftClicked(el_MGS_restshift)}, false);
 
-        let el_MGS_btn_save = document.getElementById("id_MGS_btn_save");
+        const el_MGS_btn_save = document.getElementById("id_MGS_btn_save");
                 el_MGS_btn_save.addEventListener("click", function() {MGS_Save("update")}, false );
         let el_MGS_btn_delete = document.getElementById("id_MGS_btn_delete");
                 el_MGS_btn_delete.addEventListener("click", function() {MGS_Save("delete")}, false );
 
 // ---  MDAL SELECT EMPLOYEE
-        let el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
+        const el_modemployee_body = document.getElementById("id_ModSelEmp_select_employee_body");
         document.getElementById("id_MSE_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() {MSE_filter_employee("filter", event.key)}, 50)});
         const el_MSE_btn_save = document.getElementById("id_ModSelEmp_btn_save");
@@ -225,54 +253,53 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, el; el = form_elements[i]; i++) {
             el.addEventListener("change", function(event) { setTimeout(function() {MSCH_validate_and_disable(el)}, 50)}, false )
         }
-        let el_MSCH_btn_delete = document.getElementById("id_MSCH_btn_delete");
+        const el_MSCH_btn_delete = document.getElementById("id_MSCH_btn_delete");
             el_MSCH_btn_delete.addEventListener("click", function() {MSCH_Save("delete")}, false )
-        let el_MSCH_btn_save = document.getElementById("id_MSCH_btn_save");
+        const el_MSCH_btn_save = document.getElementById("id_MSCH_btn_save");
             el_MSCH_btn_save.addEventListener("click", function() {MSCH_Save("save")}, false )
 
 // ---  MODAL ABSENCE ------------------------------------
-        let el_MAB_input_employee = document.getElementById("id_MAB_input_employee")
+// ---  MODAL ABSENCE ------------------------------------
+        const el_MAB_input_employee = document.getElementById("id_MAB_input_employee")
             el_MAB_input_employee.addEventListener("focus", function() {MAB_GotFocus("employee", el_MAB_input_employee)}, false )
             el_MAB_input_employee.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("employee", el_MAB_input_employee)}, 50)});
-
-        let el_MAB_input_abscat = document.getElementById("id_MAB_input_abscat")
+        const el_MAB_input_abscat = document.getElementById("id_MAB_input_abscat")
             el_MAB_input_abscat.addEventListener("focus", function() {MAB_GotFocus("abscat", el_MAB_input_abscat)}, false )
             el_MAB_input_abscat.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("abscat", el_MAB_input_abscat)}, 50)});
-
-        let el_MAB_input_replacement = document.getElementById("id_MAB_input_replacement")
+        const el_MAB_input_replacement = document.getElementById("id_MAB_input_replacement")
             el_MAB_input_replacement.addEventListener("focus", function() {MAB_GotFocus("replacement", el_MAB_input_replacement)}, false )
             el_MAB_input_replacement.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("replacement", el_MAB_input_replacement)}, 50)});
 
-        let el_MAB_datefirst = document.getElementById("id_MAB_input_datefirst")
+        const el_MAB_datefirst = document.getElementById("id_MAB_input_datefirst")
             el_MAB_datefirst.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_datefirst)}, false );
-        let el_MAB_datelast = document.getElementById("id_MAB_input_datelast")
+        const el_MAB_datelast = document.getElementById("id_MAB_input_datelast")
             el_MAB_datelast.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_datelast)}, false );
-        let el_MAB_oneday = document.getElementById("id_MAB_oneday")
+        const el_MAB_oneday = document.getElementById("id_MAB_oneday")
             el_MAB_oneday.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_oneday)}, false );
-        let el_MAB_offsetstart = document.getElementById("id_MAB_input_offsetstart")
-            el_MAB_offsetstart.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetstart)}, false );
-        let el_MAB_offsetend = document.getElementById("id_MAB_input_offsetend")
-            el_MAB_offsetend.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetend)}, false );
-        let el_MAB_breakduration = document.getElementById("id_MAB_input_breakduration")
-            el_MAB_breakduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_breakduration)}, false );
-        let el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
-            el_MAB_timeduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_timeduration)}, false );
 
-        let el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
+        const el_MAB_offsetstart = document.getElementById("id_MAB_input_offsetstart")
+            el_MAB_offsetstart.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetstart)}, false );
+        const el_MAB_offsetend = document.getElementById("id_MAB_input_offsetend")
+            el_MAB_offsetend.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetend)}, false );
+        const el_MAB_breakduration = document.getElementById("id_MAB_input_breakduration")
+            el_MAB_breakduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_breakduration)}, false );
+        const el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
+            el_MAB_timeduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_timeduration)}, false );
+        const el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
             el_MAB_btn_save.addEventListener("click", function() {MAB_Save("save")}, false );
-        let el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
-            el_MAB_btn_delete.addEventListener("click", function() {ModConfirmTblrowOpen("delete", "absence")}, false );
+        const el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
+            el_MAB_btn_delete.addEventListener("click", function() {MAB_Save("delete")}, false );
 
 // ---  Modal Copyfrom Template
-        let el_MCFT_input_order = document.getElementById("id_MCFT_input_order")
+        const el_MCFT_input_order = document.getElementById("id_MCFT_input_order")
             el_MCFT_input_order.addEventListener("keyup", function(event){
                     setTimeout(function() {MCFT_InputElementKeyup(el_MCFT_input_order)}, 50)});
-        let el_MCFT_input_code = document.getElementById("id_mod_copyfrom_code")
+        const el_MCFT_input_code = document.getElementById("id_mod_copyfrom_code")
              el_MCFT_input_code.addEventListener("keyup", function() {ModCopyfromTemplateEdit("code")})
-        let el_MCFT_btn_save = document.getElementById("id_MCFT_btn_save");
+        const el_MCFT_btn_save = document.getElementById("id_MCFT_btn_save");
             el_MCFT_btn_save.addEventListener("click", function() {MCFT_Save()});
 
 // ---  Modal Copyto Template
@@ -280,8 +307,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_copyto_btn_save").addEventListener("click", function() {ModalCopytoTemplateSave()})
 
 // ---  save button in ModConfirm
-        let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
+        const el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
             el_confirm_btn_save.addEventListener("click", function() {ModConfirmSave()});
+
+// ---  MOD PERIOD ------------------------------------
+        const el_mod_period_datefirst = document.getElementById("id_mod_period_datefirst");
+            el_mod_period_datefirst.addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false );
+        const el_mod_period_datelast = document.getElementById("id_mod_period_datelast");
+            el_mod_period_datelast.addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false );
+        const el_mod_period_oneday = document.getElementById("id_mod_period_oneday");
+            el_mod_period_oneday.addEventListener("change", function() {ModPeriodDateChanged("oneday")}, false );
+        const el_mod_period_btn_save = document.getElementById("id_mod_period_btn_save");
+            el_mod_period_btn_save.addEventListener("click", function() {ModPeriodSave()}, false );
 
 // --- close windows
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -328,12 +365,15 @@ document.addEventListener('DOMContentLoaded', function() {
         //show_absence = null is for testing, show_absence must be false in production
         //const show_absence_FOR_TESTING_ONLY = null;
         const show_absence_FOR_TESTING_ONLY = false;
+        const now_arr = get_now_arr();
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}},
             quicksave: {mode: "get"},
             locale: {page: "scheme"},
-            order_list: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: false, inactive: false},
+            company: {value: true},
+            planning_period: {get: true, now: now_arr},
+            order_rows: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: false, inactive: false},
             // FOR TESTING order_list: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: null},
             page_scheme_list: {mode: "get"},
             abscat_rows: {get: true},
@@ -372,6 +412,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     CreateSelectHeaderRow();
                     CreateSelectAddnewRow();
                 }
+                if ("planning_period" in response){
+                    // this must come after locale_dict PR2020-10-23 debug
+                    selected_planning_period = get_dict_value(response, ["planning_period"]);
+                    //el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_planning_period);
+                }
 // --- retrieve setting_dict first. Settings will be used when filling tables
                 if ("setting_dict" in response) {
                     UpdateSettings(response["setting_dict"])
@@ -396,6 +441,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("refresh_maps:");
         //console.log(response);
 
+        if ("company_dict" in response) {company_dict = response.company_dict}
+
     // 'order' must come before 'customer'
         if ("order_list" in response) {
             refresh_datamap(response["order_list"], order_map)
@@ -409,6 +456,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected.tblRow_rowIndex = null;  // to be used in HandleEventKey
                 }
         }
+
+//------------- employee_planning_list  -----------------------
+// ---  for print planning PR2020-11-04
+
+        if ("employee_planning_customer_dictlist" in response) {
+            employee_planning_customer_dictlist = response.employee_planning_customer_dictlist
+        }
+        if ("employee_planning_order_dictlist" in response) {
+            employee_planning_order_dictlist = response.employee_planning_order_dictlist
+        }
+        if ("employee_planning_listNEW" in response) {
+           const employee_planning_listNEW = response["employee_planning_listNEW"]
+
+// ---  convert dictionary to array  PR2020-10-26
+            // not necessary, is already array
+            //const planning_short_arr = Object.values(employee_planning_listNEW);
+
+// ---  sort array with sort and b_comparator_code PR2020-10-26
+            planning_short_list_sorted = employee_planning_listNEW.sort(b_comparator_e_code);
+
+            //const planning_agg_list = t_calc_employeeplanning_agg_dict(planning_short_list_sorted, selected_planning_period, employee_map);
+
+            const planning_customer_agg_dict = r_calc_customerplanning_agg_dict(loc, employee_planning_listNEW, company_dict,
+                    selected_planning_period, selected.customer_pk, selected.order_pk)
+
+            const planning_employee_agg_dict = r_calc_employeeplanning_agg_dict(loc, employee_planning_listNEW, company_dict,
+                    selected_planning_period, null, null)  //PR2020-11-04
+            console.log("planning_employee_agg_dict", planning_employee_agg_dict)
+
+            //t_CreateHTML_planning_agg_list(loc, planning_agg_list, html_planning_agg_list);
+            //t_CreateHTML_planning_detail_list(loc, planning_short_list_sorted, html_planning_detail_list);
+            if (employee_planning_print_ispending){
+                employee_planning_print_ispending = false;
+                r_PrintEmployeeOrOrderPlanning(loc, planning_employee_agg_dict, "print", false)
+                r_PrintEmployeeOrOrderPlanning(loc, planning_customer_agg_dict, "print", true)   // true = is_order_planning
+            }
+        }
+
+//-------------  end of employee_planning_list  ---------------------------
+
 
 // ---  update tables
         UpdateTablesAfterResponse(response);
@@ -501,17 +588,19 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_div, loc.Delete_scheme, function (){HandleSubmenuBtnDelete()}, ["mx-2"], "id_menubtn_delete_scheme");
         AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopyTemplateOpen()}, ["mx-2"], "id_menubtn_copy_template");
         AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, ["mx-2"], "id_menubtn_show_templates");
+        AddSubmenuButton(el_div, loc.Download_planning, function() { ModPeriodOpen("preview")}, ["mx-2"], "id_submenu_planning_preview");
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 
 //=========  RefreshSubmenuButtons  ================ PR2020-03-12
-    function RefreshSubmenuButtons() {
+    function RefreshSubmenuButtons(is_absence_mode, is_template_mode) {
         let btn_add_scheme = document.getElementById("id_menubtn_add_scheme");
         let btn_delete_scheme = document.getElementById("id_menubtn_delete_scheme");
         let btn_copy_template = document.getElementById("id_menubtn_copy_template");
         let btn_show_templates = document.getElementById("id_menubtn_show_templates");
+        let btn_planning_preview = document.getElementById("id_submenu_planning_preview");
 
         btn_add_scheme.innerText = (is_absence_mode) ? loc.Add_absence : (is_template_mode) ? loc.Add_template : loc.Add_scheme;
         btn_delete_scheme.innerText = (is_absence_mode) ? loc.Delete_absence : (is_template_mode) ? loc.Delete_template :loc.Delete_scheme;
@@ -533,6 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
             btn_delete_scheme.setAttribute("aria-disabled", true);
             btn_delete_scheme.classList.add("tsa_color_mediumgrey");
         }
+
+        add_or_remove_class(btn_planning_preview, cls_hide, (is_template_mode || is_absence_mode) )
 
     }
 
@@ -597,7 +688,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnSelect(data_btn, skip_update) {
         console.log( "==== HandleBtnSelect ========= " );
         // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
+
+// ---   set value of selected_btn
         selected_btn = (data_btn) ? data_btn : "btn_grid";
+        // change selected_btn if no permit (btn absence is hidden, this code should not be reached, let it stay)
+        // if (!permit_view_add_edit_delete_absence && selected_btn === "btn_absence") {selected_btn = "btn_grid"}
         //console.log( "selected_btn:", selected_btn );
 
         settings.scheme_pk
@@ -613,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
         is_absence_mode = (selected_btn === "btn_absence");
         if (is_absence_mode){is_template_mode = false};
 // ---  set btntext 'Add scheme / Delete scheme', enable/disable delete btn
-        RefreshSubmenuButtons();
+        RefreshSubmenuButtons(is_absence_mode, is_template_mode);
 // ---  highlight selected button
         highlight_BtnSelect(document.getElementById("id_btn_container"), selected_btn);
 // ---  show / hide tblBody_datatable or el_div_gridlayout
@@ -625,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  show only the elements that are used in this tab
         show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 // +++  when is_absence_mode
-        if (selected_btn === "btn_absence"){
+        if (is_absence_mode){
             CreateAbsenceTblHeader();
             FillAbsenceTblRows();
         } else {
@@ -690,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody_datatable.innerText = null;
 
 // ---  get is_absence_mode TODO
-        let is_absence_mode = false;
+        //let is_absence_mode = false;
 // ---  get sel_order_pk
         // TODO handle after first download
         // after first DatalistDownload, when there is only 1 customer, selected.customer_pk gets this value
@@ -759,6 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  update selected.scheme_pk (and selected.order_pk to be on the safe side)
                 selected.scheme_pk = get_dict_value(map_dict, ["id", "pk"], 0);
                 selected.order_pk = get_dict_value(map_dict, ["id", "ppk"], 0);
+
 // ---  deselect selected.shift_pk and selected.team_pk when selected.scheme_pk changes
                 selected.shift_pk = 0;
                 selected.team_pk = 0;
@@ -1574,7 +1670,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
     // --- add EventListeners
                     el.addEventListener("click", function() {ModConfirmTblrowOpen("delete", "absence", el)}, false )
                 } else if (j){
-                    el.addEventListener("click", function() {MAB_Open(el)}, false)
+                    // function MAB_Open checks for permit_view_add_edit_delete_absence
+                    el.addEventListener("click", function() {MAB_Open(el)}, false);
                     add_hover(el);
                 }
     // --- add field_width and text_align
@@ -1593,7 +1690,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName) {
-        console.log( "===== FillTableRows  ========= ", tblName);
+        //console.log( "===== FillTableRows  ========= ", tblName);
         // tblNames are: "shift", "teammember", "scheme", "absence" (=teamemmber", "schemeitem" : null;
 
 // --- reset tblBody
@@ -1623,7 +1720,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             } else if (tblName === "schemeitem"){
                 data_map = schemeitem_map;
             };
-            console.log( "data_map ", data_map);
+            //console.log( "data_map ", data_map);
 
             rosterdate_dict = {};
             let tblRow, row_count = 0;
@@ -1694,8 +1791,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false )
 
 //+++ insert td's into tblRow
-        // debug: in absence mode tblName = "teammember", got the wrong fieldsettings
-        const settings_tblName = (is_absence_mode) ? "absence" : tblName;
+        const settings_tblName =  tblName;
         const column_count = field_settings[settings_tblName].tbl_col_count;
         for (let j = 0; j < column_count; j++) {
             let td = tblRow.insertCell(-1);
@@ -1745,19 +1841,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             //el.classList.add("tsa_bc_transparent");
                 }
 
-// ===== ABSENCE  =====
-            } else if ( settings_tblName === "absence"){
-// ---  add delete to last column, not in addnew row
-                if (j === column_count - 1){
-                    if (!is_addnew_row){CreateBtnDeleteInactive("delete", false, tblRow, el)};
-// ---  add hover and pointer to all columns except last column 'delete'
-                } else {
-                    add_hover(el);
-                    el.classList.add("pointer_show");
-// ---  add addEventListener to all columns except last column
-                    td.addEventListener("click", function() {MAB_Open(el)}, false)
-                }
-
 // ===== SCHEMEITEM  =====
             } else if ( settings_tblName === "schemeitem"){
 // ---  add delete to last column, not in addnew row
@@ -1805,7 +1888,6 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 // --- add margin to last column, only in shift table column
            //if (settings_tblName === "shift" && j === column_count - 1 ){el.classList.add("mr-2")}
-
 
 // --- add other classes to td - Necessary to skip closing popup
             //el.classList.add("border_none");
@@ -2272,7 +2354,18 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
  }  //UploadTimepickerChanged
 
-//========= HandleSubmenuBtnDelete  ============= PR2020-08-28
+
+//=========  HandleSubmenuBtnAddNew  ================ PR2020-05-31 PR2020-11-07
+    function HandleSubmenuBtnAddNew() {
+        if(is_absence_mode){
+            // function MAB_Open checks for permit_view_add_edit_delete_absence
+            MAB_Open();
+        } else {
+            MSCH_Open();
+        };
+    }
+
+//========= HandleSubmenuBtnDelete  ============= PR2020-08-28 PR2020-11-07
     function HandleSubmenuBtnDelete() {
         //console.log( " ==== HandleSubmenuBtnDelete ====");
         let mode = null;
@@ -2281,10 +2374,12 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
             MSCH_get_scheme_dict();
         } else if (selected_btn === "btn_absence") {
+
+            // PR2020-11-09 permit_customer_orders may add absence to employees that have shift in his orders
+            // was: if(permit_view_add_edit_delete_absence){
             mode = "absence_delete";
 
         }
-
         if(mode) {ModConfirmOpen(mode)};
     }  // HandleSubmenuBtnDelete
 
@@ -3228,8 +3323,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= RefreshTblRowNEW  ============= PR2020-09-10
     function RefreshTblRowNEW(tblRow, update_dict){
-        console.log("========= RefreshTblRowNEW  =========");
-        console.log("update_dict", update_dict);
+        //console.log("========= RefreshTblRowNEW  =========");
+        //console.log("update_dict", update_dict);
 
         if (tblRow && !isEmpty(update_dict)) {
 // --- loop through cells of tablerow
@@ -4783,7 +4878,7 @@ if(mode === "scheme_delete"){
 
 //=========  MSCO_FillSelectTableCustOrder  ================ PR2020-07-02
     function MSCO_FillSelectTableCustOrder(mod_name) {
-        console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
+        //console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
         const tbl_id = (mod_name === "msco") ? "id_MSCO_tbody_select" :
                        (mod_name === "mcft") ? "id_mod_copyfrom_tblbody" : null
         let tableBody = document.getElementById(tbl_id);
@@ -4794,11 +4889,11 @@ if(mode === "scheme_delete"){
             let row_count = 0;
             if (data_map) {
 
-        console.log( "data_map", data_map);
+        //console.log( "data_map", data_map);
         //--- loop through data_map
                 for (const [map_id, map_dict] of data_map.entries()) {
 
-        console.log( "map_dict", map_dict);
+        //console.log( "map_dict", map_dict);
                     const add_to_list = MSCO_FillSelectRow(tableBody, map_dict, mod_name)
                     if (add_to_list) { row_count += 1 };
                 };
@@ -4824,8 +4919,8 @@ if(mode === "scheme_delete"){
 
 //=========  MSCO_FillSelectRow  ================ PR2020-05-21 cleaned
     function MSCO_FillSelectRow(tableBody, map_dict, mod_name) {
-        console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
-        console.log( "map_dict ", map_dict);
+        //console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
+        //console.log( "map_dict ", map_dict);
 
 //--- check if item must be added to list
         let add_to_list = false, is_selected_pk = false;
@@ -4932,7 +5027,7 @@ if(mode === "scheme_delete"){
 
 //=========  MSCO_Save  ================ PR2020-05-21 cleaned
     function MSCO_Save() {
-        console.log("=====  MSCO_Save =========");
+        //console.log("=====  MSCO_Save =========");
         //console.log("mod_MSCO_dict", mod_MSCO_dict);
         // don't update selected.customer_pk and selected.order_pk until response
         HandleSelectOrder(mod_MSCO_dict.customer_pk, mod_MSCO_dict.order_pk );
@@ -4946,19 +5041,19 @@ if(mode === "scheme_delete"){
 
 //=========  MSE_open  ================ PR2020-03-19
     function MSE_open(el_input) {
-        console.log(" -----  MSE_open   ----")
+        //console.log(" -----  MSE_open   ----")
         // called by EventListener of input employee and replacement in table teammember and MGT_Teammember
 
-        console.log(el_input)
+        //console.log(el_input)
 
-        console.log("selected.scheme_pk", selected.scheme_pk)
-        console.log("selected.team_pk", selected.team_pk)
+        //console.log("selected.scheme_pk", selected.scheme_pk)
+        //console.log("selected.team_pk", selected.team_pk)
 
         const tlbRow = get_tablerow_selected(el_input)
         const is_grid = (!!get_attr_from_el(tlbRow, "data-isgrid"))
-        console.log("is_grid", is_grid)
+        //console.log("is_grid", is_grid)
 
-        console.log("tlbRow", tlbRow)
+        //console.log("tlbRow", tlbRow)
 
 // ---  add employee disabled in template mode, also in table when no team selected (grid mode is allowed)
         if(is_template_mode || (!selected.team_pk && !is_grid ) ){
@@ -5001,13 +5096,13 @@ if(mode === "scheme_delete"){
             mod_MGT_dict.field = fldName;
             mod_MGT_dict.istable = is_table;
             mod_MGT_dict.sel_tm_pk = tm_pk_str; // can be 'new12'
-            console.log("mod_MGT_dict", mod_MGT_dict);
+            //console.log("mod_MGT_dict", mod_MGT_dict);
 
 // ---  put employee name in header
             const pk = get_dict_value(mod_MGT_dict, [tm_pk_str, fldName, "pk"]);
             const empl_or_repl_code = get_dict_value(mod_MGT_dict, [tm_pk_str, fldName, "code"], "---");
-            console.log("pk", pk);
-            console.log("empl_or_repl_code", empl_or_repl_code);
+            //console.log("pk", pk);
+            //console.log("empl_or_repl_code", empl_or_repl_code);
             let label_text = ((is_replacement) ? loc.Select_replacement_employee : loc.Select_employee ) + ":";
             let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
             let el_label_input = document.getElementById("id_MSE_label_employee")
@@ -5038,11 +5133,11 @@ if(mode === "scheme_delete"){
 
 //=========  MSE_Save  ================ PR2020-03-17
     function MSE_Save(mode) {
-        console.log("========= MSE_Save ===", mode );  // mode = 'save' or 'remove'
+        //console.log("========= MSE_Save ===", mode );  // mode = 'save' or 'remove'
         // called by MSE_filter_employee, MSE_select_employee, MSE_btn_remove_employee, MSE_btn_remove_employee
         // mod_employee_dict = {teammember_pk, employee_pk, employee_ppk, employee_code, table, field}
 
-        console.log("mod_MGT_dict: ", mod_MGT_dict)
+        //console.log("mod_MGT_dict: ", mod_MGT_dict)
         const tblName = "teammember";
         const fldName = mod_MGT_dict.field;
         const is_replacement = (fldName === "replacement");
@@ -5128,7 +5223,7 @@ if(mode === "scheme_delete"){
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_pk);
             if (!isEmpty(map_dict)){
 // ---  put employee info in mod_MGT_dict
-        console.log( "  -----  MSE_select_employee  -----");
+        //console.log( "  -----  MSE_select_employee  -----");
                 MSE_put_employee_in_MGT_dict(map_dict);
 // ---  put employee_code in el_input_employee
                 const employee_code = map_dict.code;
@@ -5143,8 +5238,8 @@ if(mode === "scheme_delete"){
     function MSE_put_employee_in_MGT_dict(map_dict) {
 // ---  put employee info in field employee or replacement of selected teammember in mod_MGT_dict
         // will be null when no employee
-        console.log( "  -----  MSE_put_employee_in_MGT_dict  -----");
-        console.log( "map_dict", map_dict);
+        //console.log( "  -----  MSE_put_employee_in_MGT_dict  -----");
+        //console.log( "map_dict", map_dict);
         const teammember_pk = mod_MGT_dict.sel_tm_pk;
         const field = mod_MGT_dict.field; // field is 'employee' or 'replaceement'
         mod_MGT_dict[teammember_pk][field].pk = map_dict.id;
@@ -5228,8 +5323,8 @@ if(mode === "scheme_delete"){
 
 //========= MSE_FillSelectTableEmployee  ============= PR2019-08-18
     function MSE_FillSelectTableEmployee(cur_employee_pk, is_replacement) {
-        console.log( "=== MSE_FillSelectTableEmployee ");
-        console.log( "cur_employee_pk", cur_employee_pk);
+        //console.log( "=== MSE_FillSelectTableEmployee ");
+        //console.log( "cur_employee_pk", cur_employee_pk);
 
         const caption_one = (is_replacement) ? loc.Select_replacement_employee : loc.Select_employee;
         const caption_none = loc.No_employees + ":";
@@ -5285,20 +5380,12 @@ if(mode === "scheme_delete"){
 
 // +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  HandleSubmenuBtnAddNew  ================ PR2020-05-31
-    function HandleSubmenuBtnAddNew() {
-        if(is_absence_mode){
-            MAB_Open();
-        } else {
-            MSCH_Open();
-        };
-    }
 
 //=========  MOD SCHEME  ================ PR2020-04-19
     function MSCH_Open(el_clicked) {
-        console.log("=========  MSCH_Open ========= ");
-        console.log("selected.scheme_pk:", selected.scheme_pk);
-        console.log("selected.order_pk:", selected.order_pk);
+        //console.log("=========  MSCH_Open ========= ");
+        //console.log("selected.scheme_pk:", selected.scheme_pk);
+        //console.log("selected.order_pk:", selected.order_pk);
 
         // el_clicked is undefined when clicked on menubtn add_new
         if(!el_clicked){selected.scheme_pk = 0}
@@ -5306,10 +5393,10 @@ if(mode === "scheme_delete"){
 // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
         MSCH_get_scheme_dict();
 
-        console.log("selected.order_pk:", selected.order_pk);
-        console.log("mod_MSCH_dict:", mod_MSCH_dict);
+        //console.log("selected.order_pk:", selected.order_pk);
+        //console.log("mod_MSCH_dict:", mod_MSCH_dict);
         if(selected.order_pk){
-            console.log("mod_MSCH_dict:", mod_MSCH_dict);
+            //console.log("mod_MSCH_dict:", mod_MSCH_dict);
             let el_field = get_attr_from_el(el_clicked, "data-field")
             // these field names in scheme box have multiple fields in mod scheme. Set focus to first of them
             if(el_field === "datefirstlast"){
@@ -5350,8 +5437,8 @@ if(mode === "scheme_delete"){
 
 //=========  MSCH_Save  ================ PR2020-04-20
     function MSCH_Save(crud_mode) {
-        console.log("=========  MSCH_Save =========");
-        console.log( "mod_MSCH_dict: ", mod_MSCH_dict);
+        //console.log("=========  MSCH_Save =========");
+        //console.log( "mod_MSCH_dict: ", mod_MSCH_dict);
         const is_create = (!!mod_MSCH_dict.create)
         const is_delete = (crud_mode === "delete")
         let upload_dict = {id: {table: "scheme"}};
@@ -5428,14 +5515,14 @@ if(mode === "scheme_delete"){
 
 //=========  MSCH_get_scheme_dict  ================ PR2020-04-20 PR2020-08-30
     function MSCH_get_scheme_dict() {
-        console.log( "=== MSCH_get_scheme_dict === ")
+        //console.log( "=== MSCH_get_scheme_dict === ")
         mod_MSCH_dict = {};
         if(!selected.order_pk){selected.scheme_pk = null};
 
         if(selected.order_pk){
 // --- GET SCHEME ----------------------------------
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
-        console.log( "map_dict", map_dict)
+        //console.log( "map_dict", map_dict)
             if (isEmpty(map_dict)) {
                 selected.scheme_pk = null
     // ---  create new scheme_dict if map_dict is empty, with default cycle = 7
@@ -5471,28 +5558,28 @@ if(mode === "scheme_delete"){
 
 //=========  MSCH_DateChanged  ================ PR2020-01-03
     function MSCH_DateChanged(fldName) {
-        console.log( "===== MSCH_DateChanged  ========= ");
-        console.log( "fldName ", fldName);
+        //console.log( "===== MSCH_DateChanged  ========= ");
+        //console.log( "fldName ", fldName);
 
         if (fldName === "datefirst") {
             mod_dict.scheme.datefirst = {value: el_MSCH_input_datefirst.value, update: true}
         } else if (fldName === "datelast") {
             mod_dict.scheme.datelast = {value: el_MSCH_input_datelast.value, update: true}
         }
-        console.log( "mod_dict.scheme: ", mod_dict.scheme);
+        //console.log( "mod_dict.scheme: ", mod_dict.scheme);
         // ---  set new min max of both date field
         let el_MSCO_date_container = document.getElementById("id_MSCO_date_container")
-        console.log( "el_MSCO_date_container.scheme: ", el_MSCO_date_container);
+        //console.log( "el_MSCO_date_container.scheme: ", el_MSCO_date_container);
         set_other_datefield_minmax(el_MSCO_date_container, fldName);
 
     }; // MSCH_DateChanged
 
 //=========  MSCH_CheckedChanged  ================ PR2020-04-20
     function MSCH_CheckedChanged(el_input, fldName) {
-        console.log( "===== MSCH_CheckedChanged  ========= ");
-        console.log( "fldName ", fldName);
+        //console.log( "===== MSCH_CheckedChanged  ========= ");
+        //console.log( "fldName ", fldName);
         mod_dict.scheme[fldName] = {value: el_input.checked, update: true}
-        console.log( "mod_dict ", mod_dict);
+        //console.log( "mod_dict ", mod_dict);
 
 // reset other field (in scheme, publicholiday)
         if(["divergentonpublicholiday", "excludepublicholiday"].indexOf(fldName) > -1) {
@@ -5535,12 +5622,12 @@ if(mode === "scheme_delete"){
 
 //=========  MSCH_validate_and_disable  ================ PR2020-06-07
     function MSCH_validate_and_disable (el_input) {
-        console.log(" -----  MSCH_validate_and_disable   ---- ")
-        console.log("mod_MSCH_dict", mod_MSCH_dict)
+        //console.log(" -----  MSCH_validate_and_disable   ---- ")
+        //console.log("mod_MSCH_dict", mod_MSCH_dict)
 
         let has_error = false;
         const input_field = get_attr_from_el(el_input, "data-field")
-        console.log("input_field", input_field)
+        //console.log("input_field", input_field)
 
         const el_nocycle = document.getElementById("id_MSCH_nocycle");
         const el_cycle = document.getElementById("id_MSCH_input_cycle")
@@ -5623,11 +5710,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  ModAbsence_Open  ================  PR2020-05-14 PR2020-09-10
     function MAB_Open(el_input) {
-        console.log(" =====  MAB_Open =====")
+        //console.log(" =====  MAB_Open =====")
         // when el_input doesn't exist it is a new absence, called by submenu_btn
-        // MAB_Save adds 'create' to 'id' when  mod_dict.teammember.pk = null
+        // MAB_Save adds 'create' to 'id' when  mod_MAB_dict.teammember.pk = null
 
         mod_MAB_dict = {};
+
+        // PR2020-11-09 permit_customer_orders may add absence to employees that have shift in his orders
+        //if(permit_view_add_edit_delete_absence){
 
 // ---  get info from el_input and tblRow --------------------------------
         const tblRow = get_tablerow_selected(el_input)
@@ -5641,8 +5731,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         selected.teammember_pk = (map_dict.id) ? map_dict.id : null;
         const is_addnew = isEmpty(map_dict);
 
-        if(is_addnew) {
+        //console.log("map_dict", map_dict)
+        if (is_addnew){
             mod_MAB_dict = {create: true};
+            // ---  reset Inputboxes
+            el_MAB_input_employee.value = null;
+            el_MAB_input_abscat.value = null
+            el_MAB_input_replacement.value = null;
         } else {
             mod_MAB_dict.map_id = map_dict.mapid;
             mod_MAB_dict.teammember_pk = map_dict.id;
@@ -5663,14 +5758,14 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
             mod_MAB_dict.employee_pk = map_dict.e_id;
             mod_MAB_dict.employee_ppk = map_dict.comp_id;
-            mod_MAB_dict.employee_code = map_dict.e_code;
+            mod_MAB_dict.employee_code =  (map_dict.e_code) ? map_dict.e_code : null;
             mod_MAB_dict.employee_datefirst = map_dict.e_df;
             mod_MAB_dict.employee_datelast = map_dict.e_dl;
             mod_MAB_dict.employee_workminutesperday = map_dict.e_workminutesperday;
 
             mod_MAB_dict.replacement_pk = map_dict.rpl_id;
             mod_MAB_dict.replacement_ppk = map_dict.comp_id;
-            mod_MAB_dict.replacement_code = map_dict.rpl_code;
+            mod_MAB_dict.replacement_code = (map_dict.rpl_code) ? map_dict.rpl_code : null;
             mod_MAB_dict.replacement_datefirst = map_dict.rpl_df;
             mod_MAB_dict.replacement_datelast = map_dict.rpl_dl;
 
@@ -5685,12 +5780,15 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             mod_MAB_dict.old_timeduration = mod_MAB_dict.timeduration;
             mod_MAB_dict.old_employee_pk = mod_MAB_dict.employee_pk;
             mod_MAB_dict.old_replacement_pk = mod_MAB_dict.replacement_pk;
-        }
-        console.log("map_dict", deepcopy_dict(map_dict))
+// ---  update Inputboxes
+            el_MAB_input_employee.value = mod_MAB_dict.employee_code;
+            el_MAB_input_abscat.value = mod_MAB_dict.order_code
+            el_MAB_input_replacement.value =  mod_MAB_dict.replacement_code;
 
-        console.log("mod_MAB_dict", deepcopy_dict(mod_MAB_dict))
+        }
+        //console.log("mod_MAB_dict", deepcopy_dict(mod_MAB_dict))
 // --- when no employee selected: fill select table employee
-        // MAB_FillSelectTable("employee") is called in MAB_GotFocus
+        // MAB_FillSelectTable("employee") is called by MAB_GotFocus
 // ---  put employee_code in header
         const header_text = (selected.teammember_pk) ? loc.Absence + " " + loc.of + " " + mod_MAB_dict.employee_code : loc.Absence;
         document.getElementById("id_MAB_hdr_absence").innerText = header_text;
@@ -5698,10 +5796,6 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         show_hide_element_by_id("id_MAB_div_input_employee", !selected.teammember_pk)
 // --- hide delete button when no employee selected
         add_or_remove_class(document.getElementById("id_MAB_btn_delete"), cls_hide, !selected.teammember_pk)
-// ---  update Inputboxes
-        el_MAB_input_employee.value = (mod_MAB_dict.employee_code) ? mod_MAB_dict.employee_code : null;
-        el_MAB_input_abscat.value = (mod_MAB_dict.order_code) ? mod_MAB_dict.order_code : null;
-        el_MAB_input_replacement.value = (mod_MAB_dict.replacement_code) ? mod_MAB_dict.replacement_code : null;
 
         MAB_UpdateDatefirstlastInputboxes();
         MAB_UpdateOffsetInputboxes();
@@ -5713,141 +5807,144 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                             (el_fldName === "employee") ? "id_MAB_input_abscat" :
                             (el_fldName) ? "id_MAB_input_" + el_fldName : "id_MAB_input_abscat";
         set_focus_on_el_with_timeout(document.getElementById(el_focus_id), 50)
-// ---  select table is filled in MAB_GotFocus, but is not called when clicked on other fields then employee or
-        if (["datefirst", "datelast", "offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(el_fldName) > -1) {
+// ---  select table is filled in MAB_GotFocus, but is not called when clicked on other fields then input_employee or input_abscat
+        if (["datefirst", "datelast", "offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(fldName) > -1) {
             MAB_FillSelectTable("abscat", mod_MAB_dict.order_pk);
         }
 // ---  show modal
         $("#id_mod_absence").modal({backdrop: true});
+
     }  // MAB_Open
 
 //=========  ModAbsence_Save  ================  PR2020-05-17 PR2020-09-09
     function MAB_Save(crud_mode) {
-        console.log(" -----  MAB_Save  ----", crud_mode);
-        console.log( "mod_MAB_dict: ", mod_MAB_dict);
+        //console.log(" -----  MAB_Save  ----", crud_mode);
+        //console.log( "mod_MAB_dict: ", mod_MAB_dict);
 
         const is_delete = (crud_mode === "delete");
         const is_create = (!mod_MAB_dict.teammember_pk);
 
         // upload_dict needs shiftoption='isabsence' and id.pk or id.create or id.delete
         let upload_dict = {id: {shiftoption: "isabsence"}};
-        if(is_delete){
-            upload_dict = {id: {pk: mod_MAB_dict.teammember_pk, shiftoption: "isabsence", delete: true}};
-// - make tblRow red when delete
-            let tr_changed = document.getElementById(mod_MAB_dict.map_id);
-            ShowClassWithTimeout(tr_changed, cls_error)
-        } else {
-            upload_dict = {id: {shiftoption: "isabsence"} }
-            if (is_create) {
-                upload_dict = {id: {shiftoption: "isabsence", create: true}};
-            } else {
-                upload_dict = {id: {pk: mod_MAB_dict.teammember_pk, shiftoption: "isabsence"}};
+
+        if(mod_MAB_dict.teammember_pk) {
+            upload_dict.id.pk = mod_MAB_dict.teammember_pk
+            if(is_delete) {
+                upload_dict.id.delete = true;
             }
+        } else {
+            upload_dict.id.create = true;
+        }
 
 // ---  update_dict is to update row before response is back from server
-            let update_dict = {
-                e_code: mod_MAB_dict.employee_code,
-                rpl_code: mod_MAB_dict.replacement_code,
-                //c_code: mod_MAB_dict.c_code, // only in shifts table
-                o_code: mod_MAB_dict.order_code,
-                //t_code: mod_MAB_dict.t_code, // only in shifts table
-                s_df: mod_MAB_dict.datefirst, // only in absence table
-                s_dl: mod_MAB_dict.datelast,// only in absence table
-                //tm_df: mod_MAB_dict.tm_df, // only in shifts table
-                //tm_dl: mod_MAB_dict.tm_dl, // only in shifts table
-                //tm_dl: mod_MAB_dict.tm_dl, // only in shifts table
-                sh_td_arr: mod_MAB_dict.sh_td_arr  // only in absence table
-                }
+        let update_dict = {
+            e_code: mod_MAB_dict.employee_code,
+            //rpl_code: mod_MAB_dict.rpl_code,  // only in shifts table
+            //c_code: mod_MAB_dict.c_code, // only in shifts table
+            o_code: mod_MAB_dict.order_code,
+            //t_code: mod_MAB_dict.t_code, // only in shifts table
+            s_df: mod_MAB_dict.datefirst, // only in absence table
+            s_dl: mod_MAB_dict.datelast,// only in absence table
+            //tm_df: mod_MAB_dict.tm_df, // only in shifts table
+            //tm_dl: mod_MAB_dict.tm_dl, // only in shifts table
+            //tm_dl: mod_MAB_dict.tm_dl, // only in shifts table
+            sh_td_arr: mod_MAB_dict.sh_td_arr  // only in absence table
+            }
 
-            if (mod_MAB_dict.order_pk !== mod_MAB_dict.old_order_pk) {
-                upload_dict.order = {pk: mod_MAB_dict.order_pk,
-                                        ppk: mod_MAB_dict.order_ppk,
-                                        code: mod_MAB_dict.order_code,
-                                        update: true};
-                update_dict.o_code = mod_MAB_dict.order_code;
-            }
-            if (el_MAB_datefirst.value !== mod_MAB_dict.old_datefirst) {
-                upload_dict.datefirst = {value: el_MAB_datefirst.value, update: true};
-                update_dict.s_df = el_MAB_datefirst.value;
-            }
-            if (el_MAB_datelast.value !== mod_MAB_dict.old_datelast) {
-                upload_dict.datelast = {value: el_MAB_datelast.value, update: true}
-                update_dict.s_dl = el_MAB_datelast.value;
-            }
-            if (mod_MAB_dict.offsetstart !== mod_MAB_dict.old_offsetstart) {
-                upload_dict.offsetstart = {value: mod_MAB_dict.offsetstart, update: true};
-                update_dict.sh_os_arr = [mod_MAB_dict.offsetstart];
-            }
-            if (mod_MAB_dict.offsetend !== mod_MAB_dict.old_offsetend) {
-                upload_dict.offsetend = {value: mod_MAB_dict.offsetend, update: true};
-                update_dict.sh_oe_arr = [mod_MAB_dict.offsetend];
-            }
-            if (mod_MAB_dict.breakduration !== mod_MAB_dict.old_breakduration) {
-                upload_dict.breakduration = {value: mod_MAB_dict.breakduration, update: true};
-                update_dict.sh_bd_arr = [mod_MAB_dict.breakduration];
-            }
-            if (mod_MAB_dict.timeduration !== mod_MAB_dict.old_timeduration) {
-                upload_dict.timeduration = {value: mod_MAB_dict.timeduration, update: true};
-                update_dict.sh_td_arr = [mod_MAB_dict.timeduration];
-            }
-            if (mod_MAB_dict.employee_pk !== mod_MAB_dict.old_employee_pk) {
-                upload_dict.employee = {pk: mod_MAB_dict.employee_pk,
-                                        ppk: mod_MAB_dict.employee_ppk,
-                                        update: true};
-            }
-            if (mod_MAB_dict.replacement_pk !== mod_MAB_dict.old_replacement_pk) {
-                upload_dict.replacement = {pk: mod_MAB_dict.replacement_pk,
-                                        ppk: mod_MAB_dict.replacement_ppk,
-                                        update: true};
-            }
-            const tblRow = document.getElementById(mod_MAB_dict.map_id)
-            if(tblRow){
+        if (mod_MAB_dict.order_pk !== mod_MAB_dict.old_order_pk) {
+            upload_dict.order = {pk: mod_MAB_dict.order_pk,
+                                    ppk: mod_MAB_dict.order_ppk,
+                                    code: mod_MAB_dict.order_code,
+                                    update: true};
+            update_dict.o_code = mod_MAB_dict.order_code;
+        }
+        if (el_MAB_datefirst.value !== mod_MAB_dict.old_datefirst) {
+            upload_dict.datefirst = {value: el_MAB_datefirst.value, update: true};
+            update_dict.s_df = el_MAB_datefirst.value;
+        }
+        if (el_MAB_datelast.value !== mod_MAB_dict.old_datelast) {
+            upload_dict.datelast = {value: el_MAB_datelast.value, update: true}
+            update_dict.s_dl = el_MAB_datelast.value;
+        }
+        if (mod_MAB_dict.offsetstart !== mod_MAB_dict.old_offsetstart) {
+            upload_dict.offsetstart = {value: mod_MAB_dict.offsetstart, update: true};
+            update_dict.sh_os_arr = [mod_MAB_dict.offsetstart];
+        }
+        if (mod_MAB_dict.offsetend !== mod_MAB_dict.old_offsetend) {
+            upload_dict.offsetend = {value: mod_MAB_dict.offsetend, update: true};
+            update_dict.sh_oe_arr = [mod_MAB_dict.offsetend];
+        }
+        if (mod_MAB_dict.breakduration !== mod_MAB_dict.old_breakduration) {
+            upload_dict.breakduration = {value: mod_MAB_dict.breakduration, update: true};
+            update_dict.sh_bd_arr = [mod_MAB_dict.breakduration];
+        }
+        if (mod_MAB_dict.timeduration !== mod_MAB_dict.old_timeduration) {
+            upload_dict.timeduration = {value: mod_MAB_dict.timeduration, update: true};
+            update_dict.sh_td_arr = [mod_MAB_dict.timeduration];
+        }
+        if (mod_MAB_dict.employee_pk !== mod_MAB_dict.old_employee_pk) {
+            upload_dict.employee = {pk: mod_MAB_dict.employee_pk,
+                                    ppk: mod_MAB_dict.employee_ppk,
+                                    update: true};
+        }
+        if (mod_MAB_dict.replacement_pk !== mod_MAB_dict.old_replacement_pk) {
+            upload_dict.replacement = {pk: mod_MAB_dict.replacement_pk,
+                                    ppk: mod_MAB_dict.replacement_ppk,
+                                    update: true};
+        }
+// - make tblRow red when delete or update existing tblRow
+        const tblRow = document.getElementById(mod_MAB_dict.map_id)
+        if(tblRow){
+            if(is_delete){
+                ShowClassWithTimeout(tblRow, cls_error)
+            } else {
                 RefreshTblRowNEW(tblRow, update_dict)
             }
         }
+
 // ---  UploadChanges
         UploadChanges(upload_dict, url_teammember_upload);
     }  // MAB_Save
 
-//========= MAB_FillSelectTable  ============= PR2020-05-17
+//========= MAB_FillSelectTable  ============= PR2020-05-17 PR2020-08-08 PR2020-10-19
     function MAB_FillSelectTable(tblName, selected_pk) {
-        console.log( "=== MAB_FillSelectTable ", tblName);
+        //console.log( "=== MAB_FillSelectTable === ", tblName);
+        //console.log( "selected_pk", selected_pk);
+        //console.log( "mod_MAB_dict", mod_MAB_dict);
 
         let tblBody = document.getElementById("id_MAB_tblbody_select");
         tblBody.innerText = null;
 
         const is_tbl_employee = (tblName === "employee");
         const is_tbl_replacement = (tblName === "replacement");
-        const is_tbl_abscat = (tblName === "abscat");
 
-        const hdr_text = (is_tbl_employee) ? loc.Employees :
-                         (is_tbl_replacement) ? loc.Replacement_employees : loc.Absence_categories
+        const hdr_text = (is_tbl_employee) ? loc.Employees : (is_tbl_replacement) ? loc.Replacement_employee : loc.Absence_categories
         document.getElementById("id_MAB_hdr_selecttable").innerText = hdr_text;
 
-        const data_map = (is_tbl_abscat) ? abscat_map : employee_map;
+        const data_map = (is_tbl_employee || is_tbl_replacement) ? employee_map : abscat_map;
         let row_count = 0
         if (data_map.size){
-//--- loop through data_map
+//--- loop through employee_map
             for (const [map_id, map_dict] of data_map.entries()) {
-
                 const pk_int = map_dict.id;
-                const ppk_int = (is_tbl_abscat) ? map_dict.c_id : map_dict.comp_id;
-                let code_value = (is_tbl_abscat) ? map_dict.o_code : map_dict.code;
-
+                const ppk_int = (is_tbl_employee || is_tbl_replacement) ? map_dict.comp_id : map_dict.c_id;
+                let code_value = (is_tbl_employee || is_tbl_replacement) ? map_dict.code : map_dict.o_code;
                 // remove tilde from abscat PR2020-08-14
-                if (is_tbl_abscat && code_value && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
-
-// --- validate if item can be added to list - skip current_employee in tbl_replacement
-                const is_inactive = (is_tbl_abscat) ? map_dict.o_inactive : map_dict.inactive;
-                let add_to_list = !is_inactive;
-                if (is_tbl_replacement && mod_MAB_dict.employee_pk){
-                // - skip current_employee in tbl_replacement
-                    if((pk_int === mod_MAB_dict.employee_pk)) {add_to_list = false}
+                if (!is_tbl_employee && !is_tbl_replacement && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
+                const is_inactive = (is_tbl_employee || is_tbl_replacement) ? map_dict.inactive : map_dict.o_inactive;
+// --- validate if employee can be added to list
+                // skip current employee when filling replacement list
+                let skip_row = (is_inactive) || (is_tbl_replacement && pk_int === mod_MAB_dict.employee_pk);
+                // <PERMIT>
+                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
+                if (!skip_row){
+                    if (has_allowed_customers || has_allowed_orders) {
+                        skip_row = (!map_dict.allowed) ;
+                    }
                 }
-                if (add_to_list ){
+                if (!skip_row){
 //- insert tblBody row
                     let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-                    tblRow.id = "sel_" + tblName + "_" + pk_int;
                     tblRow.setAttribute("data-pk", pk_int);
                     tblRow.setAttribute("data-ppk", ppk_int);
                     tblRow.setAttribute("data-value", code_value);
@@ -5868,22 +5965,25 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     td.appendChild(el);
                     row_count += 1;
                 } // if (!is_inactive)
-            } // for (const [map_id, map_dict] of employee_map.entries())
+            } // for (const [map_id, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
 //--- when no items found: show 'select_employee_none'
         if(!row_count){
             let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            td.innerText = (is_tbl_employee) ? loc.No_employees : loc.No_absence_categories;
-                            (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_absence_categories;
+            const  inner_text = (is_tbl_employee) ? loc.No_employees : (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_absence_categories;
+            //console.log( "is_tbl_employee", is_tbl_employee)
+            //console.log( "is_tbl_replacement", is_tbl_replacement)
+            //console.log( "inner_text", inner_text)
+            td.innerText = inner_text;
         }
     } // MAB_FillSelectTable
 
 //=========  MAB_InputElementKeyup  ================ PR2020-05-15 PR2020-10-26
     function MAB_InputElementKeyup(tblName, el_input) {
         //console.log( "=== MAB_InputElementKeyup  ", tblName)
-        //console.log( "mod_MAB_dict", mod_MAB_dict)
-        const new_filter = el_input.value
+        //console.log( "mod_MAB_dict", deepcopy_dict(mod_MAB_dict));
+        const new_filter = el_input.value;
 
         let tblBody_select = document.getElementById("id_MAB_tblbody_select");
         const len = tblBody_select.rows.length;
@@ -5895,6 +5995,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 MAB_SetReplacementDict(null);
             }
              MAB_FillSelectTable(tblName, null);
+
         } else if (new_filter && len){
 // ---  filter select rows
             const filter_dict = t_Filter_SelectRows(tblBody_select, new_filter);
@@ -5909,6 +6010,11 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     MAB_SetEmployeeDict(only_one_selected_pk);
 // ---  put code_value in el_input_employee
                     el_MAB_input_employee.value = mod_MAB_dict.employee_code;
+// ---  remove replacement employee when it is the same as the new employee
+                    if(mod_MAB_dict.employee_pk === mod_MAB_dict.replacement_pk){
+                         MAB_SetReplacementDict(null);
+                        el_MAB_input_replacement.value = null;
+                    }
 // ---  update date input elements
                     MAB_UpdateDatefirstlastInputboxes();
 // ---  put hours in mod_MAB_dict.timeduration and el_MAB_timeduration
@@ -5920,11 +6026,11 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 // ---  put employee_code in header
                     const header_text = (mod_MAB_dict.employee_code) ? loc.Absence + " " + loc.of + " " + mod_MAB_dict.employee_code : loc.Absence;
                     document.getElementById("id_MAB_hdr_absence").innerText = header_text
-// ---  enable el_shift, set focus to input_abscat
+// ---  enable el_shift, set focus to el_MAB_input_abscat
                     set_focus_on_el_with_timeout(el_MAB_input_abscat, 50)
 
                 } else if(tblName === "abscat"){
-                    MAB_SetAbscatOrderDict(only_one_selected_pk);
+                    MAB_SetAbscatDict(only_one_selected_pk);
                     el_MAB_input_abscat.value = mod_MAB_dict.order_code;
                     set_focus_on_el_with_timeout(el_MAB_input_replacement, 50)
 
@@ -5933,10 +6039,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     el_MAB_input_replacement.value = mod_MAB_dict.replacement_code;
                     set_focus_on_el_with_timeout(el_MAB_datefirst, 50)
                 }
-
             }  //  if (!!selected_pk) {
         }
-// ---  enable btn_save and input elements
+    // ---  enable btn_save and input elements
         MAB_BtnSaveEnable();
     }  // MAB_InputElementKeyup
 
@@ -5955,6 +6060,12 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 MAB_SetEmployeeDict(selected_pk);
 // ---  put code_value in el_input_employee
                 el_MAB_input_employee.value = mod_MAB_dict.employee_code
+// ---  remove replacement employee when it is the same as the new employee
+                if(mod_MAB_dict.employee_pk === mod_MAB_dict.replacement_pk){
+                     MAB_SetReplacementDict(null);
+                    el_MAB_input_replacement.value = null;
+                }
+
 // ---  update min max in date fields (
                 MAB_UpdateDatefirstlastInputboxes();
 // ---  put hours in mod_MAB_dict.timeduration and el_MAB_timeduration
@@ -5970,19 +6081,23 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 // MAB_FillSelectTable is called by MAB_GotFocus
 // ---  et focus to el_shift
                 set_focus_on_el_with_timeout(el_MAB_input_abscat, 50)
-            } else if (tblName === "replacement") {
+
+            } else if (tblName === "abscat") {
 // ---  put value of data-pk in mod_MAB_dict
-                MAB_SetReplacementDict(selected_pk);
-// ---  put code_value in el_input_replacement
-                el_MAB_input_replacement.value = mod_MAB_dict.replacement_code
-// ---  et focus to el_input_datefirst
-                    set_focus_on_el_with_timeout(document.getElementById("el_MAB_input_datefirst"), 50)
-            } else {
-// ---  put value of data-pk in mod_MAB_dict and update selected.teammember_pk
-                MAB_SetAbscatOrderDict(selected_pk);
+                MAB_SetAbscatDict(selected_pk);
 // ---  put code_value in el_input_employee
                 el_MAB_input_abscat.value = mod_MAB_dict.order_code;
-                //set_focus_on_el_with_timeout(el_MAB_btn_save, 50)
+// --- fill select table replacement
+                // MAB_FillSelectTable is called by MAB_GotFocus
+// ---  et focus to el_MAB_input_replacement
+                set_focus_on_el_with_timeout(el_MAB_input_replacement, 50)
+            } else if (tblName === "replacement") {
+// ---  put value of data-pk in mod_MAB_dict
+                MAB_SetReplacementDict(selected_pk)
+// ---  put code_value in el_input_replacement
+                el_MAB_input_replacement.value = mod_MAB_dict.replacement_code
+// ---  et focus to el_MAB_datefirst
+                set_focus_on_el_with_timeout(el_MAB_datefirst, 50)
             }
 // ---  enable btn_save and input elements
             MAB_BtnSaveEnable();
@@ -5996,15 +6111,17 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             //el_MAB_input_employee.value = null;
             //el_MAB_input_abscat.value = null
             //document.getElementById("id_MAB_msg_input_datefirstlast").innerText = null;
+
             el_MAB_input_employee.value = (mod_MAB_dict.employee_code) ? mod_MAB_dict.employee_code : null;
             MAB_FillSelectTable(tblName, mod_MAB_dict.employee_pk);
         } else if (tblName === "replacement") {
             el_MAB_input_replacement.value = (mod_MAB_dict.replacement_code) ? mod_MAB_dict.replacement_code : null;
             MAB_FillSelectTable(tblName, mod_MAB_dict.replacement_pk);
         } else if (tblName === "abscat") {
-            el_MAB_input_abscat.value =  (mod_MAB_dict.order_code) ? mod_MAB_dict.order_code : null;
+            el_MAB_input_abscat.value = (mod_MAB_dict.order_code) ? mod_MAB_dict.order_code : null;
             MAB_FillSelectTable(tblName, mod_MAB_dict.order_pk);
         }
+
     }  // MAB_GotFocus
 
 //=========  MAB_UpdateDatefirstlastInputboxes  ================ PR2020-05-17 PR2020-09-09
@@ -6015,9 +6132,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 // set msg when employee has last day in service
         const el_msg = document.getElementById("id_MAB_msg_input_datefirstlast")
-        add_or_remove_class(el_msg, cls_hide, !mod_MAB_dict.e_dl)
+        add_or_remove_class(el_msg, cls_hide, !mod_MAB_dict.employee_datelast)
         // PR2020-08-02 was: format_date_iso (mod_MAB_dict.employee_datelast, loc.months_long, loc.weekdays_long, false, false, loc.user_lang)
-        const date_formatted = format_dateISO_vanilla (loc, mod_MAB_dict.e_dl, true, false, true);
+        const date_formatted = format_dateISO_vanilla (loc, mod_MAB_dict.employee_datelast, true, false, true);
         el_msg.innerText = (mod_MAB_dict.employee_datelast) ? mod_MAB_dict.employee_code + loc.is_in_service_thru + date_formatted + "." : null;
 
         el_MAB_datefirst.value = (mod_MAB_dict.datefirst) ? mod_MAB_dict.datefirst : null;
@@ -6029,7 +6146,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         if(el_MAB_datefirst.value && el_MAB_datelast.value && el_MAB_datelast.value < el_MAB_datefirst.value)  {
             el_MAB_datelast.value = el_MAB_datefirst.value;
         }
-        cal_SetDatefirstlastMinMax(el_MAB_datefirst, el_MAB_datelast, mod_MAB_dict.e_df, mod_MAB_dict.e_dl, mod_MAB_dict.oneday_only);
+        cal_SetDatefirstlastMinMax(el_MAB_datefirst, el_MAB_datelast, mod_MAB_dict.employee_datefirst, mod_MAB_dict.employee_datelast, mod_MAB_dict.oneday_only);
     }  // MAB_UpdateDatefirstlastInputboxes
 
 //=========  MAB_DateFirstLastChanged  ================ PR2020-07-14
@@ -6037,7 +6154,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log(" =====  MAB_DateFirstLastChanged   ======= ");
         if(el_input){
             const fldName = get_attr_from_el(el_input, "data-field")
-            //console.log("fldName", fldName);
+        //console.log("fldName", fldName);
             if (fldName === "oneday") {
                 // set period_datelast to datefirst
                 if (el_MAB_oneday.checked) {
@@ -6067,7 +6184,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
     function MAB_TimepickerOpen(el_input) {
         //console.log("=== MAB_TimepickerOpen ===");
         //console.log("mod_MAB_dict", mod_MAB_dict);
-        // disabled when no employee or no abscaet selected
+        // disabled when no employee or no abscat selected
         const is_disabled = (!mod_MAB_dict.employee_pk || !mod_MAB_dict.order_pk);
         if(!is_disabled){
 // ---  create tp_dict
@@ -6095,12 +6212,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             const show_btn_delete = true;
             const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
                     const txt_dateheader = (fldName === "breakduration") ? loc.Break :
-                                   (fldName === "timeduration") ? loc.Working_hours : null;
+                                   (fldName === "timeduration") ? loc.Absence_hours : null;
             let st_dict = { url_settings_upload: url_settings_upload,
                             text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
                             txt_dateheader: txt_dateheader,
                             txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                            show_btn_delete: show_btn_delete};
+                            show_btn_delete: show_btn_delete
+                            };
             //console.log("tp_dict", tp_dict);
             //console.log("st_dict", st_dict);
             mtp_TimepickerOpen(loc, el_input, MAB_TimepickerResponse, tp_dict, st_dict)
@@ -6109,9 +6227,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  MAB_TimepickerResponse  ================
     function MAB_TimepickerResponse(tp_dict){
-        console.log( " === MAB_TimepickerResponse ");
+        //console.log( " === MAB_TimepickerResponse ");
         // put new value from modTimepicker in ModShift PR2019-11-24
-        console.log( "tp_dict: ", tp_dict);
+        //console.log( "tp_dict: ", tp_dict);
         const fldName = tp_dict.field;
         const new_offset = tp_dict.offset;
 
@@ -6132,43 +6250,36 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 mod_MAB_dict.timeduration = 0
             }
         }
-      //  }
 
-        cal_CalcMinMaxOffset(mod_MAB_dict.shift, true)
-        // TODO if is_absence: also change shift_pk in schemeitems (is only oneschemeitem: cycle = 1
-        //if (is_absence && shift_has_changed ){
-        //}
-        console.log( "mod_MAB_dict: ", mod_MAB_dict);
         MAB_UpdateOffsetInputboxes();
-
     } // MAB_TimepickerResponse
 
-//=========  MAB_BtnSaveEnable  ================ PR2020-05-15
+//=========  MAB_BtnSaveEnable  ================ PR2020-08-08 PR2020-10-19
     function MAB_BtnSaveEnable(){
-        console.log( " --- MAB_BtnSaveEnable --- ");
-        console.log( "mod_MAB_dict", mod_MAB_dict);
+        //console.log( " --- MAB_BtnSaveEnable --- ");
 
 // --- make input abscat readOnly, only when no employee selected
         const no_employee = (!mod_MAB_dict.employee_pk);
         const no_abscat = (!mod_MAB_dict.order_pk);
+        const is_disabled = (no_employee || no_abscat);
 
         el_MAB_input_abscat.readOnly = no_employee;
+        el_MAB_input_replacement.readOnly = is_disabled;
+
 // --- enable save button
-        const is_disabled = (no_employee || no_abscat);
         el_MAB_btn_save.disabled = is_disabled;
         el_MAB_datefirst.readOnly = is_disabled;
-        el_MAB_datelast.readOnly = is_disabled;
+        el_MAB_datelast.readOnly = (is_disabled || mod_MAB_dict.oneday_only);
         el_MAB_oneday.disabled = is_disabled;
 
-        // disable time fields in
+// --- make time fields background grey when is_disabled
         add_or_remove_class(el_MAB_offsetstart, cls_selected, is_disabled)
         add_or_remove_class(el_MAB_offsetend, cls_selected, is_disabled)
         add_or_remove_class(el_MAB_breakduration, cls_selected, is_disabled)
         add_or_remove_class(el_MAB_timeduration, cls_selected, is_disabled)
-
     }  // MAB_BtnSaveEnable
 
-//========= MAB_UpdateOffsetInputboxes  ============= PR2020-05-17
+//========= MAB_UpdateOffsetInputboxes  ============= PR2020-08-08
     function MAB_UpdateOffsetInputboxes() {
         //console.log( " ----- MAB_UpdateOffsetInputboxes ----- ");
         el_MAB_offsetstart.innerText = display_offset_time ({timeformat: loc.timeformat, user_lang: loc.user_lang}, mod_MAB_dict.offsetstart, false, false)
@@ -6181,54 +6292,38 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
     function MAB_SetEmployeeDict(data_pk){
         //console.log( "=== MAB_SetEmployeeDict ===");
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", data_pk)
-        if(isEmpty(map_dict)){
-            mod_MAB_dict.employee_pk = null;
-            mod_MAB_dict.employee_ppk = null;
-            mod_MAB_dict.employee_code = null;
-            mod_MAB_dict.employee_datefirst = null;
-            mod_MAB_dict.employee_datelast = null;
-            mod_MAB_dict.employee_workminutesperday = null;
-        } else {
-            mod_MAB_dict.employee_pk = map_dict.id;
-            mod_MAB_dict.employee_ppk = map_dict.comp_id;
-            mod_MAB_dict.employee_code = map_dict.code;
-            mod_MAB_dict.employee_datefirst = map_dict.datefirst;
-            mod_MAB_dict.employee_datelast = map_dict.datelast;
-            mod_MAB_dict.employee_workminutesperday = map_dict.workminutesperday;
-        }
+        mod_MAB_dict.employee_pk = map_dict.id;
+        mod_MAB_dict.employee_ppk = map_dict.comp_id;
+        mod_MAB_dict.employee_code = map_dict.code;
+        mod_MAB_dict.employee_datefirst = map_dict.datefirst;
+        mod_MAB_dict.employee_datelast = map_dict.datelast;
+        mod_MAB_dict.employee_workminutesperday = map_dict.workminutesperday;
     }  // MAB_SetEmployeeDict
 
-//========= MAB_SetReplacementDict  ============= PR2020-10-10
+//========= MAB_SetReplacementDict  ============= PR2020-09-09
     function MAB_SetReplacementDict(data_pk){
         //console.log( "=== MAB_SetReplacementDict ===");
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", data_pk)
-        if(isEmpty(map_dict)){
-            mod_MAB_dict.replacement_pk = null;
-            mod_MAB_dict.replacement_ppk = null;
-            mod_MAB_dict.replacement_code = null;
-            mod_MAB_dict.replacement_datefirst = null;
-            mod_MAB_dict.replacement_datelast = null;
-            mod_MAB_dict.replacement_workminutesperday = null;
-        } else {
-            mod_MAB_dict.replacement_pk = map_dict.id;
-            mod_MAB_dict.replacement_ppk = map_dict.comp_id;
-            mod_MAB_dict.replacement_code = map_dict.code;
-            mod_MAB_dict.replacement_datefirst = map_dict.datefirst;
-            mod_MAB_dict.replacement_datelast = map_dict.datelast;
-            mod_MAB_dict.replacement_workminutesperday = map_dict.workminutesperday;
-        }
+        mod_MAB_dict.replacement_pk = get_dict_value(map_dict, ["id"])
+        mod_MAB_dict.replacement_ppk = get_dict_value(map_dict, ["comp_id"])
+        mod_MAB_dict.replacement_code = get_dict_value(map_dict, ["code"])
+        mod_MAB_dict.replacement_datefirst = get_dict_value(map_dict, ["datefirst"])
+        mod_MAB_dict.replacement_datelast = get_dict_value(map_dict, ["datelast"])
     }  // MAB_SetReplacementDict
 
+//========= MAB_SetAbscatDict  ============= PR2020-09-09
+    function MAB_SetAbscatDict(data_pk){
+        //console.log( "=== MAB_SetAbscatDict ===", data_pk);
+        const abscat_dict = get_mapdict_from_datamap_by_tblName_pk(abscat_map, "abscat", data_pk)
+        mod_MAB_dict.order_pk = get_dict_value(abscat_dict, ["id"])
+        mod_MAB_dict.order_ppk = get_dict_value(abscat_dict, ["c_id"])
+        // remove tilde from abscat PR2020-8-14
+        mod_MAB_dict.order_code = (abscat_dict) ? (abscat_dict.o_code) ? abscat_dict.o_code.replace(/~/g,"") : null : null;
+    }  // MAB_SetAbscatDict
 
-//========= MAB_SetAbscatOrderDict  ============= PR2020-08-27
-    function MAB_SetAbscatOrderDict(order_pk){
-        //console.log( "=== MAB_SetAbscatOrderDict ===", order_pk);
-        const abscat_dict = get_mapdict_from_datamap_by_tblName_pk(abscat_map, "abscat", order_pk)
-        mod_MAB_dict.order_pk = abscat_dict.id;
-        mod_MAB_dict.order_ppk = abscat_dict.c_id;
-        mod_MAB_dict.order_code = abscat_dict.o_code;
-    }  // MAB_SetAbscatOrderDict
 
+// +++++++++++++++++  END OF MODAL ABSENCE  ++++++++++++++++++++++++++++++++++
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // +++++++++++++++++ MODAL COPYFROM TEMPLATE  +++++++++++++++++++++++++++++++
 //========= ModCopyTemplateOpen======= PR2020-05-31
@@ -6696,6 +6791,269 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
     }; // function HandleTimepickerOpen
 
+//##################################################################################
+// +++++++++++++++++ PRINT PLANNING ++++++++++++++++++++++++++++ PR2020-11-04
+    function HandlePrintPlanning(option, planning_agg_dict){
+        // function creates list in format needed for print planning  PR2020-10-12
+        console.log(" === HandlePrintPlanning ===")
+        //console.log("employee_planning_selected_employee_pk", employee_planning_selected_employee_pk)
+        if (planning_short_list_sorted){
+
+            const employee_planning_customer_list = get_dict_value(employee_planning_customer_dictlist, [employee_planning_selected_customer]);
+            const employee_planning_order_list = get_dict_value(employee_planning_order_dictlist, [employee_planning_selected_order]);
+            const has_selected_customer = (!!employee_planning_customer_list && !!employee_planning_customer_list.length);
+            const has_selected_order = (!!employee_planning_order_list && !!employee_planning_order_list.length);
+
+            const print_list = [];
+            // only print selected rows
+            for (let i = 0; i < planning_short_list_sorted.length; i++) {
+                const item = planning_short_list_sorted[i]
+
+                // shift with empty employee has e_id = -1
+                if(!item.e_id) { item.e_id = -1}
+                const employee_pk = item.e_id;
+                let add_to_list = false;
+
+                if (employee_planning_selected_employee_pk) {
+                    add_to_list = (employee_pk === employee_planning_selected_employee_pk)
+                } else if (has_selected_order) {
+                    add_to_list = employee_planning_order_list.includes(employee_pk);
+                } else if (has_selected_customer) {
+                    add_to_list = employee_planning_customer_list.includes(employee_pk);
+                } else {
+                    add_to_list = true;
+                }
+        // in detail_mode: when 'no employee' selected: show only shifts of selected customer / order
+                if (add_to_list && employee_pk === -1) {
+                    if (has_selected_order) {
+                        add_to_list = (item.o_id === employee_planning_selected_order);
+                    } else  if (has_selected_customer) {
+                         add_to_list = (item.c_id === employee_planning_selected_customer);
+                    }
+                }
+                if(add_to_list){
+                    print_list.push(item)
+               }
+            }
+
+        //console.log("print_list", print_list)
+            if(!!print_list.length){
+                PrintEmployeePlanning(option, selected_planning_period, print_list, company_dict, loc)
+            }
+        }
+     }
+
+
+//========= FillPlanningRows  ====================================
+    function FillPlanningRows() {
+        // called by HandleBtnSelect and HandlePayrollFilter
+        //console.log( "====== FillPlanningRows  === ");
+        const employee_planning_customer_list = get_dict_value(employee_planning_customer_dictlist, [employee_planning_selected_customer]);
+        const employee_planning_order_list = get_dict_value(employee_planning_order_dictlist, [employee_planning_selected_order]);
+        const has_selected_customer = (employee_planning_customer_list && !!employee_planning_customer_list.length);
+        const has_selected_order = (employee_planning_order_list && !!employee_planning_order_list.length);
+
+        tblBody_datatable.innerText = null
+
+        ResetPlanningTotalrow();
+
+// +++++ loop through html_planning_detail_list / html_planning_agg_list
+        //  html_planning_detail_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+        const detail_rows = (is_planning_detail_mode) ? html_planning_detail_list : html_planning_agg_list;
+        detail_rows.forEach(function (item, index) {
+    //console.log( "item", item);
+
+// filter selected employee when is_planning_detail_mode
+        const employee_pk = item[1];
+        let show_row =(!is_planning_detail_mode || employee_pk === employee_planning_selected_employee_pk)
+
+// filter employees of selected order / customer
+        if(show_row){
+        // in detail_mode: when 'no employee' selected: show only shifts of selected customer / order
+            if (has_selected_order) {
+                show_row = employee_planning_order_list.includes(employee_pk);
+            } else  if (has_selected_customer) {
+                show_row = employee_planning_customer_list.includes(employee_pk);
+            }
+
+
+            if(show_row && is_planning_detail_mode && employee_planning_selected_employee_pk === -1){
+                show_row = (employee_pk === -1);
+                if (has_selected_order) {
+                    show_row = (employee_planning_selected_order === item[7]);
+                } else  if (has_selected_customer) {
+                    show_row = (employee_planning_selected_customer === item[6]);
+                }
+            }
+        }
+
+    //console.log( "show_row1 ", show_row);
+            let filter_row = null, row_data = null, tblRow = null;
+            if(show_row){
+                filter_row = item[2];
+                row_data = item[3];
+                show_row = t_ShowTableRowExtended(filter_row, filter_dict);
+            }
+            item[0] = show_row;
+        //console.log( "show_row", show_row);
+            if (show_row){
+                tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+    // --- add empoyee_pk as id to tblRow
+                if(item[1]){tblRow.id = item[1] };
+    // --- put fid in data-pk when is_planning_detail_mode
+                if (is_planning_detail_mode) {tblRow.setAttribute("data-pk", item[5]) }
+    // --- add EventListener to tblRow.
+                tblRow.addEventListener("click", function() {HandleAggRowClicked(tblRow)}, false);
+                add_hover(tblRow)
+                tblRow.innerHTML += item[4];
+    // --- add duration to total_row.
+                AddToPlanningTotalrow(row_data);
+            }
+    // --- hide sbr button 'back to payroll overview'
+           //el_sbr_select_showall.classList.add(cls_hide)
+
+        })
+        UpdatePayrollTotalrow()
+        //console.log("FillPlanningRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
+    }  // FillPlanningRows
+
+
+// +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
+//========= ModPeriodOpen=================== PR2020-07-12
+    function ModPeriodOpen () {
+        //console.log("===  ModPeriodOpen  =====") ;
+        //console.log("selected_planning_period", selected_planning_period) ;
+        mod_dict = selected_planning_period;
+
+// ---  fill select table period
+        t_CreateTblModSelectPeriod(loc, ModPeriodSelectPeriod);
+
+// ---  highligh selected period in table, put period_tag in data-tag of tblRow
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+        const period_tag = get_dict_value(selected_planning_period, ["period_tag"])
+        for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
+            row_tag = get_attr_from_el(tblRow, "data-tag")
+            if (period_tag === row_tag){
+                tblRow.classList.add(cls_selected)
+            } else {
+                tblRow.classList.remove(cls_selected)
+            }
+        };
+// ---  set value of date imput elements
+        const is_custom_period = (period_tag === "other")
+        el_mod_period_datefirst.value = get_dict_value(selected_planning_period, ["period_datefirst"])
+        el_mod_period_datelast.value = get_dict_value(selected_planning_period, ["period_datelast"])
+// ---  set min max of input fields
+        ModPeriodDateChanged("setminmax");
+        el_mod_period_datefirst.disabled = !is_custom_period
+        el_mod_period_datelast.disabled = !is_custom_period
+// ---  reset checkbox oneday, hide  when not is_custom_period
+        el_mod_period_oneday.checked = false;
+        add_or_remove_class(document.getElementById("id_mod_period_oneday_container"), cls_hide, !is_custom_period)
+// ---  hide extend period input box
+        document.getElementById("id_mod_period_div_extend").classList.add(cls_hide)
+
+        set_focus_on_el_with_timeout(el_mod_period_btn_save);
+
+// ---  show modal
+        $("#id_mod_period").modal({backdrop: true});
+}; // function ModPeriodOpen
+
+//=========  ModPeriodSave  ================ PR2020-01-09
+    function ModPeriodSave() {
+        //console.log("===  ModPeriodSave  =====") ;
+        //console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
+// ---  get period_tag
+        const period_tag = get_dict_value(mod_dict, ["period_tag"], "tweek");
+// ---  create upload_dict
+        let upload_dict = {
+            now: get_now_arr(),
+            period_tag: period_tag,
+            extend_index: 0,
+            extend_offset: 0};
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
+            if (el_mod_period_datefirst.value) {mod_dict.period_datefirst = el_mod_period_datefirst.value};
+            if (el_mod_period_datelast.value) {mod_dict.period_datelast = el_mod_period_datelast.value};
+        }
+// ---  upload new setting
+        selected_planning_period = {period_tag: period_tag}
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
+            if (el_mod_period_datefirst.value) {selected_planning_period["period_datefirst"] = el_mod_period_datefirst.value};
+            if (el_mod_period_datelast.value) {selected_planning_period["period_datelast"] = el_mod_period_datelast.value};
+        }
+        // send 'now' as array to server, so 'now' of local computer will be used
+        selected_planning_period["now"] = get_now_arr();
+        // remeber to print planning when info is back from server
+        employee_planning_print_ispending = true;
+
+        let employee_planning_dict = {
+            employee_pk: (!!selected.employee_pk) ? selected.employee_pk : null,
+            add_shifts_without_employee: false,
+            skip_restshifts: false,
+            orderby_rosterdate_customer: false
+        };
+        let datalist_request = {planning_period: selected_planning_period,
+                                //employee_planning: employee_planning_dict
+                                employee_planningNEW: {order_pk: selected.order_pk}
+                                //employee_planningNEW: {mode: "get"}
+                                };
+        DatalistDownload(datalist_request);
+
+        $("#id_mod_period").modal("hide");
+    }
+
+//=========  ModPeriodSelectPeriod  ================ PR2020-07-12
+    function ModPeriodSelectPeriod(tr_clicked, selected_index) {
+        //console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
+        if(!!tr_clicked) {
+// ---  deselect all highlighted rows, highlight selected row
+            DeselectHighlightedRows(tr_clicked, cls_selected);
+            tr_clicked.classList.add(cls_selected)
+// ---  add period_tag to mod_dict
+            const period_tag = get_attr_from_el(tr_clicked, "data-tag")
+            mod_dict["period_tag"] = period_tag;
+// ---  enable date input elements, give focus to start
+            if (period_tag === "other") {
+                // el_mod_period_datefirst / el_datelast got value in ModPeriodOpen
+// ---  show checkbox oneday when not is_custom_period
+                document.getElementById("id_mod_period_oneday_container").classList.remove(cls_hide);
+                el_mod_period_datefirst.disabled = false;
+                el_mod_period_datelast.disabled = false;
+                el_mod_period_datefirst.focus();
+            } else{
+                ModPeriodSave();
+            }
+        }
+    }  // ModPeriodSelectPeriod
+
+//=========  ModPeriodDateChanged  ================ PR2020-07-11
+    function ModPeriodDateChanged(fldName) {
+        //console.log("ModPeriodDateChanged");
+        //console.log("fldName", fldName);
+        if (fldName === "oneday") {
+            // set period_datelast to datefirst
+            if (el_mod_period_oneday.checked) { el_mod_period_datelast.value = el_mod_period_datefirst.value};
+            el_mod_period_datelast.readOnly = el_mod_period_oneday.checked;
+        } else if (fldName === "setminmax") {
+            // set datelast min_value to datefirst.value, remove when blank
+            add_or_remove_attr (el_mod_period_datelast, "min", (!!el_mod_period_datefirst.value), el_mod_period_datefirst.value);
+            // dont set datefirst max_value, change datelast instead
+        } else if (fldName === "datefirst") {
+            if ( (el_mod_period_oneday.checked) ||
+                 (!!el_mod_period_datefirst.value  && el_mod_period_datefirst.value > el_mod_period_datelast.value)  ) {
+                el_mod_period_datelast.value = el_mod_period_datefirst.value
+            }
+            // set datelast min_value to datefirst.value, remove when blank
+            add_or_remove_attr (el_mod_period_datelast, "min", (!!el_mod_period_datefirst.value), el_mod_period_datefirst.value);
+        }
+    }  // ModPeriodDateChanged
+
+// +++++++++++++++++ end of PRINT PLANNING ++++++++++++++++++++++++++++
+//##################################################################################
+
+
 //###########################################################################
 // +++++++++++++++++ FILTER +++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -6953,6 +7311,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             if(!skip_while_modal){
             const tblRow = document.getElementById(selected.mapid)
                 if(tblRow){
+                    // function MAB_Open checks for permit_view_add_edit_delete_absence
                     MAB_Open(tblRow);
                 }
             }
@@ -6962,11 +7321,26 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-        console.log(" --- UpdateSettings ---")
-        console.log("setting_dict", setting_dict)
+        //console.log(" --- UpdateSettings ---")
+        //console.log("setting_dict", setting_dict)
         // only called at opening of page
 
         selected_btn = get_dict_value(setting_dict, ["sel_btn"], "btn_grid");
+
+// ---   <PERMIT> PR2020-11-07
+        // permits get value when setting_dict is downloaded
+        // when allowed_customers = [] it is truely, therefore check also allowed_customers.length
+        allowed_customers = setting_dict.requsr_perm_customers
+        allowed_orders = setting_dict.requsr_perm_orders
+        // PR2020-11-09 permit_customer_orders may add absence to employees that have shift in his orders
+        has_allowed_customers = (!!allowed_customers && !!allowed_customers.length);
+        has_allowed_orders = (!!allowed_orders && !!allowed_orders.length);
+// ---  show/hide absence btn
+        // PR2020-11-09 permit_customer_orders may add absence to employees that have shift in his orders
+        //show_hide_element_by_id("id_btn_absence", permit_view_add_edit_delete_absence)
+
+// ---  change selected_btn if necessary
+        //if (!permit_view_add_edit_delete_absence && selected_btn === "btn_absence") {selected_btn = "btn_grid"}
 
         // these variables store pk of customer / order from setting.
         // They are used in HandleSelectCustomer to go to saved customer / order
@@ -6989,7 +7363,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= UpdateHeaderText  ================== PR2019-11-23
     function UpdateHeaderText(calledby){
-        console.log(" --- UpdateHeaderText ---", calledby )
+        //console.log(" --- UpdateHeaderText ---", calledby )
 
         // from fill select order
         let header_text = "", hdr_right_text = "";
@@ -7014,6 +7388,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 selected.order_pk = 0
                 selected.customer_pk = 0
                 selected.scheme_pk = 0
+
                 // check if any orders
                 let has_records = false;
                 if(!!order_map.size){

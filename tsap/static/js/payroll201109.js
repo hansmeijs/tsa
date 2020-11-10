@@ -403,8 +403,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // payroll_list is also called in HandleBtnSelect when payroll_needs_update = true PR2020-09-24
             payroll_list: {get: true},
             employee_rows: {inactive: false},
-            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
 
             functioncode_rows: {get: true},
             paydatecode_rows: {get: true},
@@ -493,8 +493,8 @@ document.addEventListener('DOMContentLoaded', function() {
        //console.log( "=== refresh_maps ")
         if ("company_dict" in response) {company_dict = response["company_dict"]}
         if ("employee_rows" in response) {refresh_datamap(response.employee_rows, employee_map, "employee")};
-        if ("customer_list" in response) {refresh_datamap(response.customer_list, customer_map)};
-        if ("order_list" in response) {refresh_datamap(response.order_list, order_map)};
+        if ("customer_rows" in response) {refresh_datamap(response.customer_rows, customer_map)};
+        if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map)};
 
         if ("abscat_rows" in response) {fill_datamap(abscat_map, response.abscat_rows)};
         if ("functioncode_rows" in response) {fill_datamap(functioncode_map, response.functioncode_rows)};
@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleBtnSelect  ================ PR2019-05-25 PR2020-06-12 PR2020-09-04
     function HandleBtnSelect(btn) {
-        console.log( "===== HandleBtnSelect ========= ");
+        //console.log( "===== HandleBtnSelect ========= ");
 
         // btn only exists when clicked on BtnSelect
         const skip_upload = (!btn);
@@ -827,12 +827,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (detail_list){
             for (let i = 0, row; row = detail_list[i]; i++) {
+
+                //console.log("row", row);
                 const employee_pk = (row.e_id) ? row.e_id : 0;
                 const employee_code = (row.e_code) ? row.e_code : "---";
 
                 const function_pk = (row.fnc_id) ? row.fnc_id : 0;
-                const function_code = (row.functioncode) ? row.functioncode : "---";
+                const function_code = (row.fnc_code) ? row.fnc_code : "---";
 
+        //console.log("function_pk ", function_pk, "row.fnc_code", row.fnc_code);
                 const order_isabsence = row.isabsence;
                 const order_pk = row.order_id;
                 let order_code = (row.o_code) ? row.o_code : "-";
@@ -872,6 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     functions_inuse[function_pk] = {pk: function_pk, code: function_code };
                 }
 
+        //console.log("functions_inuse ", functions_inuse);
 
 // ---  add absence order to abscats_inuse if not exists / add normal order to orders_inuse if not exists
                 if(row.isabsence) {
@@ -905,10 +909,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  add functioncode , paydatecode, wagefactorcode
                 if(row.fnc_id && !(row.fnc_id in employee_dict.functioncode)) {
-                    employee_dict.functioncode[row.fnc_id] = {pk: row.fnc_id, code: row.functioncode }
+                    employee_dict.functioncode[row.fnc_id] = {pk: row.fnc_id, code: row.fnc_code }
                 }
+
+        //console.log("employee_dict ", employee_dict);
                 if(row.pdc_id && !(row.pdc_id in employee_dict.paydatecode)) {
-                    employee_dict.paydatecode[row.pdc_id] = {pk: row.pdc_id, code: row.paydatecode }
+                    employee_dict.paydatecode[row.pdc_id] = {pk: row.pdc_id, code: row.pdc_code }
                 }
                 if( (row.wfc_id || row.nopay)  && !(row.wfc_id in employee_dict.wagefactorcode)) {
                     const key = (row.nopay) ? -1 : row.wfc_id;
@@ -916,15 +922,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     const rate = (row.nopay) ? 0 : ( row.wfc_rate) ?  row.wfc_rate : 0;
                     employee_dict.wagefactorcode[key] = {pk: key, code: code, rate: rate}
                 }
+        //console.log("employee_dict ", employee_dict);
+        //console.log("............... ");
+
             }  //  for (let i = 0, item; item = detail_list[i]; i++)
         }  // if (detail_list){
 
 // ---  convert dictionary to array
         const agg_list = Object.values(agg_dict);
-        console.log(">>>>>>>>>>>>agg_list", agg_list)
+        //console.log(">>>>>>>>>>>>agg_list", agg_list)
 // ---  sort array with sort and b_comparator_code
         payroll_agg_list_sorted = agg_list.sort(b_comparator_e_code);
-        console.log(">>>>>>>>>>>>payroll_agg_list_sorted", payroll_agg_list_sorted)
+        //console.log(">>>>>>>>>>>>payroll_agg_list_sorted", payroll_agg_list_sorted)
 
 // ---  convert dictionary 'employees_inuse' to array 'employees_inuse_list'
         const employees_inuse_list = Object.values(employees_inuse);
@@ -1147,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_list  ==================================== PR2020-09-01
     function CreateHTML_list(tblName) {
-        console.log("==== CreateHTML_list  ========= ");
+        //console.log("==== CreateHTML_list  ========= ");
 
         let header_row = "";
         let filter_row = [];
@@ -1155,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_list = (tblName === "payroll_agg") ? payroll_agg_list_sorted :
                           (tblName === "payroll_detail") ? payroll_detail_list : null
 
-        console.log("data_list", data_list);
+        //console.log("data_list", data_list);
         if (data_list){
 
 // ++++++++ loop through rows of data_list
@@ -1169,11 +1178,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (let i = 0, len = field_settings[tblName].field_names.length; i < len; i++) {
                     const field_name = field_settings[tblName].field_names[i];
                     const class_align = "ta_" + field_settings[tblName].field_align[i];
+        //console.log("==== field_name  ========= ", field_name);
 
 // field_names: ["back", "employee_code", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactor", "functioncode", "pdc_code", "end"],
 
             // ---  skip if field is in list of selected_col_hidden
                     if(!selected_col_hidden.includes(field_name)) {
+
+        //console.log("selected_col_hidden.includes ", field_name);
 // loop through fields of orderdetail / absdetail abscats, field_count = 1 for other fields
                         const inuse_list = (field_name === "orderdetail") ? orders_inuse_list_sorted :
                                             (field_name === "absdetail") ? abscats_inuse_list_sorted : null;
@@ -1258,6 +1270,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // add margin ml-2 , to separate from duration field
                                 class_text += " ml-2"
 
+        //console.log("........................... ", field_name);
+        //console.log("==== item  ========= ", item);
                                 if (tblName === "payroll_agg") {
                                     const field_dict = item[field_name];
                                     // functioncode: { 23: {pk: 23, code: "nico"} }
@@ -1283,24 +1297,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                     filter_value = (excel_list) ? excel_list.toLowerCase() : null
                                     excel_value = excel_list;
                                     title = title_list;
+        //console.log("...........................payroll_agg inner_text ", inner_text);
                                 } else {
                                     if (field_name === "wagefactorcode") {
-                                        const field_value = (item.nopay) ? loc.No_payment : (item.wfc_code) ? item.wfc_code : "---";
-                                        inner_text = (field_value) ? field_value : "";
-                                        filter_value = (field_value) ? field_value.toLowerCase() : null;
-                                        excel_value = field_value;
+                                        inner_text = (item.nopay) ? loc.No_payment : (item.wfc_code) ? item.wfc_code : "---";
+                                        filter_value = (inner_text) ? inner_text.toLowerCase() : null;
+                                        excel_value = inner_text;
                                     } else if (field_name === "paydatecode") {
-                                        const field_value = item[field_name];
-                                        inner_text = (field_value) ? field_value : "";
-                                        filter_value = (field_value) ? field_value.toLowerCase() : null;
-                                        excel_value = field_value;
+                                        inner_text = (item.pdc_code) ? item.pdc_code : "";
+                                        filter_value = (inner_text) ? inner_text.toLowerCase() : null;
+                                        excel_value = inner_text;
                                         title = loc.Closing_date + ": " + format_dateISO_vanilla (loc, item["paydate"], false, false);
-                                    } else {
-                                        const field_value = item[field_name];
-                                        inner_text = (field_value) ? field_value : "";
-                                        filter_value = (field_value) ? field_value.toLowerCase() : null;
-                                        excel_value = field_value;
+                                    } else if (field_name === "functioncode") {
+                                        inner_text = (item.fnc_code) ? item.fnc_code : "";
+                                        filter_value = (inner_text) ? inner_text.toLowerCase() : null;
+                                        excel_value = inner_text;
                                     }
+        //console.log("...........................payroll_detail inner_text ", inner_text);
                                 }
                             } else if(field_name === "margin_end") {
                             }
@@ -1840,9 +1853,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         //add_hover(el_div);
                         //el_div.classList.add("pointer_show")
                     //}
-
-
-
                }
 
 // --- add  text_align
@@ -2207,8 +2217,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-       console.log(" --- UpdateSettings ---")
-       console.log("setting_dict", setting_dict)
+       //console.log(" --- UpdateSettings ---")
+       //console.log("setting_dict", setting_dict)
 
         selected_btn = get_dict_value(setting_dict, ["sel_btn"], "payroll_agg");
 
@@ -2225,11 +2235,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
-        console.log( "===== UpdateHeaderText  ========= ");
-        console.log( "is_addnew_mode ", is_addnew_mode);
-        console.log( "selected_period ", selected_period);
-        console.log( "selected_btn ", selected_btn);
-        console.log( "selected_view ", selected_view);
+        //console.log( "===== UpdateHeaderText  ========= ");
+        //console.log( "is_addnew_mode ", is_addnew_mode);
+        //console.log( "selected_period ", selected_period);
+        //console.log( "selected_btn ", selected_btn);
+        //console.log( "selected_view ", selected_view);
 
         let header_text = null, sidebar_selectperiod_text = null;
         const is_payrollperiod_view = (selected_view === "payrollperiod");
@@ -2267,7 +2277,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(period_tag === "other"){
                     sidebar_selectperiod_text = dates_display;
                 } else if(loc.period_select_list){
-                    console.log( "loc.period_select_list", loc.period_select_list);
+                    //console.log( "loc.period_select_list", loc.period_select_list);
                     for (let i = 0, item; item = loc.period_select_list[i]; i++) {
                         if(item[0] === period_tag) {
                             sidebar_selectperiod_text = (item[1]) ? item[1] : null;
@@ -3021,8 +3031,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(employee_fnc_pdc_pk && employee_fnc_pdc_pk === selected_pk ){
                     // remove code when it is the same as selected code
                     selected_pk = null;
-
                 }
+
         //console.log("employee_list", employee_list);
 
 // --- put new value in el_clicked
@@ -3044,10 +3054,8 @@ document.addEventListener('DOMContentLoaded', function() {
             add_or_remove_attr (tblRow, "data-selected", is_selected, true);
 
             add_or_remove_class(tblRow.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
-
         }
     }  // SetTickmark_Employee
-
 
 //###########################################################################
     function AddnewOpen(col_index, el_clicked) {
@@ -3075,9 +3083,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSPP_BtnSelect  ================ PR2020-09-27
     function MSPP_BtnSelect(btn) {
-        console.log( "===== MSPP_BtnSelect ========= ");
-        console.log( "selected_period", selected_period);
-        console.log( "btn", btn);
+        //console.log( "===== MSPP_BtnSelect ========= ");
+        //console.log( "selected_period", selected_period);
+        //console.log( "btn", btn);
         let MSPP_selected_btn = null;
         if(btn){
             MSPP_selected_btn = get_attr_from_el(btn, "data-btn")
@@ -3628,7 +3636,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function (){ el_MSO_input_customer.focus() }, 500);
 
 // ---  show modal
-         $("#id_modselectorder").modal({backdrop: true});
+         $("#id_modselectcustomerorder").modal({backdrop: true});
 
 }; // MSO_Open
 
@@ -3654,7 +3662,7 @@ document.addEventListener('DOMContentLoaded', function() {
         DatalistDownload(datalist_request);
 
 // hide modal
-        $("#id_modselectorder").modal("hide");
+        $("#id_modselectcustomerorder").modal("hide");
     }  // MSO_Save
 
 //=========  MSO_SelectCustomer  ================ PR2020-01-09
@@ -5823,19 +5831,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ REFRESH ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-//=========  fill_datamap  ================ PR2020-09-06
-    function fill_datamap(data_map, rows) {
-        //console.log(" --- fill_datamap  ---");
-        //console.log("rows", rows);
-        data_map.clear();
-        if (rows && rows.length) {
-            for (let i = 0, dict; dict = rows[i]; i++) {
-                data_map.set(dict.mapid, dict);
-            }
-        }
-        //console.log("data_map", data_map);
-        //console.log("data_map.size", data_map.size)
-    };  // fill_datamap
 
 //=========  refresh_datamapNEW  ================ PR2020-09-06
     function refresh_datamapNEW(updated_rows) {

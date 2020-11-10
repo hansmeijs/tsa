@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let user_list = [];
     let user_map = new Map();
     let employee_map = new Map();
+    let customer_map = new Map();
+    let order_map = new Map();
 
     let filter_dict = {};
     let filter_mod_employee = false;
@@ -32,20 +34,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- get field_settings
     const field_settings = {
-        users: { tbl_col_count: 8,
-                    //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
+        users: { //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
                     field_caption: ["", "User", "Name", "Email_address", "Linked_to_employee", "Activated", "Last_loggedin", "Inactive"],
                     field_names: ["select", "username", "last_name", "email", "employee_code", "activated", "last_login", "is_active"],
                     filter_tags: ["select", "text", "text", "text", "text", "activated", "text", "inactive"],
                     field_width:  ["032", "150",  "180", "240", "150", "120", "180", "090"],
                     field_align: ["c", "l",  "l",  "l", "l", "c", "l", "c"]},
-        permissions: { tbl_col_count: 8,
-                    //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
+        permissions: { //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
                     field_caption: ["", "User", "Employee", "Supervisor", "Planner", "HR_manager_2lines", "Account_manager_2lines", "System_administrator_2lines"],
                     field_names: ["select", "username",  "perm02_employee", "perm04_supervisor", "perm08_planner", "perm16_hrman", "perm32_accman", "perm64_sysadmin"],
                     filter_tags: ["select", "text",  "toggle", "toggle", "toggle", "toggle", "toggle", "toggle"],
                     field_width:  ["032", "150", "090", "090", "090", "090", "090", "090"],
-                    field_align: ["c", "l", "c",  "c", "c", "c", "c", "c"]}
+                    field_align: ["c", "l", "c",  "c", "c", "c", "c", "c"]},
+        allowedlocations: { //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
+                    field_caption: ["", "User", "Allowed_customers", "Allowed_orders"],
+                    field_names: ["select", "username", "permitcustomers", "permitorders"],
+                    filter_tags: ["select", "text", "text", "text"],
+                    field_width:  ["032", "150", "360", "360"],
+                    field_align: ["c", "l", "l", "l"]}
         };
     const tblHead_datatable = document.getElementById("id_tblHead_datatable");
     const tblBody_datatable = document.getElementById("id_tblBody_datatable");
@@ -81,6 +87,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_MSU_info_footer01 = document.getElementById("id_info_footer01")
         const el_MSU_info_footer02 = document.getElementById("id_info_footer02")
 
+// ---  MOD SELECT MULTIPLE ORDERS ------------------------------
+        const el_MSM_tblbody_select = document.getElementById("id_MSM_tbody_select");
+        const el_MSM_input = document.getElementById("id_MSM_input")
+            el_MSM_input.addEventListener("keyup", function(){
+                setTimeout(function() {MSM_InputKeyup(el_MSM_input)}, 50)});
+        const el_MSM_btn_save = document.getElementById("id_MSM_btn_save")
+            el_MSM_btn_save.addEventListener("click", function() {MSM_Save()}, false )
+
 // ---  MOD CONFIRM ------------------------------------
         let el_confirm_header = document.getElementById("id_confirm_header");
         let el_confirm_loader = document.getElementById("id_confirm_loader");
@@ -103,7 +117,9 @@ document.addEventListener('DOMContentLoaded', function() {
             user_period: {get: true},
             company: true,
             user_list: {mode: "get"},
-            employee_list: {inactive: false}
+            employee_rows: {get: true},
+            customer_rows: {isabsence: false, istemplate: false, inactive: false},
+            order_rows: {isabsence: false, istemplate: false, inactive: false}
         };
 
     DatalistDownload(datalist_request, "DOMContentLoaded");
@@ -143,6 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("company_dict" in response) { company_dict = response.company_dict}
                 if ("user_list" in response) { refresh_user_map(response.user_list)}
                 if ("employee_list" in response) { refresh_datamap(response.employee_list, employee_map)}
+                if ("customer_rows" in response) { fill_datamap(customer_map, response.customer_rows)}
+                if ("order_rows" in response) { fill_datamap(order_map, response.order_rows)}
 
                 HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
@@ -240,27 +258,34 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateTblHeader() {
         //console.log("===  CreateTblHeader ===== ");
         const tblName = (selected_btn === "btn_user_list") ? "users" :
-                        (selected_btn === "btn_permissions") ? "permissions" : null;
+                        (selected_btn === "btn_permissions") ? "permissions" :
+                        (selected_btn === "btn_allowedlocations") ? "allowedlocations" : null;
 
 // --- reset table
         tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
 
-        if(field_settings[tblName]){
-            const column_count = field_settings[tblName].tbl_col_count;
+        const field_setting = field_settings[tblName];
+        if(field_setting){
+            const column_count = field_setting.field_names.length;
             if(column_count){
+                const field_names = field_setting.field_names;
+                const filter_tags = field_setting.filter_tags;
+                const field_width = field_setting.field_width;
+                const field_align = field_setting.field_align;
+
 //--- insert table rows
                 let tblRow_header = tblHead_datatable.insertRow (-1);
                 let tblRow_filter = tblHead_datatable.insertRow (-1);
 
 //--- insert th's to tblHead_datatable
                 for (let j = 0; j < column_count; j++) {
-                    const key = field_settings[tblName].field_caption[j];
-                    const caption = (loc[key]) ? loc[key] : key;
-                    const field_name = field_settings[tblName].field_names[j];
-                    const filter_tag = field_settings[tblName].filter_tags[j];
-                    const class_width = "tw_" + field_settings[tblName].field_width[j] ;
-                    const class_align = "ta_" + field_settings[tblName].field_align[j];
+                    const key = field_setting.field_caption[j];
+                    const caption = (loc[key]) ? loc[key] : null;
+                    const field_name = field_names[j];
+                    const filter_tag = filter_tags[j];
+                    const class_width = "tw_" + field_width[j] ;
+                    const class_align = "ta_" + field_align[j];
 
 // ++++++++++ create header row +++++++++++++++
 // --- add th to tblRow.
@@ -327,7 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function FillTblRows() {
         //console.log( "===== FillTblRows  === ");
         const tblName = (selected_btn === "btn_user_list") ? "users" :
-                        (selected_btn === "btn_permissions") ? "permissions" : null;
+                        (selected_btn === "btn_permissions") ? "permissions" :
+                        (selected_btn === "btn_allowedlocations") ? "allowedlocations" : null;
 // --- reset table
         tblBody_datatable.innerText = null
         if(user_map){
@@ -348,13 +374,12 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("map_dict", map_dict);
         let tblRow = null;
 
-        const settings_tblName = (selected_btn === "btn_user_list") ? "users" : "permissions";
-        const field_settings_table = field_settings[settings_tblName];
+        const field_setting = field_settings[tblName];
 
-        if(field_settings_table){
-            const column_count = field_settings_table.tbl_col_count;
-            const field_names = field_settings_table.field_names;
-            const field_align = field_settings_table.field_align;
+        if(field_setting){
+            const column_count = field_setting.field_names.length;
+            const field_names = field_setting.field_names;
+            const field_align = field_setting.field_align;
 
 // --- insert tblRow into tblBody at row_index
             tblRow = tblBody.insertRow(row_index);
@@ -373,40 +398,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 const field_name = field_names[j];
 // --- insert td element,
                 let el_td = tblRow.insertCell(-1);
+// --- create div element
+                let el_div = document.createElement("div");
 // --- add data-field attribute
-                el_td.setAttribute("data-field", field_name);
+                el_div.setAttribute("data-field", field_name);
 
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
                 } else if (["username", "last_name", "email", "employee_code"].indexOf(field_name) > -1){
-                    el_td.addEventListener("click", function() {MSU_Open("update", el_td)}, false)
-                    el_td.classList.add("pointer_show");
-                    add_hover(el_td);
+                    el_td.addEventListener("click", function() {MSU_Open("update", el_div)}, false)
+                } else if (["permitcustomers", "permitorders"].indexOf(field_name) > -1){
+                    el_td.addEventListener("click", function() {MSM_Open(el_div)}, false)
                 } else if (field_name.slice(0, 4) === "perm") {
-                    el_td.addEventListener("click", function() {UploadToggle(el_td)}, false)
-                    let el_div = document.createElement("div");
-                        el_td.appendChild(el_div);
-                    add_hover(el_td);
+                    el_td.addEventListener("click", function() {UploadToggle(el_div)}, false)
+                    el_div.classList.add("stat_1_5")
                 } else if ( field_name === "activated") {
                     el_td.addEventListener("click", function() {ModConfirmOpen("resend_activation_email", el_td)}, false )
-                    let el_div = document.createElement("div");
-                        el_td.appendChild(el_div);
-                    add_hover(el_td)
                 } else if (field_name === "is_active") {
-                    el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_td)}, false )
-
-                    //append_background_class(el_td,"inactive_0_2")
-                    let el_div = document.createElement("div");
-                        el_div.classList.add("inactive_0_2")
-                        el_td.appendChild(el_div);
-                    add_hover(el_td)
+                    el_td.addEventListener("click", function() {ModConfirmOpen("inactive", el_div)}, false )
+// --- append background class "inactive_0_2"
+                    el_div.classList.add("inactive_0_2")
                 } else if ( field_name === "last_login") {
                     // pass
                 }
 // --- add  text_align
-               el_td.classList.add("ta_" + field_align[j]);
+               el_div.classList.add("ta_" + field_align[j]);
+// --- add hover
+                if (["select", "activated", "last_login"].indexOf(field_name) === -1){
+                    add_hover(el_td)
+                };
+                el_td.appendChild(el_div)
 // --- put value in field
-               UpdateField(el_td, map_dict)
+               UpdateField(el_div, map_dict)
             }  // for (let j = 0; j < 8; j++)
         }  // if(field_settings_table)
         return tblRow
@@ -425,35 +448,94 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateField  ================ PR2020-08-16
     function UpdateField(el_div, map_dict) {
         //console.log("=========  UpdateField =========");
+        //console.log("el_div", el_div)
+        //console.log("map_dict", map_dict)
         if(el_div){
             const field_name = get_attr_from_el(el_div, "data-field");
             const fld_value = map_dict[field_name];
+
             if(field_name){
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
                 } else if (["username", "last_name", "email", "employee_code"].indexOf(field_name) > -1){
-                    el_div.innerText = map_dict[field_name];
+                    el_div.innerText = fld_value;
+                } else if (["permitcustomers", "permitorders"].indexOf(field_name) > -1){
+                    // this must go before 'if (field_name.slice(0, 4) === "perm")'
+                    let value_str = null, title = null;
+                    // array [] is truely, therefore check also fld_value.length
+                    if (fld_value && fld_value.length){
+                        const data_map = (field_name === "permitcustomers") ? customer_map : order_map;
+                        const data_table = (field_name === "permitcustomers") ? "customer" : "order";
+                        const data_field = (field_name === "permitcustomers") ? "code" : "c_o_code";
+                        // first put codes in array, so they can be sorted
+                        let code_array = [];
+                        for (let i = 0, pk_int, dict; pk_int = fld_value[i]; i++) {
+                            dict = get_mapdict_from_datamap_by_tblName_pk(data_map, data_table, pk_int)
+                            if(dict[data_field]){ code_array.push(dict[data_field]) };
+                        }
+                        if(code_array){
+                            code_array.sort();
+                            code_array.forEach(function (code) {
+                                if (value_str) {
+                                    value_str += ", " + code
+                                    title += "\n" + code
+                                } else {
+                                    value_str = code
+                                    title = code
+                                }
+                            });
+                        }
+                    }
+                    let is_color_grey = false;
+                    if(!value_str) {
+                        // put 'all' only in fields when both are blank
+                        // check value of other field
+                        let other_field_is_empty = false;
+                        if(field_name === "permitcustomers"){
+                            other_field_is_empty =(!map_dict.permitorders || !map_dict.permitorders.length)
+                        } else if(field_name === "permitorders"){
+                            other_field_is_empty =(!map_dict.permitcustomers || !map_dict.permitcustomers.length)
+                        }
+                        if(other_field_is_empty){
+                            value_str = "<" +((field_name === "permitcustomers") ? loc.All_customers : loc.All_orders)  + ">";
+                            is_color_grey = true;
+                        }
+                    }
+                    el_div.innerText = value_str;
+                    add_or_remove_attr(el_div, "title", !!title, title)
+                    add_or_remove_attr(el_div, "data-value", !!fld_value, fld_value)
+                    add_or_remove_class (el_div, "tsa_color_darkgrey", is_color_grey)
+
                 } else if (field_name.slice(0, 4) === "perm") {
-                    const is_true = (map_dict[field_name]) ? map_dict[field_name] : false;
+                    const is_true = (fld_value) ? fld_value : false;
                     const value_str = field_name.slice(4, 6);
                     const permit_value = (!is_true) ? 0 : (!Number(value_str)) ? 0 : Number(value_str);
+
                     el_div.setAttribute("data-value", permit_value);
-                    let el_icon = el_div.children[0];
-                    if(el_icon){add_or_remove_class (el_icon, "tickmark_1_2", is_true, "tickmark_0_0")};
+                    add_or_remove_class (el_div, "tickmark_1_2", is_true, "tickmark_0_0");
+                    //let el_icon = el_div.children[0];
+                    //if(el_icon){add_or_remove_class (el_icon, "tickmark_1_2", is_true, "tickmark_0_0")};
+
                 } else if ( field_name === "activated") {
-                    const is_activated = (map_dict[field_name]) ? map_dict[field_name] : false;
+                    const is_activated = (fld_value) ? fld_value : false;
                     let is_expired = false;
                     if(!is_activated) {
                         is_expired = activationlink_is_expired(map_dict.date_joined);
                     }
                     const data_value = (is_expired) ? "2" : (is_activated) ? "1" : "0"
                     el_div.setAttribute("data-value", data_value);
-                    let el_icon = el_div.children[0];
-                    if(el_icon){
-                        add_or_remove_class (el_icon, "tickmark_1_2", is_activated);
-                        add_or_remove_class (el_icon, "exclamation_0_2", is_expired);
-                        add_or_remove_class (el_icon, "tickmark_0_0", !is_activated && !is_expired);
-                    }
+                    // PR2020-11-03 was:
+                    //let el_icon = el_div.children[0];
+                    //if(el_icon){
+                    //    add_or_remove_class (el_icon, "tickmark_1_2", is_activated);
+                    //    add_or_remove_class (el_icon, "exclamation_0_2", is_expired);
+                   //     add_or_remove_class (el_icon, "tickmark_0_0", !is_activated && !is_expired);
+                    //}
+                    add_or_remove_class (el_div, "tickmark_1_2", is_activated);
+                    add_or_remove_class (el_div, "exclamation_0_2", is_expired);
+                    add_or_remove_class (el_div, "tickmark_0_0", !is_activated && !is_expired);
+
+
 // ---  add EventListener
                     if(!is_activated){
                         el_div.addEventListener("click", function() {ModConfirmOpen("resend_activation_email", el_div)}, false )
@@ -566,56 +648,66 @@ document.addEventListener('DOMContentLoaded', function() {
     };  // UploadNewUser
 
 //========= UploadToggle  ============= PR2020-07-31
-    function UploadToggle(el_input) {
-        //console.log( " ==== UploadToggle ====");
+    function UploadToggle(el_div) {
+        console.log( " ==== UploadToggle ====");
+        console.log( "el_div", el_div);
 
         mod_dict = {};
-        const tblRow = get_tablerow_selected(el_input);
-        if(tblRow){
+        if(el_div){
+            const tblRow = get_tablerow_selected(el_div);
             const tblName = get_attr_from_el(tblRow, "data-table")
+            const fldName = get_attr_from_el(el_div, "data-field");
+            let permit_value = get_attr_from_el_int(el_div, "data-value");
             const map_id = tblRow.id
             const map_dict = get_mapdict_from_datamap_by_id(user_map, map_id);
 
             if(!isEmpty(map_dict)){
-                const fldName = get_attr_from_el(el_input, "data-field");
-                let permit_value = get_attr_from_el_int(el_input, "data-value");
                 let has_permit = (!!permit_value);
+        console.log( "permit_value", permit_value);
+        console.log( "has_permit", has_permit);
 
-                const requsr_pk = get_dict_value(selected_period, ["requsr_pk"])
-                const is_request_user = (requsr_pk === map_dict.id)
+                const requsr_pk = selected_period.requsr_pk;
+                const is_request_user = (requsr_pk && requsr_pk === map_dict.id)
+        console.log( "is_request_user", is_request_user);
 
 // show message when sysadmin tries to delete sysadmin permit or add readonly
                 if(fldName === "perm64_sysadmin" && is_request_user && has_permit ){
-                    ModConfirmOpen("permission_sysadm", el_input)
+                    ModConfirmOpen("permission_sysadm", el_div)
                 } else if(fldName === "perm01_readonly" && is_request_user && !has_permit ){
-                    ModConfirmOpen("permission_sysadm", el_input)
+                    ModConfirmOpen("permission_sysadm", el_div)
                 } else {
 // loop through row cells to get value of permissions.
                     // Don't get them from map_dict, might not be correct while changing permissions
                     let new_permit_sum = 0, new_permit_value = 0
-                    for (let i = 0, cell, cell_name, cell_value; cell = tblRow.cells[i]; i++) {
-                        cell_name = get_attr_from_el(cell, "data-field");
-                        if (cell_name.slice(0, 4) === "perm") {
-                            cell_value = get_attr_from_el_int(cell, "data-value");
-                // toggle value of clicked field
-                            if (cell_name === fldName){
-                                if(cell_value){
-                                    cell_value = 0;
-                                } else {
-                                    const cell_permit = fldName.slice(4, 6);
-                                    cell_value = (Number(cell_permit)) ? Number(cell_permit) : 0;
-                                }
-                                new_permit_value = cell_value;
-                // put new value in cell attribute 'data-value'
-                                cell.setAttribute("data-value", new_permit_value)
-                            };
-                            new_permit_sum += cell_value              }
-                    }
+                    for (let i = 0, lookup_td, lookup_div, lookup_field, lookup_value; lookup_td = tblRow.cells[i]; i++) {
+                        if (lookup_td){
+                            lookup_div = lookup_td.children[0];
+                            if(lookup_div){
+                                lookup_field = get_attr_from_el(lookup_div, "data-field");
+                                if (lookup_field && lookup_field.slice(0, 4) === "perm") {
+                                    lookup_value = get_attr_from_el_int(lookup_div, "data-value");
+                        // toggle value of clicked field
+                                    if (lookup_field === fldName){
+                                        if(lookup_value){
+                                            lookup_value = 0;
+                                        } else {
+                                            const data_permit = fldName.slice(4, 6);
+                                            lookup_value = (Number(data_permit)) ? Number(data_permit) : 0;
+                                        }
+                                        new_permit_value = lookup_value;
+                        // put new value in cell attribute 'data-value' of el_div
+                                        el_div.setAttribute("data-value", new_permit_value)
+                                    };
+                                    new_permit_sum += lookup_value
+                                };
+                            }  // if(lookup_div)
+                        }  // if (lookup_td)
+                    }  // for (let i = 0,
 
 // ---  change icon, before uploading
-                    let el_icon = el_input.children[0];
-                    if(el_icon){add_or_remove_class (el_icon, "tickmark_0_2", new_permit_value)};
-
+        console.log( "new_permit_value", new_permit_value);
+                    el_div.setAttribute("data-value", permit_value);
+                    add_or_remove_class (el_div, "tickmark_1_2", !!new_permit_value, "tickmark_0_0");
 // ---  upload changes
                     const upload_dict = { id: {pk: map_dict.id,
                                                ppk: map_dict.company_id,
@@ -631,9 +723,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadChanges  ============= PR2020-08-03
     function UploadChanges(upload_dict, url_str) {
-        //console.log("=== UploadChanges");
-        //console.log("url_str: ", url_str);
-        //console.log("upload_dict: ", upload_dict);
+        console.log("=== UploadChanges");
+        console.log("url_str: ", url_str);
+        console.log("upload_dict: ", upload_dict);
 
         if(!isEmpty(upload_dict)) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
@@ -1029,6 +1121,187 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++ END MOD SELECT USER ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+// +++++++++++++++++ MODAL SELECT MULTIPLE CUSTOMERS / ORDERS +++++++++++++++++++++++++++++++++++++++++++
+//========= MSM_Open ====================================  PR2020-11-02
+    function MSM_Open (el_input) {
+        console.log(" ===  MSM_Open  =====") ;
+
+        const tblRow = get_tablerow_selected(el_input);
+        if(tblRow){
+            const map_id = tblRow.id
+            // mod_dict = user_map_dict with addotional keys
+            mod_dict = get_mapdict_from_datamap_by_id(user_map, map_id);
+
+            const fldName = get_attr_from_el(el_input, "data-field");
+            mod_dict.data_field = fldName;
+            mod_dict.data_array = mod_dict[fldName]
+        console.log("mod_dict", mod_dict) ;
+
+            const lookup_table = (fldName === "permitcustomers") ? "customer" : "order";
+
+    // ---  set header text
+            const cust_order = (lookup_table === "customer") ? loc.Customers : loc.Orders;
+            const header_text = loc.Select + cust_order.toLowerCase() + ":";
+            console.log("header_text", header_text) ;
+            console.log("document.getElementById(id_MSM_hdr_multiple)", document.getElementById("id_MSM_hdr_multiple")) ;
+            document.getElementById("id_MSM_hdr_multiple").innerText = header_text;
+
+            el_MSM_input.value = null;
+
+    // ---  fill select table 'customer'
+            MSM_FillSelectTable(lookup_table);
+
+    // ---  Set focus to el_MSM_input
+            //Timeout function necessary, otherwise focus wont work because of fade(300)
+            setTimeout(function (){ el_MSM_input.focus() }, 50);
+    // ---  show modal
+             $("#id_mod_select_multiple").modal({backdrop: true});
+        }
+    }; // MSM_Open
+
+//=========  MSM_Save  ================ PR2020-01-29
+    function MSM_Save() {
+        //console.log("===  MSM_Save =========");
+        let new_array = [];
+        const tblBody_select = el_MSM_tblbody_select;
+        for (let i = 0, row; row = tblBody_select.rows[i]; i++) {
+            const pk_int = get_attr_from_el_int(row, "data-pk")
+            if(pk_int > 0) {
+                const is_selected = (!!get_attr_from_el_int(row, "data-selected"))
+                if(is_selected){
+                    new_array.push(pk_int);
+                };
+            }
+        }
+        if(new_array){
+            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
+            new_array.sort(function(a, b){return a - b});
+        }
+
+// ---  upload changes
+        // mod_dict = user_map_dict with addotional keys
+        const upload_dict = { id: {pk: mod_dict.id,
+                                   ppk: mod_dict.company_id,
+                                   table: "user",
+                                   mode: "update",
+                                   mapid: mod_dict.mapid}};
+        upload_dict[mod_dict.data_field] = {value: new_array, update: true};
+        UploadChanges(upload_dict, url_user_upload);
+
+// hide modal
+        $("#id_mod_select_multiple").modal("hide");
+    }  // MSM_Save
+
+//=========  MSM_InputKeyup  ================ PR2020-11-02
+    function MSM_InputKeyup(el_input) {
+        //console.log( "=== MSM_InputKeyup === ")
+        //console.log( "el_input.value:  ", el_input.value)
+
+        let tblBody_select = el_MSM_tblbody_select;
+
+        const new_filter = el_input.value
+        if (tblBody_select.rows.length){
+// ---  filter select rows
+            const col_index = 1;
+            t_Filter_SelectRows(tblBody_select, new_filter, false, false, null, col_index);
+        }
+    }  // MSM_InputKeyup
+
+//=========  MSM_FillSelectTable  ================ PR2020-08-21
+    function MSM_FillSelectTable(lookup_table) {
+        //console.log( "===== MSM_FillSelectTable ========= ");
+        //console.log( "lookup_table: ", lookup_table);
+
+        const data_map = (lookup_table === "customer") ? customer_map : order_map;
+        const caption_none = (lookup_table === "customer") ? loc.No_customers : loc.No_orders;
+
+        let tblBody_select = el_MSM_tblbody_select;
+        tblBody_select.innerText = null;
+
+        let row_count = 0, add_to_list = false;
+//--- loop through data_map
+        for (const [map_id, lookup_dict] of data_map.entries()) {
+            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, -1);
+            row_count += 1;
+        };
+        if(!row_count){
+// ---  add 'none' at the beginning of the list, when no items found
+            const lookup_dict = (lookup_table === "customer") ? {id: -1, code: "<" + loc.No_customers + ">"} :
+                                                      {id: -1, c_o_code: "<" + loc.No_orders + ">"};
+            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, 0)
+        } else {
+// ---  add 'all' at the beginning of the list, only when multiple items found
+            const lookup_dict = (lookup_table === "customer") ? {id: 0, code: "<" + loc.All_customers + ">"} :
+                                                      {id: 0, c_o_code: "<" + loc.All_orders + ">"};
+            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, 0)
+        }
+    }  // MSM_FillSelectTable
+
+//=========  MSM_FillSelectRow  ================ PR2020-08-18
+    function MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, row_index) {
+        //console.log( "===== MSM_FillSelectRow ========= ");
+        //console.log("lookup_table: ", lookup_table, "lookup_dict: ", lookup_dict);
+
+//--- loop through data_map
+        const pk_int = lookup_dict.id;
+        const row_has_tickmark = (pk_int && mod_dict.data_array && mod_dict.data_array.includes(pk_int))
+        const code_value = (lookup_table === "customer") ? lookup_dict.code : lookup_dict.c_o_code;
+
+// ---  insert tblRow  //index -1 results in that the new row will be inserted at the last position.
+        let tblRow = tblBody_select.insertRow(row_index);
+        tblRow.setAttribute("data-pk", pk_int);
+
+        tblRow.setAttribute("data-selected", (row_has_tickmark) ? "1" : "0")
+
+// ---  add EventListener to tblRow, not when 'no items' (pk_int is then -1
+        if (pk_int > -1) {
+            tblRow.addEventListener("click", function() {MSM_SelecttableClicked(lookup_table, tblRow)}, false )
+// ---  add hover to tblRow
+            add_hover(tblRow);
+        }
+// ---  add select td to tblRow.
+        let td = tblRow.insertCell(-1);
+            td.classList.add("mx-1", "tw_032")
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+        let el = document.createElement("div");
+            const el_class = (row_has_tickmark) ? "tickmark_0_2" : "tickmark_0_0";
+            el.classList.add(el_class)
+        td.appendChild(el);
+// ---  add first td to tblRow.
+        td = tblRow.insertCell(-1);
+            td.classList.add("mx-1", "tw_270")
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+        el = document.createElement("div");
+            el.innerText = code_value;
+        td.appendChild(el);
+    }  // MSM_FillSelectRow
+
+//=========  MSM_SelecttableClicked  ================ PR2020-08-19
+    function MSM_SelecttableClicked(lookup_table, tblRow, skip_save) {
+        //console.log( "===== MSM_SelecttableClicked ========= ");
+        if(tblRow) {
+            let is_selected = (!!get_attr_from_el_int(tblRow, "data-selected"))
+            is_selected = (!is_selected)
+
+            tblRow.setAttribute("data-selected", (is_selected) ? "1" : "0")
+
+            add_or_remove_class(tblRow.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
+            // row 'all' has pk = 0
+            // set all others also when clicked on 'all'
+            const pk_int = get_attr_from_el_int(tblRow, "data-pk");
+            if(pk_int === 0) {
+                const tblBody_select = el_MSM_tblbody_select;
+                for (let i = 0, row; row = tblBody_select.rows[i]; i++) {
+                    row.setAttribute("data-selected", (is_selected) ? "1" : "0")
+                    add_or_remove_class(row.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
+                }
+            }
+        }
+    }  // MSM_SelecttableClicked
+
+// +++++++++++++++++ END OF MODAL SELECT ORDER +++++++++++++++++++++++++++++++
+
 // +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2020-08-03
     function ModConfirmOpen(mode, el_input) {
@@ -1255,8 +1528,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  refresh_usermap_item  ================ PR2020-08-16
     function refresh_usermap_item(update_dict) {
-        //console.log(" --- refresh_usermap_item  ---");
-        //console.log("update_dict", update_dict);
+        console.log(" --- refresh_usermap_item  ---");
+        console.log("update_dict", update_dict);
         if(!isEmpty(update_dict)){
 // ---  update or add update_dict in user_map
             let updated_columns = [];
@@ -1269,7 +1542,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_deleted = get_dict_value(update_dict, ["deleted"], false)
             const is_created = get_dict_value(update_dict, ["created"], false)
 
-            const tblName_settings = (selected_btn === "btn_user_list") ? "users" : "permissions";
+            const tblName_settings = (selected_btn === "btn_user_list") ? "users" :
+                                     (selected_btn === "btn_permissions") ?  "permissions" :
+                                    (selected_btn === "btn_allowedlocations") ? "allowedlocations" : null;
             const field_names = field_settings[tblName_settings].field_names;
 
 // ++++ created ++++
@@ -1299,8 +1574,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!isEmpty(old_map_dict)){
                     // skip first column (is margin)
                     for (let i = 1, col_field, old_value, new_value; col_field = field_names[i]; i++) {
+                            console.log("++++ col_field", col_field);
                         if (col_field in old_map_dict && col_field in update_dict){
-                            if (old_map_dict[col_field] !== update_dict[col_field] ) {
+                            console.log("old_map_dict[col_field]", old_map_dict[col_field]);
+                            console.log("update_dict[col_field]", update_dict[col_field]);
+                            let not_the_same = false;
+                            if ( Array.isArray(old_map_dict[col_field]) && Array.isArray(update_dict[col_field]) ){
+                                not_the_same = !arrayEquals(old_map_dict[col_field], update_dict[col_field])
+                            } else {
+                                not_the_same = (old_map_dict[col_field] !== update_dict[col_field] )
+                            }
+                            if (not_the_same) {
                                 updated_columns.push(col_field)
                             }}}}
     // ---  update item
@@ -1309,20 +1593,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  make update
             // note: when updated_columns is empty, then updated_columns is still true.
             // Therefore don't use Use 'if !!updated_columns' but use 'if !!updated_columns.length' instead
+            console.log("updated_columns", updated_columns);
             if(tblRow && updated_columns.length){
     // ---  make entire row green when row is created
                 if(updated_columns.includes("created")){
                     ShowOkElement(tblRow);
                 } else {
     // loop through cells of row
-                    for (let i = 1, el_fldName, el; el = tblRow.cells[i]; i++) {
-                        if (el){
-                            el_fldName = get_attr_from_el(el, "data-field")
-                            UpdateField(el, update_dict);
-    // make gield green when field name is in updated_columns
-                            if(updated_columns.includes(el_fldName)){
-                                ShowOkElement(el);
-                            }}}}}
+                    for (let i = 1, el_fldName, el_td; el_td = tblRow.cells[i]; i++) {
+                        if (el_td){
+                            const el_div = el_td.children[0]
+                            if(el_div){
+                                UpdateField(el_div, update_dict);
+        // make gield green when field name is in updated_columns
+                                el_fldName = get_attr_from_el(el_div, "data-field")
+                                if(updated_columns.includes(el_fldName)){
+                                    ShowOkElement(el_td);
+                            }}}}}};
         }
     }  // refresh_usermap_item
 
@@ -1382,7 +1669,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             }
         }
-
 
         Filter_TableRows(tblBody_datatable);
     }; // HandleFilterField

@@ -5,11 +5,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         //<PERMIT> PR2020-10-15
         // - page can be viewed by supervisor, planner, hrman or perm_accman
-        // - supervisor can: edit records, add records, delete added records, lock records, add notes
+        // - supervisor can: add / edit / delete (added) records, lock records, add notes
         // - planner can: add and delete rosterdates
         // - hr_manager can lock and unlock records and export data
         // - acc_manager can only read page, export data and add notes
         // - all of them can: export data and add notes
+
+        // <PERMIT> PR2020-11-07
+        // - when perm_customers and/or perm_orders have value:
+        //   - only records of allowed customers / orders will be retrieved from server
+        //   - also absence records of employees of allowed customers / orders
+        //   - only new shift from allowed customers / orders can be added
+        //   - can add any employee, but filter only on allowed employees
+        // map_dict.allowed is false when user has allowed_customers / allowed_orders and employee is not in shift of these orders
 
         // permits get value when selected_period is downloaded
         let permit_add_delete_rows = false;
@@ -241,8 +249,8 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MRD_rosterdate_input.addEventListener("change", function() {ModRosterdateEdit()}, false)
         const el_MRD_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
             el_MRD_btn_ok.addEventListener("click", function() {ModRosterdateSave()}, false)
-        const el_MRD_btn_logfile = document.getElementById("id_mod_rosterdate_btn_logfile")
-            el_MRD_btn_logfile.addEventListener("click", function() {ModRosterdateLogfile()}, false)
+        //const el_MRD_btn_logfile = document.getElementById("id_mod_rosterdate_btn_logfile")
+        //    el_MRD_btn_logfile.addEventListener("click", function() {ModRosterdateLogfile()}, false)
         const el_MRD_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
 
 // ---  MOD ROSTER EMPLOYEE ------------------------------------
@@ -365,8 +373,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // inactive=null: both active and inactive customers and orders
             // In this way it shows items that are made inactive after creating roster PR2020-04-10
             // filter inactive and datefirst/datelast in select table
-            customer_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order_list: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             scheme: {istemplate: false, inactive: null, issingleshift: null},
             //schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
@@ -424,13 +432,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     // - hr_manager can lock and unlock records and export data
                     // - acc_manager can only read page, export data and add notes
                     // - all of them can: export data and add notes
-                    permit_add_delete_rows = selected_period.requsr_perm_supervisor
-                    permit_edit_rows = selected_period.requsr_perm_supervisor
-                    permit_lock_rows = selected_period.requsr_perm_supervisor
-                    permit_unlock_rows = selected_period.requsr_perm_hrman
-                    permit_add_delete_rosterdates = selected_period.requsr_perm_planner
-                    permit_add_notes = (selected_period.requsr_perm_supervisor || selected_period.requsr_perm_hrman ||
-                                        selected_period.requsr_perm_hrman || selected_period.requsr_acc_hrman)
+                    permit_add_delete_rows = !!selected_period.requsr_perm_supervisor
+                    permit_edit_rows = !!selected_period.requsr_perm_supervisor
+                    permit_lock_rows = !!selected_period.requsr_perm_supervisor
+                    permit_unlock_rows = !!selected_period.requsr_perm_hrman
+
+                    permit_add_notes = (!!selected_period.requsr_perm_supervisor || !!selected_period.requsr_perm_planner ||
+                                        !!selected_period.requsr_perm_hrman || !!selected_period.requsr_acc_hrman)
+
+                    const permit_has_allowed_customers = (!!selected_period.requsr_perm_customers && !!selected_period.requsr_perm_customers.length);
+                    const permit_has_allowed_orders = (!!selected_period.requsr_perm_orders && !!selected_period.requsr_perm_orders.length);
+                    permit_add_delete_rosterdates = (!!selected_period.requsr_perm_planner && !permit_has_allowed_customers && !permit_has_allowed_orders)
 
                     el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period);
                     const header_period_text = get_dict_value(selected_period, ["period_display"], "")
@@ -1437,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){ el_MSO_input_customer.focus() }, 50);
 // ---  show modal
-         $("#id_modselectorder").modal({backdrop: true});
+         $("#id_modselectcustomerorder").modal({backdrop: true});
 }; // MSO_Open
 
 //=========  MSO_Save  ================ PR2020-01-29
@@ -1458,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const datalist_request = { roster_period: roster_period_dict, emplhour: {mode: "get"}};
         DatalistDownload(datalist_request);
 // hide modal
-        $("#id_modselectorder").modal("hide");
+        $("#id_modselectcustomerorder").modal("hide");
     }  // MSO_Save
 
 // +++++++++++++++++ END MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
@@ -2796,10 +2808,11 @@ rowcount: 11
                         log_list = response.logfile
 
                         // hide logfile button when when there is no logfile
-                        add_or_remove_class (el_MRD_btn_logfile, cls_hide, (!log_list.length))
+                        // PR2020-11-09 always hide log btn . Was: add_or_remove_class (el_MRD_btn_logfile, cls_hide, (!log_list.length))
+
                     } else {
                         // hide logfile button when when there is no logfile
-                        add_or_remove_class (el_MRD_btn_logfile, cls_hide, true)
+                        // PR2020-11-09 always hide log btn . Was: add_or_remove_class (el_MRD_btn_logfile, cls_hide, true)
                     };
                 },
                 error: function (xhr, msg) {
@@ -3095,7 +3108,7 @@ rowcount: 11
         el_MRD_btn_cancel.innerText = loc.Cancel;
 
 // hide logfile button when when there is no logfile
-        add_or_remove_class (el_MRD_btn_logfile, cls_hide, (!log_list.length))
+        // PR2020-11-09 always hide log btn . Was: add_or_remove_class (el_MRD_btn_logfile, cls_hide, (!log_list.length))
 
     }  // ModRosterdateEdit
 
@@ -3302,7 +3315,8 @@ rowcount: 11
     }  // function ModRosterdateFinished
 
 //=========  ModRosterdateLogfile  ================ PR2020-03-30
-    function ModRosterdateLogfile () {
+    //PR2020-11-09 not in use any more
+    function ModRosterdateLogfileXXX () {
        //console.log(" ===  ModRosterdateLogfile  =====");
         if (!!log_list && log_list.length > 0 && !!log_file_name) {
             printPDFlogfile(log_list, log_file_name)
@@ -3683,9 +3697,9 @@ rowcount: 11
 
 //=========  MRE_MRO_MSE_MSO_FillSelectRow  ================ PR2020-08-18
     function MRE_MRO_MSE_MSO_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, row_index, selected_pk, rosterdate) {
-        //console.log( "===== MRE_MRO_MSE_MSO_FillSelectRow ========= ");
-        //console.log( "pgeName: ", pgeName, "tblName: ", tblName);
-        //console.log( "map_dict: ", map_dict);
+        console.log( "===== MRE_MRO_MSE_MSO_FillSelectRow ========= ");
+        console.log( "pgeName: ", pgeName, "tblName: ", tblName);
+        console.log( "map_dict: ", map_dict);
 
 //--- loop through data_map
         let ppk_int = null, code_value = null, add_to_list = false, is_selected_pk = false;
@@ -3731,8 +3745,18 @@ rowcount: 11
             const within_range = period_within_range_iso(map_dict.datefirst, map_dict.datelast, rosterdate, rosterdate)
        //console.log( "within_range: ", within_range);
             // don't add current employee in list when list is list of replacement employees
-            const skip_selected_pk = (!mod_dict.is_add_employee && mod_dict.cur_employee_pk && pk_int === mod_dict.cur_employee_pk)
-            add_to_list = (!map_dict.inactive && within_range && !skip_selected_pk);
+            const skip_selected_pk = (!mod_dict.is_add_employee && mod_dict.cur_employee_pk && pk_int === mod_dict.cur_employee_pk);
+            // <PERMIT> 2020-11-07
+            // map_dict.allowed is false when user has allowed_customers / allowed_orders and employee is not in shift of these orders
+            let allowed_employee = false;
+            if (pgeName === "MSE"){
+                // only allowed employees are shown in sidebar select employee
+                allowed_employee = (map_dict.allowed) ? map_dict.code : false;
+            } else {
+                // show all employees in ModRosterEmployee, ModRosterOrder
+                allowed_employee = true;
+            }
+            add_to_list = (!map_dict.inactive && within_range && !skip_selected_pk && allowed_employee);
        }
 
        if (add_to_list){

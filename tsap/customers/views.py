@@ -146,7 +146,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 cd.create_customer_dict(instance, update_dict)
 
                                 customer_listNIU, customer_rows = cd.create_customer_list(
-                                    company=request.user.company,
+                                    request=request,
                                     customer_pk=instance.pk)
                                 updated_customer_rows.extend(customer_rows)
 
@@ -215,7 +215,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 cd.create_order_dict(instance, update_dict)
 
                                 order_listNIU, order_rows = cd.create_order_list(
-                                    company=request.user.company,
+                                    request=request,
                                     order_pk=instance.pk)
                                 updated_order_rows.extend(order_rows)
 

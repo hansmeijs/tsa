@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_align: ["c", "l", "l", "l", "r", "r", "c"]},
             }
         const mapped_absence_fields = {e_code: "employee", o_code: "abscat", s_df: "datefirst", s_dl: "datelast",
-            sh_os_arr: "offsetstart" , sh_oe_arr: "offsetend", sh_bd_arr: "breakduration", sh_td_arr: "timeduration"}
+            sh_os_arr: "offsetstart" , sh_oe_arr: "offsetend", sh_bd_arr: "breakduration", sh_td_arr: "timeduration", rpl_code: "replacement"}
 
         const mapped_employee_fields = {functioncode: "fnc_id", wagecode: "wgc_id", paydatecode: "pdc_id"}
 
@@ -251,46 +251,46 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MSO_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MODAL ABSENCE ------------------------------------
-        let el_MAB_input_employee = document.getElementById("id_MAB_input_employee")
+        const el_MAB_input_employee = document.getElementById("id_MAB_input_employee")
             el_MAB_input_employee.addEventListener("focus", function() {MAB_GotFocus("employee", el_MAB_input_employee)}, false )
             el_MAB_input_employee.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("employee", el_MAB_input_employee)}, 50)});
-        let el_MAB_input_abscat = document.getElementById("id_MAB_input_abscat")
+        const el_MAB_input_abscat = document.getElementById("id_MAB_input_abscat")
             el_MAB_input_abscat.addEventListener("focus", function() {MAB_GotFocus("abscat", el_MAB_input_abscat)}, false )
             el_MAB_input_abscat.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("abscat", el_MAB_input_abscat)}, 50)});
-        let el_MAB_input_replacement = document.getElementById("id_MAB_input_replacement")
+        const el_MAB_input_replacement = document.getElementById("id_MAB_input_replacement")
             el_MAB_input_replacement.addEventListener("focus", function() {MAB_GotFocus("replacement", el_MAB_input_replacement)}, false )
             el_MAB_input_replacement.addEventListener("keyup", function(event){
                     setTimeout(function() {MAB_InputElementKeyup("replacement", el_MAB_input_replacement)}, 50)});
 
-        let el_MAB_datefirst = document.getElementById("id_MAB_input_datefirst")
+        const el_MAB_datefirst = document.getElementById("id_MAB_input_datefirst")
             el_MAB_datefirst.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_datefirst)}, false );
-        let el_MAB_datelast = document.getElementById("id_MAB_input_datelast")
+        const el_MAB_datelast = document.getElementById("id_MAB_input_datelast")
             el_MAB_datelast.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_datelast)}, false );
-        let el_MAB_oneday = document.getElementById("id_MAB_oneday")
+        const el_MAB_oneday = document.getElementById("id_MAB_oneday")
             el_MAB_oneday.addEventListener("change", function() {MAB_DateFirstLastChanged(el_MAB_oneday)}, false );
 
-        let el_MAB_offsetstart = document.getElementById("id_MAB_input_offsetstart")
+        const el_MAB_offsetstart = document.getElementById("id_MAB_input_offsetstart")
             el_MAB_offsetstart.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetstart)}, false );
-        let el_MAB_offsetend = document.getElementById("id_MAB_input_offsetend")
+        const el_MAB_offsetend = document.getElementById("id_MAB_input_offsetend")
             el_MAB_offsetend.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_offsetend)}, false );
-        let el_MAB_breakduration = document.getElementById("id_MAB_input_breakduration")
+        const el_MAB_breakduration = document.getElementById("id_MAB_input_breakduration")
             el_MAB_breakduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_breakduration)}, false );
-        let el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
+        const el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
             el_MAB_timeduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_timeduration)}, false );
-        let el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
+        const el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
             el_MAB_btn_save.addEventListener("click", function() {MAB_Save("save")}, false );
-        let el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
+        const el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
             el_MAB_btn_delete.addEventListener("click", function() {MAB_Save("delete")}, false );
 
 // ---  MODAL SHIFT EMPLOYEE ------------------------------------
-        let el_modshift_filter_order = document.getElementById("id_ModSftEmp_filter_order")
+        const el_modshift_filter_order = document.getElementById("id_ModSftEmp_filter_order")
             el_modshift_filter_order.addEventListener("keyup", function(event){
                     setTimeout(function() {MSE_FilterOrder("modshift", el_modshift_filter_order)}, 50)});
-        let el_modshift_btn_save = document.getElementById("id_ModSftEmp_btn_save");
+        const el_modshift_btn_save = document.getElementById("id_ModSftEmp_btn_save");
             el_modshift_btn_save.addEventListener("click", function() {MSE_Save("save")}, false );
-        let el_modshift_btn_delete = document.getElementById("id_ModSftEmp_btn_delete");
+        const el_modshift_btn_delete = document.getElementById("id_ModSftEmp_btn_delete");
             el_modshift_btn_delete.addEventListener("click", function() {MSE_Save("delete")}, false );
 // ---  create EventListener for select buttons in modshift employee
         btns = document.getElementById("id_ModSftEmp_btns_container").children;
@@ -298,23 +298,23 @@ document.addEventListener('DOMContentLoaded', function() {
             btn = btns[i];
             btn.addEventListener("click", function() {MSE_BtnShiftoption_Clicked(btn)}, false )
         }
-        let el_modshift_absence = document.getElementById("id_ModSftEmp_input_absence");
+        const el_modshift_absence = document.getElementById("id_ModSftEmp_input_absence");
             el_modshift_absence.addEventListener("change", function() {MSE_AbsenceClicked(el_modshift_absence)}, false );
-        let el_modshift_offsetstart = document.getElementById("id_ModSftEmp_input_offsetstart")
+        const el_modshift_offsetstart = document.getElementById("id_ModSftEmp_input_offsetstart")
             el_modshift_offsetstart.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_offsetstart)}, false );
-        let el_modshift_offsetend = document.getElementById("id_ModSftEmp_input_offsetend");
+        const el_modshift_offsetend = document.getElementById("id_ModSftEmp_input_offsetend");
             el_modshift_offsetend.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_offsetend)}, false );
-        let el_modshift_breakduration = document.getElementById("id_ModSftEmp_input_breakduration");
+        const el_modshift_breakduration = document.getElementById("id_ModSftEmp_input_breakduration");
             el_modshift_breakduration.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_breakduration)}, false );
-        let el_modshift_timeduration = document.getElementById("id_ModSftEmp_input_timeduration");
+        const el_modshift_timeduration = document.getElementById("id_ModSftEmp_input_timeduration");
             el_modshift_timeduration.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timeduration)}, false );
-        let el_modshift_datefirst = document.getElementById("id_ModSftEmp_input_datefirst");
+        const el_modshift_datefirst = document.getElementById("id_ModSftEmp_input_datefirst");
             el_modshift_datefirst.addEventListener("change", function() {MSE_DateFirstLastClicked(el_modshift_datefirst)}, false );
-        let el_modshift_datelast = document.getElementById("id_ModSftEmp_input_datelast");
+        const el_modshift_datelast = document.getElementById("id_ModSftEmp_input_datelast");
             el_modshift_datelast.addEventListener("change", function() {MSE_DateFirstLastClicked(el_modshift_datelast)}, false );
-        let el_modshift_onceonly = document.getElementById("id_ModSftEmp_onceonly");
+        const el_modshift_onceonly = document.getElementById("id_ModSftEmp_onceonly");
             el_modshift_onceonly.addEventListener("change", function() {MSE_OnceOnly()}, false );
-        let el_modshift_oneday = document.getElementById("id_ModSftEmp_oneday");
+        const el_modshift_oneday = document.getElementById("id_ModSftEmp_oneday");
             el_modshift_oneday.addEventListener("change", function() {MSE_OneDay()}, false );
 // ---  create EventListener for buttons weekdays in modShft
         btns = document.getElementById("id_ModSftEmp_weekdays").children;
@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
             company: {value: true},
             employee_rows: {get: true},
 
-            customer_list: {isabsence: false, istemplate: false, inactive: false},
-            order_list: {isabsence: false, istemplate: false, inactive: false},
+            customer_rows: {isabsence: false, istemplate: false, inactive: false},
+            order_rows: {isabsence: false, istemplate: false, inactive: false},
             abscat_rows: {get: true},
             absence_rows: {get: true},
             teammember_list: {employee_nonull: false, is_template: false},
@@ -465,9 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function refresh_maps(response) {
         //console.log("refresh_maps: ", response)
 
-        if ("company_dict" in response) {
-            company_dict = response["company_dict"];
-        }
+        if ("company_dict" in response) {company_dict = response.company_dict}
 
         if ("employee_rows" in response) { refresh_datamap(response["employee_rows"], employee_map, "employee")}
         if ("abscat_rows" in response) {refresh_datamap(response["abscat_rows"], abscat_map, "abscat")};
@@ -495,7 +493,8 @@ document.addEventListener('DOMContentLoaded', function() {
             //PrintEmployeePlanning("preview", selected_planning_period, planning_map, company_dict,
             //    label_list, pos_x_list, colhdr_list, loc.timeformat, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang);
       //  }
-//----------------------------------------
+
+//------------- employee_planning_list  -----------------------
         if ("employee_planning_listNEW" in response) {
            const employee_planning_listNEW = response["employee_planning_listNEW"]
 
@@ -517,7 +516,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("employee_planning_order_dictlist" in response) {
             employee_planning_order_dictlist = response.employee_planning_order_dictlist
         }
-//----------------------------------------
+//-------------  end of employee_planning_list  ---------------------------
+
         HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
         if ("employee_calendar_list" in response) {
@@ -1952,7 +1952,9 @@ if(pgeName === "absence"){
             orderby_rosterdate_customer: false
         };
         let datalist_request = {planning_period: selected_planning_period,
-                                employee_planning: employee_planning_dict};
+                                //employee_planning: employee_planning_dict,
+                                employee_planningNEW: {mode: "get"}
+                                };
         DatalistDownload(datalist_request);
 
         $("#id_mod_period").modal("hide");
@@ -2190,7 +2192,9 @@ if(pgeName === "absence"){
         //if (selected_MSEF_pk > 0 ){upload_dict["employee_pk"] = selected_MSEF_pk }
 
         let datalist_request = {planning_period: selected_planning_period,
-                                employee_planning: employee_planning_dict};
+                                // employee_planning: employee_planning_dict,
+                                employee_planningNEW: {mode: "get"}
+                                };
         DatalistDownload(datalist_request);
 
         $("#id_mod_period").modal("hide");
@@ -2422,7 +2426,7 @@ if(pgeName === "absence"){
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){ el_MSO_input_customer.focus() }, 50);
 // ---  show modal
-         $("#id_modselectorder").modal({backdrop: true});
+         $("#id_modselectcustomerorder").modal({backdrop: true});
 }; // MSO_Open
 
 //=========  MSO_Save  ================ PR2020-01-29
@@ -2446,7 +2450,7 @@ if(pgeName === "absence"){
         SBR_DisplaySelectEmployeeOrder();
         FillPlanningRows();
 // hide modal
-        $("#id_modselectorder").modal("hide");
+        $("#id_modselectcustomerorder").modal("hide");
     }  // MSO_Save
 
 //=========  MSO_InputKeyup  ================ PR2020-11-01
@@ -2492,7 +2496,6 @@ if(pgeName === "absence"){
         const data_map = (tblName === "customer") ? customer_map : // only used in MSO
                          (tblName === "order") ? order_map : null;
 
-
         //console.log( "data_map: ", data_map);
         const select_header_text = ( (tblName === "customer") ? loc.Select_customer :
                                      (tblName === "order") ? loc.Select_order : "" ) + ":";
@@ -2512,7 +2515,7 @@ if(pgeName === "absence"){
             add_to_list = MSO_FillSelectRow(map_dict, tblBody_select, tblName, -1, selected_pk, mod_dict.rosterdate);
             if(add_to_list){ row_count += 1};
         };
-
+        //console.log( "row_count: ", row_count);
 // ---  disable input_order when no orders or only 1 order in tblName 'order'
         // disable when 'All customers' is set in MSO_SetHeaderAndEnableBtnSave
         if (tblName === "order") {mod_dict.order_count = row_count};
@@ -2560,14 +2563,16 @@ if(pgeName === "absence"){
         if(tblName === "customer") {
             ppk_int =  map_dict.comp_id;
             code_value = map_dict.code;
-            // only add to list when customer is in  employee_planning_customer_list
-            add_to_list = (pk_int in employee_planning_customer_dictlist);
+            // only add to list when customer is in employee_planning_customer_list
+            // or when row is 'All customers' (then pk_int = 0)
+            add_to_list = (pk_int === 0 || pk_int in employee_planning_customer_dictlist);
 
         } else if(tblName === "order") {
             ppk_int =  map_dict.c_id;
             code_value =  map_dict.code;
             // only add to list when parent = customer and order is in employee_planning_customer_list
-            add_to_list = (ppk_int === mod_dict.customer_pk && pk_int in employee_planning_order_dictlist)
+            // or when row is 'All orders' (then pk_int = 0)
+            add_to_list = ((pk_int === 0) || (ppk_int === mod_dict.customer_pk && pk_int in employee_planning_order_dictlist))
        }
 
        if (add_to_list){
@@ -3365,7 +3370,8 @@ if(pgeName === "absence"){
         return msg_err;
     }
 
-// +++++++++++++++++ MODAL ABSENCE +++++++++++++++++++++++++++++++++++++++++++
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++  MODAL ABSENCE  +++++++++++++++++++++++++++++++++++++++++
 
 //=========  ModAbsence_Open  ================  PR2020-05-14 PR2020-09-10
     function MAB_Open(el_input) {
@@ -3958,6 +3964,7 @@ if(pgeName === "absence"){
         mod_MAB_dict.replacement_datefirst = get_dict_value(map_dict, ["datefirst"])
         mod_MAB_dict.replacement_datelast = get_dict_value(map_dict, ["datelast"])
     }  // MAB_SetReplacementDict
+
 //========= MAB_SetAbscatDict  ============= PR2020-09-09
     function MAB_SetAbscatDict(data_pk){
         //console.log( "=== MAB_SetAbscatDict ===", data_pk);
@@ -3968,7 +3975,10 @@ if(pgeName === "absence"){
         mod_MAB_dict.order_code = (abscat_dict) ? (abscat_dict.o_code) ? abscat_dict.o_code.replace(/~/g,"") : null : null;
     }  // MAB_SetAbscatDict
 
-// +++++++++++++++++ MODAL SHIFT EMPLOYEE +++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++  END OF MODAL ABSENCE  ++++++++++++++++++++++++++++++++++
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++ MODAL SHIFT EMPLOYEE ++++++++++++++++++++++++++++++++++++
 //=========  MSE_Open  ================ PR2019-10-28 PR2020-04-06
     function MSE_Open(el_input) {
         //console.log(" -----  MSE_Open   ----")
@@ -6422,7 +6432,8 @@ console.log( "reset mod_dict: ");
     function HandlePrintPlanning(option){
         // function creates list in format needed for print planning  PR2020-10-12
         //console.log(" === HandlePrintPlanning ===")
-        //console.log("employee_planning_selected_employee_pk", employee_planning_selected_employee_pk)
+        //console.log("planning_short_list_sorted", planning_short_list_sorted)
+
         if (planning_short_list_sorted){
 
             const employee_planning_customer_list = get_dict_value(employee_planning_customer_dictlist, [employee_planning_selected_customer]);
@@ -6446,6 +6457,8 @@ console.log( "reset mod_dict: ");
                     add_to_list = employee_planning_order_list.includes(employee_pk);
                 } else if (has_selected_customer) {
                     add_to_list = employee_planning_customer_list.includes(employee_pk);
+                } else {
+                    add_to_list = true;
                 }
         // in detail_mode: when 'no employee' selected: show only shifts of selected customer / order
                 if (add_to_list && employee_pk === -1) {

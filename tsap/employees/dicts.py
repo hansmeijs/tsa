@@ -11,6 +11,7 @@ from tsap import constants as c
 from companies import models as m
 from planning import views as plv
 from planning import rosterfill as plrf
+from planning import employeeplanning as emplan
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,37 +22,45 @@ def create_employee_rows(request_item, msg_dict, request):
     #     add messages to employee_row
     #logger.debug(' =============== create_employee_rows ============= ')
 
+    # get list of allowed employees i.e. when user has permitcustomers or permitorders,
+    # the allowed employees are the employees or replacemenet employees of the allowed customers / orders
+    allowed_employees_list = f.get_allowed_employees_and_replacements(request)
+    #logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
+
+    sql_keys = {'compid': request.user.company.pk}
+    allowed_str = ''
+    if allowed_employees_list:
+        allowed_str = "(e.id IN (SELECT UNNEST(%(eid_arr)s::INT[]))) AS allowed,"
+        sql_keys['eid_arr'] = allowed_employees_list
+    else:
+        allowed_str = "TRUE AS allowed,"
+
     employee_pk_list = request_item.get('employee_pk_list')
     employee_pk = request_item.get('employee_pk')
     datefirst_iso = request_item.get('datefirst')
     datelast_iso = request_item.get('datelast')
     is_inactive = request_item.get('inactive')
 
-    sql_keys = {'compid': request.user.company.pk}
-
-    sql_list = []
-    sql_list.append(""" SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,
-        e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
-        e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,
-        fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
-        e.locked, e.inactive, 
-        CONCAT('employee_', e.id::TEXT) AS mapid
-
-        FROM companies_employee AS e 
-        LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id) 
-        LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id) 
-        LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
-
-        WHERE (e.company_id = %(compid)s::INT)
-        """)
+    sql_list = ["SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,",
+        "e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,",
+        "e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,",
+        "fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
+        "e.locked, e.inactive, ",
+        allowed_str,
+        "CONCAT('employee_', e.id::TEXT) AS mapid",
+        "FROM companies_employee AS e",
+        "LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id)",
+        "LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id)",
+        "LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id)",
+        "WHERE (e.company_id = %(compid)s::INT)"]
 
     if employee_pk_list:
         # when employee_pk_list has value: skip other filters
-        sql_list.append('AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )' )
+        sql_list.append("AND e.id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )")
         sql_keys['eid_arr'] = employee_pk_list
     elif employee_pk:
         # when employee_pk has value: skip other filters
-        sql_list.append(' AND (e.id = %(eid)s::INT)')
+        sql_list.append("AND (e.id = %(eid)s::INT)")
         sql_keys['eid'] = employee_pk
     else:
         if datefirst_iso:
@@ -84,43 +93,43 @@ def create_employee_rows(request_item, msg_dict, request):
 # --- end of create_employee_rows
 
 
-def create_employee_list(company, user_lang, is_inactive=None, datefirst_iso=None, datelast_iso=None, employee_pk=None):
+def create_employee_list(request, user_lang, is_inactive=None, datefirst_iso=None, datelast_iso=None, employee_pk=None):
     # --- create list of all active employees of this company PR2019-06-16
     #logger.debug(' --- create_employee_list   ')
     # PR2020-05-11 with Django model it took 10 seconds - with sql it takes ??? to be tested
 
     #logger.debug(' =============== create_employee_list ============= ')
+    company = request.user.company
 
     sql_filter = {'compid': company.pk}
-    sql_list = [""" SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,
-        e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,
-        e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,
-        fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code, pdc.id AS pdc_id, pdc.code AS pdc_code, 
-        e.locked, e.inactive, 
-        CONCAT('employee_', e.id::TEXT) AS mapid
-        
-        FROM companies_employee AS e 
-        LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id) 
-        LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id) 
-        LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id) 
- 
-        WHERE (e.company_id = %(compid)s::INT)
-        """]
+    sql_list = ["SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast,",
+                "e.namelast, e.namefirst, e.email, e.telephone, e.address, e.zipcode, e.city, e.country,",
+                "e.identifier, e.payrollcode, e.workhoursperweek, e.leavedays, e.workminutesperday,",
+                "fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
+                "e.locked, e.inactive,",
+                "CONCAT('employee_', e.id::TEXT) AS mapid",
+                "FROM companies_employee AS e",
+                "LEFT JOIN companies_wagecode AS wgc ON (wgc.id = e.wagecode_id)",
+                "LEFT JOIN companies_wagecode AS fnc ON (fnc.id = e.functioncode_id)",
+                "LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = e.paydatecode_id)",
+                "WHERE (e.company_id = %(compid)s::INT)"]
+
     if employee_pk:
         # when employee_pk has value: skip other filters
-        sql_list.append(' AND (e.id = %(eid)s::INT)')
+        sql_list.append("AND (e.id = %(eid)s::INT)")
         sql_filter['eid'] = employee_pk
     else:
         if datefirst_iso:
-            sql_list.append(' AND (e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL)')
+            sql_list.append("AND (e.datelast >= CAST(%(rdf)s AS DATE) OR e.datelast IS NULL)")
             sql_filter['rdl'] = datelast_iso
         if datelast_iso:
-            sql_list.append('AND (e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL)')
+            sql_list.append("AND (e.datefirst <= CAST(%(rdl)s AS DATE) OR e.datefirst IS NULL)")
             sql_filter['rdl'] = datelast_iso
         if is_inactive is not None:
-            sql_list.append('AND (e.inactive = CAST(%(inactive)s AS BOOLEAN))')
+            sql_list.append("AND (e.inactive = CAST(%(inactive)s AS BOOLEAN))")
             sql_filter['inactive'] = is_inactive
-    sql_list.append('ORDER BY LOWER(e.code)')
+    sql_list.append("ORDER BY LOWER(e.code)")
+
     sql_employee = ' '.join(sql_list)
     newcursor = connection.cursor()
     newcursor.execute(sql_employee, sql_filter)
@@ -1136,8 +1145,9 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
                         payrollperiod_detail_list.extend(detail_listONEDAY)
 
                 else:
+                    """
     # - if not: add planning day of this rosterdate
-                    dict_listNIU, short_list, logfileNIU = plrf.create_employee_planning(
+                    dict_listNIU, short_listXX, logfileNIU = plrf.create_employee_planning(
                         datefirst_iso=rosterdate_iso,
                         datelast_iso=rosterdate_iso,
                         customer_pk=customer_pk,
@@ -1152,6 +1162,22 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
                         timeformat=timeformat,
                         user_lang=user_lang,
                         request=request)
+                    """
+                    #logger.debug(' ')
+                    #logger.debug('short_list: ')
+                    #for row in short_list:
+                    #    logger.debug('      ' + str(row))
+
+        # PR2020-11-08 replaced by this one
+                    planning_period_dict = {'period_datefirst': rosterdate_iso, 'period_datelast': rosterdate_iso}
+
+                    short_list, customer_dictlist, order_dictlist, elapsed_seconds = \
+                    emplan.create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request)
+
+                    #logger.debug(' ')
+                    #logger.debug('planning_list: ')
+                    #for row in planning_list:
+                    #    logger.debug('      ' + str(row))
 
                     # - add rows to all_rows
                     payrollperiod_detail_list.extend(short_list)

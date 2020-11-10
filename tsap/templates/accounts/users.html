@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Users' %}{% endblock %}
 
 {% block script %}
-<script src="{% static 'js/users201030.js' %}"></script>
+<script src="{% static 'js/users201109.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -25,6 +25,8 @@
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectuserfromemployee.html' %}
+ <!-- =================== MODAL SELECT MULIPLE CUSTOMERS / ORDERS  =================== -->
+        {% include 'includes/modselectmultiple.html' %}
 <!-- =================== MODAL USER  =================== -->
         {% include 'accounts/moduser.html' %}
 
@@ -48,6 +50,7 @@
             <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                 <button data-btn="btn_user_list" class="btn btn-secondary ">{% trans 'User list' %}</button>
                 <button data-btn="btn_permissions" class="btn btn-secondary ">{% trans 'Permissions' %}</button>
+                <button data-btn="btn_allowedlocations" class="btn btn-secondary ">{% trans 'Allowed customers and orders' %}</button>
             </div>
 <!-- end BUTTON GROUP -->
 <!-- END OF CONTENT HEADER -->

@@ -116,28 +116,29 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11 PR2020-07-26
     else:
 # get last rosterdate of Emplhour
         # in SQL:
+        sql_keys = {'comp_id': request.user.company_id}
+        sql_list =["SELECT MAX(eh.rosterdate) AS max_eh_rd",
+                    "FROM companies_emplhour AS eh",
+                    "INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id)",
+                    "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                    "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                    "WHERE (c.company_id = %(comp_id)s)"]
+        sql = ' '.join(sql_list)
+
         newcursor = connection.cursor()
-        newcursor.execute("""
-                    SELECT MAX(eh.rosterdate) AS max_eh_rd
-                    FROM companies_emplhour AS eh 
-                    INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
-                    INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
-                    INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                    WHERE (c.company_id = %(comp_id)s)
-                    """, {
-            'comp_id': request.user.company_id,
-        })
-        max_rosterdate_list = newcursor.fetchall()
+        newcursor.execute(sql, sql_keys)
+
         max_rosterdate = None
-        if max_rosterdate_list:
-            max_rosterdate_tuple = max_rosterdate_list[0]
-            if max_rosterdate_tuple:
-                max_rosterdate = max_rosterdate_tuple[0]
+        max_rosterdate_tuple = newcursor.fetchone()
+        if max_rosterdate_tuple:
+            max_rosterdate = max_rosterdate_tuple[0]
+
         # or in django:
         # max_rosterdate_dict = m.Emplhour.objects.\
         #    filter(orderhour__order__customer__company=request.user.company).\
         #    aggregate(Max('rosterdate'))
         # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
+
         if max_rosterdate:
             # was: rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
             rosterdate = max_rosterdate
@@ -1673,7 +1674,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                    'requsr_pk': request.user.pk
                    }
 
-    #logger.debug(' update_dict: ' + str(update_dict))
+    # <PERMIT>
+    # put all permits in update_dict
     if request.user.is_perm_employee:
         update_dict['requsr_perm_employee'] = request.user.is_perm_employee
     if request.user.is_perm_planner:
@@ -1686,6 +1688,10 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['requsr_perm_accman'] = request.user.is_perm_accman
     if request.user.is_perm_sysadmin:
         update_dict['requsr_perm_sysadmin'] = request.user.is_perm_sysadmin
+    if request.user.permitcustomers:
+        update_dict['requsr_perm_customers'] = request.user.permitcustomers
+    if request.user.permitorders:
+        update_dict['requsr_perm_orders'] = request.user.permitorders
 
     if customer_pk:
         update_dict['customer_pk'] = customer_pk
@@ -1893,7 +1899,7 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
 
 
 # ========================================================================
-def create_emplhour_deletedrows(period_dict, request, last_emplhour_check):
+def create_deletedrows_from_emplhourlog(period_dict, request, last_emplhour_check):
     # get deleted rows from emplhourlog  # PR2020-08-23
 
     period_datefirst = period_dict.get('period_datefirst')
@@ -2012,17 +2018,13 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         # instead:
         # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
         # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
-
-        sql_keys = {'comp_id': company_pk}
-
-        sql_list = []
-        sql_list.append( """SELECT eh.id, 
+        """SELECT eh.id, 
             oh.id AS oh_id, 
             o.id AS o_id, 
             c.id AS c_id, 
             c.company_id AS comp_id, 
             CONCAT('emplhour_', eh.id::TEXT) AS mapid,
-            
+
             eh.rosterdate, 
             eh.exceldate,
 
@@ -2032,13 +2034,13 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             oh.shiftcode,
             eh.employee_id, 
             eh.employeecode ,
-            
+
             eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,
             eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration, 
-            
+
             eh.functioncode_id AS fnc_id,
             fnc.code AS fnc_code,
-            
+
             eh.wagefactorcode_id AS wfc_id,
             wfc.code AS wfc_code,
             eh.wagefactor,
@@ -2073,7 +2075,28 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id) 
 
             WHERE (c.company_id = %(comp_id)s)
-            """)
+        """
+
+        sql_keys = {'comp_id': company_pk}
+        sql_list = ["SELECT eh.id, oh.id AS oh_id, o.id AS o_id, c.id AS c_id, c.company_id AS comp_id,  CONCAT('emplhour_', eh.id::TEXT) AS mapid,",
+        "eh.rosterdate, eh.exceldate, oh.customercode, oh.ordercode,CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
+        "oh.shiftcode, eh.employee_id, eh.employeecode, eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,",
+        "eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration,",
+        "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, eh.wagefactorcode_id AS wfc_id, wfc.code AS wfc_code, eh.wagefactor,",
+        "eh.haschanged, eh.status, (MOD(eh.status, 2) = 1) AS stat_planned, (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending,",
+        "(TRUNC( MOD(eh.status, 8) / 4) = 1) AS stat_start_conf, (TRUNC( MOD(eh.status, 16) / 8) = 1) AS stat_end_pending,",
+        "(TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf, (TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,",
+        "eh.lockedpaydate AS stat_pay_locked, oh.lockedinvoice AS stat_inv_locked,",
+        "c.isabsence AS c_isabsence,   oh.isrestshift AS oh_isrestshift,   oh.issplitshift AS oh_issplitshift, eh.isreplacement AS eh_isrpl,",
+        "eh.overlap AS eh_ov, eh.modifiedat AS eh_modat, COALESCE(SUBSTRING (u.username, 7), '') AS u_usr, eh.hasnote",
+        "FROM companies_emplhour AS eh",
+        "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+        "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "LEFT JOIN accounts_user AS u ON (u.id = eh.modifiedby_id)",
+        "LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id)",
+        "LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id)",
+        "WHERE (c.company_id = %(comp_id)s)"]
 
         if eplh_update_list:
             # no filter on rosterdate when filter on emplhour_pk
@@ -2085,12 +2108,45 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
             sql_text += ')'
             sql_list.append(sql_text)
         else:
-            sql_list.append("""AND CASE WHEN eh.offsetstart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
-                               AND CASE WHEN eh.offsetend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END""")
+            sql_list.append("AND CASE WHEN eh.offsetstart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END")
+            sql_list.append("AND CASE WHEN eh.offsetend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END")
             sql_keys['rdf'] = rosterdatefirst
             sql_keys['rdfm1'] = rosterdatefirst_minus1
             sql_keys['rdl'] = rosterdatelast
             sql_keys['rdlp1'] = rosterdatelast_plus1
+
+    # ////////////////////////////////////////
+    # <PERMIT> PR2020-11-07
+    # - when request.user.permitcustomers or request.user.permitorders have value: show only allowed customers / orders
+    #  - TODO also show absence records of employees of allowed allowed customers / orders
+            allowed_employees_list = f.get_allowed_employees_and_replacements(request)
+
+            permitcustomers_list = []
+            if request.user.permitcustomers:
+                for c_id in request.user.permitcustomers:
+                    permitcustomers_list.append(c_id)
+
+            permitorders_list = []
+            if request.user.permitorders:
+                for o_id in request.user.permitorders:
+                    permitorders_list.append(o_id)
+
+            sql_items = ''
+            if permitcustomers_list:
+                sql_items += 'OR c.id IN ( SELECT UNNEST( %(cid_arr)s::INT[])) '
+                sql_keys['cid_arr'] = permitcustomers_list
+            if permitorders_list:
+                sql_items += 'OR o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[])) '
+                sql_keys['oid_arr'] = permitorders_list
+            if permitcustomers_list or permitorders_list:
+                if allowed_employees_list:
+                    sql_items += 'OR eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[])) '
+                    sql_keys['eid_arr'] = allowed_employees_list
+            if sql_items:
+                sql_list.append('AND ( ' + sql_items[3:] + ')')
+            #logger.debug('sql_list: ' + str(sql_list))
+    # end of <PERMIT> PR2020-11-07
+    # ////////////////////////////////////////
 
             if order_pk:
                 sql_list.append('AND o.id = %(ord_id)s')
@@ -2147,6 +2203,9 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         newcursor = connection.cursor()
         newcursor.execute(sql_emplhour,sql_keys)
         emplhour_rows = f.dictfetchall(newcursor)
+        #for qr in connection.queries:
+            #logger.debug('-----------------------------------------------------------------------------')
+            #logger.debug(str(qr))
         return emplhour_rows
 # ---  end of create_emplhour_rows
 
@@ -2156,6 +2215,7 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
     #logger.debug(' ============= create_emplhour_list ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
     #logger.debug('is_emplhour_check: ' + str(is_emplhour_check))
+
     #logger.debug('request.user: ' + str(request.user.username_sliced))
 
     last_emplhour_check = None
@@ -2212,7 +2272,7 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
     if not no_updates:
         emplhour_rows = create_emplhour_rows(period_dict, request, last_emplhour_check)
     if not no_deletes:
-        emplhours_deleted_rows = create_emplhour_deletedrows(period_dict, request, last_emplhour_check)
+        emplhours_deleted_rows = create_deletedrows_from_emplhourlog(period_dict, request, last_emplhour_check)
         #logger.debug('emplhours_deleted_rows: ' + str(emplhours_deleted_rows))
         if emplhours_deleted_rows:
             emplhour_rows.extend(emplhours_deleted_rows)

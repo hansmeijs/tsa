@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/customers201030.js' %}"></script>
+    <script src="{% static 'js/customers201109.js' %}"></script>
     <script src="{% static 'js/calendar201030.js' %}"></script>
 {% endblock %}
 
@@ -84,10 +84,10 @@
 <!-- end class content_header -->
 <!-- BUTTON GROUP -->
             <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                <button type="button" data-btn="customer" class="btn btn-secondary">{% trans 'Customers' %}</button>
-                <button type="button" data-btn="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
-                <button type="button"  data-btn="calendar" class="btn btn-secondary display_hide">{% trans 'Calendar' %}</button>
-                <button type="button"  data-btn="planning" class="btn btn-secondary display_hide">{% trans 'Planning' %}</button>
+                <button data-btn="customer" class="btn btn-secondary">{% trans 'Customers' %}</button>
+                <button data-btn="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
+                <button data-btn="calendar" class="btn btn-secondary display_hide">{% trans 'Calendar' %}</button>
+                <button data-btn="planning" class="btn btn-secondary display_hide">{% trans 'Planning' %}</button>
             </div>
     <!-- end BUTTON GROUP -->
 
@@ -97,7 +97,7 @@
             <div class="content_body ml-2 mr-0">
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_container_datatable" class="tab_show tab_customer tab_order tab_planning display_hideXX">
-                     <table class="table tsa_tbl">
+                    <table class="table tsa_tbl">
                         <thead id="id_tblHead_datatable"></thead>
                         <tbody id="id_tblBody_datatable"></tbody>
                         <tfoot id="id_tblFoot_datatable"></tfoot>

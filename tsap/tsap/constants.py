@@ -168,6 +168,8 @@ DATEPART03_AFTERNOONSHIFT_END = 1080  # end of afternoon shift 18.00 u
 # 0 = normal, 10 = replacement
 TEAMMEMBER_CAT_0512_ABSENCE = 512
 
+EMPLOYEE_DEFAULT_WORKMINUTES = 480
+
 # PR2020-04-07 bonus added upon registering
 ENTRY_CAT_00_CHARGED = 0
 ENTRY_CAT_01_SPARE = 1

@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/schemes201030.js' %}"></script>
+    <script src="{% static 'js/schemes201109.js' %}"></script>
     <script src="{% static 'js/calendar201030.js' %}"></script>
 {% endblock %}
 
@@ -148,6 +148,8 @@
     {% include 'includes/modabsence.html' %}
 <!-- =================== CONFIRM =================== -->
     {% include 'includes/confirm.html' %}
+<!-- =================== MODAL PERIOD  =================== -->
+    {% include 'includes/modselectperiod.html' %}
 
 <!-- =================== CONTAINER =================== -->
 
@@ -177,7 +179,7 @@
             <button type="button" data-btn="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shift list' %}</button>
             <button type="button" data-btn="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
             <button type="button" data-btn="btn_teammember" class="btn btn-secondary ">{% trans 'Teammembers' %}</button>
-            <button type="button" data-btn="btn_absence" class="btn btn-secondary">{% trans 'Absence' %}</button>
+            <button id="id_btn_absence" type="button" data-btn="btn_absence" class="btn btn-secondary">{% trans 'Absence' %}</button>
         </div>
 <!-- end BUTTON GROUP -->
 

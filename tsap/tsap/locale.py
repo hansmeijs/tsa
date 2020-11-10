@@ -58,7 +58,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['Select'] = _('Select ')
 
     dict['Customer'] = TXT_Customer
-    dict['Customers'] =  _('Customers')
+    dict['Customers'] = _('Customers')
+    dict['Orders'] = _('Orders')
     dict['All_customers'] = _('All customers')
     dict['No_customers'] = _('No customers')
     dict['Customers_and_orders'] = _('Customers and orders') if not is_custom else 'Klanten en projecten'
@@ -713,6 +714,20 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Copy'] = pgettext_lazy('Copying --- to order', 'Copy ')
         dict['to_order'] = pgettext_lazy('Copying --- to order', ' to order')
 
+
+        # print planning
+        dict['Company'] = TXT_Company
+        dict['Planning'] = TXT_Planning
+        dict['of'] = TXT_of
+        dict['Print_date'] = TXT_Print_date
+        dict['Total_hours'] = TXT_Total_hours
+        dict['Page'] = TXT_Page
+
+        dict['period_select_list'] = TXT_Period_planning_list
+        dict['Print_planning'] = TXT_Print_planning
+        dict['Preview_planning'] = TXT_Preview_planning
+        dict['Download_planning'] = TXT_Download_planning
+
         dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
 
@@ -1122,6 +1137,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['HR_manager'] = _('HR manager')
         dict['HR_manager_2lines'] =  pgettext_lazy('2 lines', 'HR\nmanager')
         dict['Supervisor'] = _('Supervisor')
+        dict['Planner'] = _('Planner')
         dict['Account_manager'] = _('Account manager')
         dict['Account_manager_2lines'] =  pgettext_lazy('2 lines', 'Account\nmanager')
         dict['System_administrator'] = _('System administrator')
@@ -1131,6 +1147,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Sysadm_cannot_remove_sysadm_perm'] = _("System administrators cannot remove their own 'system administrator' permission.")
         dict['Sysadm_cannot_set_readonly'] = _("System administrators cannot set their own permission to 'read-only'.")
         dict['Sysadm_cannot_set_inactive'] = _("System administrators cannot make their own account inactive.")
+
+
+        dict['Allowed_customers'] = _('Allowed customers')
+        dict['Allowed_orders'] = _('Allowed orders')
 
         dict['Username'] = _('Username')
         dict['Name'] = _('Name')
