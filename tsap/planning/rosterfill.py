@@ -20,7 +20,7 @@ from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as pld
 from planning import views as plv
-from planning import employeeplanning as plempl
+from planning import employeeplanning as emplan
 from companies import subscriptions as subscr
 
 from tsap.settings import TIME_ZONE
@@ -1001,7 +1001,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
 # ---  create employee_list with employees:
         # - not inactive
         # - in service on rosterdate
-        employee_dictlist = plempl.create_employee_dictlist(request=request,
+        employee_dictlist = emplan.create_employee_dictlist(request=request,
                                                      datefirst_iso=rosterdate_iso,
                                                      datelast_iso=rosterdate_iso,
                                                      employee_pk_list=[],
@@ -1023,7 +1023,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         # instead of everything in AGGARR: because it must be possible to delete double abensce shifts. Is only possible with separate tm  abs listlsit
 
         # eid_tmsid_arr:  {2608: ['2084_4170', '2058_3826']}
-        eid_tmsid_arr = plempl.get_eid_tmsid_arr(
+        eid_tmsid_arr = emplan.get_eid_tmsid_arr(
             request=request,
             rosterdate_iso=rosterdate_iso,
             is_publicholiday=is_publicholiday,
@@ -1039,7 +1039,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         #  tm_si_id_info = { '1802_3998': {'tm_si_id': '1802_3998', 'tm_id': 1802, 'si_id': 3998, 'e_id': 2620,
         #                                       'rpl_id': 2619, 'switch_id': None, 'isabs': False, 'isrest': True,
         #                                       'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'o_seq': -1},
-        tm_si_id_info = plempl.get_teammember_info (
+        tm_si_id_info = emplan.get_teammember_info (
             request=request,
             rosterdate_iso=rosterdate_iso,
             is_publicholiday=is_publicholiday,
@@ -1049,7 +1049,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         )
 
 # ---  remove overlapping absence- / restshifts
-        plempl.remove_double_absence_restrows(eid_tmsid_arr, tm_si_id_info)  # PR2020-10-23
+        emplan.remove_double_absence_restrows(eid_tmsid_arr, tm_si_id_info)  # PR2020-10-23
         # #logger.debug('----- tm_si_id_info after remove: ')
         # for key, value in tm_si_id_info.items():
         #    #logger.debug('..... ' + str(key) + ': ' + str(value))
@@ -1062,11 +1062,12 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         # - with rosterdate within range datefirst-datelast of teammember, scheme and order
         # - with schemeitem that matches rosterdate or is divergentonpublicholiday schemeitem when is_publicholiday
         # when order_pk has value: get only the shifts of the orders in order_pk_list
-        teammember_list = plempl.create_teammember_list(request=request,
+        teammember_list = emplan.emplan_create_teammember_list(request=request,
                                 rosterdate_iso=rosterdate_iso,
                                 is_publicholiday=is_publicholiday,
                                 is_companyholiday=is_companyholiday,
-                                order_pk_list=[])
+                                order_pk_list=[],
+                                employee_pk_list=[])
         #logger.debug('----- teammember_list: ')
         #for value in teammember_list:
         #    #logger.debug('..... ' + str(value))
@@ -1091,7 +1092,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
 
         for i, row in enumerate(sorted_rows):
             # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-            add_row = plempl.calculate_add_row_to_dictNEW(
+            add_row = emplan.calculate_add_row_to_dictNEW(
                 row=row,
                 employee_dictlist=employee_dictlist,
                 eid_tmsid_arr=eid_tmsid_arr,
@@ -1399,9 +1400,15 @@ def add_emplhour(row, orderhour, employee_dictlist, tm_si_id_info, is_absence, i
                             note = str(_('Replaces ')) + absent_e_code
                         else:
                             note = absent_e_code + str(_(' is absent'))
+                            # TODO add abscat  - note: row.get('o_code') gives order of normal shift, not the absact
+                            # TODO note_absence_o_code is not working yet
+                            #note_absent_o_code = row.get('note_absent_o_code')
+                            # if note_absent_o_code:
+                            #    note += ' (' + note_absent_o_code + ')'
 
 # - create note in absence shift
         # put 'Absent from' in new emplhour, get note from tm_si_id_info
+        # threfore absence rows must come last in sorted rows (sort on o_seq, normal shifts have o_seq=-1
             if is_absence:
                 tm_si_id = str(tm_id) + '_' + str(si_id)
                 #logger.debug('>>>>>>>>>>>>>>>>>>>>> tm_si_id: ' + str(tm_si_id))

@@ -228,7 +228,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- teammember
                     request_item = datalist_request.get('teammember_list')
                     if request_item:
-                        dict_list = ed.create_teammember_list(
+                        dict_list = ed.ed_create_teammember_list(
                             filter_dict=request_item,
                             company=request.user.company,
                             user_lang=user_lang)
@@ -623,7 +623,7 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
                 datalists['abscat_list'] = abscat_list
 # - get teammember_list list, create one if not exists
         filter_dict = {'employee_nonull': False, 'is_template': False, 'is_absence': True}
-        dict_list = ed.create_teammember_list(
+        dict_list = ed.ed_create_teammember_list(
             filter_dict=filter_dict,
             company=request.user.company,
             user_lang=user_lang)
@@ -1003,7 +1003,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                     if team_list:
                         update_wrap['team_list'] = team_list
 
-                    teammember_list = ed.create_teammember_list(
+                    teammember_list = ed.ed_create_teammember_list(
                         filter_dict={'isabsence': None},
                         company=request.user.company,
                         user_lang=user_lang)
@@ -1517,7 +1517,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                         if schemeitem_list:
                             update_wrap['schemeitem_list'] = schemeitem_list
 
-                        teammember_list = ed.create_teammember_list(
+                        teammember_list = ed.ed_create_teammember_list(
                             filter_dict={'isabsence': False},
                             company=request.user.company,
                             user_lang=user_lang)
@@ -1777,7 +1777,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
         if parent.order:
             order_pk = parent.order.pk
         table_dict = {'order_pk': order_pk}
-        teammember_list = ed.create_teammember_list(table_dict, request.user.company, user_lang)
+        teammember_list = ed.ed_create_teammember_list(table_dict, request.user.company, user_lang)
         if teammember_list:
             update_wrap['teammember_list'] = teammember_list
 

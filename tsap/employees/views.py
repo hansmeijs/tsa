@@ -208,96 +208,101 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
         #logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
+        # <PERMIT> PR2020-11-10
+        #  - supervisor, planner and hr_man can add / edit / delete absence
+
         has_permit = False
+        has_permit_absence = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_planner or request.user.is_perm_hrman)
-        if has_permit:
+            has_permit_absence = (has_permit or request.user.is_perm_supervisor)
+
 # 1. Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
+        # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        activate(user_lang)
 
 # b. get comp_timezone and timeformat and interval
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-            interval = request.user.company.interval if request.user.company.interval else 15
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+        interval = request.user.company.interval if request.user.company.interval else 15
 
 # 2. get upload_dict from request.POST
-            upload_json = request.POST.get("upload")
-            if upload_json:
-                upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+        upload_json = request.POST.get("upload")
+        if upload_json:
+            upload_dict = json.loads(upload_json)
+            #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
-            # quicksave is saved in UploadUserSettings
+        # quicksave is saved in UploadUserSettings
 
 # 4. get iddict variables
-                # mode = f.get_dict_value(upload_dict, ('id','mode'))
-                shift_option = f.get_dict_value(upload_dict, ('id', 'shiftoption'))
-                #logger.debug('shift_option: ' + str(shift_option))
+            # mode = f.get_dict_value(upload_dict, ('id','mode'))
+            shift_option = f.get_dict_value(upload_dict, ('id', 'shiftoption'))
+            #logger.debug('shift_option: ' + str(shift_option))
 
-                # key 'mode' is used in calendar_employee_upload etc .
-                # from customer_calendar shiftoption': 'schemeshift'
-                # from employee calendar : mode: "create" shiftoption: "issingleshift" "isabsence"
-                # from planning: shiftoption: "grid_team"
+            # key 'mode' is used in calendar_employee_upload etc .
+            # from customer_calendar shiftoption': 'schemeshift'
+            # from employee calendar : mode: "create" shiftoption: "issingleshift" "isabsence"
+            # from planning: shiftoption: "grid_team"
 
-                if shift_option == 'isabsence':
-                    update_wrap['updated_absence_rows'] = absence_upload(request, upload_dict, user_lang)
+            if shift_option == 'isabsence' and has_permit_absence:
+                update_wrap['updated_absence_rows'] = absence_upload(request, upload_dict, user_lang)
 
-                elif shift_option == 'issingleshift':
-                    #logger.debug('------------ shift_option: ' + str(shift_option))
-                    # called by employee page, calendar
-                    calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
+            elif shift_option == 'issingleshift' and has_permit:
+                #logger.debug('------------ shift_option: ' + str(shift_option))
+                # called by employee page, calendar
+                calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
 
-                    # TODO holiday_dict has no value. Is necessary??
-                    # update_wrap['holiday_dict'] = holiday_dict
+                # TODO holiday_dict has no value. Is necessary??
+                # update_wrap['holiday_dict'] = holiday_dict
 
-                    # function create_updated_employee_calendar_list adds the follwing items to update_wrap:
-                    # 'scheme_list', 'team_list', 'shift_list', 'teammember_list', 'schemeitem_list']
+                # function create_updated_employee_calendar_list adds the follwing items to update_wrap:
+                # 'scheme_list', 'team_list', 'shift_list', 'teammember_list', 'schemeitem_list']
 
-                    update_wrap = create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang, request)
-                    if calendar_dictlist:
-                        update_wrap['employee_calendar_list'] = calendar_dictlist
-                    if logfile:
-                        update_wrap['logfile'] = logfile
+                update_wrap = create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang, request)
+                if calendar_dictlist:
+                    update_wrap['employee_calendar_list'] = calendar_dictlist
+                if logfile:
+                    update_wrap['logfile'] = logfile
 
-                elif shift_option == 'schemeshift':
-                    # 'table' has no value in mode 'schemeshift'
+            elif shift_option == 'schemeshift' and has_permit:
+                # 'table' has no value in mode 'schemeshift'
 
-                    calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
-                    if calendar_dictlist:
-                        update_wrap['employee_calendar_list'] = calendar_dictlist
-                    if logfile:
-                        update_wrap['logfile'] = logfile
+                calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
+                if calendar_dictlist:
+                    update_wrap['employee_calendar_list'] = calendar_dictlist
+                if logfile:
+                    update_wrap['logfile'] = logfile
 
-                    create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, timeformat, user_lang, request)
+                create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, timeformat, user_lang, request)
 
-                elif shift_option == 'grid_team':
-                    # 'table' has no value in mode 'grid_team'
-                    update_wrap = grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
+            elif shift_option == 'grid_team' and has_permit:
+                # 'table' has no value in mode 'grid_team'
+                update_wrap = grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
 
-                elif shift_option == 'grid_shift':
-                    # 'table' has no value in mode 'grid_team'
-                    update_wrap = grid_shift_upload(request, upload_dict, user_lang)
+            elif shift_option == 'grid_shift' and has_permit:
+                # 'table' has no value in mode 'grid_team'
+                update_wrap = grid_shift_upload(request, upload_dict, user_lang)
 
-                else:
-                    # TODO change to shift_option
-                    table = f.get_dict_value(upload_dict, ('id','table'), '')
-                    #logger.debug('table: ' + str(table))
-                    if table == 'teammember':
-                        update_dict = teammember_upload(request, upload_dict, user_lang)
-                        update_wrap['teammember_update'] = update_dict
+            elif has_permit:
+                # TODO change to shift_option
+                table = f.get_dict_value(upload_dict, ('id','table'), '')
+                #logger.debug('table: ' + str(table))
+                if table == 'teammember':
+                    update_dict = teammember_upload(request, upload_dict, user_lang)
+                    update_wrap['teammember_update'] = update_dict
 
-                if shift_option in ('issingleshift', 'schemeshift'):
-                    # get saved calendar_period_dict
-                    period_dict = {'get': True}
-                    calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
-                                                                 comp_timezone, timeformat, interval, user_lang, request)
+            if shift_option in ('issingleshift', 'schemeshift'):
+                # get saved calendar_period_dict
+                period_dict = {'get': True}
+                calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
+                                                             comp_timezone, timeformat, interval, user_lang, request)
 
-                    datefirst_iso = calendar_period_dict.get('rosterdatefirst')
-                    datelast_iso = calendar_period_dict.get('rosterdatelast')
-                    #logger.debug('datefirst_iso: ' + str(datefirst_iso))
-                    #logger.debug('datelast_iso: ' + str(datelast_iso))
+                datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                datelast_iso = calendar_period_dict.get('rosterdatelast')
+                #logger.debug('datefirst_iso: ' + str(datefirst_iso))
+                #logger.debug('datelast_iso: ' + str(datelast_iso))
 
 
 # - return update_wrap
@@ -761,7 +766,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     if shift_rows:
         update_wrap['shift_rows'] = shift_rows
 
-    teammember_list = ed.create_teammember_list(
+    teammember_list = ed.ed_create_teammember_list(
         filter_dict=filter_dict,
         company=request.user.company,
         user_lang=user_lang)
@@ -4541,7 +4546,7 @@ def create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang,
         if shift_rows:
             update_wrap['shift_rows'] = shift_rows
 
-        teammember_list = ed.create_teammember_list(
+        teammember_list = ed.ed_create_teammember_list(
             filter_dict=filter_dict,
             company=request.user.company,
             user_lang=user_lang)
@@ -4615,7 +4620,7 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
     if shift_rows:
         update_wrap['shift_rows'] = shift_rows
 
-    teammember_list = ed.create_teammember_list(
+    teammember_list = ed.ed_create_teammember_list(
         filter_dict=filter_dict,
         company=request.user.company,
         user_lang=user_lang)

@@ -3507,12 +3507,12 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
     return overlap_dict
 
 
-
 def get_allowed_employees_and_replacements(request):
     #logger.debug(' --- get_allowed_employees_and_replacements --- ')
     # - get list of employees and replacements of allowed customers / orders  PR2020-11-07
     # returns empty list when all employees are allowed
 
+    sql_keys = {'compid': request.user.company.pk}
     sql_list = ["SELECT tm.employee_id, tm.replacement_id",
                 "FROM companies_teammember AS tm",
                 "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
@@ -3520,8 +3520,6 @@ def get_allowed_employees_and_replacements(request):
                 "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
                 "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
                 "WHERE c.company_id = %(compid)s"]
-
-    sql_keys = {'compid': request.user.company.pk}
 
     permitcustomers_list = []
     if request.user.permitcustomers:

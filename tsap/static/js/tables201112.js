@@ -569,14 +569,14 @@
 // ++++++++++++  FILTER PAYROLL TABLES +++++++++++++++++++++++++++++++++++++++
 //========= t_SetExtendedFilterDict  ======================== PR2020-07-12 PR2020-08-29
     function t_SetExtendedFilterDict(el, col_index, filter_dict, event_key) {
-        console.log( "===== t_SetExtendedFilterDict  ========= ");
-        console.log( "col_index ", col_index, "event_key ", event_key);
+       //console.log( "===== t_SetExtendedFilterDict  ========= ");
+       //console.log( "col_index ", col_index, "event_key ", event_key);
         // filter_dict = [ ["text", "m", ""], ["duration", 180, "gt"] ]
 
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
         const filter_tag = get_attr_from_el(el, "data-filtertag")
-        console.log( "filter_tag ", filter_tag);
+       //console.log( "filter_tag ", filter_tag);
 
         const col_count = tblRow.cells.length
         let mode = "", filter_value = null, skip_filter = false;
@@ -696,7 +696,7 @@
                 };
             }
         }
-        console.log( "filter_dict ", filter_dict);
+       //console.log( "filter_dict ", filter_dict);
         return skip_filter;
     }  // t_SetExtendedFilterDict
 
@@ -732,10 +732,10 @@
                             const el = cell.children[0];
                             if (el){
                                 if (filter_tag === "triple"){
-                                    console.log( "el", el);
+                                   //console.log( "el", el);
                                     const cell_value = get_attr_from_el_int(el, "data-filter")
-                                    console.log( "cell_value", cell_value);
-                                    console.log( "filter_value", filter_value);
+                                   //console.log( "cell_value", cell_value);
+                                   //console.log( "filter_value", filter_value);
                                     if (filter_value === 2){
                                         // show only rows with tickmark
                                         if (!cell_value) { hide_row = true}
@@ -751,13 +751,13 @@
 
                         const arr = filter_dict[index_str];
                         const col_index = Number(index_str);
-       // console.log( "col_index", col_index);
+       //console.log( "col_index", col_index);
 
                         // filter text is already trimmed and lowercase
                         const filter_tag = arr[0];
                         const filter_value = arr[1];
                         const filter_mode = arr[2];
-       // console.log( "filter_tag", filter_tag);
+       //console.log( "filter_tag", filter_tag);
 
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
 
@@ -2589,20 +2589,22 @@
 
             if (!(employee_pk in agg_dict) ) {
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
-                const employee_code = (dict.e_code) ? dict.e_code : "---";
+                const employee_code = (map_dict.code) ? map_dict.code : "---";
+                const employee_allowed = (map_dict.allowed) ? map_dict.allowed : false;
                 const workhoursperday = get_dict_value(map_dict, ["workhoursperweek", "value"], 0 ) / 5
                 const contracthours_sum =  period_workingdays * workhoursperday;
 
                 agg_dict[employee_pk] = [
                     employee_pk,
                     employee_code,
+                    employee_allowed,
                     contracthours_sum,
-                    0, //  agg_row[3] = plannedhours
-                    0  // agg_row[4] = absencehours
+                    0, //  agg_row[4] = plannedhours
+                    0  // agg_row[5] = absencehours
                 ];
             }
-            if(dict.plandur) { agg_dict[employee_pk][3] += dict.plandur};
-            if(dict.absdur) { agg_dict[employee_pk][4] += dict.absdur};
+            if(dict.plandur) { agg_dict[employee_pk][4] += dict.plandur};
+            if(dict.absdur) { agg_dict[employee_pk][5] += dict.absdur};
         });
 
         //console.log( "agg_dict ", agg_dict);
@@ -2613,7 +2615,7 @@
         if(-1 in agg_dict) {
             const agg_row = get_dict_value(agg_dict, [-1])
             let plannedhours = 0;
-            if (agg_row){ plannedhours = agg_row[3]};
+            if (agg_row){ plannedhours = agg_row[4]};
             const row = [-1, "---", period_workingdays, 0, plannedhours, 0, 0];
             planning_agg_list.push(row)
             row_count += 1;
@@ -2656,8 +2658,8 @@
 
                     const agg_row = get_dict_value(agg_dict, [employee_pk])
                     if (agg_row){
-                        plannedhours = agg_row[3];
-                        absencehours = agg_row[4];
+                        plannedhours = agg_row[4];
+                        absencehours = agg_row[5];
                     }
                     difference = plannedhours + absencehours - contracthours;
 
@@ -2687,40 +2689,42 @@
             let td_html = [];
             const employee_pk = item[0];
             const employee_code = (item[1]) ? item[1] : "";
-
+            const employee_allowed = (item[2]) ? item[2] : true;
+            if(employee_allowed){
 // --- put values of agg_dict in proper column
-            let row_data = item;
-// add margin column
-            td_html[0] =  "<td><div class=\"ta_c\"></div></td>"
-// add employee_code
-            const display_text = (employee_code) ? employee_code : "---";
-            td_html[1] = "<td><div>" + display_text + "</div></td>"
-// add working days
-            td_html[2] = "<td><div class=\"ta_c\">" + item[2], + "</div></td>"
-// --- add contract_hours worked_hours, absence_hours, difference
-            for (let i = 3; i < 7; i++) {
-                let duration_formatted = format_total_duration (item[i], loc.user_lang);
+                let row_data = item;
+    // add margin column
+                td_html[0] =  "<td><div class=\"ta_c\"></div></td>"
+    // add employee_code
+                const display_text = (employee_code) ? employee_code : "---";
+                td_html[1] = "<td><div>" + display_text + "</div></td>"
+    // add working days
+                td_html[2] = "<td><div class=\"ta_c\">" + item[2], + "</div></td>"
+    // --- add contract_hours worked_hours, absence_hours, difference
+                for (let i = 3; i < 7; i++) {
+                    let duration_formatted = format_total_duration (item[i], loc.user_lang);
 
-                td_html[i] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-            }
-// add margin at the end
-            td_html[7] = "<td><div class=\"ta_c\"></div></td>"
-// --- add filter_data
-            let filter_data = [];
-            filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
-            filter_data[2] = (item[2]) ? item[2] : null
-            for (let i = 3; i < 7; i++) {
-                filter_data[i] = (item[i]) ? item[i] : null
-            }
+                    td_html[i] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
+                }
+    // add margin at the end
+                td_html[7] = "<td><div class=\"ta_c\"></div></td>"
+    // --- add filter_data
+                let filter_data = [];
+                filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
+                filter_data[2] = (item[2]) ? item[2] : null
+                for (let i = 3; i < 7; i++) {
+                    filter_data[i] = (item[i]) ? item[i] : null
+                }
 
-//--- put td's together
-            let row_html = "";
-            for (let j = 0, item; item = td_html[j]; j++) {
-                if(item){row_html += item};
+    //--- put td's together
+                let row_html = "";
+                for (let j = 0, item; item = td_html[j]; j++) {
+                    if(item){row_html += item};
+                }
+                //  html_planning_agg_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+                const row = [true, employee_pk, filter_data, row_data, row_html];
+                html_planning_agg_list.push(row);
             }
-            //  html_planning_agg_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-            const row = [true, employee_pk, filter_data, row_data, row_html];
-            html_planning_agg_list.push(row);
         }  //  for (let i = 0, item;
 
     }  // CreateHTML_planning_agg_list

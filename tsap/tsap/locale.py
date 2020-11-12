@@ -491,6 +491,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         # excel
         dict['Overview_rosterhours'] = _("Overview of roster hours")
         dict['Overview_rosterhours_per_category'] = _("Overview of roster hours per category")
+        dict['Total'] = TXT_Total
 
         # menu
         dict['Show_report'] = TXT_Show_report

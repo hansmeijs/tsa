@@ -663,12 +663,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if(!isEmpty(map_dict)){
                 let has_permit = (!!permit_value);
-        console.log( "permit_value", permit_value);
-        console.log( "has_permit", has_permit);
 
                 const requsr_pk = selected_period.requsr_pk;
                 const is_request_user = (requsr_pk && requsr_pk === map_dict.id)
-        console.log( "is_request_user", is_request_user);
 
 // show message when sysadmin tries to delete sysadmin permit or add readonly
                 if(fldName === "perm64_sysadmin" && is_request_user && has_permit ){
@@ -705,7 +702,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }  // for (let i = 0,
 
 // ---  change icon, before uploading
-        console.log( "new_permit_value", new_permit_value);
                     el_div.setAttribute("data-value", permit_value);
                     add_or_remove_class (el_div, "tickmark_1_2", !!new_permit_value, "tickmark_0_0");
 // ---  upload changes
@@ -850,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  MSU_InputChanged  ================ PR2020-08-03
     function MSU_InputChanged(el_input) {
         //console.log("========= MSU_InputChanged ===" );
-       // console.log("mod_dict",mod_dict );
+        //console.log("mod_dict",mod_dict );
 
         const fldName = get_attr_from_el(el_input, "data-field");
         let field_value = el_input.value;
@@ -872,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSU_select_employee ================ PR2020-08-03
     function MSU_select_employee(tblRow) {
-        console.log( "===== MSU_select_employee ========= ");
+       //console.log( "===== MSU_select_employee ========= ");
         // tblRow is the selected tblRow in the employee table of Mod_Select_Employee
 // ---  deselect all highlighted rows in the select employee table
         DeselectHighlightedRows(tblRow, cls_selected)
@@ -1125,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ MODAL SELECT MULTIPLE CUSTOMERS / ORDERS +++++++++++++++++++++++++++++++++++++++++++
 //========= MSM_Open ====================================  PR2020-11-02
     function MSM_Open (el_input) {
-        console.log(" ===  MSM_Open  =====") ;
+       //console.log(" ===  MSM_Open  =====") ;
 
         const tblRow = get_tablerow_selected(el_input);
         if(tblRow){
@@ -1136,15 +1132,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const fldName = get_attr_from_el(el_input, "data-field");
             mod_dict.data_field = fldName;
             mod_dict.data_array = mod_dict[fldName]
-        console.log("mod_dict", mod_dict) ;
 
             const lookup_table = (fldName === "permitcustomers") ? "customer" : "order";
 
     // ---  set header text
             const cust_order = (lookup_table === "customer") ? loc.Customers : loc.Orders;
             const header_text = loc.Select + cust_order.toLowerCase() + ":";
-            console.log("header_text", header_text) ;
-            console.log("document.getElementById(id_MSM_hdr_multiple)", document.getElementById("id_MSM_hdr_multiple")) ;
             document.getElementById("id_MSM_hdr_multiple").innerText = header_text;
 
             el_MSM_input.value = null;
@@ -1219,40 +1212,39 @@ document.addEventListener('DOMContentLoaded', function() {
         let tblBody_select = el_MSM_tblbody_select;
         tblBody_select.innerText = null;
 
-        let row_count = 0, add_to_list = false;
+        let has_selected_rows = false;
 //--- loop through data_map
         for (const [map_id, lookup_dict] of data_map.entries()) {
-            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, -1);
-            row_count += 1;
+            const pk_int = lookup_dict.id;
+            const row_is_selected = (pk_int && mod_dict.data_array && mod_dict.data_array.includes(pk_int))
+            const row_index = -1;
+            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, row_is_selected, row_index);
+            if(row_is_selected){has_selected_rows = true}
         };
-        if(!row_count){
-// ---  add 'none' at the beginning of the list, when no items found
-            const lookup_dict = (lookup_table === "customer") ? {id: -1, code: "<" + loc.No_customers + ">"} :
-                                                      {id: -1, c_o_code: "<" + loc.No_orders + ">"};
-            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, 0)
-        } else {
-// ---  add 'all' at the beginning of the list, only when multiple items found
-            const lookup_dict = (lookup_table === "customer") ? {id: 0, code: "<" + loc.All_customers + ">"} :
-                                                      {id: 0, c_o_code: "<" + loc.All_orders + ">"};
-            MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, 0)
-        }
+
+// ---  add 'all' at the beginning of the list, with id = 0, make selected if no other rows are selected
+        const lookup_dict = (lookup_table === "customer") ? {id: 0, code: "<" + loc.All_customers + ">"} :
+                                                  {id: 0, c_o_code: "<" + loc.All_orders + ">"};
+        const row_is_selected = !has_selected_rows;
+        const row_index = 0;
+        MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, row_is_selected, row_index)
+
     }  // MSM_FillSelectTable
 
 //=========  MSM_FillSelectRow  ================ PR2020-08-18
-    function MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, row_index) {
+    function MSM_FillSelectRow(tblBody_select, lookup_dict, lookup_table, row_is_selected, row_index) {
         //console.log( "===== MSM_FillSelectRow ========= ");
         //console.log("lookup_table: ", lookup_table, "lookup_dict: ", lookup_dict);
 
 //--- loop through data_map
         const pk_int = lookup_dict.id;
-        const row_has_tickmark = (pk_int && mod_dict.data_array && mod_dict.data_array.includes(pk_int))
         const code_value = (lookup_table === "customer") ? lookup_dict.code : lookup_dict.c_o_code;
 
 // ---  insert tblRow  //index -1 results in that the new row will be inserted at the last position.
         let tblRow = tblBody_select.insertRow(row_index);
         tblRow.setAttribute("data-pk", pk_int);
 
-        tblRow.setAttribute("data-selected", (row_has_tickmark) ? "1" : "0")
+        tblRow.setAttribute("data-selected", (row_is_selected) ? "1" : "0")
 
 // ---  add EventListener to tblRow, not when 'no items' (pk_int is then -1
         if (pk_int > -1) {
@@ -1265,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
             td.classList.add("mx-1", "tw_032")
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
         let el = document.createElement("div");
-            const el_class = (row_has_tickmark) ? "tickmark_0_2" : "tickmark_0_0";
+            const el_class = (row_is_selected) ? "tickmark_0_2" : "tickmark_0_0";
             el.classList.add(el_class)
         td.appendChild(el);
 // ---  add first td to tblRow.
@@ -1275,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el = document.createElement("div");
             el.innerText = code_value;
         td.appendChild(el);
+
     }  // MSM_FillSelectRow
 
 //=========  MSM_SelecttableClicked  ================ PR2020-08-19
@@ -1288,13 +1281,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
             add_or_remove_class(tblRow.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
             // row 'all' has pk = 0
-            // set all others also when clicked on 'all'
-            const pk_int = get_attr_from_el_int(tblRow, "data-pk");
-            if(pk_int === 0) {
-                const tblBody_select = el_MSM_tblbody_select;
-                for (let i = 0, row; row = tblBody_select.rows[i]; i++) {
-                    row.setAttribute("data-selected", (is_selected) ? "1" : "0")
-                    add_or_remove_class(row.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
+            if(is_selected){
+                const pk_int = get_attr_from_el_int(tblRow, "data-pk");
+                const tblBody_select = tblRow.parentNode;
+                for (let i = 0, lookup_row; lookup_row = tblBody_select.rows[i]; i++) {
+                    const lookup_pk_int = get_attr_from_el_int(lookup_row, "data-pk");
+
+                    // remove tickmark on all other items when 'all' is selected
+                    // remove  tickmark on 'all' when other item is selected
+                    let remove_selected = (pk_int === 0) ? (lookup_pk_int !== 0) : (lookup_pk_int === 0);;
+                    if(remove_selected){
+                        lookup_row.setAttribute("data-selected", "0");
+                        add_or_remove_class(lookup_row.cells[0].children[0], "tickmark_0_2", false, "tickmark_0_0") ;;
+                    }
                 }
             }
         }
@@ -1528,8 +1527,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  refresh_usermap_item  ================ PR2020-08-16
     function refresh_usermap_item(update_dict) {
-        console.log(" --- refresh_usermap_item  ---");
-        console.log("update_dict", update_dict);
+       //console.log(" --- refresh_usermap_item  ---");
+       //console.log("update_dict", update_dict);
         if(!isEmpty(update_dict)){
 // ---  update or add update_dict in user_map
             let updated_columns = [];
@@ -1574,10 +1573,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!isEmpty(old_map_dict)){
                     // skip first column (is margin)
                     for (let i = 1, col_field, old_value, new_value; col_field = field_names[i]; i++) {
-                            console.log("++++ col_field", col_field);
+                           //console.log("++++ col_field", col_field);
                         if (col_field in old_map_dict && col_field in update_dict){
-                            console.log("old_map_dict[col_field]", old_map_dict[col_field]);
-                            console.log("update_dict[col_field]", update_dict[col_field]);
+                           //console.log("old_map_dict[col_field]", old_map_dict[col_field]);
+                           //console.log("update_dict[col_field]", update_dict[col_field]);
                             let not_the_same = false;
                             if ( Array.isArray(old_map_dict[col_field]) && Array.isArray(update_dict[col_field]) ){
                                 not_the_same = !arrayEquals(old_map_dict[col_field], update_dict[col_field])
@@ -1593,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  make update
             // note: when updated_columns is empty, then updated_columns is still true.
             // Therefore don't use Use 'if !!updated_columns' but use 'if !!updated_columns.length' instead
-            console.log("updated_columns", updated_columns);
+           //console.log("updated_columns", updated_columns);
             if(tblRow && updated_columns.length){
     // ---  make entire row green when row is created
                 if(updated_columns.includes("created")){

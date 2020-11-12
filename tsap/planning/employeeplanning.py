@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
-    #logger.debug('   ')
-    #logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
+    logger.debug('   ')
+    logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
     #logger.debug('planning_period_dict: ' + str(planning_period_dict))
 
     datefirst_iso = planning_period_dict.get('period_datefirst')
@@ -38,32 +38,67 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
         customer_dictlist = {}
         order_dictlist = {}
 
-# - when only shifts of order_pk are selected
+        employee_pk_list, employee_pk_nonull, order_pk_list = [], [], []
+        employee_pk_list_from_order = []
+        show_none = False
+
+# - get list of allowed employees when user has permitcustomers or permitorders,
+        # - get list of employees and replacements of allowed customers / orders  PR2020-11-07
+        # - returns empty list when all employees are allowed
+        # - no other filters are used in this function
+        allowed_employees_list = f.get_allowed_employees_and_replacements(request)
+        logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
+        logger.debug('order_pk: ' + str(order_pk))
+
+# - when only shifts of order_pk are selected (when called by planning page)
         # - employee_pk_list is a list of all employees and replacements and empty employee of this order
         # - order_pk_list is a list of all orders of these employees (except empty employee)
         # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
-        employee_pk_list, employee_pk_nonull, order_pk_list = [], [], []
         if order_pk:
             # this function first a list of all employees and replacements of this order
             # - only when order and customer are active and not istemplate
             # note: list includes employees that are inactive or not in service
             # PR2020-11-09 debug: must also add absence replacement employees
-            employee_pk_list = get_employeeplanning_employee_pk_list(order_pk, request)
+            employee_pk_list_from_order = get_employeeplanning_employee_pk_list(order_pk, request)
+            logger.debug('employee_pk_list_from_order: ' + str(employee_pk_list_from_order))
+            if not employee_pk_list_from_order:
+                show_none = True
+
+        if not show_none:
+            if employee_pk_list_from_order:
+                if allowed_employees_list:
+                    for pk in employee_pk_list_from_order:
+                        if pk in allowed_employees_list:
+                            employee_pk_list.append(pk)
+                    if not employee_pk_list:
+                        show_none = True
+                else:
+                    employee_pk_list = employee_pk_list_from_order
+            else:
+                if allowed_employees_list:
+                    employee_pk_list = allowed_employees_list
+
+        logger.debug('employee_pk_list_from_order: ' + str(employee_pk_list_from_order))
+        if employee_pk_list:
             employee_pk_nonull = get_employees_active_inservce(employee_pk_list, datefirst_iso, datelast_iso, request)
+            logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
             # make a list of absence replacements of the employees in employee_pk_nonull
             # - replacements that are also in employee_pk_nonull are skipped
             # - add absence replacements to employee_pk_nonull
             absence_replacement_pk_list = get_employeeplanning_absence_replacement_pk_list (employee_pk_nonull, datefirst_iso, datelast_iso, request)
+            logger.debug('absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
             if absence_replacement_pk_list:
                 employee_pk_nonull.extend(absence_replacement_pk_list)
             #logger.debug('..... employee_pk_list: ' + str(employee_pk_list))
             #logger.debug('..... absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
-            #logger.debug('..... employee_pk_nonull: ' + str(employee_pk_nonull))
+            logger.debug('..... employee_pk_nonull: ' + str(employee_pk_nonull))
 
             # this function first makes  a list of all orders of the employees of the selected order_pk
             # - only when customer, order and scheme are active and not istemplate
             # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
             order_pk_list = get_employeeplanning_order_list(employee_pk_nonull, request)
+            logger.debug('order_pk_list: ' + str(order_pk_list))
+
 
 # ---  create employee_list with employees:
         # - not inactive
@@ -125,6 +160,7 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
 # ---  create list with info of teammember- / absence- / restshifts of this rosterdate as dict with key = tm_si_id
             #  tm_si_id_info = { '1802_3998': {'tm_si_id': '1802_3998', 'tm_id': 1802, 'si_id': 3998, 'e_id': 2620,
             #                                       'rpl_id': 2619, 'switch_id': None, 'isabs': False, 'isrest': True,
+
             #                                       'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'o_seq': -1},
             tm_si_id_info = get_teammember_info (
                 request=request,
@@ -149,11 +185,12 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             # - with rosterdate within range datefirst-datelast of teammember, scheme and order
             # - with schemeitem that matches rosterdate or is divergentonpublicholiday schemeitem when is_publicholiday
             # when order_pk has value: get only the shifts of the orders in order_pk_list
-            teammember_list = create_teammember_list(request=request,
+            teammember_list = emplan_create_teammember_list(request=request,
                                     rosterdate_iso=rosterdate_iso,
                                     is_publicholiday=is_publicholiday,
                                     is_companyholiday=is_companyholiday,
-                                    order_pk_list=order_pk_list)
+                                    order_pk_list=order_pk_list,
+                                    employee_pk_list=employee_pk_nonull)
             #logger.debug('----- teammember_list: ')
             #for value in teammember_list:
             #    #logger.debug('..... ' + str(value))
@@ -270,6 +307,8 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 
 # create note when employee is absent
         note_absent_eid = row.get('note_absent_eid')
+        # TODO note_absence_o_code is not working yet
+        # note_absence_o_code =  row.get('note_absence_o_code')
         note = None
         if note_absent_eid is not None:
             # employee_dictlist: { 2608: {'id': 2608, 'comp_id': 3, 'code': 'Colpa de, William',
@@ -281,6 +320,10 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                 #logger.debug('absent_e_code: ' + str(absent_e_code))
                 if absent_e_code:
                     note = absent_e_code + str(_(' is absent'))
+                    # TODO add abscat
+                    # if abscat_order_code:
+                    #    note += ' (' + abscat_order_code + ')'
+
                 #logger.debug('note: ' + str(note))
             #logger.debug('employee_dictlist: ' + str(employee_dictlist))
 
@@ -409,6 +452,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 
                     'note': note,
                     'note_absent_eid': note_absent_eid,
+                    # 'note_absence_o_code': note_absence_o_code,
                     'isreplacement': is_replacement
         }
         #if note_absent_eid:
@@ -477,8 +521,8 @@ def create_employee_dictlist(request, datefirst_iso, datelast_iso, employee_pk_l
 # --- end of create_employee_dictlist
 
 
-def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list):
-    #logger.debug(' ------------- create_teammember_dict ----------------- ')
+def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list, employee_pk_list):
+    #logger.debug(' ------------- emplan_create_teammember_dict ----------------- ')
     #logger.debug('order_pk_list' + str(order_pk_list))
     #logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
     # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11
@@ -544,8 +588,12 @@ def create_teammember_list(request, rosterdate_iso, is_publicholiday, is_company
         "AND (o.datefirst <= %(rd)s::DATE OR o.datefirst IS NULL) AND (o.datelast  >= %(rd)s::DATE OR o.datelast IS NULL)"]
 
     if order_pk_list:
-        sql_list.append('AND o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[] ) )')
+        sql_list.append("AND o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[] ) )")
         sql_keys['oid_arr'] = order_pk_list
+
+    if employee_pk_list:
+        sql_list.append("AND (tm.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) ) OR tm.employee_id IS NULL)")
+        sql_keys['eid_arr'] = employee_pk_list
 
     sql = ' '.join(sql_list)
 
@@ -648,7 +696,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
         if employee_exists_inservice_active:
     # -  employee exists, is in service and is active:
             #logger.debug('teammember has employee: ' + str(e_id))
-            has_overlap, lookup_rpl_id, absence_tm_si_id = \
+            has_overlap, lookup_rpl_id, absence_tm_si_id, absence_o_code = \
                 check_employee_for_absence_or_overlap(
                     row=row,
                     e_id=e_id,
@@ -660,8 +708,9 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
                 rpl_id = lookup_rpl_id
                 row['note_absent_eid'] = e_id
                 row['note_absence_tm_si_id'] = absence_tm_si_id
+                # TODO note_absence_o_code is not working yet
+                # row['note_absence_o_code'] = absence_o_code
                 #logger.debug('employee has_overlap')
-                # TODO add 'absent from to absent row
                 absence_tm_si_id_dict = tm_si_id_info.get(absence_tm_si_id)
                 if absence_tm_si_id_dict:
                     row_sh_code = row.get('sh_code')
@@ -698,7 +747,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
             if replacement_exists_inservice_active:
                 #logger.debug('replacement exists, is inservice and is active')
     # - check if replacement employee is absent or has rest shift or has overlap with other shift:
-                replacement_has_overlap, rpl_idNIU, absence_tm_si_idNIU = \
+                replacement_has_overlap, rpl_idNIU, absence_tm_si_idNIU, absence_o_codeNIU = \
                     check_employee_for_absence_or_overlap(
                         row=row,
                         e_id=rpl_id,
@@ -862,6 +911,7 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
     has_overlap = False
     rpl_id = None
     absence_tm_si_id = None
+    absence_o_code = None
     if e_id is not None:
 
 # - get list of teammembers (shifts) of employee
@@ -906,7 +956,7 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
                     # - when is_replacement:
                     #   - also skip shift when shift has overlap with a normal shift of replacement
 
-                    this_tm_has_overlap, this_tm_rpl_id, lookup_tm_si_id = \
+                    this_tm_has_overlap, this_tm_rpl_id, lookup_tm_si_id, lookup_o_code = \
                         has_overlap_with_other_shift(
                             row_tm_id=row_tm_id,
                             row_si_id=row_si_id,
@@ -923,6 +973,7 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
                         # used to put 'absent from' in absence row
                         if lookup_tm_si_id:
                             absence_tm_si_id = lookup_tm_si_id
+                            absence_o_code = lookup_o_code
 
 # ---  check if teammember has replacement employee:
 # ---  if not check if absence has replacement employee:
@@ -942,7 +993,7 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
     #logger.debug('     has_overlap: ' + str(has_overlap) + ' replacement employee: ' + str(rpl_id))
     #logger.debug('------------ end of check_employee_for_absence_or_overlap ----------------------- ')
 
-    return has_overlap, rpl_id, absence_tm_si_id
+    return has_overlap, rpl_id, absence_tm_si_id, absence_o_code
 #  ----- end of check_employee_for_absence_or_overlap
 
 
@@ -965,6 +1016,7 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
     has_overlap = False
     absence_rpl_id = None
     lookup_tm_si_id = None
+    lookup_o_code = None
 
     # tm_si_id_info = {
     #    '1802_3998': {'tm_si_id': '1802_3998', 'tm_id': 1802, 'si_id': 3998, 'e_id': 2620, 'rpl_id': 2619,
@@ -980,6 +1032,7 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
             lookup_tm_id = tm_si_info.get('tm_id')
             lookup_si_id = tm_si_info.get('si_id')
             lookup_tm_si_id = tm_si_info.get('tm_si_id')
+            lookup_o_code = tm_si_info.get('o_code')
             # TODO split shift when partial absence: PR2020-10-17
             #  - employee has full day shift, employee is absent in the morning with replacement)
             #  - create absence emplhour for employee in the morning
@@ -1013,9 +1066,10 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
 # lookup_tm_si_id is used to put note 'absent from' in absent row
     if not has_overlap:
         lookup_tm_si_id = None
+        lookup_o_code = None
     #logger.debug('     has_overlap: ' + str(has_overlap) + ' absence_rpl_id: ' + str(absence_rpl_id) + ' lookup_tm_si_id: ' + str(lookup_tm_si_id) )
     #logger.debug('---')
-    return has_overlap, absence_rpl_id, lookup_tm_si_id
+    return has_overlap, absence_rpl_id, lookup_tm_si_id, lookup_o_code
 # --- end of has_overlap_with_other_shift
 
 

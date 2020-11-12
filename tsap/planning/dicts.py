@@ -3720,7 +3720,7 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
 
         if is_absence:
 # ----- absence_list
-            teammember_list = ed.create_teammember_list(filter_dict=new_filter_dict, company=company,
+            teammember_list = ed.ed_create_teammember_list(filter_dict=new_filter_dict, company=company,
                                                         user_lang=user_lang)
             if teammember_list:
                 datalists['absence_list'] = teammember_list
@@ -3745,7 +3745,7 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
             if team_list:
                 datalists['team_list'] = team_list
 # ----- teammember_list
-            teammember_list = ed.create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
+            teammember_list = ed.ed_create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
             if teammember_list:
                 datalists['teammember_list'] = teammember_list
 # ----- schemeitem_list

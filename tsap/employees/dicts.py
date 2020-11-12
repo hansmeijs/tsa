@@ -22,13 +22,11 @@ def create_employee_rows(request_item, msg_dict, request):
     #     add messages to employee_row
     #logger.debug(' =============== create_employee_rows ============= ')
 
+    sql_keys = {'compid': request.user.company.pk}
+
     # get list of allowed employees i.e. when user has permitcustomers or permitorders,
     # the allowed employees are the employees or replacemenet employees of the allowed customers / orders
     allowed_employees_list = f.get_allowed_employees_and_replacements(request)
-    #logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
-
-    sql_keys = {'compid': request.user.company.pk}
-    allowed_str = ''
     if allowed_employees_list:
         allowed_str = "(e.id IN (SELECT UNNEST(%(eid_arr)s::INT[]))) AS allowed,"
         sql_keys['eid_arr'] = allowed_employees_list
@@ -222,8 +220,8 @@ def create_employee_dict_from_sql(instance,  item_dict, user_lang):
 # >>>   end create_employee_dict
 
 
-def create_teammember_list(filter_dict, company, user_lang):
-    #logger.debug(' ----- create_teammember_list  -----  ')
+def ed_create_teammember_list(filter_dict, company, user_lang):
+    #logger.debug(' ----- ed_create_teammember_list  -----  ')
     #logger.debug('filter_dict: ' + str(filter_dict) )
     # teammember: {customer_pk: selected_customer_pk, order_pk: selected_order_pk},
     # create list of all teammembers of this order PR2020-05-16
@@ -652,10 +650,18 @@ def create_absence_rows(filter_dict, teammember_pk, msg_dict, request):
     period_datefirst = filter_dict.get('period_datefirst')
     period_datelast = filter_dict.get('period_datelast')
 
-    sql_keys = {'compid': request.user.company_id}
+# get list of allowed employees i.e. when user has permitcustomers or permitorders,
+    # the allowed employees are the employees or replacemenet employees of the allowed customers / orders
+    allowed_employees_list = f.get_allowed_employees_and_replacements(request)
+    #logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
+    sql_keys = {'compid': request.user.company.pk}
+    if allowed_employees_list:
+        allowed_str = "(e.id IN (SELECT UNNEST(%(eid_arr)s::INT[]))) AS allowed,"
+        sql_keys['eid_arr'] = allowed_employees_list
+    else:
+        allowed_str = "TRUE AS allowed,"
 
     sql_list = []
-
     sql_schemeitem_shift = """
         SELECT si.team_id AS t_id, 
             ARRAY_AGG(si.id) AS si_id_arr,
@@ -673,62 +679,31 @@ def create_absence_rows(filter_dict, teammember_pk, msg_dict, request):
             GROUP BY si.team_id
         """
 
-    sql_list.append(""" SELECT tm.id, t.id AS t_id, s.id AS s_id, o.id AS o_id, c.id AS c_id,
-        CONCAT('absence_', tm.id::TEXT) AS mapid,
-        c.company_id AS comp_id,
-        e.id AS e_id,
-        
-        COALESCE(t.code, '') AS t_code,
-        COALESCE(s.code, '') AS s_code,
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
-        COALESCE(e.code, '') AS e_code,
+    sql_list = ["SELECT tm.id, t.id AS t_id, s.id AS s_id, o.id AS o_id, c.id AS c_id,",
+        "CONCAT('absence_', tm.id::TEXT) AS mapid, c.company_id AS comp_id, e.id AS e_id,",
+        "COALESCE(t.code, '') AS t_code, COALESCE(s.code, '') AS s_code,",
+        "COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code,",
+        "COALESCE(e.code, '') AS e_code,",
+        allowed_str,
+        "c.istemplate AS c_istemplate, c.isabsence AS c_isabsence,",
+        "o.nopay AS o_nopay, o.nohoursonsaturday AS o_nosat, o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph,",
+        "s.cycle AS s_cycle, s.nopay AS s_nopay, s.nohoursonsaturday AS s_nosat, s.nohoursonsunday AS s_nosun, s.nohoursonpublicholiday AS s_noph,",
+        "e.inactive AS e_inactive, e.workminutesperday AS e_workminutesperday,",
+        "tm.datefirst AS tm_df, tm.datelast AS tm_dl, rpl.id AS rpl_id, rpl.code AS rpl_code,",
+        "s.datefirst AS s_df, s.datelast AS s_dl, o.datefirst AS o_df, o.datelast AS o_dl,",
+        "e.datefirst AS e_df, e.datelast AS e_dl, rpl.datefirst AS rpl_df, rpl.datelast AS rpl_dl,",
+        "si_sh_sub.si_id_arr, si_sh_sub.sh_id_arr, si_sh_sub.sh_code_arr, si_sh_sub.si_abs_arr, si_sh_sub.sh_rest_arr,",
+        "si_sh_sub.sh_os_arr, si_sh_sub.sh_oe_arr, si_sh_sub.sh_bd_arr, si_sh_sub.sh_td_arr",
 
-        c.istemplate AS c_istemplate,
-        c.isabsence AS c_isabsence,
-        o.nopay AS o_nopay,
-        o.nohoursonsaturday AS o_nosat,
-        o.nohoursonsunday AS o_nosun,
-        o.nohoursonpublicholiday AS o_noph,
-        
-        s.cycle AS s_cycle,
-        s.nopay AS s_nopay,
-        s.nohoursonsaturday AS s_nosat,
-        s.nohoursonsunday AS s_nosun,
-        s.nohoursonpublicholiday AS s_noph,
-
-        e.inactive AS e_inactive,
-        e.workminutesperday AS e_workminutesperday,
-
-        tm.datefirst AS tm_df, tm.datelast AS tm_dl, 
-        rpl.id AS rpl_id,
-        rpl.code AS rpl_code,
-        s.datefirst AS s_df, s.datelast AS s_dl, 
-        o.datefirst AS o_df, o.datelast AS o_dl, 
-        e.datefirst AS e_df, e.datelast AS e_dl, 
-        rpl.datefirst AS rpl_df, rpl.datelast AS rpl_dl, 
-
-        si_sh_sub.si_id_arr,
-        si_sh_sub.sh_id_arr,
-        si_sh_sub.sh_code_arr,
-        si_sh_sub.si_abs_arr,
-        si_sh_sub.sh_rest_arr,
-        si_sh_sub.sh_os_arr,
-        si_sh_sub.sh_oe_arr,
-        si_sh_sub.sh_bd_arr,
-        si_sh_sub.sh_td_arr
-
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-        INNER JOIN companies_employee AS e ON (e.id = tm.employee_id) 
-        LEFT JOIN companies_employee AS rpl ON (rpl.id = tm.replacement_id) 
-        LEFT JOIN (""" + sql_schemeitem_shift + """) AS si_sh_sub ON (si_sh_sub.t_id = t.id)    
-
-        WHERE c.company_id = %(compid)s::INT AND c.isabsence
-        """)
+        "FROM companies_teammember AS tm",
+        "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
+        "INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id)",
+        "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "INNER JOIN companies_employee AS e ON (e.id = tm.employee_id)",
+        "LEFT JOIN companies_employee AS rpl ON (rpl.id = tm.replacement_id)",
+        "LEFT JOIN (" + sql_schemeitem_shift + ") AS si_sh_sub ON (si_sh_sub.t_id = t.id)",
+        "WHERE c.company_id = %(compid)s::INT AND c.isabsence"]
 
     if teammember_pk:
         sql_list.append('AND tm.id = %(tm_id)s::INT')

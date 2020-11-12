@@ -84,7 +84,7 @@
 <div class="menubar">
     <div id="id_menubar">
         {% if user.is_authenticated %}
-            {% if user.is_perm_hrman or user.is_perm_planner %}
+            {% if user.is_perm_hrman or user.is_perm_planner or user.is_perm_supervisor %}
                 <a id="id_hdr_empl" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
             {% endif %}
             {% if user.is_perm_accman or user.is_perm_planner %}

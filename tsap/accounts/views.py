@@ -904,8 +904,8 @@ class UserUploadView(View):
     #  when ok: it also sends an email to the user
 
     def post(self, request):
-        logger.debug('  ')
-        logger.debug(' ========== UserUploadView ===============')
+        #logger.debug('  ')
+        #logger.debug(' ========== UserUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
@@ -915,7 +915,7 @@ class UserUploadView(View):
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
                 # upload_dict: {'mode': 'validate', 'company_pk': 3, 'pk_int': 114, 'user_ppk': 3,
                 # 'employee_pk': None, 'employee_code': None, 'username': 'Giterson_Lisette', 'last_name': 'Lisette Sylvia enzo Giterson', 'email': 'hmeijs@gmail.com'}
@@ -1152,8 +1152,8 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
 # === update_user_instance ========== PR2020-08-16
 def update_user_instance(instance, user_pk, upload_dict, is_validate_only, request):
-    logger.debug('-----  update_user_instance  -----')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug('-----  update_user_instance  -----')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     err_dict = {}

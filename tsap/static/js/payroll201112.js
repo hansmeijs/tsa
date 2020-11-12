@@ -51,9 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_MSEF_code = null;
 
         let selected_detail_employee_pk = -1;  // used to filter in detail_mode. -1 = all, 0 = shifts without emploee
-        let selected_detail_employee_code = null;
+        let selected_detail_employee_code = "";  // PR2020-11-11 debugL: default value 'null' may give error in export to excel
         let selected_employee_pk = -1;  // -1 = all, 0 = shift without emploee
-        let selected_employee_code = null;
+        let selected_employee_code = "";  // PR2020-11-11 debugL: default value 'null' may give error in export to excel
         let selected_functioncode_pk = -1;   // -1 = all, 0 = shift without functioncode
         let selected_functioncode_code = null;
         let selected_isabsence = null;
@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
-        //console.log("=== HandleTableRowClicked");
+        console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
         // this function is not used in payroll and payroll_detail, those use HandleAggRowClicked instead
         const tblName = get_attr_from_el_str(tr_clicked, "data-table")
@@ -660,6 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk_str)
             selected_employee_pk = Number(get_dict_value (map_dict, ["id", "pk"], 0));
             selected_employee_code = get_dict_value (map_dict, ["code", "value"], "");
+
 // ---  update header text
             UpdateHeaderText();
         }  // if(tblName === "employee"){
@@ -675,11 +676,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // used to filter _employee in detail_mode. -1 = all, 0 = shifts without emploee
             selected_detail_employee_pk = (Number(tr_clicked.id)) ? Number(tr_clicked.id) : 0;
 
-        //console.log("tr_clicked.id", tr_clicked.id);
-        //console.log("selected_detail_employee_pk", selected_detail_employee_pk);
-
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_detail_employee_pk)
-            selected_detail_employee_code = get_dict_value (map_dict, ["code", "value"]);
+            selected_detail_employee_code = get_dict_value (map_dict, ["code"], "---");
             is_payroll_detail_mode = true;
             UpdateHeaderText();
 
@@ -690,7 +688,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }  // HandleAggRowClicked
 
-
 //========= HandleAggrowReturn  =================== PR2020-09-03
     function HandleAggrowReturn() {
         //console.log( "===== HandleAggrowReturn  === ");
@@ -698,7 +695,7 @@ document.addEventListener('DOMContentLoaded', function() {
         is_payroll_detail_mode = false;
         is_payroll_detail_modal_mode = false;
         selected_employee_pk = -1
-        selected_employee_code = null;
+        selected_employee_code = "";
         CreateAggHeader(tblName);
         CreateHTML_list(tblName)
         FillPayrollRows(tblName);
@@ -2853,7 +2850,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (["payroll_agg", "payroll_detail"].indexOf(selected_btn) > -1){
             selected_detail_employee_pk = -1;
-            selected_detail_employee_code = null;
+            selected_detail_employee_code = "";  // PR2020-11-11 debugL: default value 'null' may give error in export to excel
             is_payroll_detail_mode = false;
             is_payroll_detail_modal_mode = false;
             b_reset_tblHead_filterRow(tblHead_datatable)
@@ -6023,7 +6020,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const display_period = get_dict_value(selected_period, ["dates_display_short"], "---");
             if (is_payroll_detail_mode){
                 ws["A5"] = {v: loc.Employee + ":", t: "s"};
-                ws["B5"] = {v: selected_employee_code , t: "s"};
+                ws["B5"] = {v: selected_detail_employee_code , t: "s"};
 
                 ws["A6"] = {v: loc.Period + ":", t: "s"};
                 ws["B6"] = {v: display_period, t: "s"};
@@ -6034,7 +6031,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             if (is_payroll_detail_mode){
                 ws["A5"] = {v: loc.Employee + ":", t: "s"};
-                ws["B5"] = {v: selected_employee_code , t: "s"};
+                ws["B5"] = {v: selected_detail_employee_code , t: "s"};
                 ws["A6"] = {v: loc.Payroll_period + ":", t: "s"};
                 ws["B6"] = {v: selected_paydateitem_code, t: "s"};
             } else {
@@ -6108,8 +6105,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ws[cell_index] = {t: cell_type}
 
                     const cell_format = payroll_excel_cellformat[x];
-                    if(cell_format){ws[cell_index]["z"] = cell_format};
-
                     if(x === 1) {
                         ws[cell_index]["v"] = loc.Total;
                     } else {

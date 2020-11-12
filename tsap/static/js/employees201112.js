@@ -4,6 +4,21 @@
 document.addEventListener('DOMContentLoaded', function() {
         "use strict";
 
+
+        // <PERMIT> PR2020-11-10
+        // - supervisor, planner and hr_man have access to page 'employees' (is set in html)
+        // - supervisor, planner and hr_man can add / edit / delete absence
+        // - only hr_man can add / edit / delete employees
+        // - when has_allowed_customers and / or has_allowed_orders:
+        //    - show only employees of these customers / orders, in tables, planning and mod absence
+
+        let has_perm_add_edit_delete_employees = false;
+        let has_perm_add_edit_delete_absence = false;
+        let allowed_customers = [];  // list of allowed customers of request_user PR2020-11-03
+        let allowed_orders = [];  // list of allowed orders of request_user PR2020-11-03
+        let has_allowed_customers = false;
+        let has_allowed_orders = false;
+
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_highl = "tr_highlighted";
@@ -386,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request, dont_show_loader) {
-        console.log( "=== DatalistDownload ")
+       //console.log( "=== DatalistDownload ")
 
 // ---  Get today's date and time - for elapsed time
         let startime = new Date().getTime();
@@ -396,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_loader.classList.remove(cls_visible_hide)
         }
         let param = {"download": JSON.stringify (datalist_request)};
-        console.log("datalist_request: ", datalist_request)
+       //console.log("datalist_request: ", datalist_request)
         let response = "";
         $.ajax({
             type: "POST",
@@ -404,8 +419,8 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
-                console.log(response)
+               //console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
+               //console.log(response)
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value(response, ["calendar_period"]);
                     selected_calendar_period["calendar_type"] = "employee_calendar";
@@ -429,6 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("setting_dict" in response) {
                     // this must come after locale_dict, where weekday_list is loaded
+                    // also after CreateSubmenu, where submenu buttons are created
                     UpdateSettings(response["setting_dict"])
                 }
                 if ("quicksave" in response) {
@@ -453,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
                el_loader.classList.add(cls_visible_hide)
             },
             error: function (xhr, msg) {
-                console.log(msg + '\n' + xhr.responseText);
+               //console.log(msg + '\n' + xhr.responseText);
                 // hide loader
                 el_loader.classList.add(cls_visible_hide)
                 alert(msg + '\n' + xhr.responseText);
@@ -668,11 +684,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_div = document.createElement("div");
         el_submenu.appendChild(el_div);
 
-        const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
         AddSubmenuButton(el_div, loc.Add_employee, function() {HandleAddNewBtn()}, ["mx-2"], "id_submenu_add")
         AddSubmenuButton(el_div, loc.Delete_employee, function() {ModConfirmOpen("delete")}, ["mx-2"], "id_submenu_delete")
 
-        if (selected_planning_period.requsr_perm_hrman){
+        if (has_perm_add_edit_delete_employees){
+            const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
             AddSubmenuButton(el_div, loc.Upload_employees, null, ["mx-2"], "id_submenu_employee_import", url_employee_import);
         }
         AddSubmenuButton(el_div, loc.Preview_planning, function() { HandlePrintPlanning("preview")}, ["mx-2"], "id_submenu_planning_preview");
@@ -698,8 +714,17 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= show_hide_menubuttons  =========== PR2020-04-06 PR2020-09-13
     function show_hide_menubuttons(selected_btn) {
         //console.log( "===== show_hide_menubuttons  ========= ");
+        //<PERMIT> PR2020-11-10
+        let hide_btn_add_delete = true, hide_btn_import = true, hide_btn_print_excel = true;
+        if(selected_btn === "employee"){
+            hide_btn_add_delete = (!has_perm_add_edit_delete_employees || has_allowed_customers || has_allowed_orders);
+            hide_btn_import = hide_btn_add_delete
+        } else if(selected_btn === "absence"){
+            hide_btn_add_delete = (!has_perm_add_edit_delete_absence);
+        } else if(selected_btn === "planning"){
+            hide_btn_print_excel = false;
+        }
 
-        const hide_btn_add_delete = (["employee", "absence"].indexOf(selected_btn) === -1)
         let el_btn_add = document.getElementById("id_submenu_add");
         let el_btn_delete = document.getElementById("id_submenu_delete")
         if (el_btn_add) {
@@ -711,11 +736,9 @@ document.addEventListener('DOMContentLoaded', function() {
             add_or_remove_class (el_btn_delete, cls_hide, hide_btn_add_delete);
         }
 
-        const hide_btn_import = (selected_btn !== "employee");
         let el_btn_import = document.getElementById("id_submenu_employee_import");
         if (el_btn_import) {add_or_remove_class (el_btn_import, cls_hide, hide_btn_import)};
 
-        const hide_btn_print_excel = (selected_btn !== "planning");
         let el_btn_preview = document.getElementById("id_submenu_planning_preview");
         let el_btn_print = document.getElementById("id_submenu_planning_print");
         let el_btn_excel =  document.getElementById("id_submenu_export_excel");
@@ -822,10 +845,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if(employee_map){
 // --- loop through employee_map
             for (const [map_id, map_dict] of employee_map.entries()) {
-                let tblRow = CreateEmployeeTblRow(map_dict, -1)
-                RefreshTblRowNEW(tblRow, map_dict)
-// --- highlight selected row
-                if (map_dict.id === selected.employee_pk) {tblRow.classList.add(cls_selected)}
+
+            // --- validate if absence can be added to list
+                // <PERMIT> 2020-11-10
+                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
+
+                let skip_row = false;
+                if (has_allowed_customers || has_allowed_orders) {
+                    skip_row = (!map_dict.allowed) ;
+                }
+                if (!skip_row){
+                    let tblRow = CreateEmployeeTblRow(map_dict, -1)
+                    RefreshTblRowNEW(tblRow, map_dict)
+    // --- highlight selected row
+                    if (map_dict.id === selected.employee_pk) {tblRow.classList.add(cls_selected)}
+                }
             }
         }
 // --- filter rows
@@ -862,13 +896,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add img inactive to col_inactive
                 if (field_names[j] === "inactive") {
                     append_background_class(el,"inactive_0_2")
-                    el.setAttribute("title", loc.Click_to_make_this_employee_inactive);
+                    if (has_perm_add_edit_delete_employees){
+                        el.setAttribute("title", loc.Click_to_make_this_employee_inactive)
     // --- add EventListeners
-                    el.addEventListener("click", function() {UploadDeleteInactive("inactive", el)}, false )
+                        el.addEventListener("click", function() {UploadDeleteInactive("inactive", el)}, false )
+                    };  // if (has_perm_add_edit_delete_employees){
                 } else if (j){
-                    el.addEventListener("click", function() {MFE_Open(el)}, false)
+                    if (has_perm_add_edit_delete_employees){
+                        el.addEventListener("click", function() {MFE_Open(el)}, false)
+                    }
                 }
-                if(j){add_hover(el)};
+                if(j !== 0 && has_perm_add_edit_delete_employees){
+                    add_hover(el)
+                };
     // --- add field_width and text_align
                 el.classList.add("tw_" + field_settings[tblName].field_width[j],
                                  "ta_" + field_settings[tblName].field_align[j]);
@@ -1440,12 +1480,28 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById("id_calendar_hdr_text").innerText = header_period;
         }
 
-      //  key = "calendar_setting_dict";
-     //   if (key in setting_dict){
-     //       calendar_setting_dict = setting_dict[key];
-            // this CreateCalendar creates an empyy calendar
-      //      CreateCalendar("employee", calendar_setting_dict, calendar_map, MSE_Open, loc, loc.timeformat, user_lang);
-     //   }
+        // <PERMIT> PR2020-11-10
+        // - supervisor, planner and hr_man have access to page 'employees' (is set in html)
+        // - supervisor, planner and hr_man can add / edit / delete absence
+        // - only hr_man can add / edit / delete employees
+        // - when has_allowed_customers and / or has_allowed_orders: filter only emlpoyees of these customers / orders
+
+        // permits get value when setting_dict is downloaded
+        has_perm_add_edit_delete_employees = (!!setting_dict.requsr_perm_hrman);
+        has_perm_add_edit_delete_absence =  (!!setting_dict.requsr_perm_supervisor || !!setting_dict.requsr_planner || !!setting_dict.requsr_perm_hrman);
+
+        allowed_customers = setting_dict.requsr_perm_customers
+        allowed_orders = setting_dict.requsr_perm_orders
+        // empty array [] is truely, therefore check also array.length
+        has_allowed_customers = (!!allowed_customers && !!allowed_customers.length);
+        has_allowed_orders = (!!allowed_orders && !!allowed_orders.length);
+
+        //  key = "calendar_setting_dict";
+        //   if (key in setting_dict){
+        //       calendar_setting_dict = setting_dict[key];
+        // this CreateCalendar creates an empyy calendar
+        //      CreateCalendar("employee", calendar_setting_dict, calendar_map, MSE_Open, loc, loc.timeformat, user_lang);
+        //   }
 
     }  // UpdateSettings
 
@@ -1492,53 +1548,54 @@ document.addEventListener('DOMContentLoaded', function() {
         //  CreateEmployeeTblRow addEventListener UploadDeleteInactive("inactive", el)
         //  CreateTblRowTeammember CreateBtnDeleteInactive("delete", tblRow, el);
         //                         CreateBtnDeleteInactive addEventListener {UploadDeleteInactive("inactive", el_input)}
-
-        // TODO fix this function PR2020-09-21
-        let tblRow = get_tablerow_selected(el_input)
-        if(tblRow){
-            const tblName = get_attr_from_el(tblRow, "data-table");
-            const data_map = (selected_btn === "absence") ? absence_map :
-                              (tblName === "teammember") ? teammember_map : employee_map
-            const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id);
-        //console.log( "map_dict", map_dict);
-            if (!isEmpty(map_dict)){
-                let upload_dict = {id: {pk: map_dict.id, ppk: map_dict.comp_id, table: tblName}};
-    // ---  create upload_dict with id_dict
-                mod_dict = {id: map_dict.id};
-                if (["absence", "teammember"].indexOf(tblName) > -1) {
-                    if (!isEmpty(map_dict.employee)){
-                        mod_dict.employee = map_dict.employee;
+        if(has_perm_add_edit_delete_employees){
+            // TODO fix this function PR2020-09-21
+            let tblRow = get_tablerow_selected(el_input)
+            if(tblRow){
+                const tblName = get_attr_from_el(tblRow, "data-table");
+                const data_map = (selected_btn === "absence") ? absence_map :
+                                  (tblName === "teammember") ? teammember_map : employee_map
+                const map_dict = get_mapdict_from_datamap_by_id(data_map, tblRow.id);
+            //console.log( "map_dict", map_dict);
+                if (!isEmpty(map_dict)){
+                    let upload_dict = {id: {pk: map_dict.id, ppk: map_dict.comp_id, table: tblName}};
+        // ---  create upload_dict with id_dict
+                    mod_dict = {id: map_dict.id};
+                    if (["absence", "teammember"].indexOf(tblName) > -1) {
+                        if (!isEmpty(map_dict.employee)){
+                            mod_dict.employee = map_dict.employee;
+                        };
                     };
-                };
-                if (mode === "delete"){
-                    mod_dict["id"]["delete"] = true;
-                    ModConfirmOpen("delete", tblRow);
-                    return false;
-                } else if (mode === "inactive"){
-
-            // toggle inactive
-                    const new_inactive = (!map_dict.inactive);
-                    upload_dict.inactive = {value: new_inactive, update: true};
-            // change inactive icon, before uploading
-                    // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
-                    //console.log("format_inactive_element")
-
-                    //format_inactive_element (el_input, mod_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
-
-                    add_or_remove_class(el_input, "inactive_1_3", new_inactive, "inactive_0_2" )
-
-            // ---  show modal, only when made inactive
-                    if(!!new_inactive){
-                        mod_dict["inactive"] = {"value": new_inactive, "update": true};
-                        ModConfirmOpen("inactive", tblRow);
+                    if (mode === "delete"){
+                        mod_dict["id"]["delete"] = true;
+                        ModConfirmOpen("delete", tblRow);
                         return false;
-                    }
-                }
+                    } else if (mode === "inactive"){
 
-                const url_str = (["absence", "teammember"].indexOf() > -1) ? url_teammember_upload : url_employee_upload;
-                UploadChanges(upload_dict, url_str);
-            }  // if (!isEmpty(map_dict))
-        }  //   if(!!tblRow)
+                // toggle inactive
+                        const new_inactive = (!map_dict.inactive);
+                        upload_dict.inactive = {value: new_inactive, update: true};
+                // change inactive icon, before uploading
+                        // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
+                        //console.log("format_inactive_element")
+
+                        //format_inactive_element (el_input, mod_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
+
+                        add_or_remove_class(el_input, "inactive_1_3", new_inactive, "inactive_0_2" )
+
+                // ---  show modal, only when made inactive
+                        if(!!new_inactive){
+                            mod_dict["inactive"] = {"value": new_inactive, "update": true};
+                            ModConfirmOpen("inactive", tblRow);
+                            return false;
+                        }
+                    }
+
+                    const url_str = (["absence", "teammember"].indexOf() > -1) ? url_teammember_upload : url_employee_upload;
+                    UploadChanges(upload_dict, url_str);
+                }  // if (!isEmpty(map_dict))
+            }  //   if(!!tblRow)
+        }  //  if(has_perm_add_edit_delete_employees){
     }  // UploadDeleteInactive
 
 //========= UploadEmployeeChanges  ============= PR2019-10-08
@@ -1701,12 +1758,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Attributes are in the HTML itself, rather than in the DOM. It shows the default value even if the value has changed.
 // An attribute is only ever a string, no other type
     function UploadChanges(upload_dict, url_str) {
-        //console.log("=== UploadChanges");
+       //console.log("=== UploadChanges");
         if(!isEmpty(upload_dict)) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
 
-            console.log("url_str: ", url_str);
-            console.log("upload_dict: ", upload_dict);
+           //console.log("url_str: ", url_str);
+           //console.log("upload_dict: ", upload_dict);
 
             let response = "";
             $.ajax({
@@ -1715,8 +1772,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
+                   console.log( "response");
+                    console.log( response);
 
                     if ("updated_absence_rows" in response) {
                         UpdateAbsenceRowsFromResponseNEW(response.updated_absence_rows)
@@ -3162,68 +3219,69 @@ if(pgeName === "absence"){
 //=========  MFE_Open  ================  PR2020-06-06
     function MFE_Open(el_input) {
         //console.log(" -----  MFE_Open   ----")
-
-// ---  get info from tblRow
-        const tblRow = get_tablerow_selected(el_input)
-        const tblRow_employee_pk = get_attr_from_el(tblRow, "data-pk" )
-        const tblRow_employee_ppk = get_attr_from_el(tblRow, "data-ppk" )
-        const map_id = (tblRow) ? tblRow.id : null
-        //console.log("map_id", map_id)
-// ---  create  mod_MFE_dict
-        mod_MFE_dict = deepcopy_dict(get_mapdict_from_datamap_by_id(employee_map, map_id))
-        //console.log("mod_MFE_dict", mod_MFE_dict)
-// ---  update selected.employee_pk
-        selected.employee_pk = mod_MFE_dict.id;
-// ---  put employee_code in header
-        const header_text = (mod_MFE_dict.code) ? mod_MFE_dict.code : loc.Employee;
-        document.getElementById("id_MFE_hdr_employee").innerText = header_text;
-// ---  fill functioncode select options. t_FillOptionsAbscatFunction is also used for functioncodes
-        const el_MFE_functioncode = document.getElementById("id_MFE_functioncode");
-        //  function t_FillOptionsAbscatFunction(loc, tblName, el_select, data_map, selected_pk) {
-        t_FillOptionsAbscatFunction(loc, "functioncode", el_MFE_functioncode, functioncode_map, mod_MFE_dict.functioncode);
-        const el_MFE_paydatecode = document.getElementById("id_MFE_paydatecode");
-        t_FillOptionsAbscatFunction(loc, "paydatecode", el_MFE_paydatecode, paydatecode_map, mod_MFE_dict.paydatecode);
-// ---  employee form
-        let form_elements = el_MFE_div_form_controls.querySelectorAll(".form-control")
-        for (let i = 0, el, fldName, value; el = form_elements[i]; i++) {
-            el = form_elements[i];
-            if(el){
-                fldName = get_attr_from_el(el, "data-field");
-                if(["workhoursperweek", "workminutesperday"].indexOf(fldName) > -1){
-                    value = mod_MFE_dict[fldName] / 60;
-                } else if (fldName === "leavedays"){
-                    value = mod_MFE_dict[fldName] / 1440;
-                } else  if(["functioncode", "wagecode", "paydatecode"].indexOf(fldName) > -1){
-                    value = mod_MFE_dict[mapped_employee_fields[fldName]];
-                } else {
-                    value = mod_MFE_dict[fldName];
-                }
-                el.value = (value) ? value : null;
-            };
-        }
-
-// set focus to clicked field
-        const fldName = get_attr_from_el(el_input, "data-field")
-        let selected_element = null;
-        if(fldName){
+        if(has_perm_add_edit_delete_employees){
+    // ---  get info from tblRow
+            const tblRow = get_tablerow_selected(el_input)
+            const tblRow_employee_pk = get_attr_from_el(tblRow, "data-pk" )
+            const tblRow_employee_ppk = get_attr_from_el(tblRow, "data-ppk" )
+            const map_id = (tblRow) ? tblRow.id : null
+            //console.log("map_id", map_id)
+    // ---  create  mod_MFE_dict
+            mod_MFE_dict = deepcopy_dict(get_mapdict_from_datamap_by_id(employee_map, map_id))
+            //console.log("mod_MFE_dict", mod_MFE_dict)
+    // ---  update selected.employee_pk
+            selected.employee_pk = mod_MFE_dict.id;
+    // ---  put employee_code in header
+            const header_text = (mod_MFE_dict.code) ? mod_MFE_dict.code : loc.Employee;
+            document.getElementById("id_MFE_hdr_employee").innerText = header_text;
+    // ---  fill functioncode select options. t_FillOptionsAbscatFunction is also used for functioncodes
+            const el_MFE_functioncode = document.getElementById("id_MFE_functioncode");
+            //  function t_FillOptionsAbscatFunction(loc, tblName, el_select, data_map, selected_pk) {
+            t_FillOptionsAbscatFunction(loc, "functioncode", el_MFE_functioncode, functioncode_map, mod_MFE_dict.functioncode);
+            const el_MFE_paydatecode = document.getElementById("id_MFE_paydatecode");
+            t_FillOptionsAbscatFunction(loc, "paydatecode", el_MFE_paydatecode, paydatecode_map, mod_MFE_dict.paydatecode);
+    // ---  employee form
             let form_elements = el_MFE_div_form_controls.querySelectorAll(".form-control")
-            for (let i = 0, el, len = form_elements.length; i < len; i++) {
-                el = form_elements[i]
-                const el_field = get_attr_from_el(el, "data-field")
-                if(el_field === fldName) {
-                    selected_element = el;
-                    break;
+            for (let i = 0, el, fldName, value; el = form_elements[i]; i++) {
+                el = form_elements[i];
+                if(el){
+                    fldName = get_attr_from_el(el, "data-field");
+                    if(["workhoursperweek", "workminutesperday"].indexOf(fldName) > -1){
+                        value = mod_MFE_dict[fldName] / 60;
+                    } else if (fldName === "leavedays"){
+                        value = mod_MFE_dict[fldName] / 1440;
+                    } else  if(["functioncode", "wagecode", "paydatecode"].indexOf(fldName) > -1){
+                        value = mod_MFE_dict[mapped_employee_fields[fldName]];
+                    } else {
+                        value = mod_MFE_dict[fldName];
+                    }
+                    el.value = (value) ? value : null;
+                };
+            }
+
+    // set focus to clicked field
+            const fldName = get_attr_from_el(el_input, "data-field")
+            let selected_element = null;
+            if(fldName){
+                let form_elements = el_MFE_div_form_controls.querySelectorAll(".form-control")
+                for (let i = 0, el, len = form_elements.length; i < len; i++) {
+                    el = form_elements[i]
+                    const el_field = get_attr_from_el(el, "data-field")
+                    if(el_field === fldName) {
+                        selected_element = el;
+                        break;
+                    }
                 }
             }
-        }
-        if(!selected_element) { selected_element = document.getElementById("id_MFE_code")}
-        set_focus_on_el_with_timeout(selected_element, 50)
-// hide delete btn when add-new
-        add_or_remove_class(el_MFE_btn_delete, cls_hide, !map_id)
+            if(!selected_element) { selected_element = document.getElementById("id_MFE_code")}
+            set_focus_on_el_with_timeout(selected_element, 50)
+    // hide delete btn when add-new
+            add_or_remove_class(el_MFE_btn_delete, cls_hide, !map_id)
 
-        MFE_validate_and_disable();
-// ---  show modal
-        $("#id_mod_form_employee").modal({backdrop: true});
+            MFE_validate_and_disable();
+    // ---  show modal
+            $("#id_mod_form_employee").modal({backdrop: true});
+        }
     }  // MFE_Open
 
 //=========  MFE_save  ================  PR2020-06-06
@@ -3596,6 +3654,15 @@ if(pgeName === "absence"){
 // --- validate if employee can be added to list
                 // skip current employee when filling replacement list
                 let skip_row = (is_inactive) || (is_tbl_replacement && pk_int === mod_MAB_dict.employee_pk);
+
+                // <PERMIT>
+                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
+                if (!skip_row){
+                    if (has_allowed_customers || has_allowed_orders) {
+                        skip_row = (!map_dict.allowed) ;
+                    }
+                }
+
                 if (!skip_row){
 //- insert tblBody row
                     let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -5535,16 +5602,28 @@ console.log( "reset mod_dict: ");
 //========= FillAbsenceTblRows === PR2020-09-10
     function FillAbsenceTblRows() {
         // called by HandleBtnSelect and HandlePayrollFilter
-        //console.log( "====== FillAbsenceTblRows  === ");
+       //console.log( "====== FillAbsenceTblRows  === ");
 // --- reset tblBody
         tblBody_datatable.innerText = null
 // --- loop through absence_map
         // with empty data_map: !!data_map = true, data_map.size = 0
         if(absence_map.size){
             for (const [map_id, map_dict] of absence_map.entries()) {
-                const tblRow = CreateAbsenceTblRow(map_id, map_dict.id, map_dict.t_id, map_dict.e_id, -1);
-                RefreshTblRowNEW(tblRow, map_dict);
-                //if (map_dict.id === selected.teammember_pk) { tblRow.classList.add(cls_selected)}
+
+// --- validate if absence can be added to list
+                // <PERMIT> 2020-11-10
+                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
+
+                let skip_row = false;
+                if (has_allowed_customers || has_allowed_orders) {
+                    skip_row = (!map_dict.allowed) ;
+                }
+
+                if (!skip_row){
+                    const tblRow = CreateAbsenceTblRow(map_id, map_dict.id, map_dict.t_id, map_dict.e_id, -1);
+                    RefreshTblRowNEW(tblRow, map_dict);
+                    //if (map_dict.id === selected.teammember_pk) { tblRow.classList.add(cls_selected)}
+                };
     }}  ;
     }  // FillAbsenceTblRows
 
@@ -5905,45 +5984,58 @@ console.log( "reset mod_dict: ");
     }  // calculate_workingdays
 
 //========= calc_planning_agg_dict  ==================================== PR2020-07-09
-    function calc_planning_agg_dict(short_list) {
-        //console.log( "===== calc_planning_agg_dict  ========= ");
-
-        //dict = { fid: "1790_3719_2020-07-08", employee_code: "*Regales RDT", customer_code: "Centrum", order_code: "Mahaai"
-        // rosterdate: "2020-07-08", shift_code: "20.00 - 01.00 >", offsetstart: 1200, offsetend: 1500,
-        // breakduration: 0, timeduration: 300, isabsence: false, isrestshift: false }
-
+    function calc_planning_agg_dict(short_list_sorted) {
+       //console.log( "===== calc_planning_agg_dict  ========= ");
+/*
+- map_dict gets values from employee_rows
+- dict gets values from employee_planning_listNEW:
+        absdur: 0, breakduration: 0, c_code: "Centrum", c_id: 749, c_o_code: "Centrum - Piscadera"
+        e_code: "Agata MM", e_id: 2625, e_identifier: "199110", e_payrollcode: "xxx"
+        emplhour_id: null, employee_id: 2625
+        exceldate: 44146, excelend: 63570240, excelstart: 63570240
+        fid: "1980_4189_2020-11-11", fnc_code: "Hello234", fnc_id: 81,
+        isabsence: false, isreplacement: false, isrestshift: true,
+        note: null, note_absent_eid: null, o_code: "Piscadera", o_id: 1521, o_identifier: "O-008", o_nopay: false,
+        offsetend: null, offsetstart: null,
+        pdc_code: "Wekelijks t/m zaterdag", pdc_id: 21
+        plandur: 0, rosterdate: "2020-11-11", sh_code: "Rust dienst", sh_id: 1662, timedur: 0, totaldur: 0,
+        wfc_code: "W100", wfc_id: 11, wfc_rate: 1000000, wgc_code: null, wgc_id: null
+*/
         const period_workingdays = get_dict_value(selected_planning_period, ["period_workingdays"], 0)
         const period_datefirst_iso = get_dict_value(selected_planning_period, ["period_datefirst"])
         const period_datelast_iso = get_dict_value(selected_planning_period, ["period_datelast"])
 
         let planning_agg_list = [];
-// convert short_list row into agg_dict
-        // agg_dict = { employee_pk: [employee_pk, employee_code, contracthours_sum, workinghours_sum, absence_sum] }
-        let agg_dict = {}
-        short_list.forEach(function (dict, index) {
-            //console.log( "index ", index,  "short_list dict ", dict);
-            const employee_pk = (dict.e_id) ? dict.e_id : -1;
 
+// convert short_list_sorted row into agg_dict
+        // agg_dict = { employee_pk: [employee_pk, employee_code, employee_allowed, contracthours_sum, workinghours_sum, absence_sum] }
+        let agg_dict = {}
+        short_list_sorted.forEach(function (dict, index) {
+            //console.log( "index ", index,  "short_list_sorted dict ", dict);
+            const employee_pk = (dict.e_id) ? dict.e_id : -1;
+    // ---  add agg_dict[employee_pk] if it doesn't exist
             if (!(employee_pk in agg_dict) ) {
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
-                const employee_code = (dict.e_code) ? dict.e_code : "---";
+                const employee_code = (map_dict.code) ? map_dict.code : "---";
+                const employee_allowed = (map_dict.allowed) ? map_dict.allowed : false;
                 const workhoursperday = get_dict_value(map_dict, ["workhoursperweek", "value"], 0 ) / 5
                 const contracthours_sum =  period_workingdays * workhoursperday;
                // const workhoursperday = get_dict_value(map_dict, ["workhoursperday", "value"] )
-
+               //console.log( "dict ", dict)
+               //console.log( "map_dict ", map_dict)
+               //console.log( "employee_pk ", employee_pk,  "employee_code ", employee_code,  "employee_allowed ", employee_allowed);
                 agg_dict[employee_pk] = [
                     employee_pk,
                     employee_code,
+                    employee_allowed,
                     contracthours_sum,
-                    0, //  agg_row[3] = plannedhours
-                    0  // agg_row[4] = absencehours
+                    0, //  agg_row[4] = plannedhours
+                    0  // agg_row[5] = absencehours
                 ];
             }
-            if(dict.plandur) { agg_dict[employee_pk][3] += dict.plandur};
-            if(dict.absdur) { agg_dict[employee_pk][4] += dict.absdur};
+            if(dict.plandur) { agg_dict[employee_pk][4] += dict.plandur};
+            if(dict.absdur) { agg_dict[employee_pk][5] += dict.absdur};
         });
-
-        //console.log( "agg_dict ", agg_dict);
 
         let row_count = 0
 //--- add row with empty employee, if any
@@ -5951,8 +6043,8 @@ console.log( "reset mod_dict: ");
         if(-1 in agg_dict) {
             const agg_row = get_dict_value(agg_dict, [-1])
             let plannedhours = 0;
-            if (agg_row){ plannedhours = agg_row[3]};
-            const row = [-1, "---", period_workingdays, 0, plannedhours, 0, 0];
+            if (agg_row){ plannedhours = agg_row[4]};
+            const row = [-1, "---", false, period_workingdays, 0, plannedhours, 0, 0];
             planning_agg_list.push(row)
             row_count += 1;
         }
@@ -5962,6 +6054,7 @@ console.log( "reset mod_dict: ");
             for (const [map_id, map_dict] of employee_map.entries()) {
                 const employee_pk = map_dict.id;
                 const employee_code = (map_dict.code) ? map_dict.code :  "---";
+                const employee_allowed = (map_dict.allowed) ? map_dict.allowed : false;
                 const is_inactive = (map_dict.inactive) ? map_dict.inactive : false;
                 let row = []
                 // check first date in service / last date in service
@@ -5980,8 +6073,11 @@ console.log( "reset mod_dict: ");
                     // not in service ( last date in service before start of period )
                     ldis_not = true;
                 }
-                // skip if employee is not in service during period, unless is has shifts during that period
-                if ( (fdis_not || ldis_not || is_inactive ) && !(employee_pk in agg_dict) ) {
+
+//--- add employee to planning_agg_list
+                if ( !employee_allowed ) {
+                    // skip if employee is not in service during period, unless is has shifts during that period
+                } else if ( (fdis_not || ldis_not || is_inactive ) && !(employee_pk in agg_dict) ) {
                     // skip employee that is not in service or is_inactive, except when in agg_dict
                 } else {
                     let contracthours = 0, plannedhours = 0, absencehours = 0, difference = 0, workingdays = 0
@@ -5994,8 +6090,8 @@ console.log( "reset mod_dict: ");
 
                     const agg_row = get_dict_value(agg_dict, [employee_pk])
                     if (agg_row){
-                        plannedhours = agg_row[3];
-                        absencehours = agg_row[4];
+                        plannedhours = agg_row[4];
+                        absencehours = agg_row[5];
                     }
                     difference = plannedhours + absencehours - contracthours;
 
@@ -6006,13 +6102,15 @@ console.log( "reset mod_dict: ");
                 row_count += 1;
             } // for (const [map_id, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
+
+       //console.log( "planning_agg_list ", planning_agg_list);
         return planning_agg_list
     }  // calc_planning_agg_dict
 
 //========= CreateHTML_planning_agg_list  ==================================== PR2020-07-10
     function CreateHTML_planning_agg_list(planning_agg_list) {
-        //console.log("==== CreateHTML_planning_agg_list  ========= ");
-        //console.log(" planning_agg_list", planning_agg_list);
+       //console.log("==== CreateHTML_planning_agg_list  ========= ");
+       //console.log(" planning_agg_list", planning_agg_list);
 
         // html_planning_agg_list = [ 0:employee_pk, 1: employee_code 2: contract_hours, 3:worked_hours,
         //                             4:absence_hours, 5:difference ]
@@ -6025,40 +6123,45 @@ console.log( "reset mod_dict: ");
             let td_html = [];
             const employee_pk = item[0];
             const employee_code = (item[1]) ? item[1] : "";
+            const employee_allowed = (item[2]) ? item[2] : false;
 
+       //console.log("item", item);
+       //console.log("employee_allowed", employee_allowed);
+
+            if (employee_allowed) {
 // --- put values of agg_dict in proper column
-            let row_data = item;
-// add margin column
-            td_html[0] =  "<td><div class=\"ta_c\"></div></td>"
-// add employee_code
-            const display_text = (employee_code) ? employee_code : "---";
-            td_html[1] = "<td><div>" + display_text + "</div></td>"
-// add working days
-            td_html[2] = "<td><div class=\"ta_c\">" + item[2], + "</div></td>"
-// --- add contract_hours worked_hours, absence_hours, difference
-            for (let i = 3; i < 7; i++) {
-                let duration_formatted = format_total_duration (item[i], loc.user_lang);
+                let row_data = item;
+    // add margin column
+                td_html[0] =  "<td><div class=\"ta_c\"></div></td>"
+    // add employee_code
+                const display_text = (employee_code) ? employee_code : "---";
+                td_html[1] = "<td><div>" + display_text + "</div></td>"
+    // add working days
+                td_html[2] = "<td><div class=\"ta_c\">" + item[2], + "</div></td>"
+    // --- add contract_hours worked_hours, absence_hours, difference
+                for (let i = 3; i < 7; i++) {
+                    let duration_formatted = format_total_duration (item[i], loc.user_lang);
 
-                td_html[i] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
-            }
-// add margin at the end
-            td_html[7] = "<td><div class=\"ta_c\"></div></td>"
-// --- add filter_data
-            let filter_data = [];
-            filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
-            filter_data[2] = (item[2]) ? item[2] : null
-            for (let i = 3; i < 7; i++) {
-                filter_data[i] = (item[i]) ? item[i] : null
-            }
-
-//--- put td's together
-            let row_html = "";
-            for (let j = 0, item; item = td_html[j]; j++) {
-                if(item){row_html += item};
-            }
-            //  html_planning_agg_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
-            const row = [true, employee_pk, filter_data, row_data, row_html];
-            html_planning_agg_list.push(row);
+                    td_html[i] = "<td><div class=\"ta_r\">" + duration_formatted + "</div></td>"
+                }
+    // add margin at the end
+                td_html[7] = "<td><div class=\"ta_c\"></div></td>"
+    // --- add filter_data
+                let filter_data = [];
+                filter_data[1] = (employee_code) ? employee_code.toLowerCase() : null
+                filter_data[2] = (item[2]) ? item[2] : null
+                for (let i = 3; i < 7; i++) {
+                    filter_data[i] = (item[i]) ? item[i] : null
+                }
+    //--- put td's together
+                let row_html = "";
+                for (let j = 0, item; item = td_html[j]; j++) {
+                    if(item){row_html += item};
+                }
+                //  html_planning_agg_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
+                const row = [true, employee_pk, filter_data, row_data, row_html];
+                html_planning_agg_list.push(row);
+            } // if (employee_allowed)
         }  //  for (let i = 0, item;
 
         //console.log(" html_planning_agg_list", html_planning_agg_list);
@@ -6133,7 +6236,7 @@ console.log( "reset mod_dict: ");
 //========= FillPlanningRows  ====================================
     function FillPlanningRows() {
         // called by HandleBtnSelect and HandlePayrollFilter
-        //console.log( "====== FillPlanningRows  === ");
+       //console.log( "====== FillPlanningRows  === ");
         const employee_planning_customer_list = get_dict_value(employee_planning_customer_dictlist, [employee_planning_selected_customer]);
         const employee_planning_order_list = get_dict_value(employee_planning_order_dictlist, [employee_planning_selected_order]);
         const has_selected_customer = (employee_planning_customer_list && !!employee_planning_customer_list.length);
@@ -6147,7 +6250,6 @@ console.log( "reset mod_dict: ");
         //  html_planning_detail_list = [ 0: show, 1: row_id, 2: filter_data, 3: row_data, 4: row_html ]
         const detail_rows = (is_planning_detail_mode) ? html_planning_detail_list : html_planning_agg_list;
         detail_rows.forEach(function (item, index) {
-    //console.log( "item", item);
 
 // filter selected employee when is_planning_detail_mode
         const employee_pk = item[1];
