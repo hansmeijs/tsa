@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request, dont_show_loader) {
-       //console.log( "=== DatalistDownload ")
+       console.log( "=== DatalistDownload ")
 
 // ---  Get today's date and time - for elapsed time
         let startime = new Date().getTime();
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_loader.classList.remove(cls_visible_hide)
         }
         let param = {"download": JSON.stringify (datalist_request)};
-       //console.log("datalist_request: ", datalist_request)
+       console.log("datalist_request: ", datalist_request)
         let response = "";
         $.ajax({
             type: "POST",
@@ -419,8 +419,8 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-               //console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
-               //console.log(response)
+               console.log("response - elapsed time:", (new Date().getTime() - startime) / 1000 )
+               console.log(response)
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value(response, ["calendar_period"]);
                     selected_calendar_period["calendar_type"] = "employee_calendar";
@@ -3629,40 +3629,42 @@ if(pgeName === "absence"){
     function MAB_FillSelectTable(tblName, selected_pk) {
         //console.log( "=== MAB_FillSelectTable === ", tblName);
         //console.log( "selected_pk", selected_pk);
-        //console.log( "mod_MAB_dict", mod_MAB_dict);
 
         let tblBody = document.getElementById("id_MAB_tblbody_select");
         tblBody.innerText = null;
 
-        const is_tbl_employee = (tblName === "employee");
         const is_tbl_replacement = (tblName === "replacement");
+        const is_tbl_abscat = (tblName === "abscat");
 
-        const hdr_text = (is_tbl_employee) ? loc.Employees : (is_tbl_replacement) ? loc.Replacement_employee : loc.Absence_categories
+        const hdr_text = (is_tbl_abscat) ? loc.Absence_categories : (is_tbl_replacement) ? loc.Replacement_employee : loc.Employees;
         document.getElementById("id_MAB_hdr_selecttable").innerText = hdr_text;
 
-        const data_map = (is_tbl_employee || is_tbl_replacement) ? employee_map : abscat_map;
+        const data_map = (is_tbl_abscat) ? abscat_map : employee_map;
+        console.log( "data_map", data_map);
         let row_count = 0
         if (data_map.size){
-//--- loop through employee_map
+//--- loop through employee_map / abscat_map
             for (const [map_id, map_dict] of data_map.entries()) {
                 const pk_int = map_dict.id;
-                const ppk_int = (is_tbl_employee || is_tbl_replacement) ? map_dict.comp_id : map_dict.c_id;
-                let code_value = (is_tbl_employee || is_tbl_replacement) ? map_dict.code : map_dict.o_code;
+                const ppk_int = (is_tbl_abscat) ? map_dict.c_id : map_dict.comp_id;
+                let code_value = (is_tbl_abscat) ? map_dict.o_code : map_dict.code;
                 // remove tilde from abscat PR2020-08-14
-                if (!is_tbl_employee && !is_tbl_replacement && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
-                const is_inactive = (is_tbl_employee || is_tbl_replacement) ? map_dict.inactive : map_dict.o_inactive;
+                if (is_tbl_abscat && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
+                const is_inactive = (is_tbl_abscat) ? map_dict.o_inactive : map_dict.inactive;
 // --- validate if employee can be added to list
                 // skip current employee when filling replacement list
                 let skip_row = (is_inactive) || (is_tbl_replacement && pk_int === mod_MAB_dict.employee_pk);
 
-                // <PERMIT>
-                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
-                if (!skip_row){
+                // <PERMIT> PR2020-11-12
+                // when has_allowed_customers_or_orders:
+                // - only employees of allowed customers and allowed orders can be made absent
+                // - all employees can be selected as replacemenet
+                // - skip when abscat_map
+                if (!skip_row && !is_tbl_abscat && !is_tbl_replacement ){
                     if (has_allowed_customers || has_allowed_orders) {
                         skip_row = (!map_dict.allowed) ;
                     }
                 }
-
                 if (!skip_row){
 //- insert tblBody row
                     let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -3692,10 +3694,7 @@ if(pgeName === "absence"){
         if(!row_count){
             let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            const  inner_text = (is_tbl_employee) ? loc.No_employees : (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_absence_categories;
-            //console.log( "is_tbl_employee", is_tbl_employee)
-            //console.log( "is_tbl_replacement", is_tbl_replacement)
-            //console.log( "inner_text", inner_text)
+            const inner_text = (is_tbl_abscat) ? loc.No_absence_categories : (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_employees;
             td.innerText = inner_text;
         }
     } // MAB_FillSelectTable

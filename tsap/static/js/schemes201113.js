@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener("click", function() {HandleBtnSelect(data_btn)}, false )
         }
 // ---  create EventListener for buttons above table schemeitems
-        const el_btns_grid = document.getElementById("id_btns_grid").children;
-        for (let i = 0, btn; btn = el_btns_grid[i]; i++) {
+        const el_btns_grid = document.getElementById("id_btns_grid");
+        for (let i = 0, btn; btn = el_btns_grid.children[i]; i++) {
             btn.addEventListener("click", function() {Grid_Nocycle_Goto(event)}, false )
         }
 
@@ -5914,29 +5914,32 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         let tblBody = document.getElementById("id_MAB_tblbody_select");
         tblBody.innerText = null;
 
-        const is_tbl_employee = (tblName === "employee");
         const is_tbl_replacement = (tblName === "replacement");
+        const is_tbl_abscat = (tblName === "abscat");
 
-        const hdr_text = (is_tbl_employee) ? loc.Employees : (is_tbl_replacement) ? loc.Replacement_employee : loc.Absence_categories
+        const hdr_text = (is_tbl_abscat) ? loc.Absence_categories : (is_tbl_replacement) ? loc.Replacement_employee : loc.Employees;
         document.getElementById("id_MAB_hdr_selecttable").innerText = hdr_text;
 
-        const data_map = (is_tbl_employee || is_tbl_replacement) ? employee_map : abscat_map;
+        const data_map = (is_tbl_abscat) ? abscat_map : employee_map;
         let row_count = 0
         if (data_map.size){
 //--- loop through employee_map
             for (const [map_id, map_dict] of data_map.entries()) {
                 const pk_int = map_dict.id;
-                const ppk_int = (is_tbl_employee || is_tbl_replacement) ? map_dict.comp_id : map_dict.c_id;
-                let code_value = (is_tbl_employee || is_tbl_replacement) ? map_dict.code : map_dict.o_code;
+                const ppk_int = (is_tbl_abscat) ? map_dict.c_id : map_dict.comp_id;
+                let code_value = (is_tbl_abscat) ? map_dict.o_code : map_dict.code;
                 // remove tilde from abscat PR2020-08-14
-                if (!is_tbl_employee && !is_tbl_replacement && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
-                const is_inactive = (is_tbl_employee || is_tbl_replacement) ? map_dict.inactive : map_dict.o_inactive;
+                if (is_tbl_abscat && code_value.includes("~")){code_value = code_value.replace(/~/g,"")}
+                const is_inactive = (is_tbl_abscat) ? map_dict.o_inactive : map_dict.inactive;
 // --- validate if employee can be added to list
                 // skip current employee when filling replacement list
                 let skip_row = (is_inactive) || (is_tbl_replacement && pk_int === mod_MAB_dict.employee_pk);
-                // <PERMIT>
-                // has_allowed_customers_or_orders means that only employees of allowed customers_ orders are shown
-                if (!skip_row){
+                // <PERMIT> PR2020-11-12
+                // when has_allowed_customers_or_orders:
+                // - only employees of allowed customers and allowed orders can be made absent
+                // - all employees can be selected as replacemenet
+                // - skip when abscat_map
+                if (!skip_row && !is_tbl_abscat && !is_tbl_replacement ){
                     if (has_allowed_customers || has_allowed_orders) {
                         skip_row = (!map_dict.allowed) ;
                     }
@@ -5970,10 +5973,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         if(!row_count){
             let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            const  inner_text = (is_tbl_employee) ? loc.No_employees : (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_absence_categories;
-            //console.log( "is_tbl_employee", is_tbl_employee)
-            //console.log( "is_tbl_replacement", is_tbl_replacement)
-            //console.log( "inner_text", inner_text)
+            const inner_text = (is_tbl_abscat) ? loc.No_absence_categories : (is_tbl_replacement) ? loc.No_replacement_employees : loc.No_employees;
             td.innerText = inner_text;
         }
     } // MAB_FillSelectTable
@@ -7834,7 +7834,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         //console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         let hide_btns_grid =  get_dict_value(grid_dict, ["nocycle"], false);
-        add_or_remove_class(document.getElementById("id_btns_grid"), cls_hide, !grid_dict.nocycle)
+        add_or_remove_class(el_btns_grid, cls_hide, !grid_dict.nocycle)
 
 // ---  reset el_grid_tbody_shift
         let tblBody = el_grid_tbody_shift;
@@ -8380,9 +8380,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 UploadSettings(upload_dict, url_settings_upload);
             }
 
-// ---  make firt / last button grey when readonly
-        btns = document.getElementById("id_btns_grid").children;
-        for (let i = 0, btn; btn = btns[i]; i++) {
+// ---  in el_btns_grid: make first / last button grey when readonly
+        for (let i = 0, btn; btn = el_btns_grid.children[i]; i++) {
             const col_index = get_attr_from_el_int(btn, "data-index")
             if ( [1,5,6,7].indexOf(col_index) > -1 ){
                 const disable_btn = ([1,5].indexOf(col_index)> -1 && col_index === grid_dict.grid_range) ||
