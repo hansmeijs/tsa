@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Payroll' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/payroll201112.js' %}"></script>
+    <script src="{% static 'js/payroll201123.js' %}"></script>
 {% endblock %}
 
 
@@ -31,23 +31,22 @@
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
+        <div class="tw_200 mx-2 mt-2 mb-4 display_hide">
+            <h6 class="tw_200 line_height_normal px-2 ">{% trans 'Customer and order' %}:</h6>
             <input id="id_SBR_select_order"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
 
-       <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 class="tw_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
+       <div class="tw_200 mx-2 mt-2 mb-4 display_hide">
+            <h6 class="tw_200 line_height_normal px-2 ">{% trans 'Absence' %}:</h6>
            <select id="id_SBR_select_absence"
-                type="text"
                 class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
         </div>
-        <div class="tw_200 mx-2 mt-2">
+        <div class="tw_200 mx-2 mt-2 display_hide">
             <h6 id="id_SBR_select_showall" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
         </div>
         </div>
@@ -85,6 +84,8 @@
                 {% include 'includes/modselectcolumns.html' %}
         <!-- =================== MODAL EMPLHOUR PAYROLL =================== -->
                 {% include 'includes/modemplhourpayroll.html' %}
+        <!-- =================== MODAL TIMEPICKER  =================== -->
+                {% include 'includes/modtimepicker.html' %}
 
 <!-- =================== CONTAINER =================== -->
 

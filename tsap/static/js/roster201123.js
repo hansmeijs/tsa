@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  MOD ROSTER ORDER ------------------------------------
         const el_MRO_input_date = document.getElementById("id_MRO_input_date")
             el_MRO_input_date.addEventListener("change", function() {MRO_InputDateChanged()}, false )
+        const el_MRO_extraorder = document.getElementById("id_MRO_extraorder");
         const el_MRO_input_order = document.getElementById("id_MRO_input_order")
             el_MRO_input_order.addEventListener("focus", function() {MSO_MRE_MRO_OnFocus("MRO", "order")}, false )
             el_MRO_input_order.addEventListener("keyup", function(){
@@ -375,8 +376,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // filter inactive and datefirst/datelast in select table
             customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            scheme: {istemplate: false, inactive: null, issingleshift: null},
-            //schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
+            scheme: {istemplate: false, inactive: null},
+            //schemeitem: {customer_pk: selected_customer_pk}, // , },
             shift: {istemplate: false},
             //team: {istemplate: false},
             //teammember: {datefirst: null, datelast: null, employee_nonull: false},
@@ -2477,10 +2478,10 @@ rowcount: 11
 
 //############################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//========= MSO_MSE_Filter_SelectRows  ====================================
-    function MSO_MSE_Filter_SelectRows() {
-        //console.log( "===== MSO_MSE_Filter_SelectRows  ========= ");
+/*
+//========= MSO_MSE_Filter_SelectRowsXXX  ====================================
+    function MSO_MSE_Filter_SelectRowsXXX() {
+        //console.log( "===== MSO_MSE_Filter_SelectRowsXXX  ========= ");
         // skip filter if filter value has not changed, update variable filter_select
 
         let new_filter = document.getElementById("id_filter_select_input").value;
@@ -2512,9 +2513,9 @@ rowcount: 11
             t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
             t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_period.customer_pk)
         } //  if (!skip_filter) {
-    }; // MSO_MSE_Filter_SelectRows
+    }; // MSO_MSE_Filter_SelectRowsXXX
 
-
+*/
 
 
 //========= HandleFilterImage  =============== PR2020-07-21 PR2020-09-14
@@ -2987,7 +2988,6 @@ rowcount: 11
             }
         }
     } // RefreshEmplhourNoteRows
-
 
 
 //=========  refresh_abscat_map  ======= PR2020-08-14
@@ -3504,6 +3504,8 @@ rowcount: 11
         el_MRO_input_date.setAttribute("min", selected_period.period_datefirst);
         el_MRO_input_date.setAttribute("max", selected_period.period_datelast);
 
+        el_MRO_extraorder.checked=false;
+
         el_MRO_input_order.value = (mod_dict.order_pk && mod_dict.cust_order_code) ? mod_dict.cust_order_code : null;
         el_MRO_input_shift.value = null;
         el_MRO_input_employee.value = null;
@@ -3543,9 +3545,12 @@ rowcount: 11
         //                      {timeend: {value: mod_dict.shift.offsetend, update: true},
         //                      {shiftcode: {value: mod_dict.shift_code, update: true},
 
+        // id_MRO_extraorder added. When this is checked plandur will get value of timedur, null otherwise PR2020-11-27
+        const is_extra_order = el_MRO_extraorder.checked;
+
         let upload_dict = {period_datefirst: selected_period.period_datefirst,
                            period_datelast: selected_period.period_datelast,
-                           id: {table: "emplhour", create: true},
+                           id: {table: "emplhour", extraorder: is_extra_order, create: true},
                            rosterdate: {value: mod_dict.rosterdate},
                            orderhour: {order_pk: mod_dict.order_pk}
                            };
@@ -3564,7 +3569,7 @@ rowcount: 11
         }
         */
         if(mod_dict.shift_pk){
-            upload_dict.shiftcode = {value: mod_dict.shift_code, update: true};
+            upload_dict.shift = {pk: mod_dict.shift_pk, code: mod_dict.shift_code, update: true};
         } else if(el_MRO_input_shift.value){
             upload_dict.shiftcode = {value: el_MRO_input_shift.value, update: true};
         }
@@ -3857,6 +3862,7 @@ rowcount: 11
                          (tblName === "abscat") ? abscat_map :
                          (tblName === "employee") ? employee_map : null;
         const map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
+
 
         let el_focus = null;
 
@@ -4549,10 +4555,15 @@ console.log( "new_offset: ", new_offset);
            shift_option = "enter_employee";
         } else if (is_absence_emplhour){
             shift_option = "change_absence"
-        } else if ( ["tab_absence", "tab_abs_split"].indexOf(mod_dict.btn_select) > -1 && crud_mode !== "delete" ){
+        } else if (mod_dict.btn_select === "tab_absence" && crud_mode !== "delete" ){
                 // shift_option = "make_absent" if emplhour has employee AND not is_absence_emplhour
                 // AND btn_select = 'tab_absence' or 'tab_abs_split' AND not clicked on btn 'Delete employee'
             shift_option = "make_absent";
+
+        } else if (mod_dict.btn_select === "tab_abs_split" && crud_mode !== "delete" ){
+                // shift_option = "make_absent" if emplhour has employee AND not is_absence_emplhour
+                // AND btn_select = 'tab_absence' or 'tab_abs_split' AND not clicked on btn 'Delete employee'
+            shift_option = "make_absent_and_split";
         } else if (mod_dict.btn_select === "tab_split"){
             shift_option = "split_shift";
         } else if (mod_dict.btn_select === "tab_switch"){
@@ -4586,7 +4597,7 @@ console.log( "new_offset: ", new_offset);
         } else {
 // ---  create employee_dict
             // when make_absent or split_shift: selected_employee is replacement employee
-            if(["enter_employee", "make_absent", "split_shift"].indexOf(shift_option) > -1)
+            if(["enter_employee", "make_absent", "make_absent_and_split", "split_shift"].indexOf(shift_option) > -1)
                 if(mod_dict.selected_employee_pk){
                      upload_dict.employee = {field: "employee",
                                                 pk: mod_dict.selected_employee_pk,
@@ -4646,12 +4657,12 @@ console.log( "new_offset: ", new_offset);
 
             // when shift_option = "split_shift":
                 // emplhour keeps employee. Selected employee is put in new emplhour record
-                // put mod_dict.offsetsplit as timeend in upload_dict.
+                // put mod_dict.offsetsplit as timeend in upload_dict when split_after, in offsetstart when split_before
                 // timeend is used to change the end time of the current shift in 'update_emplhour'
                 // it will update timeend in current emplhour. Format: 'timeend': {'value': -560, 'update': True}}
                 // and will be the timestart of the new  emplhour
                 // not necessary:  upload_dict.rosterdate, it is retrieved from saved emplhour
-                // not necessary:  upload_dict.splitoffsetstart, it is retrieved from saved emplhour
+                // not necessary:  upload_dict.splitoffsetstart when split_after, it is retrieved from saved emplhour
 
             // when shift_option = "switch_shift":
                 // emplhour keeps employee. Seletec employee is put in new emplhour record

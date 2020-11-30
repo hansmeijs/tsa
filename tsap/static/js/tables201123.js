@@ -490,33 +490,44 @@
             if(!is_addnew_row){
 
         // show only rows of selected_ppk, only if selected_ppk has value
-                if(!!has_ppk_filter && !!selected_ppk){
-                    const ppk_str = get_attr_from_el(tblRow, "data-ppk")
-        //console.log("ppk_str", ppk_str);
-                    if(!!selected_ppk){
-                        hide_row = (ppk_str !== selected_ppk.toString())
-                    } else {
+                if(has_ppk_filter){
+                    if(!selected_ppk){
                         hide_row = true;
+                    } else {
+                        const ppk_str = get_attr_from_el(tblRow, "data-ppk")
+        //console.log("ppk_str", ppk_str);
+                        if(!ppk_str){
+                            hide_row = true;
+                        } else if (ppk_str !== selected_ppk.toString()) {
+                            hide_row = true;
+                        }
                     }
                 }
         //console.log( "hide_row after selected_ppk: ", has_ppk_filter, selected_ppk,  hide_row);
 
 // hide inactive rows if filter_show_inactive
+        //console.log("filter_show_inactive", filter_show_inactive);
                 if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
         //console.log("inactive_str", inactive_str);
-                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
+                    if (inactive_str && (inactive_str.toLowerCase() === "true")) {
                         hide_row = true;
                     }
-       //console.log("hide_row", hide_row);
                 }
-       //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
+        //console.log( "hide_row after filter_show_inactive: ", hide_row);
 
-        //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
 // show all rows if filter_name = ""
+        //console.log("filter_dict", filter_dict);
                 if (!hide_row && !isEmpty(filter_dict)){
-                    Object.keys(filter_dict).forEach(function(key) {
-                        const filter_text = filter_dict[key];
+                    //Object.keys(filter_dict).forEach(function(key) {
+                    for (const [key, value] of Object.entries(filter_dict)) {
+                        // key = col_index
+                        // filter_dict is either a dict of lists ( when created by t_SetExtendedFilterDict)
+                        // filter_dict[col_index] = [filter_tag, filter_value, mode] modes are: 'blanks_only', 'no_blanks', 'lte', 'gte', 'lt', 'gt'
+                        // otherwise filter_dict is a dict of strings
+                        const filter_text = (Array.isArray(value)) ? value[1] : value;
+
+        //console.log("key", key);
         //console.log("filter_text", filter_text);
                         const filter_blank = (filter_text === "#")
                         const filter_non_blank = (filter_text === "@")
@@ -528,6 +539,7 @@
                                 if(filter_text){
                         // get value from el.value, innerText or data-value
                                     const el_tagName = el.tagName.toLowerCase()
+        //console.log("el_tagName", el_tagName);
                                     let el_value = null;
                                     if (el_tagName === "select"){
                                         el_value = el.options[el.selectedIndex].text;
@@ -539,7 +551,7 @@
                                         el_value = el.innerText;
                                     }
                                     if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-        //console.log("el_tagName", el_tagName, "el_value",  el_value);
+        //console.log("el_value",  el_value);
 
                                     // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                                     if (filter_blank){
@@ -550,16 +562,17 @@
                                         hide_row = true;
                                     } else {
                                         const el_value_lc = el_value.toLowerCase() ;
+        //console.log("el_value_lc",  el_value_lc);
+        //console.log("el_value_lc.indexOf(filter_text)",  el_value_lc.indexOf(filter_text));
                                         // hide row if filter_text not found
                                         if (el_value_lc.indexOf(filter_text) === -1) {hide_row = true};
                                     }
                                 }  //  if(!!filter_text)
                             }  // if (!!el) {
                         }  //  if (!!tbl_cell){
-                    });  // Object.keys(filter_dict).forEach(function(key) {
+                    };  // Object.keys(filter_dict).forEach(function(key) {
                 }  // if (!hide_row)
-
-        //console.log( "hide_row after filter_dict: ", filter_dict, hide_row);
+        //console.log( "hide_row after filter_dict: ", hide_row);
             } //  if(!is_addnew_row){
         }  // if (!!tblRow)
         return !hide_row
@@ -573,12 +586,16 @@
        //console.log( "col_index ", col_index, "event_key ", event_key);
         // filter_dict = [ ["text", "m", ""], ["duration", 180, "gt"] ]
 
+        //  filter_dict[col_index] = [filter_tag, filter_value, mode]
+        //  modes are: 'blanks_only', 'no_blanks', 'lte', 'gte', 'lt', 'gt'
+
 // --- get filter tblRow and tblBody
         let tblRow = get_tablerow_selected(el);
         const filter_tag = get_attr_from_el(el, "data-filtertag")
-       //console.log( "filter_tag ", filter_tag);
+        //console.log( "filter_tag ", filter_tag);
 
         const col_count = tblRow.cells.length
+        //console.log( "col_count ", col_count);
         let mode = "", filter_value = null, skip_filter = false;
 // --- skip filter row when clicked on Shift, Control, Alt, Tab. Filter is set by the other key that is pressed
         if (["Shift", "Control", "Alt", "Tab"].indexOf(event.key) > -1 ) {
@@ -696,7 +713,7 @@
                 };
             }
         }
-       //console.log( "filter_dict ", filter_dict);
+       console.log( "filter_dict ", filter_dict);
         return skip_filter;
     }  // t_SetExtendedFilterDict
 
@@ -706,27 +723,39 @@
         //console.log( "===== t_ShowTableRowExtended  ========= ");
         //console.log( "filter_dict", filter_dict);
         //console.log( "filter_row", filter_row);
+        // filter_dict = {2: ["text", "r", ""], 4: ["text", "y", ""] }
+        //  filter_row = [empty × 2, "acu - rif", empty, "agata mm"]
 
+        // PR2020-11-20 from https://thecodebarbarian.com/for-vs-for-each-vs-for-in-vs-for-of-in-javascript
+        // - With the other two constructs, forEach() and for/of, you get access to the array element itself.
+        //   With forEach() you can access the array index i, with for/of you cannot.
+        // - for/in will include non-numeric properties. (Assign to a non-numeric property: arr.test = 'bad')
+        // - Avoid using for/in over an array unless you're certain you mean to iterate over non-numeric keys and inherited keys.
+        // - forEach() and for/in skip empty elements, also known as "holes" in the array, for and for/of do not.
+        // - Generally, for/of is the most robust way to iterate over an array in JavaScript.
+        // - It is more concise than a conventional for loop and doesn't have as many edge cases as for/in and forEach().
         let hide_row = false;
 
 // ---  show all rows if filter_name = ""
         if (!isEmpty(filter_dict)){
 // ---  loop through filter_dict key = col_index, value = filter_value
-            Object.keys(filter_dict).forEach(function(index_str) {
-// ---  skip column if no filter on this column
-                if(filter_dict[index_str]){
-                    const arr = filter_dict[index_str];
-                    const col_index = Number(index_str);
-    //console.log( "col_index", col_index);
+           // Object.keys(filter_dict).forEach(function(index_str) {
+           for (const [index_str, filter_arr] of Object.entries(filter_dict)) {
+        //console.log( "filter_arr", filter_arr);
 
+// ---  skip column if no filter on this column
+                if(filter_arr){
                     // filter text is already trimmed and lowercase
-                    const filter_tag = arr[0];
-                    const filter_value = arr[1];
-                    const filter_mode = arr[2];
+                    const col_index = Number(index_str);
+                    const filter_tag = filter_arr[0];
+                    const filter_value = filter_arr[1];
+                    const filter_mode = filter_arr[2];
         //console.log( "filter_tag", filter_tag);
+        //console.log( "col_index", col_index);
 
                     if(tblRow){
                     // used in abscat table
+                        //TODO convert cell_values to format of filter_row
                         const cell = tblRow.cells[col_index];
                         if(cell){
                             const el = cell.children[0];
@@ -734,8 +763,6 @@
                                 if (filter_tag === "triple"){
                                    //console.log( "el", el);
                                     const cell_value = get_attr_from_el_int(el, "data-filter")
-                                   //console.log( "cell_value", cell_value);
-                                   //console.log( "filter_value", filter_value);
                                     if (filter_value === 2){
                                         // show only rows with tickmark
                                         if (!cell_value) { hide_row = true}
@@ -748,18 +775,8 @@
                         }
 
                     } else if (filter_row){
-
-                        const arr = filter_dict[index_str];
-                        const col_index = Number(index_str);
-       //console.log( "col_index", col_index);
-
-                        // filter text is already trimmed and lowercase
-                        const filter_tag = arr[0];
-                        const filter_value = arr[1];
-                        const filter_mode = arr[2];
-       //console.log( "filter_tag", filter_tag);
-
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
+       //console.log( "========== cell_value", cell_value, typeof cell_value);
 
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if( filter_tag === "boolean") {
@@ -770,7 +787,6 @@
                             if(cell){
                                 cell_value = get_attr_from_el(cell, "data-filter")
 
-        //console.log( "========== cell_value", cell_value, typeof cell_value);
                             }
                         } else if(filter_mode === "blanks_only"){  // # : show only blank cells
                             if(cell_value){hide_row = true};
@@ -801,7 +817,7 @@
                             } else {
                                 if (cell_value !== filter_value) {hide_row = true};
                             }
-                           //console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
+       //console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         } else if( filter_tag === "status") {
                             if(filter_value === 1) {
                                 if(cell_value){
@@ -813,10 +829,11 @@
                         }
 
                     }  // else if (filter_row){
-                };  //   if(filter_dict[index_str]){
-            });  // Object.keys(filter_dict).forEach(function(col_index) {
+                };  //   if(value){
+            };  // Object.keys(filter_dict).forEach(function(col_index) {
         }  // if (!hide_row)
-        return !hide_row
+       //console.log("hide_row", hide_row);
+       return !hide_row
     }; // t_ShowTableRowExtended
 
 //========= t_create_filter_row  ====================================

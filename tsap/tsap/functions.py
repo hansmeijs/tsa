@@ -2180,15 +2180,111 @@ def get_rate_from_value(value):
     #logger.debug('rate <' + str(rate) + '> ' + str(type(rate)))
     return rate, msg_err
 
+def get_shiftpricecode_from_orderhour(orderhour):  # PR2020-11-28
+    logger.debug(' --------- get_shiftpricecode_from_orderhour -------------')
+    sh_prc_id = None
+    prc_override = False
+    if orderhour:
+        order = orderhour.order
+        shift = orderhour.shift
+
+        if shift:
+            prc_override = shift.pricecodeoverride
+        if not prc_override:
+            prc_override = order.pricecodeoverride
+        if not prc_override:
+            prc_override = order.customer.company.pricecodeoverride
+
+        if shift and shift.pricecode:
+            sh_prc_id = shift.pricecode.pk
+        if sh_prc_id is None and order.pricecode:
+            sh_prc_id = order.pricecode.pk
+        if sh_prc_id is None and order.customer.company.pricecode_id:
+            # company.pricecode_id has no foreign key
+            sh_prc_id = order.customer.company.pricecode_id
+
+    return sh_prc_id, prc_override
+# - end of calc_shiftpricerate_from_orderhour
+
+
+def calc_pricerate_from_emplhour(emplhour):  # PR2020-11-24  PR2020-11-27
+    logger.debug(' --------- calc_pricerate_from_emplhour -------------')
+    price_rate = 0
+    if emplhour:
+        orderhour = emplhour.orderhour
+        if orderhour:
+            order = orderhour.order
+            shift = orderhour.shift
+
+            prc_override = False
+            if shift:
+                prc_override = shift.pricecodeoverride
+            if not prc_override:
+                prc_override = order.pricecodeoverride
+                if not prc_override:
+                    prc_override = order.customer.company.pricecodeoverride
+            logger.debug('prc_override: ' + str(prc_override))
+
+            sh_prc_id = None
+            if shift and shift.pricecode:
+                sh_prc_id = shift.pricecode.pk
+            logger.debug('shift prc_id: ' + str(sh_prc_id))
+            if sh_prc_id is None:
+                if order.pricecode:
+                    sh_prc_id = order.pricecode.pk
+            logger.debug('order shift prc_id: ' + str(sh_prc_id))
+            if sh_prc_id is None:
+                # company.pricecode_id has no foreign key
+                sh_prc_id = order.customer.company.pricecode_id
+            logger.debug('sh_prc_id: ' + str(sh_prc_id))
+
+            e_prc_id = None
+            if emplhour.employee and emplhour.employee.pricecode:
+                e_prc_id = emplhour.employee.pricecode.pk
+            logger.debug('e_prc_id: ' + str(e_prc_id))
+
+            rosterdate_dte = orderhour.rosterdate
+
+            logger.debug('price_rate: ' + str(price_rate))
+
+            price_rate = calc_pricerate_from_values(sh_prc_id, prc_override, e_prc_id, rosterdate_dte)
+
+    logger.debug('price_rate: ' + str(price_rate))
+    return price_rate
+
+
+
+
+def calc_pricerate_from_values(sh_prc_id, sh_prc_override, e_prc_id, rosterdate_dte ):  # PR2020-11-24
+    logger.debug(' --------- calc_pricerate_from_values -------------')
+    logger.debug('sh_prc_id: ' + str(sh_prc_id) + ' sh_prc_override: ' + str(sh_prc_override))
+    logger.debug('e_prc_id: ' + str(e_prc_id) + ' rosterdate_dte: ' + str(rosterdate_dte))
+
+    price_rate = 0
+    if rosterdate_dte:
+        pricecode_pk = None
+        if e_prc_id is not None and not sh_prc_override:
+            pricecode_pk = e_prc_id
+        elif sh_prc_id:
+            pricecode_pk = sh_prc_id
+
+        logger.debug('pricecode_pk: ' + str(pricecode_pk) + ' rosterdate_dte: ' + str(rosterdate_dte))
+        price_rate = get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, rosterdate_dte)
+        logger.debug(' price_rate: ' + str(price_rate))
+
+    return price_rate
+
 
 def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9 PR20202-07-26
-    #logger.debug(' ============= get_pricecodeitem ============= ')
-    #logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
-    pricerate = 0
+    #logger.debug(' ============= get_pricerate_from_pricecodeitem ============= ')
+    #logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk))
+    #logger.debug(' rosterdate: ' + str(rosterdate ) + ' ' + str(type(rosterdate)))
+
+    price_rate = 0
     if pricecode_pk:
-        sql_01 = """SELECT pci.pricerate FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s) 
-        AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL)  
-        """
+        sql_list = ['SELECT pci.pricerate FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s)',
+                    'AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL)',
+                    'AND (pci.datelast >= CAST(%(rd)s AS DATE) OR pci.datelast IS NULL)']
         sqlfilter = 'AND (FALSE)'
         if field == 'pricecode':
             sqlfilter = 'AND (pci.isprice)'
@@ -2196,22 +2292,24 @@ def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020
             sqlfilter = 'AND (pci.isaddition)'
         elif field == 'taxcode':
             sqlfilter = 'AND (pci.istaxcode)'
+        sql_list.append(sqlfilter)
+        sql_list.append('ORDER BY pci.datefirst DESC NULLS LAST LIMIT 1')
 
-        sql_02 = 'ORDER BY pci.datefirst DESC NULLS LAST LIMIT 1'
+        sql = ' '.join(sql_list)
+        #logger.debug('sql: ' + str(sql))
 
-        sql = ' '.join([sql_01, sqlfilter, sql_02])
-
-        # ('sql: ' + str(sql))
         cursor = connection.cursor()
         cursor.execute(sql, {
             'pcid': pricecode_pk,
             'rd': rosterdate
         })
         row = cursor.fetchone()
+        #logger.debug('row: ' + str(row))
         if row:
             if row[0]:
-                pricerate = row[0]
-    return pricerate
+                price_rate = row[0]
+    #logger.debug('price_rate: ' + str(price_rate))
+    return price_rate
 
 
 def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
@@ -2256,21 +2354,28 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     return pricerate
 
 
-def get_pat_code_cascade(table, field, orderhour, request):
-    #logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05
-    # - get pat_code, seacrh higher levels when None
+def get_pat_code_cascade(field, orderhour, request):
+    #logger.debug(' --- get_pricerate_cascade --- ')  # PR2020-07-05 PR2020-11-28
+    # - seach for addition-/tax_code in shift first, then in order, then in company
+    # - only called by update_emplhour
+    # - fields are 'additioncode' or 'taxcode'
+    # - pricecode is not stored in ordrehour but in emplhour. It is retrieved in calc_pricerate_from_emplhour
     pat_code_cascade = None
     if orderhour:
-        if table == 'shift':
+        shift = orderhour.shift
+        if shift:
+            pat_code_cascade = getattr(shift, field)
+        
+        if pat_code_cascade is None:
             order = orderhour.order
             if order:
                 pat_code_cascade = getattr(order, field)
-        if table in ('shift', 'order') and pat_code_cascade is None:
-            if request.user.company:
-                # company has no linked field, use pricecode_id etc instead
-                pat_code_id = getattr(request.user.company, field + '_id')
-                if pat_code_id:
-                    pat_code_cascade = m.Pricecode.objects.get_or_none(id=pat_code_id)
+                if pat_code_cascade is None:
+                    if request.user.company:
+                        # company has no linked field, use pricecode_id etc instead
+                        pat_code_id = getattr(request.user.company, field + '_id')
+                        if pat_code_id:
+                            pat_code_cascade = m.Pricecode.objects.get_or_none(id=pat_code_id)
     return pat_code_cascade
 
 
@@ -2433,7 +2538,7 @@ def calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor):
 
 def dictfetchall(cursor):
     # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly
-    # creates dict from output cusror.execute instead of list
+    # creates list of dicts from output cursor.execute instead of list of lists
     columns = [col[0] for col in cursor.description]
     return [
         dict(zip(columns, row))
@@ -2829,22 +2934,31 @@ def calc_timeduration_from_shift(shift):
 
 # <<<<<<<<<< calc_timedur_plandur_from_offset >>>>>>>>>>>>>>>>>>> PR2020-08-29
 def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, is_billable, is_sat, is_sun, is_ph, is_ch,
-        row_offsetstart, row_offsetend, row_breakduration, row_timeduration,
-        row_nosat, row_nosun, row_noph, row_noch, row_employee_pk, row_employee_wmpd,
-        comp_timezone):
-    # - calc_timestart_time_end_from_offset:
+        row_offsetstart, row_offsetend, row_breakduration, row_timeduration, row_plannedduration, update_plandur,
+        row_nosat, row_nosun, row_noph, row_noch, row_employee_pk, row_employee_wmpd, comp_timezone):
+    # called by:
+    # - add_row_to_planning,        returnvalue planned_duration will be used, update_plandur = True
+    # - add_orderhour_emplhour,     returnvalue planned_duration will be used, update_plandur = True
+    # - make_absence_shift,         returnvalue planned_duration will NOT be used, update_plandur = True
+    # - make_split_shift,           returnvalue planned_duration will NOT be used, update_plandur = True
+    # - update_emplhour             returnvalue planned_duration will only be used, when added emplhour and is_extra_order=True, update_plandur = is_extra_order
+
+    # this function:
     # - calculates timestart, timeend from shift offset and shift rosterdate
     # - calculates timeduration, only when both start- and endtime have value.
     # - and takes in account daylight saving time
-    # - otherwise value of shift.timeduration is used (shift '6:00 hours')
+    # - otherwise value of row_timeduration is used (shift '6:00 hours')
 
-    #logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
-    #logger.debug('is_absence: ' + str(is_absence))
+    logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
+    logger.debug('is_absence: ' + str(is_absence))
     #logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
     #logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
-    #logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend) + ' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
-    #logger.debug('row_employee_pk: ' + str(row_employee_pk))
-    #logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
+    #logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend))
+    #logger.debug(' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
+    #logger.debug(' row_plannedduration: ' + str(row_plannedduration) + ' update_plandur: ' + str(update_plandur))
+
+    logger.debug('row_employee_pk: ' + str(row_employee_pk))
+    logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
 
     timestart, timeend, new_timeduration = calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
@@ -2854,16 +2968,21 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-
+    logger.debug('new_timeduration: ' + str(new_timeduration))
     # Note: when is_publicholiday or is_companyholiday rows with 'excl_ph' or 'excl_ch' are filtered out.
     #    Maybe these rows are still necessary TODO PR2020-08-14
 
     # PR2020-08-14 planned_duration are hours that are requested by clients
     # therefore:
     #  - planned_duration = 0 when absence or rest shift
-    #  - planned_duration = 0 when is_saturday and nohoursonsaturday etc.
+    #  - planned_duration = 0 when is_saturday and nohoursonsaturday etc. (for now nohours only apply on absence)
     # PR2020-08-06 debug:
     #  - planned_duration is NOT set to 0 when employee = None
+    # PR2020-11-23 debug:
+    #  - planned_duration only gets value when creating planning record or filling emphour.
+    #  - row_plannedduration contains the value of emplhour.planned_duration
+    #  - planned_duration is not changed when changing offsetstart / offsetend / breakduration / timedutaion.
+    #  -   in these cases the returnvalue 'planned_duration' is not used
 
     if (is_absence) or (is_restshift) or \
             (is_sat and row_nosat) or \
@@ -2872,7 +2991,11 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             (is_ch and row_noch):
         planned_duration = 0
     else:
-        planned_duration = new_timeduration
+        if update_plandur:
+            planned_duration = new_timeduration
+        else:
+            planned_duration = row_plannedduration
+
 
     #logger.debug('planned_duration: ' + str(planned_duration))
     # timeduration are the real hours made by employee, including absence hours, but no rest hours
@@ -2883,7 +3006,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     #  -  time_duration gets no value when rest shift
     # PR2020-07-24 request Guido:
     #  -  time_duration = 0 when employee is None. time_duration must be filled in when employee is filled in later
-    #  -  nohoursonsaturday not (yet) in use for non-absence rows,
+    #  -  nohoursonsaturday etc not (yet) in use for non-absence rows,
     #       but probably it will be necessary for employees that have paid shifts without worked time
     #       (i.e when they dont have to work on public holiday but still get paid)
     
@@ -2895,24 +3018,32 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             (is_ph and row_noph) or \
             (is_ch and row_noch):
         time_duration = 0
+        logger.debug('time_duration: ' + str(time_duration))
     elif is_absence:
         if new_timeduration:
             time_duration = new_timeduration
         elif row_employee_wmpd:
-            time_duration = new_timeduration
+            time_duration = row_employee_wmpd
     else:
         time_duration = new_timeduration
-
+    logger.debug('new_timeduration: ' + str(new_timeduration))
     # billingduration
-    # - when 'is_billable': billingduration = timeduration (actual worked hours).
-    #   - then the billingduration must be updated when employee is removed / added or when timeduration changes
+    # - when 'is_billable': billingduration = timeduration (actual worked hours):
+    #   - the billingduration must be set to 0 when employee is removed
+    #   - the billingduration must be set to timeduration when employee is added
+    #   - the billingduration must be updated timeduration changes
     # - when not billable:  billingduration = plannedduration (requested hours).
     #    - then billingduration does not change
-    if is_billable:
-        billing_duration = time_duration
-    else:
-        billing_duration = planned_duration
+    # - is_billable is always False when absence or restshift:
+    billing_duration = 0
+    if row_employee_pk:
+        if is_billable:
+            billing_duration = time_duration
+        else:
+            billing_duration = planned_duration
 
+    #logger.debug('update_plandur: ' + str(update_plandur))
+    #logger.debug('is_billable: ' + str(is_billable))
     #logger.debug('planned_duration: ' + str(planned_duration))
     #logger.debug('time_duration: ' + str(time_duration))
     #logger.debug('billing_duration: ' + str(billing_duration))
@@ -2923,14 +3054,14 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     excel_date = get_Exceldate_from_datetime(rosterdate_dte)
     excel_start = excel_date * 1440 + row_offsetstart_nonull
     excel_end = excel_date * 1440 + row_offsetend_nonull
-
+    logger.debug('time_duration: ' + str(time_duration))
     return timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end
+
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10 PR2020-06-01
 def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, timeduration,
                                         comp_timezone):
     #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
-
     # function calculates fields 'timestart' 'timeend' and 'new_timeduration', based on rosterdate and offset
     # called by add_orderhour_emplhour, (also when rosterdate_has_changed, but this should not be possible)
     # takes daylight saving time in account
@@ -2943,8 +3074,8 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
     if rosterdate_dte:
 # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
-        #logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
-        # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
+        #logger.debug(' rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+        # rosterdate_dte: 2019-11-21 <class 'datetime.date'>
         #logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
         # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
 
@@ -2953,15 +3084,12 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             rosterdate=rosterdatetime_naive,
             offset_int=offsetstart,
             comp_timezone=comp_timezone)
-        #logger.debug(' starttime_local: ' + str(starttime_local) + ' ' + str(type(starttime_local)))
 
 # c. get endtime from rosterdate and offsetstart
-        #logger.debug('c. get endtime from rosterdate and offsetstart ')
         endtime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
             offset_int=offsetend,
             comp_timezone=comp_timezone)
-        #logger.debug(' endtime_local: ' + str(endtime_local) + ' ' + str(type(endtime_local)))
 
 # d. recalculate timeduration, only when both starttime and endtime have value
         if starttime_local and endtime_local:
@@ -3546,7 +3674,6 @@ def get_allowed_employees_and_replacements(request):
 
         sql = ' '.join(sql_list)
 
-        #logger.debug('sql: ' + str(sql))
         allowed_employees_list = []
 
         newcursor = connection.cursor()

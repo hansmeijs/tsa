@@ -601,28 +601,32 @@ document.addEventListener('DOMContentLoaded', function() {
         let btn_show_templates = document.getElementById("id_menubtn_show_templates");
         let btn_planning_preview = document.getElementById("id_submenu_planning_preview");
 
-        btn_add_scheme.innerText = (is_absence_mode) ? loc.Add_absence : (is_template_mode) ? loc.Add_template : loc.Add_scheme;
-        btn_delete_scheme.innerText = (is_absence_mode) ? loc.Delete_absence : (is_template_mode) ? loc.Delete_template :loc.Delete_scheme;
-        btn_show_templates.innerText = (is_template_mode) ? loc.menubtn_hide_templates :loc.menubtn_show_templates;
+        if(btn_add_scheme){btn_add_scheme.innerText = (is_absence_mode) ? loc.Add_absence : (is_template_mode) ? loc.Add_template : loc.Add_scheme};
+        if(btn_show_templates){btn_show_templates.innerText = (is_template_mode) ? loc.menubtn_hide_templates :loc.menubtn_show_templates};
 
-        btn_copy_template.innerText = (is_template_mode) ? loc.menubtn_copy_to_order : loc.menubtn_copy_to_template
-        if(selected.scheme_pk && !is_absence_mode){
-            btn_copy_template.removeAttribute("aria-disabled");
-            btn_copy_template.classList.remove("tsa_color_mediumgrey");
-        } else {
-            btn_copy_template.setAttribute("aria-disabled", true);
-            btn_copy_template.classList.add("tsa_color_mediumgrey");
+        if(btn_copy_template){
+            btn_copy_template.innerText = (is_template_mode) ? loc.menubtn_copy_to_order : loc.menubtn_copy_to_template
+            if(selected.scheme_pk && !is_absence_mode){
+                btn_copy_template.removeAttribute("aria-disabled");
+                btn_copy_template.classList.remove("tsa_color_mediumgrey");
+            } else {
+                btn_copy_template.setAttribute("aria-disabled", true);
+                btn_copy_template.classList.add("tsa_color_mediumgrey");
+            }
         }
 
-        if(is_absence_mode && selected.teammember_pk || !is_absence_mode && selected.scheme_pk){
-            btn_delete_scheme.removeAttribute("aria-disabled");
-            btn_delete_scheme.classList.remove("tsa_color_mediumgrey");
-        } else {
-            btn_delete_scheme.setAttribute("aria-disabled", true);
-            btn_delete_scheme.classList.add("tsa_color_mediumgrey");
-        }
+        if(btn_delete_scheme){
+            btn_delete_scheme.innerText = (is_absence_mode) ? loc.Delete_absence : (is_template_mode) ? loc.Delete_template :loc.Delete_scheme;
 
-        add_or_remove_class(btn_planning_preview, cls_hide, (is_template_mode || is_absence_mode) )
+            if(is_absence_mode && selected.teammember_pk || !is_absence_mode && selected.scheme_pk){
+                btn_delete_scheme.removeAttribute("aria-disabled");
+                btn_delete_scheme.classList.remove("tsa_color_mediumgrey");
+            } else {
+                btn_delete_scheme.setAttribute("aria-disabled", true);
+                btn_delete_scheme.classList.add("tsa_color_mediumgrey");
+            }
+        }
+        if(btn_planning_preview){add_or_remove_class(btn_planning_preview, cls_hide, (is_template_mode || is_absence_mode) ) };
 
     }
 
@@ -7629,7 +7633,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         console.log(" === Grid_FillGrid ===") // PR2020-03-13
         //console.log("scheme_dict: ", deepcopy_dict(scheme_dict)) // PR2020-03-13
         //console.log("mode", mode)
-        //console.log("selected.grid_range", selected.grid_range)
+        console.log("selected.grid_range", selected.grid_range)
         //console.log("selected.scheme_pk", selected.scheme_pk)
 
 // ---  reset grid_dict
@@ -7647,7 +7651,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                 grid_dict.nocycle = (!grid_dict.cycle || grid_dict.cycle > 28)
                 if (grid_dict.nocycle){ grid_dict.cycle = 0 }
 
-                console.log("scheme_dict", scheme_dict)
+                //console.log("scheme_dict", scheme_dict)
 // ---  get grid_range from settings
                 grid_dict.grid_range = selected.grid_range
 
@@ -7831,7 +7835,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 //=========  Grid_CreateTblShifts  === PR2020-03-13 PR2020-07-08
     function Grid_CreateTblShifts(col_index) {
         console.log("===  Grid_CreateTblShifts == ")
-        //console.log("grid_dict ", deepcopy_dict(grid_dict))
+        console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         let hide_btns_grid =  get_dict_value(grid_dict, ["nocycle"], false);
         add_or_remove_class(el_btns_grid, cls_hide, !grid_dict.nocycle)

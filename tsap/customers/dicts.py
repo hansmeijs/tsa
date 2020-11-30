@@ -937,9 +937,9 @@ def create_billing_agg_list(period_dict, request):
         SUM(eh.timeduration) AS eh_timedur, 
         SUM(eh.billingduration) AS eh_billdur,
 
-        ARRAY_AGG(DISTINCT oh.pricerate ORDER BY oh.pricerate) AS oh_prrate,
-        ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_addrate,
-        ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate,
+        ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,
+        oh.additionrate AS oh_addrate,
+        oh.taxrate AS oh_taxrate,
         
         SUM(eh.amount) AS eh_amount_sum,
         SUM(eh.addition) AS eh_add_sum,
@@ -962,7 +962,7 @@ def create_billing_agg_list(period_dict, request):
         AND ( o.id = %(oid)s OR %(oid)s IS NULL )
         AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
         AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
-        GROUP BY o.id, oh.customercode, oh.ordercode
+        GROUP BY o.id, oh.customercode, oh.ordercode, oh.additionrate, oh.taxrate
         ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode)
         """
 
@@ -997,58 +997,53 @@ def create_billing_rosterdate_list(period_dict, request):
 
 #         COALESCE(c.code,'-') AS c_code,
     #         COALESCE(o.code,'-') AS o_code,
-    sql_billing = """
-        SELECT o.id AS o_id, 
+    sql_list = ["SELECT o.id AS o_id,",
 
-        CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
-        oh.rosterdate AS oh_rosterdate,
+        "CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
+        "oh.rosterdate AS oh_rosterdate,",
         
-        SUM(eh.plannedduration) AS eh_plandur,
-        SUM(eh.timeduration) AS eh_timedur, 
-        SUM(eh.billingduration) AS eh_billdur,
+        "SUM(eh.plannedduration) AS eh_plandur,",
+        "SUM(eh.timeduration) AS eh_timedur,",
+        "SUM(eh.billingduration) AS eh_billdur,",
         
-        ARRAY_AGG(DISTINCT oh.pricerate ORDER BY oh.pricerate) AS oh_prrate,
-        ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_addrate,
-        ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate,
+        "ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,",
+        "oh.additionrate AS oh_addrate,",
+        "oh.taxrate AS oh_taxrate,",
         
-        SUM(eh.amount) AS eh_amount_sum,
-        SUM(eh.addition) AS eh_add_sum,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
-        SUM(eh.tax) AS eh_tax_sum,
+        "SUM(eh.amount) AS eh_amount_sum,",
+        "SUM(eh.addition) AS eh_add_sum,",
+        "SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,",
+        "SUM(eh.tax) AS eh_tax_sum,",
 
-        SUM(oh.isbillable::int) AS is_billable,
-        SUM((NOT oh.isbillable)::int) AS not_billable,
-        SUM(oh.nobill::int) AS is_nobill,
-        SUM((NOT oh.nobill)::int) AS not_nobill
+        "SUM(oh.isbillable::int) AS is_billable,",
+        "SUM((NOT oh.isbillable)::int) AS not_billable,",
+        "SUM(oh.nobill::int) AS is_nobill,",
+        "SUM((NOT oh.nobill)::int) AS not_nobill",
 
-        FROM companies_emplhour AS eh
-        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        "FROM companies_emplhour AS eh",
+        "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+        "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
 
-        WHERE c.company_id = %(compid)s 
-        AND NOT o.isabsence AND NOT oh.isrestshift
-        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
-        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
-        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+        "WHERE c.company_id = %(compid)s",
+        "AND NOT o.isabsence AND NOT oh.isrestshift",
+        "AND ( c.id = %(cid)s OR %(cid)s IS NULL )",
+        "AND ( o.id = %(oid)s OR %(oid)s IS NULL )",
+        "AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )",
+        "AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )",
 
-        GROUP BY o.id, oh.customercode, oh.ordercode, oh.rosterdate
-        ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate
-        """
-    #             AND NOT o.isabsence AND NOT oh.isrestshift
-    #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-    #             AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
-    #             AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
-
-    newcursor = connection.cursor()
-    newcursor.execute(sql_billing, {
-        'compid': request.user.company_id,
+        "GROUP BY o.id, oh.customercode, oh.ordercode, oh.rosterdate, oh.additionrate, oh.taxrate",
+        "ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate"]
+    sql = ' '.join(sql_list)
+    sql_keys = {'compid': request.user.company_id,
         'cid': customer_pk,
         'oid': order_pk,
         'df': period_datefirst,
         'dl': period_datelast
-    })
+    }
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
     billing_rosterdate_list = f.dictfetchall(newcursor)
     return billing_rosterdate_list
 # - end of billing_agg_list
@@ -1072,7 +1067,8 @@ def create_billing_detail_list(period_dict, request):
 
     sql_billing = """
         SELECT oh.id AS oh_id, o.id AS o_id, 
-        COALESCE(STRING_AGG(DISTINCT eh.employeecode, '; '),'---') AS e_code,
+        
+        ARRAY_AGG(DISTINCT eh.employeecode ORDER BY eh.employeecode) AS e_code,
         oh.rosterdate AS oh_rosterdate,
 
         CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
@@ -1081,7 +1077,7 @@ def create_billing_detail_list(period_dict, request):
         SUM(eh.timeduration) AS eh_timedur, 
         SUM(eh.billingduration) AS eh_billdur,
          
-        oh.pricerate AS oh_prrate,
+        ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,
         oh.additionrate AS oh_addrate,
         oh.taxrate AS oh_taxrate,
         
@@ -1107,7 +1103,7 @@ def create_billing_detail_list(period_dict, request):
         AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
         AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
 
-        GROUP BY oh.id, o.id, c.id, oh.rosterdate, oh.shiftcode, oh.pricerate, oh.additionrate, oh.taxrate
+        GROUP BY oh.id, o.id, c.id, oh.rosterdate, oh.shiftcode, oh.additionrate, oh.taxrate
         ORDER BY oh.rosterdate, LOWER(oh.shiftcode)
         """
     #             AND NOT o.isabsence AND NOT oh.isrestshift

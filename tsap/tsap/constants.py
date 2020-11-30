@@ -354,31 +354,27 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'inactive', 'locked')
 
-FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem',
-                    'customercode', 'ordercode', 'shiftcode',
-                    'rosterdate', 'cat',
-                    'isabsence', 'isrestshift', 'issplitshift', 'isbillable', 'nobill',
-                    'invoicecode', 'invoicedate', 'lockedinvoice',
-                    'pricecode', 'additioncode', 'taxcode',
+FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'customercode', 'ordercode', 'shiftcode',
+                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'issplitshift', 'isbillable', 'nobill',
+                    'invoicecode', 'lockedinvoice', 'additioncode', 'taxcode', 'additionrate', 'taxrate',
                     'status', 'hasnote', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour',
-                    'rosterdate', 'exceldate',
-                   'employee', 'employeecode',
-                   'cat', 'isreplacement', 'datepart',
-                   'paydate', 'paydatecode', 'lockedpaydate', 'nopay',
-                   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
-                   'offsetstart', 'offsetend', 'excelstart', 'excelend',
-                   'functioncode', 'wagecode', 'wagefactorcode', 'wagerate', 'wagefactor', 'wage',
-                   'amount', 'addition', 'tax',
-                   'status', 'haschanged','overlap',
-                   'schemeitemid', 'teammemberid', 'locked',
-                   'order', 'shiftcode', 'confirmstart', 'confirmend')
-                    # fields: order, shiftcode, confirmstart and confirmend are not model fields,
-                   # but necessary to update abssence_category, shift_code and status
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'exceldate',
+                    'employee', 'employeecode', 'cat', 'isreplacement', 'datepart',
+                    'paydatecode', 'lockedpaydate', 'nopay', 'payrollpublished', 'invoicepublished',
+                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
+                    'offsetstart', 'offsetend', 'excelstart', 'excelend',
+                    'functioncode', 'wagefactorcode', 'wagefactor', 'wagefactorcaption',
+                    'wagecode',  'wagerate', 'wage',
+                    'pricecode', 'pricerate', 'amount', 'addition', 'tax',
+                    'status', 'haschanged', 'overlap', 'hasnote',
+                    'schemeitemid', 'teammemberid', 'locked',
+                    'order', 'shift', 'confirmstart', 'confirmend')
+                    # fields: order, shift, confirmstart and confirmend are not model fields,
+                   # but used to add emplhours, update abssence_category, shift_code and status
                    # 'issplitshift'
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
+FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
                  'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
@@ -388,24 +384,22 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'bil
                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
                 'wagefactorcode', 'pricecode', 'additioncode', 'taxcode')
 
-FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
+FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'istemplate')
 
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'namelast', 'namefirst', 'datefirst', 'datelast',
                     'email', 'telephone', 'identifier', 'payrollcode',
                    'address', 'zipcode', 'city', 'country',
                    'workhoursperweek', 'workminutesperday', 'leavedays',
                    'functioncode', 'wagecode', 'paydatecode',
-                   'pricecode', 'additioncode', 'inactive', 'locked')
+                   'pricecode', 'inactive', 'locked')
 
 # PR2019-12-20 Note: 'scheme', 'order' and 'shift' are not fields of teammember, but necessary for absence update
-FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
-                     'scheme', 'order', 'shift',
-                     'cat', 'isabsence', 'issingleshift', 'istemplate',
-                     'wagefactorcode', 'pricecode', 'additioncode', 'override')
+FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast', 'scheme', 'order', 'shift',
+                     'cat', 'isabsence', 'istemplate', 'wagefactorcode')
 
 
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
-                     'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+                     'cat', 'isabsence', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 # datefirst_agg and datelast_agg are not in model

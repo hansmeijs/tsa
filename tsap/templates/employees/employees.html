@@ -5,8 +5,8 @@
 {% block title %}{% trans 'Employees' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/employees201113.js' %}"></script>
-    <script src="{% static 'js/calendar201030.js' %}"></script>
+    <script src="{% static 'js/employees201123.js' %}"></script>
+    <script src="{% static 'js/calendar201123.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -126,7 +126,7 @@
         <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
             <button data-btn="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
             <button data-btn="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-            <button data-btn="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
+            <button data-btn="teammember" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
             <button data-btn="calendar" class="btn btn-secondary display_hide">{% trans 'Calendar' %}</button>
             <button data-btn="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
         </div>
@@ -137,7 +137,7 @@
 <!-- CONTENT BODY -->
         <div class="content_body mx-2">
 <!-- =================== DATA TABLE  =================== -->
-            <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_shifts tab_planning display_hide">
+            <div id="id_container_datatable" class="tab_show tab_employee tab_absence tab_teammember tab_planning display_hide">
              <!--   <div class="content_subheader_left mx-2 tab_show tab_planning display_hide">
                     <h5 id="id_hdr_datatable" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
                 </div>

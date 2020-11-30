@@ -194,6 +194,16 @@ h4 h5 {
     cursor: pointer;
 }
 
+.no_select {
+    /* to prevent text selection PR2020-11-29*/
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+}
+
 /* PR2020-04-07 to get second moadl on top of first one */
 /* from https://stackoverflow.com/questions/32634488/second-modal-doesnt-put-backdrop-on-first-one */
 .z_index_1099 {

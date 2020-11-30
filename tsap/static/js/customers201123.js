@@ -301,8 +301,8 @@ let planning_list = [] // for export and printing - can replace map?
             company: {value: true},
             customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            scheme: {istemplate: false, inactive: null, issingleshift: null},
-            schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
+            scheme: {istemplate: false, inactive: null},
+            schemeitem: {customer_pk: selected_customer_pk},
             shift: {istemplate: false},
             team: {istemplate: false},
             teammember_list: {datefirst: null, datelast: null, employee_nonull: false},
@@ -2288,7 +2288,7 @@ let planning_list = [] // for export and printing - can replace map?
         const is_addnew_mode = (isEmpty(calendar_map_dict));
 
         const crud_mode = (is_addnew_mode) ? "create" : "unchanged";
-        // values of shift_option are: issingleshift, isabsence, schemeshift
+        // values of shift_option are: isabsence, schemeshift
         let shift_option ="schemeshift";
 
 // --- RESET MOD_DICT --------------------------------

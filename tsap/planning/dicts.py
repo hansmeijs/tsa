@@ -779,7 +779,7 @@ def create_schemeitem_dict_from_sql(schemeitem, item_dict):
 
     if schemeitem:
         # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
-         #                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+         #                      'cat', 'isabsence', 'istemplate', 'inactive')
 
 
         for field in c.FIELDS_SCHEMEITEM:
@@ -868,7 +868,7 @@ def create_schemeitem_dict(schemeitem, item_dict):
     if schemeitem:
 
         # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
-         #                      'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+         #                      'cat', 'isabsence', 'istemplate', 'inactive')
         for field in c.FIELDS_SCHEMEITEM:
  # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
@@ -1017,6 +1017,8 @@ def create_shift_list(filter_dict, company, user_lang):
 
     shift_list = []
     for shift in shift_rows:
+
+        #logger.debug('shift' + str(shift))
         item_dict = {}
         create_shift_dict_from_sql(shift, item_dict, user_lang)
 
@@ -1297,7 +1299,7 @@ def create_team_dict_from_sql(team, item_dict):
     #logger.debug('item_dict: ' + str(item_dict))
 
     team_update = {}
-    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
+    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'istemplate')
     if team:
         for field in c.FIELDS_TEAM:
 
@@ -1343,7 +1345,7 @@ def create_team_dict(team, item_dict):
     #logger.debug('item_dict: ' + str(item_dict))
 
     team_update = {}
-    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
+    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence',  'istemplate')
     if team:
         for field in c.FIELDS_TEAM:
 
@@ -2882,7 +2884,7 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                        oh.isrestshift AS oh_isrestshift, 
                                        oh.shiftcode AS oh_shiftcode,
                                        
-                                       oh.pricerate AS oh_prrate,
+                                       eh.pricerate AS eh_pricerate,
                                        oh.additionrate AS oh_addrate,
                                        oh.taxrate AS oh_taxrate,
                    
@@ -2988,7 +2990,7 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
         # fields in review_list:
         #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json,
         #  8: cust_code, 9: order_code, 10: order_cat, 11: shift
-        #  12: oh_duration, 13: oh.billable, 14: oh.pricerate, 15: oh.amount, 16: oh.tax,
+        #  12: oh_duration, 13: oh.billable, 14: eh.pricerate, 15: oh.amount, 16: oh.tax,
         #  17: eh_id_arr, 18: eh_dur_sum, 19: eh_wage_sum,
         #  20: e_id_arr, 21: e_code_arr, 22: eh_duration_arr,
         #  23: eh_wage_arr, 24: eh_wagerate_arr, 25: eh_wagefactor_arr.  26: diff
@@ -3018,8 +3020,8 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
                            CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh.billingduration END AS eh_billdur,
 
                            eh.pricerate AS eh_pr_rate,
-                           eh.additionrate AS eh_add_rate,
-                           eh.taxrate AS eh_tax_rate,
+                           oh.additionrate AS eh_add_rate,
+                           oh.taxrate AS eh_tax_rate,
                            eh.amount AS eh_amount,
                            eh.addition AS eh_addition,
                            eh.tax AS eh_tax,

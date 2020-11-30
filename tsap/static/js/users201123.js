@@ -1257,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
             td.classList.add("mx-1", "tw_032")
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
         let el = document.createElement("div");
-            const el_class = (row_is_selected) ? "tickmark_0_2" : "tickmark_0_0";
+            const el_class = (row_is_selected) ? "tickmark_1_2" : "tickmark_0_0";
             el.classList.add(el_class)
         td.appendChild(el);
 // ---  add first td to tblRow.
@@ -1279,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             tblRow.setAttribute("data-selected", (is_selected) ? "1" : "0")
 
-            add_or_remove_class(tblRow.cells[0].children[0], "tickmark_0_2", is_selected, "tickmark_0_0")
+            add_or_remove_class(tblRow.cells[0].children[0], "tickmark_1_2", is_selected, "tickmark_0_0")
             // row 'all' has pk = 0
             if(is_selected){
                 const pk_int = get_attr_from_el_int(tblRow, "data-pk");
@@ -1292,7 +1292,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let remove_selected = (pk_int === 0) ? (lookup_pk_int !== 0) : (lookup_pk_int === 0);;
                     if(remove_selected){
                         lookup_row.setAttribute("data-selected", "0");
-                        add_or_remove_class(lookup_row.cells[0].children[0], "tickmark_0_2", false, "tickmark_0_0") ;;
+                        add_or_remove_class(lookup_row.cells[0].children[0], "tickmark_1_2", false, "tickmark_0_0") ;;
                     }
                 }
             }
@@ -1641,7 +1641,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
                 if(filter_tag === "toggle"){
                     add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
-                    add_or_remove_class(el_icon, "tickmark_0_2", filter_checked === 1)
+                    add_or_remove_class(el_icon, "tickmark_1_2", filter_checked === 1)
                 } else  if(filter_tag === "inactive"){
                     add_or_remove_class(el_icon, "inactive_0_2", filter_checked === -1)
                     add_or_remove_class(el_icon, "inactive_1_3", filter_checked === 1)
@@ -1664,7 +1664,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
                 add_or_remove_class(el_icon, "exclamation_0_2", filter_checked === -2)
                 add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
-                add_or_remove_class(el_icon, "tickmark_0_2", filter_checked === 1)
+                add_or_remove_class(el_icon, "tickmark_1_2", filter_checked === 1)
 
             }
         }

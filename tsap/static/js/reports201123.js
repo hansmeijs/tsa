@@ -1538,8 +1538,8 @@ let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
 
                     orderhour_dict.total[key17_shift] = row.oh_shift;
                     orderhour_dict.total[key18_prrate] = row.eh_prrate_arr;
-                    orderhour_dict.total[key19_addrate] = row.eh_addrate_arr;
-                    orderhour_dict.total[key20_taxrate] = row.eh_taxrate_arr;
+                    orderhour_dict.total[key19_addrate] = row.oh_addrate_arr;
+                    orderhour_dict.total[key20_taxrate] = row.oh_taxrate_arr;
                     orderhour_dict.total[key21_e_code] = row.e_code;
                     orderhour_dict.total[key22_cust_code] = row.cust_code;
                     orderhour_dict.total[key23_ordr_code] = row.ordr_code;

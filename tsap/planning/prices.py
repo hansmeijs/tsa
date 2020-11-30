@@ -54,6 +54,7 @@ sub_shift = """SELECT sh.id AS shft_id,
                 s.order_id AS s_order_id,
                 sh.code AS shft_code,
                 sh.billable AS shft_billable,
+                sh.pricecodeoverride AS shft_prc_override,
                 
                 sh.pricecode_id AS shft_pricecode_id,   
                 sh.additioncode_id AS shft_additioncode_id,        
@@ -76,7 +77,7 @@ sub_order = """SELECT o.id AS ordr_id,
                 CONCAT(c.code, ' - ', o.code) AS cust_ordr_code,
                 
                 o.billable AS ordr_billable,
- 
+                o.pricecodeoverride AS ordr_prc_override,
                 o.pricecode_id AS ordr_pricecode_id, 
                 o.additioncode_id AS ordr_additioncode_id, 
                 o.taxcode_id AS ordr_taxcode_id,
@@ -88,6 +89,7 @@ sub_order = """SELECT o.id AS ordr_id,
                 sub_shft.shft_id,
                 sub_shft.shft_code,
                 sub_shft.shft_billable,
+                sub_shft.shft_prc_override,
                 
                 sub_shft.shft_pricecode_id, 
                 sub_shft.shft_additioncode_id, 
@@ -103,6 +105,8 @@ sub_order = """SELECT o.id AS ordr_id,
                 AND (o.inactive = FALSE)
            """
 
+# billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
+
 sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT, 
                       COALESCE(sub_ordr.ordr_id, 0)::TEXT, '_'::TEXT, 
                       COALESCE(sub_ordr.shft_id, 0)::TEXT) AS map_id,
@@ -111,6 +115,7 @@ sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT,
                 sub_ordr.ordr_id,
                 
                 COALESCE(comp.billable, 0) AS comp_billable,
+                comp.pricecodeoverride AS comp_prc_override,  
                 comp.pricecode_id AS comp_pricecode_id, 
                 comp.additioncode_id AS comp_additioncode_id, 
                 comp.taxcode_id AS comp_taxcode_id,
@@ -130,6 +135,8 @@ sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT,
                     ELSE comp.billable * -1  END
                 ELSE sub_ordr.ordr_billable END 
                 AS ordr_billable,
+
+                sub_ordr.ordr_prc_override,
                 
                 CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
                     CASE WHEN comp.pricecode_id IS NULL THEN NULL
@@ -164,6 +171,8 @@ sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT,
                     ELSE sub_ordr.ordr_billable * -1 END
                 ELSE sub_ordr.shft_billable END 
                 AS shft_billable,
+                
+                sub_ordr.shft_prc_override,
                 
                 CASE WHEN sub_ordr.shft_pricecode_id IS NULL THEN
                     CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
@@ -262,8 +271,8 @@ def create_pricecode_list(rosterdate, request):
             FROM companies_pricecodeitem AS pci
             INNER JOIN companies_pricecode AS pc ON (pci.pricecode_id = pc.id)
             WHERE (pc.company_id = %(cid)s)
-            AND ( (pci.datefirst <= CAST(%(rd)s AS DATE) ) OR (pci.datefirst IS NULL ) OR (CAST(%(rd)s AS DATE) IS NULL) )
-           
+            AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL )
+            AND (pci.datelast >= CAST(%(rd)s AS DATE) OR pci.datelast IS NULL OR CAST(%(rd)s AS DATE) IS NULL )
             ORDER BY pc.id, pci.datefirst DESC NULLS LAST
     """
     cursor = connection.cursor()
@@ -391,7 +400,9 @@ def create_pricecode_dict(pricecode, item_dict, request):
            
             WHERE (pc.company_id = %(cid)s)
             AND (pci.pricecode_id = %(pcid)s)
-            AND ((pci.datefirst <= CAST(%(rd)s AS date) ) OR (pci.datefirst IS NULL) OR (CAST(%(rd)s AS date) IS NULL))
+            AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL )
+            AND (pci.datelast >= CAST(%(rd)s AS DATE) OR pci.datelast IS NULL OR CAST(%(rd)s AS DATE) IS NULL )
+
             ORDER BY pci.datefirst DESC NULLS LAST 
             LIMIT 1   
         """
@@ -415,8 +426,8 @@ def create_pricecode_dict(pricecode, item_dict, request):
 class PricesUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ')
-        #logger.debug(' ============= PricesUploadView ============= ')
+        logger.debug(' ')
+        logger.debug(' ============= PricesUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_accman:
@@ -425,7 +436,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
                 field = f.get_dict_value(upload_dict, ('id', 'field'))
                 field_dict = upload_dict.get(field)
@@ -440,7 +451,7 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 
                     update_dict = {'id': {'table': table, 'row_id': row_id, 'map_id': map_id}}
 
-                    instance, order_pk, shift_pk = None, None, None
+                    instance, order_pk, shift_pk, employee_pk = None, None, None, None
                     if table == 'comp':
                         instance = request.user.company
                     elif table == 'ordr':
@@ -451,9 +462,16 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                         instance = m.Shift.objects.get_or_none(id=pk_int, scheme__order__customer__company=request.user.company)
                         if instance:
                             shift_pk = instance.pk
-                    #logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
+                    # TODO add tab 'employee to prices
+                    elif table == 'empl':
+                        # only used for pricecode, not for addition and taxcode
+                        instance = m.Employee.objects.get_or_none(id=pk_int,company=request.user.company)
+                        if instance:
+                            employee_pk = instance.pk
+                    logger.debug('instance: ' + str(instance) + ' type: ' + str(type(instance)))
 
                     if instance:
+                        instance_pk = instance.pk
                         must_update_isbillable_and_recalc_baat = False
                         must_update_pat_code_and_recalc_baat = False
                         must_update_pricecodelist = False
@@ -493,10 +511,10 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
 
                         elif field in ('pricecode', 'additioncode', 'taxcode'):
                             is_create = f.get_dict_value(upload_dict, (field, 'create'), False)
-                            is_update = f.get_dict_value(upload_dict, (field, 'update'), False)
                             pc_id = f.get_dict_value(upload_dict, (field, 'pc_id'))
                             pricecode_note = f.get_dict_value(upload_dict, (field, 'note'))
-# TODO give date_first value
+
+                            # TODO give date_first value
                             date_first = f.get_date_from_ISO('2000-01-01')  # was f.get_today_dateobj()
 
                             #logger.debug('is_create: ' + str(is_create) + ' type: ' + str(type(is_create)))
@@ -535,14 +553,14 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                                 prc_instance_pk = prc_instance.pk
 
                             if prc_instance_pk != saved_prc_pk:
-                                #logger.debug('prc_instance_pk: ' + str(prc_instance_pk))
+                                logger.debug('prc_instance_pk: ' + str(prc_instance_pk))
 # - save prc_instance
                                 # because company.pricecode_pk has no foreign field relationship:
                                 # must use prc_instance_pk instead of prc_instance
                                 fieldname = field + '_id'
                                 setattr(instance, fieldname, prc_instance_pk)
                                 instance.save(request=request)
-                                #logger.debug('instance.saved: ' + str(instance))
+                                logger.debug('instance.saved: ' + str(instance))
 
                                 update_dict[field + '_updated'] = True
                                 must_update_pat_code_and_recalc_baat = True
@@ -572,12 +590,12 @@ class PricesUploadView(UpdateView):  # PR2019-06-23
                             reset_patfield_billable_in_subtables(table, field_name, reset_value, order_pk, request)
                             must_update_billing_list = True
 
-# - update isbillable in orderhiur records and billingduratio in emplhour records
+# - update isbillable in orderhour records and billingduratio in emplhour records
                         if must_update_isbillable_and_recalc_baat:
                             update_isbillable_and_recalc_baat(order_pk, shift_pk, request)
                             must_update_billing_list = True
                         if must_update_pat_code_and_recalc_baat:
-                            update_pat_code_and_recalc_baat(field, prc_instance_pk, shift_pk, order_pk, request)
+                            update_pat_code_and_recalc_baat(table, field, instance_pk, request)
                             must_update_billing_list = True
 # - update pricecodeid, pricerate etc in emplhour records
                         #if field in ('pricecode', 'additioncode', 'taxcode'):
@@ -719,22 +737,30 @@ def update_patcode_in_orderhour(table, field, instance, new_pat_code, request):
 def get_pricecode_data(pricecode_id, date_first, request):
     #logger.debug(' --- pricecode_data --- ') # PR2020-03-08
     # row:[0: pc.id, 1: pci.id, 2: pricerate, 3: datefirst, 4: note]
-    sql_pricecode_rate_by_refdate_with_LIMIT1 = """
-        SELECT pc.id AS pc_id, pci.id AS pci_id, pci.pricerate, pci.datefirst, pc.note  
-        FROM companies_pricecodeitem AS pci
-        INNER JOIN companies_pricecode AS pc ON (pc.id = pci.pricecode_id) 
-        WHERE (pc.company_id = %(cid)s) AND (pci.pricecode_id = %(pcid)s)
-        AND ( pc.id = %(pcid)s OR %(pcid)s IS NULL )
-        AND ((pci.datefirst <= CAST(%(rd)s AS DATE)) OR (pci.datefirst IS NULL) OR (%(rd)s IS NULL))
-        ORDER BY pci.datefirst DESC NULLS LAST
-        LIMIT 1
-    """
+    sql_keys = {'prc_id': pricecode_id, 'rd': date_first, 'compid': request.user.company_id}
+    sql_pricecode_rate_by_refdate_with_LIMIT1 = get_sql_pricecode_rate_by_refdate_with_LIMIT1(allow_all=True)
+
     cursor = connection.cursor()
-    cursor.execute(sql_pricecode_rate_by_refdate_with_LIMIT1, {'pcid': pricecode_id, 'rd': date_first, 'cid': request.user.company_id})
+    cursor.execute(sql_pricecode_rate_by_refdate_with_LIMIT1, sql_keys)
     pricecode_data = cursor.fetchone()
     if pricecode_data is None:
         pricecode_data = [None, None, None, None, None]
     return pricecode_data
+
+
+def get_sql_pricecode_rate_by_refdate_with_LIMIT1(allow_all=False):  # PR2020-11-26
+    # parameters are compid, pcid, rd
+    sql_allow_all = 'OR %(rd)s IS NULL' if allow_all else ''
+
+    sql_list = ["SELECT prc.id AS pc_id, pci.id AS pci_id, pci.pricerate, pci.datefirst, prc.note",
+        "FROM companies_pricecode AS prc",
+        "INNER JOIN companies_pricecodeitem AS pci ON (pci.pricecode_id = prc.id)",
+        "WHERE (prc.company_id = %(compid)s) AND (prc.id = %(prc_id)s OR %(prc_id)s IS NULL)",
+        "AND ( pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL ", sql_allow_all, ")",
+        "AND ( pci.datelast >= CAST(%(rd)s AS DATE) OR pci.datelast IS NULL ", sql_allow_all, ")",
+        "ORDER BY pci.datefirst DESC NULLS LAST, pci.pricerate DESC NULLS LAST LIMIT 1"]
+    sql = ' '.join(sql_list)
+    return sql
 
 
 def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
@@ -743,9 +769,8 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
     #logger.debug('shift_pk: ' + str(shift_pk))
 
 # - update field isbillable in orderhour records that are not locked
-    sql_schemeitem = """
-        SELECT 
-            si.id AS si_id,
+    # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
+    sql_shift = """SELECT  sh.id AS sh_id,
             CASE WHEN c.isabsence OR sh.isrestshift THEN FALSE ELSE
                 CASE WHEN sh.billable = 0 OR sh.billable IS NULL THEN
                     CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
@@ -758,8 +783,7 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
                 END 
             END AS sh_isbill
 
-            FROM companies_schemeitem AS si 
-            INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id) 
+            FROM companies_shift AS sh 
             INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id) 
             INNER JOIN companies_order AS o ON (o.id = s.order_id) 
             INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
@@ -771,9 +795,9 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
             """
     sql_orderhour = """ 
         UPDATE companies_orderhour AS oh
-        SET isbillable = si_sub.sh_isbill
-        FROM  ( """ + sql_schemeitem + """  ) AS si_sub
-        WHERE (oh.schemeitem_id = si_sub.si_id) AND (NOT oh.lockedinvoice)
+        SET isbillable = sh_sub.sh_isbill
+        FROM  ( """ + sql_shift + """ ) AS sh_sub
+        WHERE (oh.shift_id = sh_sub.sh_id) AND (NOT oh.lockedinvoice)
         RETURNING oh.id;
     """
     with connection.cursor() as cursor:
@@ -788,7 +812,7 @@ def update_isbillable_and_recalc_baat(order_pk, shift_pk, request):
         #logger.debug('rows' + str(rows))
         #logger.debug('...................................')
 
-# - update field billingduration in emplhour records that are not locked
+    # recalculate billingduration, amount, addition and tax in emplhour records that are not oh.lockedinvoice
     recalc_baat(None, order_pk, shift_pk, request)
 
 # ---  end of update_isbillable_and_recalc_baat
@@ -799,13 +823,12 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
     #logger.debug('orderhour_pk: ' + str(orderhour_pk))
     #logger.debug('shift_pk: ' + str(shift_pk))
 
-# - update field billingduration in emplhour records that are not locked
-    sql_oh_sub1 = """
-        SELECT 
-            oh.id,
-            oh.isbillable,
-            COALESCE(oh.pricerate, 0) AS oh_pricerate,
+    # function recalculates billingduration, amount, addition and tax
+    # in emplhour records that are not oh.lockedinvoice
+
+    sql_oh_sub1 = """SELECT oh.id, oh.isbillable,
             COALESCE(oh.additionrate, 0) AS oh_additionrate,
+
             COALESCE(oh.taxrate, 0) AS oh_taxrate
 
             FROM companies_orderhour AS oh 
@@ -820,10 +843,10 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
                 """
     elif shift_pk:
         sql_oh_sub2 = """
-                INNER JOIN companies_schemeitem AS si ON (si.id = oh.schemeitem_id) 
+                INNER JOIN companies_shift AS sh ON (sh.id = oh.shift_id) 
                 WHERE (c.company_id = %(compid)s) 
                 AND (NOT oh.lockedinvoice)
-                AND (si.shift_id = %(sh_id)s)
+                AND (sh.id = %(sh_id)s)
                 """
     elif order_pk:
         sql_oh_sub2 = """
@@ -836,7 +859,7 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
                 WHERE (c.company_id = %(compid)s) 
                 AND (NOT oh.lockedinvoice)
                 """
-    sql_amount = 'ROUND(oh_sub.oh_pricerate * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 )'
+    sql_amount = 'ROUND(eh.pricerate * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 )'
     sql_addition = ' ROUND ( oh_sub.oh_additionrate * ' + sql_amount + ' / 10000 )'
     sqltax = ' ROUND ( oh_sub.oh_taxrate * (' + sql_amount + ' + ' + sql_addition + ') / 10000 )'
     sql_emplhour = """ 
@@ -844,7 +867,7 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
         SET billingduration = CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END,
             amount =  """ + sql_amount + """,
             addition = """ + sql_addition + """,
-            tax = """ + sqltax +  """
+            tax = """ + sqltax + """
         FROM  ( """ + sql_oh_sub1 + sql_oh_sub2 + """ ) AS oh_sub
         WHERE (eh.orderhour_id = oh_sub.id)
         RETURNING eh.employeecode, eh.billingduration, eh.amount, eh.addition, eh.tax;
@@ -864,84 +887,15 @@ def recalc_baat(orderhour_pk, order_pk, shift_pk, request):
         #logger.debug('...................................')
 # ---  end of recalc_baat
 
+def update_pat_code_and_recalc_baat(table, pat_field, instance_pk, request):  # PR2020-11-26
+    logger.debug(' --- update_pat_code_and_recalc_baat --- ')
+    # values of table are : 'comp', 'ordr', 'shft', 'empl':
 
-def update_pat_code_and_recalc_baat(pat_field, pricecode_pk, shift_pk, order_pk, request):
-    #logger.debug(' --- update_pat_code_and_recalc_baat --- ') # PR2020-07-29
-    #logger.debug('pricecode_pk: ' + str(pricecode_pk))
-
-    sql_sh_sub = """
-        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
-        
-        FROM companies_pricecode AS pc 
-        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
-        
-        INNER JOIN companies_shift AS sh ON (pc.id = sh.""" + pat_field + """_id) 
-        INNER JOIN companies_schemeitem AS si ON (sh.id = si.shift_id) 
-        INNER JOIN companies_orderhour AS oh ON (si.id = oh.schemeitem_id) 
-        
-        WHERE ( pc.company_id = %(compid)s )
-        AND ( NOT oh.lockedinvoice )
-        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
-        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
-    """
-
-    sql_o_sub = """
-        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
-        
-        FROM companies_pricecode AS pc 
-        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
-        
-        INNER JOIN companies_order AS o ON (pc.id = o.""" + pat_field + """_id) 
-        INNER JOIN companies_orderhour AS oh ON (o.id = oh.order_id) 
-        
-        WHERE ( pc.company_id = %(compid)s )
-        AND ( NOT oh.lockedinvoice )
-        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
-        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
-    """
-    sql_comp_sub = """
-        SELECT oh.id AS oh_id, pc.id AS pc_id, pci.pricerate, pci.datefirst
-        
-        FROM companies_pricecode AS pc 
-        INNER JOIN companies_pricecodeitem AS pci ON (pc.id = pci.pricecode_id) 
-        
-        INNER JOIN companies_company AS comp ON (pc.id = comp.""" + pat_field + """_id) 
-        INNER JOIN companies_customer AS c ON (comp.id = c.company_id) 
-        INNER JOIN companies_order AS o ON (c.id = o.customer_id) 
-        INNER JOIN companies_orderhour AS oh ON (o.id = oh.order_id) 
-        
-        WHERE ( comp.id = %(compid)s )
-        AND ( NOT oh.lockedinvoice )
-        AND ( pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL )
-        AND ( pci.datelast >= oh.rosterdate OR pci.datelast IS NULL )
-    """
-    sql_pricecode_rate_by_refdate = """
-        SELECT 
-        oh.id AS oh_id, 
-        
-        CASE WHEN sh_pc.pc_id IS NOT NULL THEN sh_pc.pc_id ELSE
-        CASE WHEN o_pc.pc_id IS NOT NULL THEN o_pc.pc_id  ELSE 
-        comp_pc.pc_id END 
-        END AS pc_id,
-
-        COALESCE(
-            CASE WHEN sh_pc.pc_id IS NOT NULL THEN sh_pc.pricerate ELSE
-            CASE WHEN o_pc.pc_id IS NOT NULL THEN o_pc.pricerate ELSE 
-            comp_pc.pricerate END END, 0
-        ) AS pci_pricerate
-
-        FROM companies_orderhour AS oh
-        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-        INNER JOIN companies_company AS comp ON (comp.id = c.company_id)
-        
-        LEFT JOIN ( """ + sql_sh_sub + """ ) AS sh_pc ON (sh_pc.oh_id = oh.id) 
-        LEFT JOIN ( """ + sql_o_sub + """ ) AS o_pc ON (o_pc.oh_id = oh.id) 
-        LEFT JOIN ( """ + sql_comp_sub + """ ) AS comp_pc ON (comp_pc.oh_id = oh.id) 
-
-        WHERE ( c.company_id = %(compid)s )
-        AND ( NOT oh.lockedinvoice )
-        """
+# get the orderhour records or emplhour records with the table that has the changed pat_field value
+    # relations of tables are:
+    # emplhour --> orderhour --> schemeitem --> shift --> pricecode <-- pricecodeitem
+    #              orderhour -->  order --> customer --> company
+    pat_field_id = pat_field + '_id'
 
     rate_field = None
     if pat_field == 'pricecode':
@@ -951,29 +905,148 @@ def update_pat_code_and_recalc_baat(pat_field, pricecode_pk, shift_pk, order_pk,
     elif pat_field == 'taxcode':
         rate_field = 'taxrate'
 
-    sql_update_orderhour = """ 
-        UPDATE companies_orderhour AS oh
-        SET """ + pat_field + """_id = pci_sub.pc_id,
-            """ + rate_field + """ = pci_sub.pci_pricerate
-        FROM  ( """ + sql_pricecode_rate_by_refdate + """  ) AS pci_sub
-        WHERE (oh.id = pci_sub.oh_id)
-        RETURNING id, shiftcode, pricerate;
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(sql_update_orderhour, {
-            'compid': request.user.company_id,
-            'o_id': order_pk,
-            'sh_id': shift_pk,
-        })
-        #rows = f.dictfetchall(cursor)
-        #logger.debug('...................................')
-        #for dictrow in rows:
-        #    logger.debug('sql_pricecode_rate_by_refdate' + str(dictrow))
-        #logger.debug('...................................')
+    #logger.debug('pat_field_id: ' + str(pat_field_id))
+    #logger.debug('table: ' + str(table))
+    #logger.debug('instance_pk: ' + str(instance_pk))
 
-# - update field billingduration in emplhour records that are not locked
+# - create sql's that are used multiple times
+    sql_keys = {'compid': request.user.company_id}
+    sql_select_ehid_list = ['SELECT eh.id AS eh_id, ',
+        'CASE WHEN COALESCE(sh.pricecodeoverride, FALSE) OR e.pricecode_id IS NULL ',
+            'THEN COALESCE(sh.pricecode_id, o.pricecode_id, comp.pricecode_id) ',
+            'ELSE e.pricecode_id END AS pricecode_id ',
+        'FROM companies_emplhour AS eh ' ,
+        'INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) ']
+    sql_select_ehid = ''.join(sql_select_ehid_list)
+    sql_innerjoin_employee = 'INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)'
+    sql_leftjoin_employee = 'LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)'
+
+    sql_select_ohid = 'SELECT oh.id AS oh_id,' + \
+        ' COALESCE(sh.' + pat_field_id + ', o.' + pat_field_id + ', comp.' + pat_field_id + ') AS ' + pat_field_id + \
+        ' FROM companies_orderhour AS oh'
+    sql_innerjoin_shift = 'INNER JOIN companies_shift AS sh ON (sh.id = oh.shift_id)'
+    sql_leftjoin_shift = 'LEFT JOIN companies_shift AS sh ON (sh.id = oh.shift_id)'
+    sql_innerjoin_ord_cust_comp = 'INNER JOIN companies_order AS o ON (o.id = oh.order_id) ' + \
+                                  'INNER JOIN companies_customer AS c ON (c.id = o.customer_id) ' + \
+                                  'INNER JOIN companies_company AS comp ON (comp.id = c.company_id)'
+    sql_where_compid_and_not_lockedinvoice = 'WHERE comp.id = %(compid)s AND NOT oh.lockedinvoice'
+
+# - create select sql for additioncode or taxcode in orderhour records, filter on instance_pk and not lockedinvoice
+    if pat_field in ('additioncode', 'taxcode'):
+        sub_list = []
+        if table == 'shft':
+            sql_keys['sh_id'] = instance_pk
+            # use INNER JOIN only on shift, because this one is filtered by shift_pk
+            sub_list = [sql_select_ohid,
+                        "INNER JOIN companies_shift AS sh ON (sh.id = oh.shift_id)",
+                        sql_innerjoin_ord_cust_comp, sql_where_compid_and_not_lockedinvoice,
+                        "AND sh.id = %(sh_id)s"]
+        elif table == 'ordr':
+            sql_keys['o_id'] = instance_pk
+            # use LEFT JOIN on shift, because shift may be None on added emplhour record
+            sub_list = [sql_select_ohid, sql_leftjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice,'AND o.id = %(o_id)s']
+        elif table == 'comp':
+            # use LEFT JOIN on shift, because shift may be None on added emplhour record
+            sub_list = [sql_select_ohid, sql_leftjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice]
+        sub_sql = ' '.join(sub_list)
+
+# - update additioncode_id or taxcode_id in selected orderhour records and return list of updated oh_id's
+        sql_update_list = ["UPDATE companies_orderhour AS oh SET ", pat_field_id, " = sh_sub.", pat_field_id,
+                           " FROM  (", sub_sql, ") AS sh_sub WHERE (oh.id = sh_sub.oh_id) ",
+                           "RETURNING oh.id"]
+        sql_update_patfield = ''.join(sql_update_list)  # dont use no space in ' '.join, because of sh_sub.", pat_field_id
+        with connection.cursor() as cursor:
+            cursor.execute(sql_update_patfield, sql_keys)
+            updated_rows =  cursor.fetchall()
+        #logger.debug('updated_rows: ' + str(updated_rows))
+
+# - update additionrate or taxrate in updated orderhour records
+        if updated_rows:
+            sql_keys = {'ohid_arr': updated_rows}
+            # new approach with pricecodeitem.datefirst and .datelast, hopefully this will work --- and it does PR2020-11-26
+            sql_oh_list = ["SELECT oh.id AS oh_id, oh.shiftcode, pci.pricerate AS pci_pricerate",
+                           " FROM companies_orderhour AS oh",
+                           " LEFT JOIN companies_pricecodeitem AS pci ON (pci.pricecode_id = oh." + pat_field_id,
+                           " AND (pci.datefirst <= oh.rosterdate OR pci.datefirst IS NULL)",
+                           " AND (pci.datelast >= oh.rosterdate OR pci.datelast IS NULL) )"]
+            sql_oh_sub = ''.join(sql_oh_list)
+            sql_update_patrate = "UPDATE companies_orderhour AS oh SET " + rate_field + \
+                        " = oh_sub.pci_pricerate FROM  ( " + sql_oh_sub + " ) AS oh_sub WHERE oh.id = oh_sub.oh_id " + \
+                        "AND oh.id IN ( SELECT UNNEST( %(ohid_arr)s::INT[]) ) RETURNING oh.id, oh.shiftcode, oh." + rate_field
+            
+            with connection.cursor() as cursor:
+                cursor.execute(sql_update_patrate, sql_keys)
+                #updated_rows = cursor.fetchall()
+                #for row in updated_rows:
+                   #logger.debug('......sql_update_patrate .............................')
+                   #logger.debug('    ' + str(row))
+
+    elif pat_field == 'pricecode':
+        sub_list = []
+        if table == 'empl':
+            sql_keys['e_id'] = instance_pk
+            # use LEFT JOIN on shift, because shift may be None on added emplhour record
+            sub_list = [sql_select_ehid, sql_innerjoin_employee, sql_leftjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice, 'AND e.id = %(e_id)s']
+        elif table == 'shft':
+            sql_keys['sh_id'] = instance_pk
+            # use INNER JOIN only on shift, because this one is filtered by shift_pk
+            sub_list = [sql_select_ehid, sql_leftjoin_employee, sql_innerjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice, 'AND sh.id = %(sh_id)s']
+        elif table == 'ordr':
+            sql_keys['o_id'] = instance_pk
+            # use LEFT JOIN on shift, because shift may be None on added emplhour record
+            sub_list = [sql_select_ehid, sql_leftjoin_employee, sql_leftjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice, 'AND o.id = %(o_id)s']
+        elif table == 'comp':
+            # use LEFT JOIN on shift, because shift may be None on added emplhour record
+            sub_list = [sql_select_ehid, sql_leftjoin_employee, sql_leftjoin_shift, sql_innerjoin_ord_cust_comp,
+                        sql_where_compid_and_not_lockedinvoice]
+        sub_sql = ' '.join(sub_list)
+        #logger.debug(' sub_sql   ' + str(sub_sql))
+        with connection.cursor() as cursor:
+            cursor.execute(sub_sql, sql_keys)
+            #rows = f.dictfetchall(cursor)
+            #for row in rows:
+                #logger.debug('...... prc  sub_sql .............................')
+                #logger.debug('    ' + str(row))
+
+# - update pricecode_id in selected emplhour records and return list of updated oh_id's
+        sql_update_list = ["UPDATE companies_emplhour AS eh SET pricecode_id = sh_sub.pricecode_id",
+                           " FROM  (", sub_sql, ") AS sh_sub WHERE (eh.id = sh_sub.eh_id) ",
+                           "RETURNING eh.id"]
+        sql_update_patfield = ''.join(sql_update_list)  # dont use no space in ' '.join, because of sh_sub.", pat_field_id
+
+        logger.debug('  sql_update_patfield  ' + str(sql_update_patfield))
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql_update_patfield, sql_keys)
+            updated_pricecode_rows = cursor.fetchall()
+            #logger.debug('updated_rows: ' + str(updated_rows))
+
+        # - update pricerate in updated emplhour records
+        if updated_pricecode_rows:
+            sql_keys = {'ehid_arr': updated_pricecode_rows}
+            # new approach with pricecodeitem.datefirst and .datelast, hopefully this will work --- and it does PR2020-11-26
+            sql_eh_list = ["SELECT eh.id AS eh_id, pci.pricerate AS pci_pricerate",
+                           " FROM companies_emplhour AS eh",
+                           " LEFT JOIN companies_pricecodeitem AS pci ON (pci.pricecode_id = eh.pricecode_id",
+                           " AND (pci.datefirst <= eh.rosterdate OR pci.datefirst IS NULL)",
+                           " AND (pci.datelast >= eh.rosterdate OR pci.datelast IS NULL) )"]
+            sql_eh_sub = ''.join(sql_eh_list)
+            sql_update_patrate = "UPDATE companies_emplhour AS eh SET pricerate = eh_sub.pci_pricerate " + \
+                                 "FROM  ( " + sql_eh_sub + " ) AS eh_sub WHERE eh.id = eh_sub.eh_id " + \
+                                 "AND eh.id IN ( SELECT UNNEST( %(ehid_arr)s::INT[]) ) RETURNING eh.id, eh.employeecode, eh.pricerate"
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql_update_patrate, sql_keys)
+
+    # recalculate billingduration, amount, addition and tax in emplhour records that are not oh.lockedinvoice
     recalc_baat(None, None, None, request)
-# ---  end of update_pat_rate_in_orderhour
+# end of update_pat_code_and_recalc_baat
+
 
 def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, request):
     #logger.debug(' --- update_amount_addition_tax_in_emplhour --- ')  # PR2020-07-27
@@ -984,7 +1057,6 @@ def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, re
         SELECT 
             oh.id,
             oh.isbillable,
-            COALESCE(oh.pricerate, 0) AS oh_pricerate,
             COALESCE(oh.additionrate / 10000, 0) AS oh_additionrate,
             COALESCE(oh.taxrate / 10000, 0) AS oh_taxrate
 
@@ -997,20 +1069,17 @@ def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, re
             AND ( oh.additioncode_id = %(addid)s OR %(addid)s IS NULL ) 
             AND ( oh.taxcode_id = %(taxid)s OR %(taxid)s IS NULL ) 
             """
-    sql_billdur = """ CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END """
-    sql_amount = """ ROUND(oh_sub.oh_pricerate
-                    * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END)
-                    / 60 )  """
-    sql_addition = """ ROUND( oh_sub.oh_additionrate * """ + sql_amount + """ ) """
-    sql_tax = """ ROUND( oh_sub.oh_taxrate * ( """ + sql_amount + """  + """ + sql_addition + """  ) ) """
+    sql_billdur = " CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END "
+    sql_amount = " ROUND(eh.pricerate  * (CASE WHEN oh_sub.isbillable THEN eh.timeduration ELSE eh.plannedduration END) / 60 ) "
+    sql_addition = " ROUND( oh_sub.oh_additionrate * " + sql_amount + " ) "
+    sql_tax = " ROUND( oh_sub.oh_taxrate * ( " + sql_amount + "  + " + sql_addition + "  ) ) "
 
-    sql_emplhour = """ 
-        UPDATE companies_emplhour AS eh
+    sql_emplhour = """UPDATE companies_emplhour AS eh
         SET billingduration = """ + sql_billdur + """,
             amount =  """ + sql_amount + """,
             addition = """ + sql_addition + """,
             tax = """ + sql_tax + """
-        FROM  ( """ + sql_oh_sub + """  ) AS oh_sub
+        FROM  ( """ + sql_oh_sub + """ ) AS oh_sub
         WHERE (eh.orderhour_id = oh_sub.id)
     """
     with connection.cursor() as cursor:

@@ -302,6 +302,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Please_select_employee_first'] = TXT_Please_select_employee_first
         dict['Please_select_absence_first'] = TXT_Please_select_absence_first
 
+        dict['Scheme'] = TXT_Scheme
+
         # print planning
         dict['Company'] = TXT_Company
         dict['Planning'] = TXT_Planning
@@ -1051,6 +1053,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Absence'] = TXT_Absence
         dict['Absence_2lines'] = TXT_Absence_2lines
 
+        dict['Order-Shift'] = str(TXT_Order) + ' / ' + str(TXT_Customer)
+        dict['Ignore_employee_price'] = _('Ignore employee price')
         dict['Hourly_rate'] = TXT_Hourly_rate
         dict['Tax'] = _('Tax rate')
         dict['Addition'] = _('Addition')

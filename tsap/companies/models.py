@@ -142,6 +142,10 @@ class Company(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)
     billable = SmallIntegerField(default=0)  # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
 
+    # when override=False: use employee_pricecode if not None PR2020-11-23
+    # when override=True:  use use shift_pricecode (or order_pricecod , company_pricecod) instead of employee_pricecode
+    pricecodeoverride = BooleanField(default=False)
+
     # cannot use Foreignkey, because Pricecode has field company_id
     pricecode_id = IntegerField(null=True)
     additioncode_id = IntegerField(null=True)
@@ -279,6 +283,11 @@ class Order(TsaBaseModel):
 
     billable = SmallIntegerField(default=0)   # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
     sequence = IntegerField(null=True) # only used in abscat PR2020-06-11 contains value of 'Priority'
+
+    # when override=False: use employee_pricecode if not None PR2020-11-23
+    # when override=True:  use use shift_pricecode (or order_pricecod , company_pricecod) instead of employee_pricecode
+    pricecodeoverride = BooleanField(default=False)
+
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -528,8 +537,6 @@ class Scheme(TsaBaseModel):
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
     cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     isabsence = BooleanField(default=False)
-    issingleshift = BooleanField(default=False)
-    isdefaultweekshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)  # default cycle is one week, min="1" max="28"
@@ -576,6 +583,10 @@ class Shift(TsaBaseModel):
     breakduration = IntegerField(default=0) # unit is minute
     timeduration = IntegerField(default=0)  # unit is minute
 
+    # when override=False: use employee_pricecode if not None PR2020-11-23
+    # when override=True:  use use shift_pricecode (or order_pricecod , company_pricecod) instead of employee_pricecode
+    pricecodeoverride = BooleanField(default=False)
+
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -602,7 +613,6 @@ class Team(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
-    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     class Meta:
@@ -640,7 +650,7 @@ class Employee(TsaBaseModel):
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    # PR2020-11-23 removed: additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -704,16 +714,15 @@ class Teammember(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
     isabsence = BooleanField(default=False)
-    issingleshift = BooleanField(default=False)
     isswitchedshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    # when teammember_pricecode = None and override=True: use employee_pricecode, False: use shift_pricecode
-    # applies also to additioncode
-    override = BooleanField(default=True)
+
+    # Removed: pricecode, additioncode, override. Use the fields in shift PR2020-11-23
+    #pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    #additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    #override = BooleanField(default=True)
 
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
@@ -767,7 +776,6 @@ class Schemeitem(TsaBaseModel):
     onpublicholiday = BooleanField(default=False)
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
-    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     class Meta:
@@ -828,8 +836,11 @@ class Orderhour(TsaBaseModel):
 
     # check if schemeitem is necessary, I dont think so PR2020-02-15
     # yes it is, to retrieve shift.isbillable when adding orderhour from roster page
-    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
-    # TODO: replace by shift, but first on server the field shift Charfield must be renamed to shiftcode
+    # and to get prc-rate from shift
+    # DONE replace schemeitem by shift, because added roster shift dont have a schemeitem
+    #schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
+    # DONE: replace by shift, but first on server the field shift Charfield must be renamed to shiftcode
+    shift = ForeignKey(Shift, related_name='+', on_delete=SET_NULL, null=True)
     customercode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     ordercode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     shiftcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -845,14 +856,12 @@ class Orderhour(TsaBaseModel):
     # TODO add nobill to pricepage
 
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    invoicedate = DateField(db_index=True, null=True)
+    # invoicedate = DateField(db_index=True, null=True)
     lockedinvoice = BooleanField(default=False)
 
-    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-
-    pricerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    # pricerate is in emplhour
     additionrate = IntegerField(null=True)  # additionrate = /10.000 unitless (10.000 = 100%)
     taxrate = IntegerField(null=True)  # taxrate = /10.000 unitless taxrate 600 = 6%
 
@@ -889,7 +898,7 @@ class Emplhour(TsaBaseModel):
     isreplacement = BooleanField(default=False)
     datepart = PositiveSmallIntegerField(default=0) # 1=night, 2 = morning, 3 = afternoon, 4 = evening, 0 = undefined
 
-    paydate = DateField(db_index=True, null=True)
+    #paydate = DateField(db_index=True, null=True)
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
     lockedpaydate = BooleanField(default=False)
     nopay = BooleanField(default=False)    # nopay: wage will be zero
@@ -918,11 +927,19 @@ class Emplhour(TsaBaseModel):
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    #additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    #taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+
+    pricerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    #additionrate = IntegerField(null=True)  # additionrate = /10.000 unitless (10.000 = 100%)
+    #taxrate = IntegerField(null=True)  # taxrate = /10.000 unitless taxrate 600 = 6%
+
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     addition = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     tax = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     # note must be removed
-    note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    #note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
@@ -974,6 +991,8 @@ class Emplhourlog(TsaBaseModel):
 
     order = ForeignKey(Order, related_name='+', on_delete=SET_NULL, null=True)
     employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
+
+    shift = ForeignKey(Shift, related_name='+', on_delete=SET_NULL, null=True)
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
     teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True)
 
@@ -1266,7 +1285,7 @@ def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None
     sql_list.append("""
         INSERT INTO companies_emplhourlog (
                 id, emplhour_id, rosterdate,
-                order_id, employee_id, schemeitem_id,
+                order_id, employee_id, shift_id, schemeitem_id, teammember_id, 
                 customercode, ordercode, shiftcode, employeecode,
                 timestart, timeend, breakduration, timeduration,
                 plannedduration, billingduration,
@@ -1277,7 +1296,8 @@ def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None
                 modifiedby_id, modifiedat, modifiedbyusername
                 )
         SELECT nextval('companies_emplhourlog_id_seq'),
-                eh.id, eh.rosterdate, oh.order_id, eh.employee_id, oh.schemeitem_id,
+                eh.id, eh.rosterdate, oh.order_id, eh.employee_id, 
+                oh.shift_id, eh.schemeitemid, eh.teammemberid,
                 oh.customercode, oh.ordercode, oh.shiftcode, eh.employeecode,
                 eh.timestart, eh.timeend, eh.breakduration, eh.timeduration,
                 eh.plannedduration, eh.billingduration,

@@ -117,9 +117,16 @@ document.addEventListener('DOMContentLoaded', function() {
             field_width: ["016","150", "090","150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
             field_align:  ["c", "l", "l", "l", "l","r","r", "c", "r", "c", "r", "r", "r",  "c"]
             },
-        prices: { tbl_col_count: 6,
+        prices: {
+            // Ignore_employee_price not in use yet
+            //field_caption: ["", "Order-Shift", "Billable", "Hourly_rate", "Ignore_employee_price", "Addition", "Tax"],
+            //field_names: ["back","code", "billable", "pricecode", "prc_override", "additioncode", "taxcode"],
+            //field_width: ["016", "240", "150", "150", "150", "150", "150"],
+            //field_align:  ["c", "l", "c", "r", "c", "r", "r"]
+
+            field_caption: ["", "Order-Shift", "Billable", "Hourly_rate", "Addition", "Tax"],
             field_names: ["back","code", "billable", "pricecode", "additioncode", "taxcode"],
-            field_width: ["016", "240", "150",  "150", "150", "150"],
+            field_width: ["016", "240", "150", "150", "150", "150"],
             field_align:  ["c", "l", "c", "r", "r", "r"]
             }
         }
@@ -230,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
             locale: {page: "review"},
             company: true,
             review_period: {now: now_arr},
-            price: {table: "customer"},
+            price_list: {table: "customer"},
             pricecode: {rosterdate: null},
             billing_list: {mode: "get", order_pk: null},
             customer_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
@@ -465,8 +472,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let oh_id_curr = 0, eh_id_curr = 0;  // not in use yet, for clicking on detail row en open modal with details
         let ord_id_prev = null, ord_id_curr = null, ord_code_curr = null;
         let shift_id_prev = null, shift_id_curr = null, shift_code_curr = null;
+
 // create TABLE HEADER
         CreatePricesHeader();
+
 // create GRAND TOTAL
         CreateGrandTotal(rptName, price_list[0]);
         const len = price_list.length;
@@ -495,14 +504,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreatePricesHeader  === PR2019-07-27
     function CreatePricesHeader() {
-        //console.log("===  CreatePricesHeader == ");
+        console.log("===  CreatePricesHeader == ");
 
         //console.log("thead_text.customer", thead_text.customer);
         const tblName = "prices";
-        const field_caption =  ["", loc.Order + " / " + loc.Shift, loc.Billable, loc.Hourly_rate,  loc.Addition,  loc.Tax];
-        const field_names = field_settings[tblName].field_names;
-        const field_width = field_settings[tblName].field_width;
-        const field_align = field_settings[tblName].field_align;
+        const field_setting = field_settings[tblName];
+        const field_caption = field_setting.field_caption;
+        const field_names = field_setting.field_names;
+        const field_width = field_setting.field_width;
+        const field_align = field_setting.field_align;
 
         tblHead_datatable.innerText = null
         let tblRow = tblHead_datatable.insertRow (-1); // index -1: insert new cell at last position.
@@ -514,7 +524,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add div to th, margin not working with th
             const el_div = document.createElement("div");
 // --- add innerText to el_div
-            el_div.innerText = (field_caption[j]) ? field_caption[j] : null;
+            const caption_key = field_caption[j]
+            el_div.innerText = (loc[caption_key]) ? loc[caption_key] : null;
 // --- add width and text_align
             el_div.classList.add("tw_" + field_width[j])
             el_div.classList.add("ta_" + field_align[j])
@@ -563,7 +574,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let display_dict = {table: tblName,
                                 map_id: row_list.map_id,
                                 pk_int: pk_int,
-                                code: row_list.ordr_code,
+                                //code: row_list.ordr_code,
+                                code: row_list.cust_ordr_code,
                                 billable: {value: row_list.ordr_billable},
                                 pricecode_id: row_list.ordr_pricecode_id,
                                 additioncode_id: row_list.ordr_additioncode_id,
@@ -1446,11 +1458,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_agg_list  ==================================== PR2020-07-03
     function CreateHTML_agg_list() {
-        //console.log("==== CreateHTML_agg_list  ========= ");
+        console.log("==== CreateHTML_agg_list  ========= ");
 
 // ---  put values of billing_agg_list in billing_agg_rows
         billing_agg_rows = [];
         for (let i = 0, item; item = billing_agg_list[i]; i++) {
+        console.log("item", item);
             const order_pk = (item.o_id) ? item.o_id : null;
             const orderhour_pk = (item.oh_id) ? item.oh_id : null;
 
@@ -1463,7 +1476,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const all_nobill = (item.is_nobill && !item.not_nobill) ? 1:
                                  (!item.is_nobill && item.not_nobill) ? -1 : 0;
             const warning = (item.eh_timedur > item.eh_billdur);
-
 
             let td_html = [], filter_data = [], excel_data = [];
             let col_index = 0;
@@ -1511,16 +1523,22 @@ document.addEventListener('DOMContentLoaded', function() {
             filter_data[col_index] = warning;
 
 // ---  col 08 is price rate
+            col_index += 1;
+            excelcol_index +=1;
+            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
+            td_html[col_index] = pricerate_arr[0];
+            filter_data[col_index] =  pricerate_arr[1];
+            excel_data[excelcol_index] = pricerate_arr[2];
+
 // ---  col 09 is addition rate
-            for (let j = 0;  j < 2; j++) {
-                col_index += 1;
-                excelcol_index +=1;
-                const rate_arr = (j === 0) ? item.oh_prrate : item.oh_addrate;
-                let arr = format_rate(rate_arr, !!j)  // is_percentage = (j === 0) ? false : true;
-                td_html[col_index] = arr[0];
-                filter_data[col_index] =  arr[1];
-                excel_data[excelcol_index] = arr[2];
-            }
+            col_index += 1;
+            excelcol_index +=1;
+            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
+            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
+            filter_data[col_index] = item.oh_addrate;
+            excel_data[excelcol_index] = item.oh_addrate;
+
 // ---  col 10 is total_amount
             col_index +=1
             excelcol_index +=1;
@@ -1607,17 +1625,24 @@ document.addEventListener('DOMContentLoaded', function() {
             img_src = (warning) ? imgsrc_warning : imgsrc_stat00;
             td_html[col_index] = "<td class=\"pt-0\"><div class=\"ta_c\"><img src=\"" + img_src + "\" class=\"icon_18\"></div></td>"
             filter_data[col_index] = warning;
+
 // ---  col 08 is price rate
+            col_index += 1;
+            excelcol_index +=1;
+            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
+            td_html[col_index] = pricerate_arr[0];
+            filter_data[col_index] =  pricerate_arr[1];
+            excel_data[excelcol_index] = pricerate_arr[2];
+
 // ---  col 09 is addition rate
-            for (let j = 0;  j < 2; j++) {
-                col_index += 1;
-                excelcol_index +=1;
-                const rate_arr = (j === 0) ? item.oh_prrate : item.oh_addrate;
-                let arr = format_rate(rate_arr, !!j)  // is_percentage = (j === 0) ? false : true;
-                td_html[col_index] = arr[0];
-                filter_data[col_index] =  arr[1];
-                excel_data[excelcol_index] = arr[2];
-            }
+            col_index += 1;
+            excelcol_index +=1;
+            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
+            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
+            filter_data[col_index] = item.oh_addrate;
+            excel_data[excelcol_index] = item.oh_addrate;
+
 // ---  col 10 is total_amount
             col_index +=1;
             excelcol_index +=1;
@@ -1639,8 +1664,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_detail_list  ==================================== PR2020-07-03
     function CreateHTML_detail_list() {
-        //console.log("==== CreateHTML_detail_list  ========= ");
-
+        console.log("==== CreateHTML_detail_list  ========= ");
+console.log("billing_detail_list", billing_detail_list);
         // billing_agg_list =  [ {'o_id': 1521, 'c_code': 'Centrum', 'o_code': 'Piscadera',
         // 'eh_timedur': 480, 'eh_plandur': 480, 'eh_billdur': 480, 'eh_amount': 20000, 'eh_addition': 2000,
         // 'eh_total_sum': 22000, 'is_billable': 0, 'not_billable': 1, 'is_nobill': 0, 'not_nobill': 1} ]
@@ -1688,9 +1713,17 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  col 04 is employee
             col_index +=1
             excelcol_index +=1
-            td_html[col_index] = "<td><div>" + item.e_code + "</div></td>"
-            filter_data[col_index] = ( (item.e_code) ? item.e_code.toLowerCase() : null );
-            excel_data[excelcol_index] = item.e_code;
+            const employee_arr = format_employee_arr(item.e_code);
+
+            td_html[col_index] = employee_arr[0];
+            filter_data[col_index] =  employee_arr[1];
+            excel_data[excelcol_index] = employee_arr[2];
+
+            //td_html[col_index] = "<td><div>" + item.e_code + "</div></td>"
+            //filter_data[col_index] = ( (item.e_code) ? item.e_code.toLowerCase() : null );
+            //excel_data[excelcol_index] = item.e_code;
+
+console.log("employee_arr", employee_arr);
 // ---  col 05 is planned duration
             col_index +=1
             excelcol_index +=1
@@ -1721,9 +1754,25 @@ document.addEventListener('DOMContentLoaded', function() {
             filter_data[col_index] = warning;
             excel_data[col_index -1] = warning;
 // ---  col 10 is price rate
+            col_index += 1;
+            excelcol_index +=1;
+            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
+            td_html[col_index] = pricerate_arr[0];
+            filter_data[col_index] =  pricerate_arr[1];
+            excel_data[excelcol_index] = pricerate_arr[2];
+// ---  col 11 is addition rate
+            col_index += 1;
+            excelcol_index +=1;
+            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
+            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
+            filter_data[col_index] = item.oh_addrate;
+            excel_data[excelcol_index] = item.oh_addrate;
+
+/*
 // ---  col 11 is addition rate . In detail mode these are values, not arrays
             for (let j = 0;  j < 2; j++) {
-                const rate = (j === 0) ? item.oh_prrate : item.oh_addrate;
+                const rate = (j === 0) ? item.eh_pricerate : item.oh_addrate;
                 const rate_formatted = format_pricerate (loc.user_lang, rate, !!j, false); // is_percentage , show_zero = false
                 col_index += 1;
                 excelcol_index +=1
@@ -1731,6 +1780,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 filter_data[col_index] =  rate;
                 excel_data[excelcol_index] = rate;
             }
+            */
+
 // ---  col 12 is total_amount
             col_index +=1
                 excelcol_index +=1
@@ -1745,37 +1796,81 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  put dicts toghether in a detail_row
             const td_html_str = td_html.join("");
             const row = [true, filter_data, excel_data, td_html_str, order_pk, rosterdate_iso, orderhour_pk ];
+            console.log("row", row);
 // ---  add row to  billing_detail_rows
             billing_detail_rows.push(row);
         }  //  for (let i = 0, row; row = billing_detail_list[i]; i++) {
+
+                    console.log("billing_detail_rows", billing_detail_rows);
     }  // CreateHTML_detail_list
 
-//========= format_rate  ==================================== PR2020-07-25
-    function format_rate(item_arr, is_percentage) {
-        //console.log("===  format_rate ==");
-        let rate_formatted = "", rate_title = "", rate_str = "";
-        const len = item_arr.length;
-        if(len) {
-            rate_formatted = format_pricerate (loc.user_lang, item_arr[0], is_percentage, false); //  show_zero = false
-            rate_str = rate_formatted
-            if(len > 1) {
-                rate_title = " title=\"" + ( (item_arr[0]) ? rate_formatted : "-");
-                rate_formatted = "*"
-                for (let i = 1; i < len; i++) {
-                    const item_formatted = format_pricerate (loc.user_lang, item_arr[i], is_percentage, false) // show_zero = false
-                    rate_title += "\n" + ( (item_arr[i]) ? item_formatted : "-" );
-                    rate_str += "; " + ( (item_arr[i]) ? item_formatted : "-" );
+//========= format_employee_arr  ==================================== PR2020-11-29
+    function format_employee_arr(item_arr) {
+        console.log("===  format_employee_arr ==");
+        console.log("item_arr", item_arr);
+        let employee_display = "", employee_title = "", excel_value = "", skip_adding_employees = false;
+        if(item_arr){
+            const len = item_arr.length;
+            if(len) {
+                employee_display = (item_arr[0]) ? item_arr[0] : "---";
+                excel_value = employee_display;
+                if(len > 1) {
+                    employee_title = " title=\"" + ( (employee_display) ? employee_display : "---");
+                    for (let i = 1; i < len; i++) {
+                        const item = (item_arr[i]) ? item_arr[i] : "---";
+                        const display_len = employee_display.length + item.length + 2;
+                        if(!skip_adding_employees){
+                            if (display_len < 30) {
+                                employee_display += "; " + item;
+                            } else {
+                                skip_adding_employees = true
+                                employee_display += "; ...";
+                            }
+                        }
+                        employee_title += "\n" + item;
+                        excel_value += "; " + item;
+                    }
+                    employee_title += "\""
                 }
-                rate_title += "\""
             }
-        }
+        };
+        const td_html_col = "<td><div class=\"ta_l\" " + employee_title + ">" + employee_display + "</div></td>"
+        const filter_col = item_arr;
+        const excel_col = (excel_value) ? excel_value : null;
 
-        const td_html_col = "<td><div class=\"ta_r\" " + rate_title + ">" + rate_formatted + "</div></td>"
+        return [td_html_col, filter_col, excel_col];
+    }  // format_employee_arr
+
+
+//========= format_rate_arr  ==================================== PR2020-07-25
+    function format_rate_arr(item_arr, is_percentage) {
+        //console.log("===  format_rate_arr ==");
+        let rate_formatted = "", rate_title = "", rate_str = "";
+        if(item_arr){
+            const len = item_arr.length;
+            if(len) {
+                rate_formatted = format_pricerate (loc.user_lang, item_arr[0], is_percentage, false); //  show_zero = false
+                rate_str = rate_formatted
+                if(len > 1) {
+                    rate_title = " title=\"" + ( (item_arr[0]) ? rate_formatted : "-");
+                    rate_formatted = "*"
+                    for (let i = 1; i < len; i++) {
+                        const item_formatted = format_pricerate (loc.user_lang, item_arr[i], is_percentage, false) // show_zero = false
+                        rate_title += "\n" + ( (item_arr[i]) ? item_formatted : "-" );
+                        rate_str += "; " + ( (item_arr[i]) ? item_formatted : "-" );
+                    }
+                    rate_title += "\""
+                }
+            }
+        };
+        const td_html_col = "<td><div class=\"ta_r\" " + rate_title + ">" + rate_str + "</div></td>"
         const filter_col = item_arr;
         const excel_col = (rate_str) ? rate_str : null;
 
         return [td_html_col, filter_col, excel_col];
     }
+
+
 
 
 //=========  CreateBillingHeader  === PR2020-07-03
@@ -1900,8 +1995,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function FillBillingRows() {
         // called by HandleBtnSelect and HandleBillingFilter
         console.log( "====== FillBillingRows  === ");
-        //console.log( "billing_level ", billing_level);
-        //console.log( "selected_btn ", selected_btn);
+        console.log( "billing_level ", billing_level);
+        console.log( "selected_btn ", selected_btn);
 
 // --- reset table, except for header
         tblBody_datatable.innerText = null
@@ -1914,7 +2009,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const detail_rows = (billing_level === 0) ? billing_agg_rows :
                             (billing_level === 1) ? billing_rosterdate_rows :
                             (billing_level === 2) ? billing_detail_rows : null;
-
+        console.log( "detail_rows ", detail_rows);
         if (detail_rows) {
             for (let i = 0, detail_row, tblRow, row_data, filter_row, show_row; detail_row = detail_rows[i]; i++) {
                 const order_pk = detail_row[4];
@@ -1938,6 +2033,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 // save show_row in detail_row[0]
                 detail_row[0] = show_row;
+                console.log( "detail_row ", detail_row);
+                console.log( "show_row ", show_row);
                 if (show_row){
                     tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         // --- add tblRow.id, is used in HandleAggRowClicked
@@ -2936,7 +3033,7 @@ function HandleExpand(mode){
         //return (x === 0 && billing_level === 1) ? "dd mmm yyyy" : (x > 1 ) ?  "0.00" : null
         let cell_format = null
         if (billing_level === 2){
-            cell_format = (x === 1) ? "ddd d mmmm yyyy" :
+            cell_format = (x === 1) ? "ddd d mmm yyyy" :
                           (x === 8) ? "#0.00%" :
                           (x > 3)   ? "#,##0.00" : null;
         } else if (billing_level === 1){

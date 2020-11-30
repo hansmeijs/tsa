@@ -569,12 +569,12 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
         if (!clicked_schemeitem_pk) {clicked_schemeitem_pk = get_dict_value(mod_upload_dict.schemeitem, ["pk"])};
 
         // format of schemeitems_dict:  (mode create, update, delete)
-        //  [{ new9:] { id: {pk: "new9", ppk: 1808, table: "schemeitem", mode: "create", shiftoption: "issingleshift"},
+        //  [{ new9:] { id: {pk: "new9", ppk: 1808, table: "schemeitem", mode: "create", shiftoption: "issiXXXngleshift"},
         //            rosterdate: "2020-02-06",
         //            onpublicholiday: false,
         //            shift: {pk: 805},
         //            team: {pk: 2277} }
-        //     { id: {pk: 2247, ppk: 1808, table: "schemeitem", mode: "update", shiftoption: "issingleshift"},
+        //     { id: {pk: 2247, ppk: 1808, table: "schemeitem", mode: "update", shiftoption: "issinXXXgleshift"},
         //            rosterdate: "2020-02-04", onpublicholiday: false, shift: {pk: "new10"}, team: {pk: 2277} }
 
 
