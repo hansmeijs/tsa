@@ -568,30 +568,29 @@ def create_abscat_order_rows(request, request_item=None, order_pk=None):
 
     sql_keys = {'compid': request.user.company.pk}
 
-    sql_list = []
-    sql_list.append("""SELECT  
-        o.id, 
-        c.id AS c_id, 
-        c.company_id AS comp_id,
+    sql_list = ["SELECT o.id, c.id AS c_id, c.company_id AS comp_id, CONCAT('abscat_', o.id::TEXT) AS mapid,",
+        "COALESCE(REPLACE (o.code, '~', ''),'') AS o_code_notilde, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code_notilde,",
+        "o.code AS o_code, o.identifier AS o_identifier, o.sequence AS o_sequence, o.inactive AS o_inactive,",
+        "o.wagefactorcode_id AS wfc_onwd, o.wagefactoronsat_id AS wfc_onsat,",
+        "o.wagefactoronsun_id AS wfc_onsun, o.wagefactoronph_id AS wfc_onph,",
 
-        CONCAT('abscat_', o.id::TEXT) AS mapid,
+        "wfc_onwd.code AS wfc_onwd_code, wfc_onsat.code AS wfc_onsat_code,",
+        "wfc_onsun.code AS wfc_onsun_code, wfc_onph.code AS wfc_onph_code,",
 
-        COALESCE(REPLACE (o.code, '~', ''),'') AS o_code, 
-        COALESCE(REPLACE (c.code, '~', ''),'') AS c_code, 
+        "wfc_onwd.wagerate AS wfc_onwd_rate, wfc_onsat.wagerate AS wfc_onsat_rate,",
+        "wfc_onsun.wagerate AS wfc_onsun_rate, wfc_onph.wagerate AS wfc_onph_rate,",
 
-        o.identifier AS o_identifier,
-        o.nohoursonpublicholiday AS o_noph,
-        o.nohoursonsaturday AS o_nosat,
-        o.nohoursonsunday AS o_nosun,
-        o.nopay AS o_nopay,
-        o.sequence AS o_sequence,
-        o.inactive AS o_inactive
+        "o.nohoursonweekday AS o_nowd, o.nohoursonsaturday AS o_nosat,",
+        "o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph",
 
-        FROM companies_order AS o 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-
-        WHERE c.company_id = %(compid)s::INT 
-        AND c.isabsence""")
+        "FROM companies_order AS o",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onwd ON (wfc_onwd.id = o.wagefactorcode_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onsat ON (wfc_onsat.id = o.wagefactoronsat_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onsun ON (wfc_onsun.id = o.wagefactoronsun_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onph ON (wfc_onph.id = o.wagefactoronph_id)",
+       " WHERE c.company_id = %(compid)s::INT",
+        "AND c.isabsence"]
 
     if order_pk:
         sql_list.append('AND (o.id = %(oid)s)')
@@ -673,7 +672,7 @@ def create_absencecat_dict(order, request):
 def get_or_create_absence_customer(request):
     #logger.debug(" === get_or_create_absence_customer ===")
 
-# 1. get locale text of absene categories
+# 1. get locale text of absence categories
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
     if user_lang in c.ABSENCE:
         absence_locale = c.ABSENCE[user_lang]
@@ -914,15 +913,17 @@ def create_billing_agg_list(period_dict, request):
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
     #logger.debug('period_dict:  ' + str(period_dict))
+    period_datefirst, period_datelast, order_pk, customer_pk = None, None, None, None
+    if period_dict:
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
 
-    period_datefirst = period_dict.get('period_datefirst')
-    period_datelast = period_dict.get('period_datelast')
-    order_pk = period_dict.get('order_pk')
-    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
-    customer_pk = None
-    if order_pk is None:
-        customer_pk = period_dict.get('customer_pk')
-        customer_pk = customer_pk if customer_pk else None
+        order_pk = period_dict.get('order_pk')
+        order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+
+        if order_pk is None:
+            customer_pk = period_dict.get('customer_pk')
+            customer_pk = customer_pk if customer_pk else None # this changes '0' into 'None'
 
     #logger.debug('period_datefirst:  ' + str(period_datefirst))
     #logger.debug('period_datelast:  ' + str(period_datelast))
@@ -982,14 +983,17 @@ def create_billing_agg_list(period_dict, request):
 def create_billing_rosterdate_list(period_dict, request):
     #logger.debug(' ============= create_billing_rosterdate_list ============= ')
 
-    period_datefirst = period_dict.get('period_datefirst')
-    period_datelast = period_dict.get('period_datelast')
-    order_pk = period_dict.get('order_pk')
-    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
-    customer_pk = None
-    if order_pk is None:
-        customer_pk = period_dict.get('customer_pk')
-        customer_pk = customer_pk if customer_pk else None
+    period_datefirst, period_datelast, order_pk, customer_pk = None, None, None, None
+    if period_dict:
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
+
+        order_pk = period_dict.get('order_pk')
+        order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+
+        if order_pk is None:
+            customer_pk = period_dict.get('customer_pk')
+            customer_pk = customer_pk if customer_pk else None  # this changes '0' into 'None'
 
     #logger.debug('period_datefirst:  ' + str(period_datefirst))
     #logger.debug('period_datelast:  ' + str(period_datelast))
@@ -1052,14 +1056,17 @@ def create_billing_rosterdate_list(period_dict, request):
 def create_billing_detail_list(period_dict, request):
     #logger.debug(' ============= create_billing_detail_list ============= ')
 
-    period_datefirst = period_dict.get('period_datefirst')
-    period_datelast = period_dict.get('period_datelast')
-    order_pk = period_dict.get('order_pk')
-    order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
-    customer_pk = None
-    if order_pk is None:
-        customer_pk = period_dict.get('customer_pk')
-        customer_pk = customer_pk if customer_pk else None
+    period_datefirst, period_datelast, order_pk, customer_pk = None, None, None, None
+    if period_dict:
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
+
+        order_pk = period_dict.get('order_pk')
+        order_pk = order_pk if order_pk else None  # this changes '0' into 'None'
+
+        if order_pk is None:
+            customer_pk = period_dict.get('customer_pk')
+            customer_pk = customer_pk if customer_pk else None  # this changes '0' into 'None'
 
     #logger.debug('period_datefirst:  ' + str(period_datefirst))
     #logger.debug('period_datelast:  ' + str(period_datelast))
@@ -1123,3 +1130,56 @@ def create_billing_detail_list(period_dict, request):
     return billing_detail_list
 # - end of create_billing_detail_list
 
+
+
+def create_ordernote_rows(period_dict, request):  # PR2021-02-16
+    logger.debug(' ============= create_ordernote_rows ============= ')
+    logger.debug('period_dict: ' + str(period_dict))
+
+    company_pk = request.user.company.pk
+
+    rosterdatefirst, rosterdatelast, order_pk_list = None, None, None
+    if period_dict:
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
+        order_pk_list = period_dict.get('order_pk_list')
+
+    ordernote_rows = {}
+
+    sql_keys = {'comp_id': company_pk}
+    if company_pk:
+        sql_sub_list = ["SELECT note.id, note.order_id, note.note, note.modifiedat,",
+            "COALESCE(SUBSTRING (au.username, 7), '') AS modifiedby",
+            "FROM companies_ordernote AS note",
+            "LEFT JOIN accounts_user AS au ON (au.id = note.modifiedby_id)",
+            "ORDER BY note.modifiedat"]
+        sql_sub = ' '.join(sql_sub_list)
+        sql_list = ["SELECT o.id,",
+            "ARRAY_AGG(note_sub.id ORDER BY note_sub.id) AS id_agg,",
+            "ARRAY_AGG(note_sub.note ORDER BY note_sub.id) AS note_agg,",
+            "ARRAY_AGG(note_sub.modifiedby ORDER BY note_sub.id) AS modifiedby_agg,",
+            "ARRAY_AGG(note_sub.modifiedat ORDER BY note_sub.id) AS modifiedat_agg",
+
+            "FROM companies_order AS o",
+            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+            "INNER JOIN (" + sql_sub + ") AS note_sub ON (note_sub.order_id = o.id)",
+            "WHERE c.company_id = %(comp_id)s::INT"]
+
+        if order_pk_list:
+            sql_keys['o_id_arr'] = order_pk_list
+            sql_list.append('AND o.id IN ( SELECT UNNEST( %(o_id_arr)s::INT[] ) )')
+
+        elif rosterdatefirst and rosterdatelast:
+            sql_keys['rdf'] = rosterdatefirst
+            sql_keys['rdl'] = rosterdatelast
+            sql_list.append('AND o.datelast >= %(rdf)s::DATE AND o.datefirst <= %(rdl)s::DATE')
+
+        sql_list.append('GROUP BY o.id')
+        sql = ' '.join(sql_list)
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        ordernote_rows = f.dictfetchrows(newcursor)
+
+    return ordernote_rows
+# - end of create_ordernote_rows

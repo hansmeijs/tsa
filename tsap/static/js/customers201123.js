@@ -2387,7 +2387,7 @@ let planning_list = [] // for export and printing - can replace map?
 // --- create new team_dict if calendar_team_dict is empty
                 id_new = id_new + 1;
                 team_pk_str = "new" + id_new.toString();
-                const team_code = get_teamcode_with_sequence_from_map(team_map, scheme_pk, loc.Team);
+                const team_code = get_teamcode_with_sequence_from_map(loc, team_map, scheme_pk);
                 const new_team_dict = {id: {pk: team_pk_str,
                                             ppk: scheme_pk,
                                             table: "team",
@@ -2535,7 +2535,7 @@ let planning_list = [] // for export and printing - can replace map?
             el_MSO_scheme_datelast.readOnly = false;
 
 // ---  fill shifts table
-            MSO_Grid_CreateTblShifts(scheme_pk);
+            MSO_Grid_FillTblShifts(scheme_pk);
             MSO_Grid_FillTblShifts(scheme_pk);
 
 // --- set excluded checkboxen upload_dict
@@ -2717,7 +2717,7 @@ let planning_list = [] // for export and printing - can replace map?
                                             selected_shift_pk_str, true); // true = with_rest_abbrev
 
 // ---  fill shifts table
-        MSO_Grid_CreateTblShifts(scheme_pk);
+        MSO_Grid_FillTblShifts(scheme_pk);
         MSO_Grid_FillTblShifts(scheme_pk);
 
 // ---  display offset
@@ -2754,7 +2754,7 @@ let planning_list = [] // for export and printing - can replace map?
                 MSO_UpdateShiftInputboxes();
 
     // ---  fill shifts table
-               MSO_Grid_CreateTblShifts(scheme_pk);
+               MSO_Grid_FillTblShifts(scheme_pk);
                MSO_Grid_FillTblShifts(scheme_pk);
 
         }  //   if(!!shift_dict)
@@ -2848,7 +2848,7 @@ let planning_list = [] // for export and printing - can replace map?
             MSO_FillTableTeammember("MSO_TeamDelete");
 
     // ---  fill shifts table
-               MSO_Grid_CreateTblShifts(scheme_pk);
+               MSO_Grid_FillTblShifts(scheme_pk);
                MSO_Grid_FillTblShifts(scheme_pk)
         }  //   if(!!team_dict)
     }  // MSO_TeamDelete
@@ -3160,7 +3160,7 @@ let planning_list = [] // for export and printing - can replace map?
                                                 selected_shift_pk_str, true); // true = with_rest_abbrev
 
 // ---  fill shifts table
-            MSO_Grid_CreateTblShifts(scheme_pk);
+            MSO_Grid_FillTblShifts(scheme_pk);
             MSO_Grid_FillTblShifts(scheme_pk);
 */
         }
@@ -3258,7 +3258,7 @@ let planning_list = [] // for export and printing - can replace map?
         MSO_UpdateShiftInputboxes();
 
 // ---  fill shifts table
-        MSO_Grid_CreateTblShifts(scheme_pk);
+        MSO_Grid_FillTblShifts(scheme_pk);
         MSO_Grid_FillTblShifts(scheme_pk);
 
     }; // MSO_RestshiftClicked
@@ -3348,7 +3348,7 @@ let planning_list = [] // for export and printing - can replace map?
         el_select.innerHTML = t_FillOptionShiftOrTeamFromList( lookup_list, scheme_pk, pk_str, true);  // true = with_rest_abbrev
 
 // ---  fill shifts table
-        MSO_Grid_CreateTblShifts(scheme_pk);
+        MSO_Grid_FillTblShifts(scheme_pk);
         MSO_Grid_FillTblShifts(scheme_pk);
 
 // ---  highlight selected shift_row and team_cells
@@ -3797,9 +3797,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //############################################################################
 
-//=========  MSO_Grid_CreateTblShifts  === PR2020-03-13
-    function MSO_Grid_CreateTblShifts(scheme_pk) {
-        //console.log("===  MSO_Grid_CreateTblShifts == ", scheme_pk)
+//=========  MSO_Grid_FillTblShifts  === PR2020-03-13
+    function MSO_Grid_FillTblShifts(scheme_pk) {
+        //console.log("===  MSO_Grid_FillTblShifts == ", scheme_pk)
         //console.log("mod_dict == ", mod_dict)
 
         let tblBody = document.getElementById("id_MOS_grid_tbody_shift");
@@ -3968,7 +3968,7 @@ let planning_list = [] // for export and printing - can replace map?
                 tblRow_footer.appendChild(th_footer);
             }  // for (let i = 0; i < cycle + 1 ; i++)
         } //  if(!!first_rosterdate_dateJS)
-    }  // MSO_Grid_CreateTblShifts
+    }  // MSO_Grid_FillTblShifts
 
 //=========  MSO_Grid_FillTblShifts  === PR2020-03-23
     function MSO_Grid_FillTblShifts(scheme_pk) {
@@ -4007,7 +4007,7 @@ let planning_list = [] // for export and printing - can replace map?
                     const team_dict = lookup_dict_in_list(mod_dict.teams_list, team_pk)
                     if(!isEmpty(team_dict)){
                         const team_code = get_dict_value(team_dict, ["code", "value"]);
-                        team_abbrev = get_teamcode_abbrev(team_code, loc);
+                        team_abbrev = get_teamcode_abbrev(loc, team_code);
                     }
                     //team_row_id = get_dict_value(team_dict, [team_pk, "id", "row_id"])
                 }
@@ -4032,7 +4032,7 @@ let planning_list = [] // for export and printing - can replace map?
                     if (!!new_data_team_pk) {cell.setAttribute("data-team_pk", new_data_team_pk)}
 
 // ---  add team_abbrev to cell.innerText
-                    cell.innerText = set_cell_innertext(cell.innerText, team_abbrev)
+                    cell.innerText = set_cell_innertext(loc, cell.innerText, team_code)
                 }
             }
         }
@@ -4211,7 +4211,7 @@ let planning_list = [] // for export and printing - can replace map?
                             }
                         }
 // ---  fill shifts table
-                        MSO_Grid_CreateTblShifts(scheme_pk_str);
+                        MSO_Grid_FillTblShifts(scheme_pk_str);
                         MSO_Grid_FillTblShifts(scheme_pk_str);
                         MSO_Grid_HighlightTblShifts();
 

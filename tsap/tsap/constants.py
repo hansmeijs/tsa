@@ -149,14 +149,17 @@ PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on holidays', 'only on holidays', 'not 
 # PR2019-08-17
 # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
-STATUS_000_NONE = 0
-STATUS_001_CREATED = 1
-STATUS_002_START_PENDING = 2
-STATUS_004_START_CONFIRMED = 4
-STATUS_008_END_PENDING = 8
-STATUS_016_END_CONFIRMED = 16
-STATUS_032_LOCKED = 32
+STATUS_NONE = 0
+STATUS_00_CREATED = 1
+STATUS_01_START_PENDING = 2
+STATUS_02_START_CONFIRMED = 4
+STATUS_03_END_PENDING = 8
+STATUS_04_END_CONFIRMED = 16
+STATUS_05_LOCKED = 32
 
+# only used in Emplhourstatus PR2021-02-04
+STATUS_06_PAYROLLOCKED = 64
+STATUS_07_INVOICELOCKED = 128
 
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
 SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
@@ -352,6 +355,7 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode',
                 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
+                'wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph',
                 'inactive', 'locked')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'customercode', 'ordercode', 'shiftcode',
@@ -359,7 +363,7 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'customercode', 'ordercode', 's
                     'invoicecode', 'lockedinvoice', 'additioncode', 'taxcode', 'additionrate', 'taxrate',
                     'status', 'hasnote', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'exceldate',
+FIELDS_EMPLHOUR = ('orderhour', 'rosterdate', 'exceldate',
                     'employee', 'employeecode', 'cat', 'isreplacement', 'datepart',
                     'paydatecode', 'lockedpaydate', 'nopay', 'payrollpublished', 'invoicepublished',
                     'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
@@ -382,7 +386,8 @@ FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate',
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-                'wagefactorcode', 'pricecode', 'additioncode', 'taxcode')
+                'wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph',
+                'pricecode', 'additioncode', 'taxcode')
 
 FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'istemplate')
 
@@ -417,4 +422,5 @@ WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, defaul
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
 LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minutes
 
+MAX_CYCLE_DAYS = 91  # PR2021-01-02 changed from 28 to 91, request Guido // MAX_CYCLE_DAYS is defined in several places
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440

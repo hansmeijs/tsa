@@ -5,11 +5,12 @@ from django.db.models import Q, Value
 from django.db.models.functions import Lower, Coalesce
 from django.http import HttpResponse
 from django.shortcuts import render, redirect #, get_object_or_404
+from django.utils import timezone
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
-from datetime import date, time, datetime, timedelta
+from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
 from accounts.models import Usersetting
@@ -17,6 +18,7 @@ from accounts import dicts as ad
 from companies.views import LazyEncoder
 from customers import dicts as cust_dicts
 
+from tsap import settings
 from tsap import constants as c
 from tsap import functions as f
 from tsap import locale as loc
@@ -25,32 +27,48 @@ from planning import prices as p
 from planning import rosterfill as r
 from planning import employeeplanning as emplan
 from employees import dicts as ed
+from customers import dicts as cd
 
-from tsap.settings import TIME_ZONE
 from tsap.headerbar import get_headerbar_param
 
 from companies import models as m
-from companies import dicts as cd
+from companies import dicts as comp_dicts
 
 from tsap.validators import validate_code_name_identifier
+from tsap import settings
 
 import pytz
 import json
-
+import math
 import logging
 logger = logging.getLogger(__name__)
 
+# PR2021-01-09 value is stored in .env
+if settings.LOGGING_HIDE == 'NOTSET':
+    log_level = logging.NOTSET
+elif settings.LOGGING_HIDE == 'DEBUG':
+    log_level = logging.DEBUG
+elif settings.LOGGING_HIDE == 'WARNING':
+    log_level = logging.WARNING
+elif settings.LOGGING_HIDE == 'ERROR':
+    log_level = logging.ERROR
+else:
+    log_level = logging.CRITICAL
 
-# === DatalistDownloadView ===================================== PR2019-05-23
+# logging.WARNING disables logging calls with levels WARNING and lower
+# logging.NOTSET re-enables logging
+logging.disable(log_level)
+
+# === DatalistDownloadView ===================================== PR2019-05-23 PR2021-01-10
 @method_decorator([login_required], name='dispatch')
 class DatalistDownloadView(View):  # PR2019-05-23
-    #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
-    logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
 
     def post(self, request):
-        #logger.debug(' ')
-        #logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
-        #logger.debug('request.POST' + str(request.POST))
+        logging_on = False
+        if logging_on:
+            logger.debug(' ')
+            logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
+            logger.debug('request.POST' + str(request.POST))
 
         starttime = timer()
         datalists = {}
@@ -58,33 +76,32 @@ class DatalistDownloadView(View):  # PR2019-05-23
             if request.user.company is not None:
                 if request.POST['download']:
 
+# ----- make system updates
                     f.system_updates()
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
 # ----- get comp_timezone PR2019-06-14
-                    comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+                    comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 # ----- get interval
                     interval = request.user.company.interval if request.user.company.interval else 15
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
-                    #logger.debug('datalist_request: ' + str(datalist_request) + ' ' + str(type(datalist_request)))
 
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
                     request_item = datalist_request.get('setting')
-                    new_setting_dict = download_setting(request_item, user_lang, comp_timezone, timeformat, interval, request)
+                    new_setting_dict = download_setting(request_item, user_lang, comp_timezone, timeformat, interval, logging_on, request)
                     # only add setting_dict to  datalists when called by request_item 'setting'
                     if request_item and new_setting_dict:
                         datalists['setting_dict'] = new_setting_dict
 
-                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
 # new_setting_dict: {'user_lang': 'nl', 'comp_timezone': 'Europe/Amsterdam',
                     # 'timeformat': '24h', 'interval': 5, 'selected_pk': {'sel_customer_pk': 748, 'sel_order_pk': 1520, 'sel_scheme_pk': 2111,
                     # 'sel_paydatecode_pk': 0,
                     # 'sel_paydate_iso': '2020-05-31'}, 'sel_page': 'page_payroll', 'sel_btn': 'payroll'}
-                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
+
                     sel_page = new_setting_dict.get('sel_page')
                     saved_btn = new_setting_dict.get('sel_btn')
                     saved_customer_pk = new_setting_dict.get('sel_customer_pk')
@@ -94,10 +111,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     sel_paydatecode_pk = new_setting_dict.get('sel_paydatecode_pk')
                     sel_paydate_iso = new_setting_dict.get('sel_paydate_iso')
 
+                    if logging_on:
+                        logger.debug('new_setting_dict: ' + str(new_setting_dict))
 # ----- company setting
                     request_item = datalist_request.get('companysetting')
                     if request_item:
-                        companysetting_dict = cd.get_companysetting(request_item, user_lang, request)
+                        companysetting_dict = comp_dicts.get_companysetting(request_item, user_lang, request)
                         datalists['companysetting_dict'] = companysetting_dict
 # ----- locale
                     request_item = datalist_request.get('locale')
@@ -109,7 +128,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('quicksave')
                     if request_item:
                         # get quicksave from Usersetting
-                        quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
+                        quicksave_dict = request.user.get_usersetting(c.KEY_USER_QUICKSAVE)
                         datalists['quicksave'] = quicksave_dict
 # ----- submenu
                     request_item = datalist_request.get('submenu')
@@ -164,9 +183,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             is_inactive=request_item.get('inactive'))
                         datalists['order_list'] = order_list
                         datalists['order_rows'] = order_rows
-# ----- abscat_list
-                    if datalist_request.get('abscat_list'):
-                        datalists['abscat_list'] = cust_dicts.create_abscat_order_list(request)
+# ----- abscat_rows
                     request_item = datalist_request.get('abscat_rows')
                     if request_item:
                         datalists['abscat_rows'] = cust_dicts.create_abscat_order_rows(
@@ -210,18 +227,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- shift
                     request_item = datalist_request.get('shift')
                     if request_item:
-                        shift_list, shift_rows = d.create_shift_list(
+                        shift_rows = d.create_shift_rows(
                             filter_dict=request_item,
-                            company=request.user.company,
-                            user_lang=user_lang)
-                        if shift_list:
-                            datalists['shift_list'] = shift_list
+                            company=request.user.company)
                         if shift_rows:
                             datalists['shift_rows'] = shift_rows
 # ----- team
                     request_item = datalist_request.get('team')
                     if request_item:
-                        dict_list = d.create_team_list(
+                        dict_list = d.create_team_rows(
                             filter_dict=request_item,
                             company=request.user.company)
                         datalists['team_list'] = dict_list
@@ -265,7 +279,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             # save new period and retrieve saved period
                             datalists[key] = d.period_get_and_save(key, request_item,
                                                                          comp_timezone, timeformat, interval, user_lang, request)
-
 # ----- emplhour (roster page)
                     request_item = datalist_request.get('emplhour')
                     roster_period_dict = datalists.get('roster_period')
@@ -282,10 +295,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # - also get emplhournote (roster page)
                         if not is_emplhour_check:
                             last_emplhour_check = None
-                        emplhournote_rows = d.create_emplhournote_rows(
-                            period_dict=roster_period_dict,
-                            last_emplhour_check=last_emplhour_check,
-                            request=request)
 
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         if is_emplhour_check:
@@ -293,8 +302,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists = {'no_changes': True}
                             else:
                                 datalists['emplhour_updates'] = emplhour_rows
-                                if emplhournote_rows:
-                                    datalists['emplhournote_updates'] = emplhournote_rows
+                                # TODO updates of notes
+                                #if emplhournote_rows:
+                                #    datalists['emplhournote_updates'] = emplhournote_rows
                             if last_emplhour_check:
                                 datalists['last_emplhour_check'] = last_emplhour_check
                             if last_emplhour_updated:
@@ -305,8 +315,48 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists['new_last_emplr_check'] = new_last_emplhour_check
                         else:
                             datalists['emplhour_rows'] = emplhour_rows
-                            datalists['emplhournote_rows'] = emplhournote_rows
 
+# ----- emplhourallowance_rows
+                    request_item = datalist_request.get('emplhourallowance')
+                    if request_item:
+                        # TODO last_emplhour_check
+                        last_emplhour_check = None
+                        datalists['emplhourallowance_rows'] = d.create_emplhourallowance_rows(
+                            request=request,
+                            period_dict=roster_period_dict,
+                            last_emplhour_check=last_emplhour_check)
+
+# ----- emplhournote_rows
+                    request_item = datalist_request.get('emplhournote')
+                    if request_item:
+                        # TODO last_emplhour_check
+                        last_emplhour_check = None
+                        datalists['emplhournote_rows'] = d.create_emplhournote_rows(
+                            period_dict=roster_period_dict,
+                            last_emplhour_check=last_emplhour_check,
+                            request=request)
+
+# ----- ordernote_rows
+                    request_item = datalist_request.get('ordernote')
+                    if request_item:
+                        datalists['ordernote_rows'] = cd.create_ordernote_rows(
+                            period_dict=roster_period_dict,
+                            request=request)
+# ----- employeenote_rows
+                    request_item = datalist_request.get('employeenote')
+                    if request_item:
+                        datalists['employeenote_rows'] = ed.create_employeenote_rows(
+                            period_dict=roster_period_dict,
+                            request=request)
+# ----- emplhourstatus_rows
+                    request_item = datalist_request.get('emplhourstatus')
+                    if request_item:
+                        # TODO last_emplhour_check
+                        last_emplhour_check = None
+                        datalists['emplhourstatus_rows'] = d.create_emplhourstatus_rows(
+                            period_dict=roster_period_dict,
+                            last_emplhour_check=last_emplhour_check,
+                            request=request)
 # ----- overlap
                     request_item = datalist_request.get('overlap')
                     if request_item:
@@ -348,8 +398,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('payroll_list')
                     if request_item:
                         payroll_period = f.get_dict_value(datalists, ('payroll_period',))
-                        datalists['payroll_period_detail_list'] = \
+                        datalists['payroll_hours_detail_list'] = \
                             ed.create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request)
+                        datalists['payroll_alw_detail_list'] = \
+                            ed.create_payroll_allowance_rows(payroll_period, comp_timezone, timeformat, user_lang, request)
 
 # - paydatecode_rows
                     request_item = datalist_request.get('paydatecode_rows')
@@ -362,12 +414,26 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     request_item = datalist_request.get('wagecode_list')
                     if request_item:
                         ed.create_wagecode_list(request_item, datalists, request)
+
+# - get all rows of table Wagecode (wagefactor_rows, allowance_rows,  functioncode_rows)
+                    if datalist_request.get('wagecode_rows'):
+                        datalists['wagecode_rows'] = ed.create_wagecode_rows(None, request, {})
 # - wagefactor_rows
                     if datalist_request.get('wagefactor_rows'):
-                        datalists['wagefactor_rows'] = ed.create_wagefactor_rows(request, {})
-# - functioncode_list
+                        datalists['wagefactor_rows'] = ed.create_wagecode_rows('wfc', request, {})
+
+# - allowance_rows
+                    if datalist_request.get('allowance_rows'):
+                        datalists['allowance_rows'] = ed.create_wagecode_rows('alw', request, {})
+
+# - ehal_afas_rows
+                    if datalist_request.get('ehal_afas_rows'):
+                        payroll_period = datalists.get('payroll_period')
+                        datalists['ehal_afas_rows'] = ed.create_afas_ehal_rows(payroll_period, request)
+
+# - functioncode_rows
                     if datalist_request.get('functioncode_rows'):
-                        datalists['functioncode_rows'] = ed.create_functioncode_rows(None, {}, request)
+                        datalists['functioncode_rows'] = ed.create_wagecode_rows('fnc', request, {})
 
 # ----- employee_calendar
                     """
@@ -393,7 +459,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                    user_lang, comp_timezone, timeformat, request)
                    """
 # ----- employee_planning OLD
-                    #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
                    # request_item = datalist_request.get('employee_planningOLD')
                    # planning_period_dict = datalists.get('planning_period')
                     # also get employee_planning at startup of page
@@ -405,7 +470,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                    #                                user_lang, comp_timezone, timeformat, request)
 
 # ----- employee_planning NEW
-                    #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
                     request_item = datalist_request.get('employee_planningNEW')
                     planning_period_dict = datalists.get('planning_period')
                     # also get employee_planning at startup of page
@@ -423,7 +487,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['employee_planning_listNEW'] = planning_list
                         datalists['employee_planning_customer_dictlist'] = customer_dictlist
                         datalists['employee_planning_order_dictlist'] = order_dictlist
-                    #logger.debug('............datalists setting_dict: ' + str(datalists.get('setting_dict')))
 
 # ----- customer_planning
                     # TODO
@@ -458,9 +521,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
         return HttpResponse(datalists_json)
 
 
-def download_setting(request_item, user_lang, comp_timezone, timeformat, interval, request):  # PR2020-07-01
-    #logger.debug(' --- download_setting --- ' )
-    #logger.debug('request_item: ' + str(request_item) )
+def download_setting(request_item, user_lang, comp_timezone, timeformat, interval, logging_on, request):  # PR2020-07-01
+    if logging_on:
+        logger.debug(' --- download_setting --- ' )
+        logger.debug('request_item: ' + str(request_item) )
     # this function get settingss from request_item.
     # if not in request_item, it takes the saved settings.
     new_setting_dict = {'user_lang': user_lang,
@@ -494,7 +558,7 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
         sel_keys = ('sel_customer_pk', 'sel_order_pk', 'sel_scheme_pk',
                     'sel_employee_pk', 'sel_paydatecode_pk', 'sel_paydate_iso')
 
-        saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+        saved_setting_dict = request.user.get_usersetting(key)
         new_selected_pk_dict = {}
 
         request_dict = request_item.get(key)
@@ -513,34 +577,37 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                 new_selected_pk_dict[sel_key] = new_value
                 new_setting_dict[sel_key] = new_value
         if has_changed:
-            #logger.debug('Usersetting.set_jsonsetting from download_setting')
-            Usersetting.set_jsonsetting(key, new_selected_pk_dict, request.user)
+            request.user.set_usersetting(key, new_selected_pk_dict)
 
 # - get rest of keys
         for key in request_item:
             if key != 'selected_pk':
                 has_changed = False
                 new_page_dict = {}
-                saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+                saved_setting_dict = request.user.get_usersetting(key)
 
                 request_dict = request_item.get(key)
-                #logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
-                #logger.debug('request_dict: ' + str(request_dict))
+                if logging_on:
+                    logger.debug('saved_setting_dict: ' + str(saved_setting_dict))
+                    logger.debug('request_dict: ' + str(request_dict))
 ################################
 # get page
                 if key[:4] == 'page':
                     # if 'page_' in request: and saved_btn == 'planning': also retrieve period
                     new_setting_dict['sel_page'] = key
-                    #logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                    if logging_on:
+                        logger.debug('new_setting_dict: ' + str(new_setting_dict))
                     sel_keys = ('sel_btn', 'period_start', 'period_end', 'grid_range')
                     for sel_key in sel_keys:
                         saved_value = saved_setting_dict.get(sel_key)
-                        #logger.debug('sel_key: ' + str(sel_key))
-                        #logger.debug('saved_value: ' + str(saved_value))
+                        if logging_on:
+                            logger.debug('sel_key: ' + str(sel_key))
+                            logger.debug('saved_value: ' + str(saved_value))
                         new_value = saved_value
                         if request_dict and sel_key in request_dict:
                             request_value = request_dict.get(sel_key)
-                            #logger.debug('request_value: ' + str(request_value))
+                            if logging_on:
+                                logger.debug('request_value: ' + str(request_value))
                             if request_value is None:
                                 if saved_value is not None:
                                     has_changed = True
@@ -550,7 +617,8 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                         if new_value is not None:
                             new_page_dict[sel_key] = new_value
                             new_setting_dict[sel_key] = new_value
-                        #logger.debug('new_setting_dict: ' + str(new_setting_dict))
+                        if logging_on:
+                            logger.debug('new_setting_dict: ' + str(new_setting_dict))
 
 ###################################
 # get others, with key = 'value'
@@ -571,15 +639,14 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
                         new_setting_dict[key] = new_value
 # - save
                 if has_changed:
-                    #logger.debug('Usersetting.set_jsonsetting from download_setting')
-                    Usersetting.set_jsonsetting(key, new_page_dict, request.user)
+                    request.user.set_usersetting(key, new_page_dict)
     return new_setting_dict
 
 
 def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_scheme_pk, saved_btn, user_lang, comp_timezone, request):
-    #logger.debug(' ============= download_page_scheme_list ============= ')
+    logger.debug(' ============= download_page_scheme_list ============= ')
 
-# check which info must be retrieved, get saved_btn etc from settings if not given in upload_dict
+# - check which info must be retrieved, get saved_btn etc from settings if not given in upload_dict
     is_template = request_item.get('istemplate', False)
     if 'isabsence' in request_item:
         is_absence = request_item.get('isabsence', False)
@@ -588,7 +655,7 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
     #logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
 
 # - get holiday_dict from previous year thru next year PR2020-07-07
-    # holiday_dict is used in schemes.js Grid_CreateTblShiftsNoCycle
+    # holiday_dict is used in schemes.js Grid_FillTblShiftsNoCycle
     now = datetime.now()
     last_year_jan01 = date(now.year - 1, 1, 1)
     next_year_dec31 = date(now.year + 1, 12, 31)
@@ -608,19 +675,18 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
         if template_order:
             new_order_pk = template_order.pk
 
-            #logger.debug('template_order: ' + str(template_order))
-    #logger.debug('new_order_pk: ' + str(new_order_pk))
+# - get abscat list, create one if not exists
     absence_customer_pk = None
     if is_absence:
         # when btn_absence: get abscat list and all absence orders
         # - check if absence_customer exists, create if not exists
-# - get abscat list, create one if not exists
         absence_customer = cust_dicts.get_or_create_absence_customer(request)
         if absence_customer:
             absence_customer_pk = absence_customer.pk
             abscat_list = cust_dicts.create_abscat_order_list(request)
             if abscat_list:
                 datalists['abscat_list'] = abscat_list
+
 # - get teammember_list list, create one if not exists
         filter_dict = {'employee_nonull': False, 'is_template': False, 'is_absence': True}
         dict_list = ed.ed_create_teammember_list(
@@ -639,8 +705,8 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
         if permitcustomers_list or permitorders_list:
             pass
 
+# - get all schemes, shifts, teams, schemeitems and teammembers of selected order PR2020-05-23
         filter_dict = {'customer_pk': absence_customer_pk, 'order_pk': new_order_pk, 'isabsence': is_absence}
-        # PR2020-05-23 get all all schemes, shifts, teams, schemeitems and teammembers of selected order
         checked_customer_pk, checked_order_pk = \
             d.create_page_scheme_list(
                 filter_dict=filter_dict,
@@ -665,9 +731,8 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
             new_setting = {'sel_customer_pk': checked_customer_pk,
                            'sel_order_pk': checked_order_pk,
                            'sel_scheme_pk': 0}
-            # TODO get rid of set_selected_pk
-            selected_pk_dict = Usersetting.set_selected_pk(new_setting, request.user)
-        
+
+            selected_pk_dict = request.user.get_usersetting('selected_pk')
            #logger.debug('selected_pk_dict' + str(selected_pk_dict))
             # don't replace setting_dict, you will lose page info. Add key 'selected_pk' instead
             datalists_setting_dict = datalists.get('setting_dict')
@@ -708,13 +773,15 @@ def download_employee_calendar(table_dict, calendar_period_dict, datalists, save
         add_shifts_without_employee = calendar_period_dict.get('add_shifts_without_employee', False)
         skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
 
-        datefirst_iso = calendar_period_dict.get('period_datefirst')
-        datelast_iso = calendar_period_dict.get('period_datelast')
-        customer_pk = calendar_period_dict.get('customer_pk')
-        order_pk = calendar_period_dict.get('order_pk')
-        employee_pk = calendar_period_dict.get('employee_pk')
-        functioncode_pk = calendar_period_dict.get('functioncode_pk')
-        paydatecode_pk = calendar_period_dict.get('paydatecode_pk')
+        datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk, functioncode_pk, paydatecode_pk = None, None, None, None, None, None, None
+        if calendar_period_dict:
+            datefirst_iso = calendar_period_dict.get('period_datefirst')
+            datelast_iso = calendar_period_dict.get('period_datelast')
+            customer_pk = calendar_period_dict.get('customer_pk')
+            order_pk = calendar_period_dict.get('order_pk')
+            employee_pk = calendar_period_dict.get('employee_pk')
+            functioncode_pk = calendar_period_dict.get('functioncode_pk')
+            paydatecode_pk = calendar_period_dict.get('paydatecode_pk')
 
         #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
         orderby_rosterdate_customer = False
@@ -753,8 +820,10 @@ def download_customer_calendar(table_dict, calendar_period_dict, datalists, save
     if order_pk is None:
         order_pk = saved_order_pk
 
-    datefirst_iso = calendar_period_dict.get('period_datefirst')
-    datelast_iso = calendar_period_dict.get('period_datelast')
+    datefirst_iso, datelast_iso = None, None
+    if calendar_period_dict:
+        datefirst_iso = calendar_period_dict.get('period_datefirst')
+        datelast_iso = calendar_period_dict.get('period_datelast')
 
     dict_list = r.create_customer_planning(
         datefirst_iso=datefirst_iso,
@@ -768,7 +837,7 @@ def download_customer_calendar(table_dict, calendar_period_dict, datalists, save
     datalists['customer_calendar_list'] = dict_list
 
 
-def download_employee_planning(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
+def download_employee_planning_NIU(table_dict, planning_period_dict, datalists, saved_customer_pk, saved_order_pk,
                                   saved_employee_pk, saved_page, user_lang, comp_timezone, timeformat, request):
     #logger.debug(' ----------  download_employee_planning  ---------- ')
     #logger.debug('table_dict' + str(table_dict))
@@ -794,13 +863,15 @@ def download_employee_planning(table_dict, planning_period_dict, datalists, save
 
         add_shifts_without_employee = True if saved_page == 'page_customer' else False
 
-    datefirst_iso = planning_period_dict.get('period_datefirst')
-    datelast_iso = planning_period_dict.get('period_datelast')
-    customer_pk = planning_period_dict.get('customer_pk')
-    order_pk = planning_period_dict.get('order_pk')
-    employee_pk = planning_period_dict.get('employee_pk')
-    functioncode_pk = planning_period_dict.get('functioncode_pk')
-    paydatecode_pk = planning_period_dict.get('paydatecode_pk')
+    datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk, functioncode_pk, paydatecode_pk = None, None, None, None, None, None, None
+    if planning_period_dict:
+        datefirst_iso = planning_period_dict.get('period_datefirst')
+        datelast_iso = planning_period_dict.get('period_datelast')
+        customer_pk = planning_period_dict.get('customer_pk')
+        order_pk = planning_period_dict.get('order_pk')
+        employee_pk = planning_period_dict.get('employee_pk')
+        functioncode_pk = planning_period_dict.get('functioncode_pk')
+        paydatecode_pk = planning_period_dict.get('paydatecode_pk')
 
     dict_list, short_list, logfile = r.create_employee_planning(
         datefirst_iso=datefirst_iso,
@@ -836,8 +907,10 @@ def download_customer_planning(table_dict, planning_period_dict, datalists, save
         if order_pk is None:
             customer_pk = saved_customer_pk
 
-    datefirst_iso = planning_period_dict.get('period_datefirst')
-    datelast_iso = planning_period_dict.get('period_datelast')
+    datefirst_iso, datelast_iso = None, None
+    if planning_period_dict:
+        datefirst_iso = planning_period_dict.get('period_datefirst')
+        datelast_iso = planning_period_dict.get('period_datelast')
 
     dict_list = r.create_customer_planning(
         datefirst_iso=datefirst_iso,
@@ -860,8 +933,8 @@ class RosterView(View):
         user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
         activate(user_lang)
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'roster.html')
-
+        param = {'headerbar_class': settings.HEADER_CLASS}
+        return render(request, 'roster.html', param)
 
 # === SchemesView ===================================== PR2019-03-24
 @method_decorator([login_required], name='dispatch')
@@ -884,7 +957,7 @@ class SchemesView(View):
             months_json = json.dumps(c.MONTHS_ABBREV[lang])
 
 # --- get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
 # ---  get interval
             interval = 1
@@ -898,9 +971,10 @@ class SchemesView(View):
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
 
-            param = get_headerbar_param(request, {})
+            #param = get_headerbar_param(request, {})
 
 
+        param = {'headerbar_class': settings.HEADER_CLASS}
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'schemes.html', param)
 
@@ -919,7 +993,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
             activate(user_lang)
 
 # get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
 # - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -990,14 +1064,14 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
 
-                    shift_list = d.create_shift_list(
+                    shift_list = d.create_shift_rows(
                         filter_dict={'customer_pk': None},
                         company=request.user.company,
                         user_lang=user_lang)
                     if shift_list:
                         update_wrap['shift_list'] = shift_list
 
-                    team_list = d.create_team_list(
+                    team_list = d.create_team_rows(
                         filter_dict={'customer_pk': None},
                         company=request.user.company)
                     if team_list:
@@ -1453,7 +1527,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
             activate(user_lang)
 
 # b. get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -1484,7 +1558,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 # - get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 # - get upload_dict from request.POST
             upload_json = request.POST.get("upload")
             if upload_json:
@@ -1503,9 +1577,9 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                         #update_wrap['shift_update'] = update_dict
                         update_wrap['shift_update_list'] = [update_dict]
                     # update shift_list when changes are made
-                        shift_list = d.create_shift_list({}, request.user.company, user_lang)
-                        if shift_list:
-                            update_wrap['shift_list'] = shift_list
+                        shift_rows = d.create_shift_rows({}, request.user.company)
+                        if shift_rows:
+                            update_wrap['shift_rows'] = shift_rows
                     # update schemeitem_list when changes are made
                     # necessary to update offset in schemeitems
                         schemeitem_list = d.create_schemeitem_list(filter_dict={}, company=request.user.company)
@@ -1839,7 +1913,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
     #logger.debug('upload_dict: ' + str(upload_dict))
 
 #  get comp_timezone
-    comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+    comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
     has_error = False
     if instance:
@@ -1923,7 +1997,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                 activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
-                comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
                 if request.POST['scheme_download']:
                     scheme_download = json.loads(request.POST['scheme_download'])
@@ -1941,17 +2015,14 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                         #logger.debug('datalists: ' + str(datalists))
 
                         # create shift_list
-                        shift_list, shift_rows = d.create_shift_list(
+                        shift_rows = d.create_shift_rows(
                             filter_dict={'customer_pk': scheme.order.customer_id},
-                            company=request.user.company,
-                            user_lang=user_lang)
-                        if shift_list:
-                            datalists['shift_list'] = shift_list
+                            company=request.user.company)
                         if shift_rows:
                             datalists['shift_rows'] = shift_rows
 
                         # create team_list
-                        team_list = d.create_team_list(
+                        team_list = d.create_team_rows(
                             filter_dict={'customer_pk': scheme.order.customer_id},
                             company=request.user.company)
                         if team_list:
@@ -1962,7 +2033,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                         if schemeitem_list:
                             datalists['schemeitem_list'] = schemeitem_list
                             # shift_list.sort()
-                            datalists['shift_list'] = shift_list
+                            # datalists['shift_list'] = shift_list
 
                         # today is used for new schemeitem without previous rosterday
                         today_dict = {'value': str(date.today()),
@@ -2003,7 +2074,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
             activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
 # - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -2333,7 +2404,8 @@ class ReviewView(View):
                 'timeformat': timeformat
             })
             #logger.debug(param)
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+
+        param = {'headerbar_class': settings.HEADER_CLASS}
         return render(request, 'review.html', param)
 
 
@@ -2448,11 +2520,11 @@ def upload_period(interval_upload, request):  # PR2019-07-10
                 period_dict_json = json.dumps(period_dict)  # dumps takes an object and produces a string:
                 #logger.debug('period_dict_json: ' + str(period_dict_json))
 
-                Usersetting.set_jsonsetting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
+                request.user.set_usersetting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json)
 
 # calculate  updated period_dict
             # get today_midnight_local_iso
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
             today_utc = d.get_rosterdate_utc(date.today())
             today_utc = d.get_datetime_utc(datetime.utcnow())
             #logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
@@ -2583,150 +2655,169 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 
 
 @method_decorator([login_required], name='dispatch')
-class EmplhourUploadView(UpdateView):  # PR2019-06-23
+class \
+        EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+        logging_on = True
+        if logging_on:
+            logger.debug(' ')
+            logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
-        if request.user is not None and request.user.company is not None and request.user.is_perm_supervisor:
-# - Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
+        if request.user is not None and request.user.company is not None:
+            has_permit = request.user.is_perm_supervisor or request.user.is_perm_hrman
+            if has_permit:
+    # - reset language
+                # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+                user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                activate(user_lang)
 
-# - get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+    # - get comp_timezone PR2019-06-14
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+                timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 
-# - get upload_dict from request.POST
-            upload_json = request.POST.get('upload', None)
-            if upload_json:
-                upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+    # - get upload_dict from request.POST
+                upload_json = request.POST.get('upload', None)
+                if upload_json:
+                    upload_dict = json.loads(upload_json)
 
-                eplh_update_list = [] # list of emplhour_pk's that must be put in emplhour_rows
-                check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
-                clear_overlap_list = [] # clear_overlap_list contains emplhour_pk's that must be cleared:
-                error_list = []
-                deleted_list = []
+                    eplh_update_list = [] # list of emplhour_pk's that must be put in emplhour_rows
+                    check_overlap_list = [] # check_overlap_list contains employee_pk's that must be checked
+                    clear_overlap_list = [] # clear_overlap_list contains emplhour_pk's that must be cleared:
+                    error_list = []
+                    deleted_list = []
 
-# - get iddict variables
-                pk_int = f.get_dict_value (upload_dict, ('id', 'pk'))
-                ppk_int = f.get_dict_value (upload_dict, ('id', 'ppk'))
-                is_create = f.get_dict_value (upload_dict, ('id', 'create'), False)
-                is_delete = f.get_dict_value (upload_dict, ('id', 'delete'), False)
-                shift_option = f.get_dict_value (upload_dict, ('id', 'shiftoption'))
+    # - get iddict variables
+                    pk_int = f.get_dict_value (upload_dict, ('id', 'pk'))
+                    ppk_int = f.get_dict_value (upload_dict, ('id', 'ppk'))
+                    is_create = f.get_dict_value (upload_dict, ('id', 'create'), False)
+                    is_delete = f.get_dict_value (upload_dict, ('id', 'delete'), False)
+                    shift_option = f.get_dict_value (upload_dict, ('id', 'shiftoption'))
 
-# - add new employee to check_overlap_list
-                new_employee_pk = f.get_dict_value(upload_dict, ('employee', 'pk'))
-                if new_employee_pk:
-                    check_overlap_list.append(new_employee_pk)
+                    if logging_on:
+                        logger.debug('upload_dict: ' + str(upload_dict))
+                        logger.debug('pk_int: ' + str(pk_int) + ' ' + str(type(pk_int)))
+                        logger.debug('ppk_int: ' + str(ppk_int) + ' ' + str(type(ppk_int)))
+                        logger.debug('shift_option: ' + str(shift_option))
 
-                emplhour = None
-# - Create new orderhour / emplhour if is_create:
-                # update_emplhour is also called when emplhour is_created, save_to_log is called in update_emplhour
-                if is_create:
-                    emplhour, orderhour = create_orderhour_emplhour(upload_dict, error_list, request)
-                else:
-# - else: check if orderhour exists (orderhour is orderhour of emplhour)
-                    orderhour = m.Orderhour.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
-                    if orderhour:
-                        emplhour = m.Emplhour.objects.get_or_none(id=pk_int, orderhour=orderhour)
+    # - add new employee to check_overlap_list
+                    new_employee_pk = f.get_dict_value(upload_dict, ('employee', 'pk'))
+                    if new_employee_pk:
+                        check_overlap_list.append(new_employee_pk)
 
-                if emplhour:
-# - add emplhour to eplh_update_list, list of emplhour.pk's to be added to emplhour_updates
-                    eplh_update_list.append(emplhour.pk)
-
-# - add current employee to check_overlap_list
-                    # add current employee_pk to check_overlap_list
-                    if emplhour.employee and emplhour.employee.pk not in check_overlap_list:
-                        check_overlap_list.append(emplhour.employee.pk)
-
-# ============ Delete emplhour if is_delete
-                    if is_delete:
-                        # delete_emplhour first saves to log and updates date_deleted in Companysetting.datetimesetting2
-                        # the deletes emplhour and - if orderhour has no more emplhours - also deletes orderhour
-                        deleted_row = m.delete_emplhour_instance(emplhour, request)
-                        if deleted_row:
-                            deleted_list.append(deleted_row)
+                    emplhour, orderhour = None, None
+    # - Create new orderhour / emplhour if is_create:
+                    # update_emplhour is also called when emplhour is_created, save_to_log is called in update_emplhour
+                    if is_create:
+                        emplhour, orderhour = create_orderhour_emplhour(upload_dict, error_list, request)
                     else:
-                        # shift options are: enter_employee, change_absence, make_absent, split_shift, switch_shift
-# ============ make employee absent
-                        if shift_option == 'make_absent':
-                            # make_absence_shift creates a new absence emplhour, current one will be updated in update_emplhour
-                            make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request)
-                        if shift_option == 'make_absent_and_split':
-                            # make_absence_shift creates a new absence emplhour, current one will be updated in update_emplhour
-                            make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request)
-                            # make_absence_shift creates a new split emplhour, current one will be updated in update_emplhour
-                            # leave_cur_employee_blank is to prevent current employee from being added to split shift:
-                            leave_cur_employee_blank = True
-                            make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request)
+    # - else: get orderhour and emplhour (orderhour is orderhour of emplhour)
+                        orderhour = m.Orderhour.objects.get_or_none(
+                            id=ppk_int,
+                            order__customer__company=request.user.company)
+                        if orderhour:
+                            emplhour = m.Emplhour.objects.get_or_none(id=pk_int, orderhour=orderhour)
+                    if logging_on:
+                        logger.debug('orderhour: ' + str(orderhour))
+                        logger.debug('emplhour: ' + str(emplhour))
 
-                        elif shift_option == 'change_absence':
-                            # change_absence_shift changes order in orderhour
-                            if 'abscat' in upload_dict:
-                                change_absence_shift(emplhour, upload_dict, eplh_update_list, request)
+                    if emplhour:
+    # - add emplhour to eplh_update_list, list of emplhour.pk's to be added to emplhour_updates
+                        eplh_update_list.append(emplhour.pk)
 
-                        if shift_option == 'moveto_shift':
-                            # moveto_shift removes the current employee from the current emplhour record
-                            # and replaces the employee of the selected emplhour with the current employee
-                            moveto_shift_dict = moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, timeformat, user_lang, request)
-                            if moveto_shift_dict:
-                                eplh_update_list.append(moveto_shift_dict)
-                        elif shift_option == 'tab_switch':
-                            pass
-                        elif shift_option == 'split_shift':
-                            leave_cur_employee_blank = False
-                            make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request)
+    # - add current employee to check_overlap_list
+                        # add current employee_pk to check_overlap_list
+                        if emplhour.employee and emplhour.employee.pk not in check_overlap_list:
+                            check_overlap_list.append(emplhour.employee.pk)
 
-# E. Update emplhour, also when it is created, not when is_delete
-                        update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list,
-                                                  request, comp_timezone, timeformat, user_lang, eplh_update_list)
-# 6. create list of updated emplhour_rows
-                filter_dict = {'eplh_update_list': eplh_update_list}
-                emplhour_rows = d.create_emplhour_rows(filter_dict, request, None, is_delete)
-                if deleted_list:
-                    emplhour_rows.extend(deleted_list)
-                if emplhour_rows:
-                    update_wrap['emplhour_updates'] = emplhour_rows
+    # ============ Delete emplhour if is_delete
+                        if is_delete:
+                            # delete_emplhour first saves to log and updates date_deleted in Companysetting.datetimesetting2
+                            # the deletes emplhour and - if orderhour has no more emplhours - also deletes orderhour
+                            deleted_row = m.delete_emplhour_instance(emplhour, request)
+                            if deleted_row:
+                                deleted_list.append(deleted_row)
+                        else:
+                            # shift options are: enter_employee, change_absence, make_absent, make_absent_and_split, split_shift, switch_shift, none
+    # ============ make employee absent
+                            if shift_option == 'make_absent':
+                                # make_absence_shift creates a new absence emplhour, current one will be updated in update_emplhour
+                                make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list,
+                                                   check_overlap_list, comp_timezone, request, logging_on)
 
-                # - also get emplhournote (roster page)
-                emplhournote_rows = d.create_emplhournote_rows(
-                    period_dict=filter_dict,
-                    last_emplhour_check=None,
-                    request=request)
-                if emplhournote_rows:
-                    update_wrap['emplhournote_updates'] = emplhournote_rows
+                            if shift_option == 'make_absent_and_split':
+                                # make_absence_shift creates a new absence emplhour, current one will be updated in update_emplhour
+                                make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request)
+                                # make_absence_shift creates a new split emplhour, current one will be updated in update_emplhour
+                                # leave_cur_employee_blank is to prevent current employee from being added to split shift:
+                                leave_cur_employee_blank = True
+                                make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request)
 
-# - check for overlap - check_overlap_list contains employee_pk's that must be checked
-                # PR2020-05-13 debug: when removing employee the emplhour overlap must be deleted
-                # - check_overlap_list contains employee_pk's that must be checked
-                # - clear_overlap_list contains emplhour_pk's that must be cleared
-                #logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
-                #logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
-                overlap_dict = {}
-                if check_overlap_list:
-                    # this is only for testing:
-                    update_wrap['check_overlap_list'] = check_overlap_list
-                    datefirst_iso = upload_dict.get('period_datefirst')
-                    datelast_iso = upload_dict.get('period_datelast')
-                    #logger.debug('upload_dict: ' + str(upload_dict))
-                    #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
-                    #logger.debug('datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
-                    if datefirst_iso and datelast_iso:
-                        overlap_dict = f.check_emplhour_overlap(datefirst_iso, datelast_iso, check_overlap_list, request)
+                            elif shift_option == 'change_absence':
+                                # change_absence_shift changes order in orderhour
+                                if 'abscat' in upload_dict:
+                                    change_absence_shift(emplhour, upload_dict, eplh_update_list, request)
 
-                    # add emplhour_pk of removed employees to overlap_dict - to remove overlap from these emplhours
-                if clear_overlap_list:
-                    for emplhour_pk in clear_overlap_list:
-                        if emplhour_pk not in overlap_dict:
-                            overlap_dict[emplhour_pk] = {}
-                if overlap_dict:
-                    update_wrap['overlap_dict'] = overlap_dict
-            #update_wrap['update_list'] = eplh_update_list
+                            if shift_option == 'moveto_shift':
+                                # moveto_shift removes the current employee from the current emplhour record
+                                # and replaces the employee of the selected emplhour with the current employee
+                                moveto_shift_dict = moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, timeformat, user_lang, request)
+                                if moveto_shift_dict:
+                                    eplh_update_list.append(moveto_shift_dict)
+
+                            elif shift_option == 'tab_switch':
+                                pass
+
+                            elif shift_option == 'split_shift':
+                                leave_cur_employee_blank = False
+                                make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request)
+
+    # E. Update emplhour, also when it is created, not when is_delete
+                            update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list,
+                                            request, comp_timezone, timeformat, user_lang, eplh_update_list, logging_on)
+    # 6. create list of updated emplhour_rows
+                    filter_dict = {'eplh_update_list': eplh_update_list}
+                    emplhour_rows = d.create_emplhour_rows(filter_dict, request, None, is_delete)
+                    if deleted_list:
+                        emplhour_rows.extend(deleted_list)
+                    if emplhour_rows:
+                        update_wrap['emplhour_updates'] = emplhour_rows
+
+                    # - also get emplhournote (roster page)
+                    emplhournote_rows = d.create_emplhournote_rows(
+                        period_dict=filter_dict,
+                        last_emplhour_check=None,
+                        request=request)
+                    if emplhournote_rows:
+                        update_wrap['emplhournote_updates'] = emplhournote_rows
+
+    # - check for overlap - check_overlap_list contains employee_pk's that must be checked
+                    # PR2020-05-13 debug: when removing employee the emplhour overlap must be deleted
+                    # - check_overlap_list contains employee_pk's that must be checked
+                    # - clear_overlap_list contains emplhour_pk's that must be cleared
+                    #logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
+                    #logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
+                    overlap_dict = {}
+                    if check_overlap_list:
+                        # this is only for testing:
+                        update_wrap['check_overlap_list'] = check_overlap_list
+                        datefirst_iso = upload_dict.get('period_datefirst')
+                        datelast_iso = upload_dict.get('period_datelast')
+                        #logger.debug('upload_dict: ' + str(upload_dict))
+                        #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
+                        #logger.debug('datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
+                        if datefirst_iso and datelast_iso:
+                            overlap_dict = f.check_emplhour_overlap(datefirst_iso, datelast_iso, check_overlap_list, request)
+
+                        # add emplhour_pk of removed employees to overlap_dict - to remove overlap from these emplhours
+                    if clear_overlap_list:
+                        for emplhour_pk in clear_overlap_list:
+                            if emplhour_pk not in overlap_dict:
+                                overlap_dict[emplhour_pk] = {}
+                    if overlap_dict:
+                        update_wrap['overlap_dict'] = overlap_dict
+                #update_wrap['update_list'] = eplh_update_list
 
 # 9. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -2816,9 +2907,11 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
     return emplhour, orderhour
 
 
-def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request):
-    logger.debug(' --- make_absence_shift --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list,
+                       comp_timezone, request, logging_on=False):
+    if logging_on:
+        logger.debug(' --- make_absence_shift --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
     # in make_absence_shift:
     #  create absence record with current employee, absence order
     #   - current employee will become absence employee, must always have value
@@ -2838,6 +2931,14 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
     # 'abscat': {'pk': 1448, 'ppk': 705, 'code': 'Ziek', 'table': 'order', 'isabsence': True, 'update': True},
     # 'split': 'split_before',
     # 'offsetstart': {'value': 600, 'update': True}}
+
+    """
+    upload_dict: {'id': {'pk': 1, 'ppk': 1, 'table': 'emplhour', 'isabsence': False, 'shiftoption': 'make_absent_and_split'}, 
+    'period_datefirst': '2021-01-01', 'period_datelast': '2021-01-31', 
+    'employee': {'field': 'employee', 'pk': 3, 'ppk': 8, 'code': 'Regales, Ruëny', 'update': True}, 
+    'split': 'split_before', 
+    'offsetstart': {'value': 540, 'update': True}}
+    """
 
     rosterdate_dte = orderhour.rosterdate
 
@@ -2869,8 +2970,9 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
 # - lookup current employee from emplhour
     if abscat_order:
         absent_employee = emplhour.employee
-        #logger.debug('abscat_order: ' + str(abscat_order))
-        #logger.debug('absent_employee: ' + str(absent_employee))
+        if logging_on:
+            logger.debug('abscat_order: ' + str(abscat_order))
+            logger.debug('absent_employee: ' + str(absent_employee))
 
         if absent_employee:
 # - add absent_employee to check_overlap_list
@@ -2886,20 +2988,45 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
             abscat_nopay = abscat_order.nopay
 
 # - get nohours  These fields are in order and scheme. For absence: use table 'order'
-            nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholidayNIU = \
+            nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
                 get_nosat_sun_ph_ch_from_emplhour(emplhour)
             abscat_nohours = (is_saturday and nohours_onsaturday) or \
-                            (is_sunday and nohours_onsunday) or \
-                            (is_publicholiday and nohours_onpublicholiday)
-            #logger.debug('abscat_nohours: ' + str(abscat_nohours))
+                                        (is_sunday and nohours_onsunday) or \
+                                        (is_publicholiday and nohours_onpublicholiday)
+            if logging_on:
+                logger.debug('abscat_nohours: ' + str(abscat_nohours))
+
+
+# - get wagefactor from abscat order
+            is_absence, is_restshift = True, False
+            default_wagefactor_pk = None
+            if request.user.company.wagefactorcode_id:
+                default_wagefactor_pk = request.user.company.wagefactorcode_id
+            row = {'o_wfc_onwd_id': abscat_order.wagefactorcode_id,
+                   'o_wfc_onsat_id': abscat_order.wagefactoronsat_id,
+                   'o_wfc_onsun_id': abscat_order.wagefactoronsun_id,
+                   'o_wfc_onph_id': abscat_order.wagefactoronph_id}
+            wagefactor_pk = emplan.get_wagefactorpk_from_row(
+                row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
+            wagefactor, wagefactor_code, wagefactor_rate = None, None, None
+            if wagefactor_pk:
+                wagefactor = m.Wagecode.objects.get_or_none(pk=wagefactor_pk)
+                wagefactor_code = wagefactor.code
+                wagefactor_rate = wagefactor.wagerate
 
 # - calculate time_duration et cetera
             offset_start, offset_end, excel_start, excel_end = None, None, None, None
             time_start, time_end, time_duration, = None, None, 0
+            excel_date = f.get_Exceldate_from_datetime(rosterdate_dte)
             # break_duration = 0 in absence shift, break_duration is counted in current emplhour
             break_duration = 0
     # - skip when abscat_nohours
-            if not abscat_nohours:
+            if abscat_nohours:
+                # calculate excelstart and excelend, otherwise check overlap does not work PR2020-05-13
+                # PR2021-02-10 debug: calculate start- and endtime when split shift
+                excel_start = excel_date * 1440
+                excel_end = excel_date * 1440 + 1440
+            else:
 
     # - get split, offset_start, offset_end
                 split = upload_dict.get('split')
@@ -2913,24 +3040,27 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     # This is the start time of the absence shift
                     offset_start = f.get_dict_value(upload_dict, ('offsetend', 'value'))
                     offset_end = emplhour.offsetend
+                else:
+                    pass
+        # TODO fill in offset_start and offset_end when not a split shift. Is more consequent
+                    #offset_start = emplhour.offsetstart
+                    #offset_end = emplhour.offsetend
+                    #break_duration = emplhour.breakduration
+                    #time_duration = emplhour.timeduration
 
     # - calculate time_start, time_end, time_duration, excel_start, excel_end
-                nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
-                    get_nosat_sun_ph_ch_from_emplhour(emplhour)
-
-                # when employee_pk is None time_duration will be set to None
+        # - when employee_pk is None time_duration will be set to None
                 employee_pk = absent_employee.pk if absent_employee else None
 
-                # when time_duration is None: time_duration will get value of employee_wmpd
-                # not when absence_shift is a split absence_shift
+        # - when time_duration is None: time_duration will get value of employee_wmpd (workminutes per day)
+                # - not when absence_shift is a split absence_shift
+                # TODO never use wmpd when absence made from roster
                 employee_wmpd = None
                 if absent_employee and split not in ('split_before', 'split_after'):
                     if absent_employee.workminutesperday:
                         employee_wmpd = absent_employee.workminutesperday
                     elif absent_employee.company.workminutesperday:
                         employee_wmpd = absent_employee.company.workminutesperday
-                logger.debug('-------- split: ' + str(split))
-                logger.debug('-------- employee_wmpd: ' + str(employee_wmpd))
 
                 time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
                     f.calc_timedur_plandur_from_offset(
@@ -2944,9 +3074,13 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                         row_noph=nohours_onpublicholiday, row_noch=nohours_oncompanyholiday,
                         row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
                         comp_timezone=comp_timezone)
-                logger.debug('     planned_durationNIU: ' + str(planned_durationNIU))
-                logger.debug('     time_duration: ' + str(time_duration))
-                logger.debug('     billing_durationNIU: ' + str(billing_durationNIU))
+                if logging_on:
+                    logger.debug('-------- split: ' + str(split))
+                    logger.debug('-------- employee_wmpd: ' + str(employee_wmpd))
+
+                    logger.debug('     planned_durationNIU: ' + str(planned_durationNIU))
+                    logger.debug('     time_duration: ' + str(time_duration))
+                    logger.debug('     billing_durationNIU: ' + str(billing_durationNIU))
 
 # create new abscat_orderhour
             #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-14
@@ -2962,17 +3096,14 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 isbillable=False,
                 isabsence=True,
                 isrestshift=False,
-                status=c.STATUS_000_NONE
+
+                status=c.STATUS_NONE
             )
             new_orderhour.save(request=request)
 
  # create new emplhour record with current employee
             if new_orderhour:
                 # don't copy schemeitemid / teammemberid - it is link with scheme/teammember
-                # calculate excelstart and excelend, otherwise check overlap does not work PR2020-05-13
-                excel_date = f.get_Exceldate_from_datetime(rosterdate_dte)
-                excel_start = excel_date * 1440
-                excel_end = excel_date * 1440 + 1440
 
             # get paydate from absent_employee.paydatecode
                 firstdateNIU, paydate = recalc_paydate(rosterdate_dte, absent_employee.paydatecode)
@@ -2980,7 +3111,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 new_emplhour = m.Emplhour(
                     orderhour=new_orderhour,
                     rosterdate=rosterdate_dte,
-                    exceldate=f.get_Exceldate_from_datetime(rosterdate_dte),
+                    exceldate=excel_date,
                     employee=absent_employee,
                     employeecode=absent_employee.code,
 
@@ -2999,15 +3130,16 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     excelend=excel_end,
 
                     functioncode=absent_employee.functioncode,
-                    #TODO
-                    #wagecode=absent_employee.wagecode,
-                    #wagerate=wagerate,
-                    #wagefactorcode_id=wfc_id,
-                    #wagefactor=wfc_rate,
-                    #wagefactorcaption=wfc_code,
+                    wagefactorcode=wagefactor,
+                    wagefactor=wagefactor_rate,
+                    wagefactorcaption=wagefactor_code,
+
+                    # TODO
+                    # wagecode=absent_employee.wagecode,
+                    # wagerate=wagerate,
                     #wage=wage,
 
-                    status=c.STATUS_000_NONE,
+                    status=c.STATUS_NONE,
                     haschanged=True,
                     hasnote=True
                 )
@@ -3155,7 +3287,7 @@ def moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, co
             orderhour__order__customer__company_id=request.user.company,
             orderhour__lockedinvoice=False,
             lockedpaydate=False,
-            status__lt=c.STATUS_004_START_CONFIRMED,
+            status__lt=c.STATUS_02_START_CONFIRMED,
             locked=False
         )
 
@@ -3379,7 +3511,7 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
         addition=addition,
         tax=tax,
 
-        status=c.STATUS_000_NONE,
+        status=c.STATUS_NONE,
         haschanged=True,
         overlap=new_overlap,
         hasnote=True,
@@ -3423,12 +3555,14 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
 
 
 #######################################################
-def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, request, comp_timezone, timeformat, user_lang, eplh_update_list):
+def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, request,
+                    comp_timezone, timeformat, user_lang, eplh_update_list, logging_on):
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    logger.debug(' --------- update_emplhour -------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    if logging_on:
+        logger.debug(' --------- update_emplhour -------------')
+        logger.debug('upload_dict: ' + str(upload_dict))
 
 # upload_dict: {'id': {'pk': 11760, 'ppk': 11215, 'table': 'emplhour'},
     # 'nopay': {'value': True, 'update': True},
@@ -3442,6 +3576,10 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
         save_changes = is_create
         recalc_duration = is_create
 
+        new_note = None
+        lock_all = False
+        unlock_all = False
+
 # - get info from parent orderhour
         orderhour = emplhour.orderhour
 
@@ -3449,10 +3587,26 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
         is_absence = orderhour.isabsence
         is_billable = orderhour.isbillable
 
-        for field in c.FIELDS_EMPLHOUR:
+        # PR2021-02-03 was:
+        # for field in c.FIELDS_EMPLHOUR:
+        #    field_dict = upload_dict[field] if field in upload_dict else {}
+        #    if field_dict:
+
+        """
+        upload_dict: {'id': {'pk': 52, 'ppk': 41}, 
+        'period_datefirst': '2021-01-01', 
+        'period_datelast': '2021-01-01', 
+        'status': {'value': 48, 'update': True}, 
+        'note': {'value': 'lock all', 'create': True}, 
+        'lockunlockall': {'value': True, 'update': True}}
+        """
+
+        for field, field_dict in upload_dict.items():
+            if logging_on:
+                logger.debug('field: ' + str(field))
+                logger.debug('field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
 # --- get field_dict from  upload_dict  if it exists
-            field_dict = upload_dict[field] if field in upload_dict else {}
-            if field_dict:
+            if field not in ('id',) and isinstance(field_dict, dict):
                 if 'update' in field_dict:
                     is_updated = False
 # ---   save changes in field 'rosterdate'
@@ -3469,16 +3623,17 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         cur_employee = emplhour.employee
                         if cur_employee:
                             old_employee_pk = cur_employee.pk
-                        logger.debug('cur_employee: ' + str(cur_employee))
                 # - get new employee
                         new_employee = None
                         new_employee_pk = field_dict.get('pk')
-                        logger.debug('field_dict[' + field + ']: ' + str(field_dict))
                         if new_employee_pk:
                             new_employee = m.Employee.objects.filter(company=request.user.company, pk=new_employee_pk).first()
                             if new_employee is None:
                                 new_employee_pk = None
-                        logger.debug('new_employee: ' + str(new_employee))
+                        if logging_on:
+                            logger.debug('cur_employee: ' + str(cur_employee))
+                            logger.debug('new_employee_pk: ' + str(new_employee_pk))
+                            logger.debug('new_employee: ' + str(new_employee))
                 # - save field if changed
                         # employee_pk is not required, new_employee_pk may be None
                         if new_employee_pk != old_employee_pk:
@@ -3609,23 +3764,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                 has_changed = True
 
 #############################################
-                                # ---   save changes in breakduration and timeduration field
-                    elif field == 'nopay':
-                        old_nopay = emplhour.nopay
-                        new_nopay = field_dict.get('value', False)
-
-                        #logger.debug('old_nopay: ' + str(old_nopay))
-                        #logger.debug('new_nopay: ' + str(new_nopay))
-
-                        if new_nopay != old_nopay:
-                            emplhour.nopay = new_nopay
-                            # remove wagefactor when new_nopay = True
-                            if new_nopay:
-                                emplhour.wagefactorcode = None
-                                emplhour.wagefactorcaption = None
-                                emplhour.wagefactor = 0
-                            is_updated = True
-                            has_changed = True
 
                     elif field == 'wagefactorcode':
                         # calculated other fields are: wagefactor wagecode , wagerate , wage
@@ -3635,27 +3773,28 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                         #    wagefactor (= reate,   # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
                         #    wagefactorcaption =  Wagecode.code
 
-                        # Wagcode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
+                        # Wagecode not in use yet  # TODO make wagecode with items , like pricecode. Wage not in use yet
                 # - get current instance
                         old_instance_pk = emplhour.wagefactorcode_id
 
                         new_pk = field_dict.get('pk')
 
-                        #logger.debug('old_instance_pk: ' + str(old_instance_pk))
-                        #logger.debug('new_pk: ' + str(new_pk))
+                        logger.debug('old_instance_pk: ' + str(old_instance_pk))
+                        logger.debug('new_pk: ' + str(new_pk))
 
                         if new_pk:
                             new_instance = m.Wagecode.objects.get_or_none(
                                 id=new_pk,
-                                iswagefactor=True,
+                                key='wfc',
                                 company=request.user.company)
+                            logger.debug('new_instance: ' + str(new_instance))
                             if new_instance is None:
                                 new_pk = None
                             # new_pk is not required, new_pk may be None
                             if new_pk != old_instance_pk:
                                 emplhour.wagefactorcode = new_instance
                                 emplhour.wagefactorcaption = new_instance.code if new_instance else None
-                                emplhour.wagefactor = new_instance.wagerate if new_instance else 0 # wagefactor is NoNull field
+                                emplhour.wagefactor = new_instance.wagerate if new_instance else 0  # wagefactor is NoNull field
                                 is_updated = True
                                 has_changed = True
                                 # reset nopay when wagefactor has value
@@ -3663,38 +3802,67 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                     emplhour.nopay = False
 
 ###########################################
-# ---   save changes in field 'status' when clicked on confirmstart or confirmend
-                    elif field in ('confirmstart', 'confirmend'):
-                        old_status_sum = getattr(emplhour, field, 0)
-                        new_confirmed = field_dict.get('value', False)
-                        new_value = c.STATUS_004_START_CONFIRMED if field == 'confirmstart' else c.STATUS_016_END_CONFIRMED
-                        if new_confirmed:
-                            new_status_sum = old_status_sum + new_value
-                        else:
-                            new_status_sum = old_status_sum - new_value
-                        setattr(emplhour, field, new_status_sum)
-                        is_updated = True
-# ---   save changes in field 'status'
-                    elif field in ('status'):
-                        # field_dict[status]: {'value': 2, 'update': True}}
+# ---   save changes in field 'status' when clicked on confirmstart ,confirmend or status
+                    elif field == 'status':
                         # PR2019-07-17 status is stored as sum of status
-                        new_status = field_dict.get('value', 0)
+                        # field_dict: {'field': 'stat_start_conf', 'value': True, 'update': True} <class 'dict'>
+                        status_field = field_dict.get('field')
+                        status_index = 0
+                        if status_field == 'stat_start_conf':
+                            status_index = 2  # STATUS_02_START_CONFIRMED = 4
+                        elif status_field == 'stat_end_conf':
+                            status_index = 4  # STATUS_04_END_CONFIRMED = 16
+                        if status_field == 'status':
+                            status_index = 5  # STATUS_05_LOCKED = 32
+                        new_value_bool = field_dict.get('value', False)
                         old_status_sum = getattr(emplhour, field, 0)
-                        if 'remove' in field_dict:
-                            new_status_sum = d.remove_status_from_statussum(new_status, old_status_sum)
-                        else:
-                            new_status_sum = d.add_status_to_statussum(new_status, old_status_sum)
-                        if new_status_sum != old_status_sum:
+                        old_status_bool_at_index = f.get_status_bool_at_index(old_status_sum, status_index)
+                        old_status_array = f.get_status_array(old_status_sum)
+
+                        logger.debug('old_status_sum: ' + str(old_status_sum))
+                        logger.debug('old_status_array: ' + str(old_status_array))
+                        logger.debug('status_index: ' + str(status_index))
+                        logger.debug('old_status_bool_at_index: ' + str(old_status_bool_at_index))
+                        logger.debug('new_value_bool: ' + str(new_value_bool))
+
+                        f.set_status_bool_at_index(old_status_array, status_index, new_value_bool)
+                        logger.debug('new_status_array: ' + str(old_status_array))
+
+                 # PR2021-02-10 debug: also delete STATUS_01_START_PENDING whem deleting start_conf; happens on server
+                        if not new_value_bool:
+                            if status_index == 2:
+                                f.set_status_bool_at_index(old_status_array, 1, False)
+                            elif status_index == 4:
+                                f.set_status_bool_at_index(old_status_array, 3, False)
+
+                        new_status_sum = f.set_status_sum_from_array(old_status_array)
+                        logger.debug('new_status_sum: ' + str(new_status_sum))
+                        if new_value_bool != old_status_bool_at_index:
                             setattr(emplhour, field, new_status_sum)
                             is_updated = True
-# ---   set save_changes = True if is_updated
+                 # - create new Emplhourstatus row
+                            status_value = 2 ** status_index
+                            create_emplhourstatus_row(emplhour.pk, status_value, not new_value_bool, request)
+                    elif field == 'note':
+# ---   add note to emplhournote, save at the end of this function
+                        new_note = field_dict.get('value')
+                        is_updated = True
+                        #logger.debug('new_note: ' + str(new_note) + ' ' + str(type(new_note)))
+
+                    elif field == 'lockall':
+                        #logger.debug('lock_all = field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
+                        lock_all = field_dict.get('value', False)
+
+                    elif field == 'unlockall':
+                        #logger.debug('unlock_all = field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
+                        unlock_all = field_dict.get('value', False)
+            # ---   set save_changes = True if is_updated
                     if is_updated:
                         save_changes = True
-# --- end of for loop ---
+        # --- end of for loop ---
 
 # --- recalculate timeduration and amount, addition, tax, wage
         if recalc_duration:
-            logger.debug(' --- recalc_duration --- ')
             # TODO skip absence hours when nohoursonweekend or nohoursonpublicholiday >>> NOT when changing hours???
             save_changes = True
 
@@ -3709,12 +3877,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             # 'nohours' is only used in absence
             nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
                 get_nosat_sun_ph_ch_from_emplhour(emplhour)
-
-            #logger.debug('is_billable: ' + str(is_billable))
-            #logger.debug('emplhour.offsetstart: ' + str(emplhour.offsetstart))
-            #logger.debug('emplhour.offsetend: ' + str(emplhour.offsetend))
-            #logger.debug('emplhour.breakduration: ' + str(emplhour.breakduration))
-            #logger.debug('emplhour.timeduration: ' + str(emplhour.timeduration))
 
             # dont change planned_duration, except when is_extra_order = true
             # is_extra_order is true when adding emplhour in modal MRO 'This is an extra order' is checked PR2020-11-27
@@ -3738,9 +3900,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 
             emplhour.plannedduration = planned_duration
 
-            #logger.debug('is_extra_order: ' + str(is_extra_order))
-            logger.debug('planned_duration: ' + str(planned_duration))
-
             emplhour.timeduration = time_duration
             emplhour.billingduration = billing_duration
             # dont change  'excel_date'
@@ -3755,18 +3914,11 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             additioncode_pk = additioncode.pk if additioncode else None
             addition_rate = f.get_pricerate_from_pricecodeitem(
                 'additioncode', additioncode_pk, emplhour.rosterdate)
-            logger.debug('>>>> additioncode: ' + str(additioncode))
-            logger.debug('>>>> additioncode_pk: ' + str(additioncode_pk))
-            logger.debug('>>>> addition_rate: ' + str(addition_rate))
 
             taxcode = f.get_pat_code_cascade('taxcode', emplhour.orderhour, request)
             taxcode_pk = taxcode.pk if taxcode else None
             tax_rate = f.get_pricerate_from_pricecodeitem(
                 'taxcode', taxcode_pk, emplhour.rosterdate)
-
-            logger.debug('price_rate: ' + str(price_rate))
-            logger.debug('addition_rate: ' + str(addition_rate))
-            logger.debug('tax_rate: ' + str(tax_rate))
 
     # - calculate amount, addition and tax
             amount, addition, tax = f.calc_amount_addition_tax_rounded(
@@ -3777,9 +3929,24 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                 addition_rate=addition_rate,
                 tax_rate=tax_rate)
 
-            logger.debug('amount: ' + str(amount))
-            logger.debug('addition: ' + str(addition))
-            logger.debug('tax: ' + str(tax))
+            if logging_on:
+                logger.debug(' --- recalc_duration --- ')
+                logger.debug('is_billable: ' + str(is_billable))
+                logger.debug('emplhour.offsetstart: ' + str(emplhour.offsetstart))
+                logger.debug('emplhour.offsetend: ' + str(emplhour.offsetend))
+                logger.debug('emplhour.breakduration: ' + str(emplhour.breakduration))
+                logger.debug('emplhour.timeduration: ' + str(emplhour.timeduration))
+                logger.debug('is_extra_order: ' + str(is_extra_order))
+                logger.debug('planned_duration: ' + str(planned_duration))
+                logger.debug('additioncode: ' + str(additioncode))
+                logger.debug('additioncode_pk: ' + str(additioncode_pk))
+                logger.debug('addition_rate: ' + str(addition_rate))
+                logger.debug('price_rate: ' + str(price_rate))
+                logger.debug('addition_rate: ' + str(addition_rate))
+                logger.debug('tax_rate: ' + str(tax_rate))
+                logger.debug('amount: ' + str(amount))
+                logger.debug('addition: ' + str(addition))
+                logger.debug('tax: ' + str(tax))
 
             orderhour.additionrate = addition_rate
             orderhour.taxrate = tax_rate
@@ -3804,6 +3971,21 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 # 6. save changes
         is_created = f.get_dict_value (upload_dict, ('id', 'create'), False)
         if save_changes or is_created:
+            # - save new_note
+            try:
+                if new_note:
+                    emplhournote = m.Emplhournote(
+                        emplhour=emplhour,
+                        note=new_note,
+                        isusernote=True
+                    )
+                    emplhournote.save(request=request)
+                    emplhour.hasnote = True
+                    logger.debug('emplhournote: ' + str(emplhournote) + ' ' + str(type(emplhournote)))
+            except:
+                msg_err = _('An error occurred. The note of this shift could not be created.')
+                error_list.append(msg_err)
+
             try:
 # - save orderhour
                 if save_orderhour:
@@ -3815,14 +3997,108 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     emplhour.haschanged = True
 # - save emplhour
                 emplhour.save(request=request, last_emplhour_updated=True)
-                logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
-                logger.debug('emplhour.paydate: ' + str(emplhour.paydate))
+# - add to eplh_update_list, a list of updated emplhour_rows
+                if emplhour.pk not in eplh_update_list:
+                    eplh_update_list.append(emplhour.pk)
+
+                if logging_on:
+                    logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
+                    logger.debug('emplhour.paydate: ' + str(emplhour.paydate))
+
 # - save to log after saving emplhour and orderhour, also when emplhour is_created
                 m.save_to_emplhourlog(emplhour.pk, request, False) # is_deleted=False
             except:
                 msg_err = _('An error occurred. This shift could not be updated.')
                 error_list.append(msg_err)
+
+        if lock_all or unlock_all:
+            update_emplhour_lockall_unlockall(emplhour.rosterdate, lock_all, unlock_all, eplh_update_list, request, logging_on)
+
 # --- end of update_emplhour -----------------------
+
+def update_emplhour_lockall_unlockall(rosterdate, lock_all, unlock_all, eplh_update_list, request, logging_on): # PR20121-02-04
+    if logging_on:
+        logger.debug(' --- update_emplhour_lockall_unlockall ---')
+    if lock_all or unlock_all:
+        company_pk = request.user.company.pk
+        if company_pk and rosterdate:
+            value = "+ 0"
+            if unlock_all:
+                value = "- " + str(c.STATUS_05_LOCKED)
+            elif lock_all:
+                value = "+ " + str(c.STATUS_05_LOCKED)
+
+            sql_keys = {'compid': company_pk, 'rd': rosterdate}
+            filter_str = "< 0"
+            if unlock_all:
+                filter_str = ">= " + str(c.STATUS_05_LOCKED)
+            elif lock_all:
+                filter_str = "< " + str(c.STATUS_05_LOCKED)
+
+            sql_list = ["UPDATE companies_emplhour AS eh SET status = status", value,
+                        "WHERE eh.id IN(SELECT eh.id",
+                            "FROM companies_emplhour AS eh",
+                            "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+                            "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+                            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                            "WHERE c.company_id = %(compid)s::INT AND eh.rosterdate = %(rd)s::DATE",
+                            "AND eh.status", filter_str,
+                            "AND eh.payrollpublished_id IS NULL AND eh.invoicepublished_id IS NULL)",
+                            "RETURNING eh.id;"]
+            sql = ' ' .join(sql_list)
+            #logger.debug(str(sql))
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql, sql_keys)
+                rows = cursor.fetchall()
+
+                # rows: [(48,), (50,), (47,), (52,), (51,)]
+                # rows_list: [48, 50, 47, 52, 51]
+                rows_list = [row[0] for row in rows]
+                #logger.debug('rows: ' + str(rows))
+                #logger.debug('rows_list: ' + str(rows_list))
+                status_value = c.STATUS_05_LOCKED
+                isremoved = True if unlock_all else False
+                modified_at = timezone.now()
+                for emplhour_pk in rows_list:
+
+# - add to eplh_update_list, a list of updated emplhour_rows
+                    if emplhour_pk not in eplh_update_list:
+                        eplh_update_list.append(emplhour_pk)
+
+# - create new Emplhourstatus row
+                    create_emplhourstatus_row(emplhour_pk, status_value, isremoved, request, modified_at)
+                # TODO make batch update
+                #sql_update_patrate = "UPDATE companies_emplhour AS eh SET pricerate = eh_sub.pci_pricerate " + \
+                #                     "FROM  (  sql_eh_sub + ) AS eh_sub WHERE eh.id = eh_sub.eh_id " + \
+                #                     "AND eh.id IN ( SELECT UNNEST( %(ehid_arr)s::INT[]) ) RETURNING eh.id, eh.employeecode, eh.pricerate"
+
+                """
+                    INSERT INTO Emplhourstatus (id, emplhour_id, status, isremoved, modifiedby, modifiedat)
+                    VALUES
+                        (nextval('companies_emplhourstatus_id_seq'),),
+                        (value_list_2),
+                        ...
+                        (value_list_n)
+                    RETURNING * | output_expression;
+                
+                """
+
+
+def create_emplhourstatus_row(emplhour_pk, status_value, isremoved, request, modified_at=None): # PR2021-02-14
+    # - create new Emplhourstatus row
+    # modified_at has value when all row of rosetrdates are locked / unlocked
+    if modified_at is None:
+        # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
+        modified_at = timezone.now()
+    m.Emplhourstatus.objects.create(
+        emplhour_id=emplhour_pk,
+        status=status_value,
+        modifiedat=modified_at,
+        modifiedby_id=request.user.pk,
+        isremoved=isremoved
+    )
+
 
 def get_nosat_sun_ph_ch_from_emplhour(emplhour): # PR20120-09-09
     #logger.debug(' --- get_nosat_sun_ph_ch_from_emplhour ---')
@@ -4223,7 +4499,7 @@ def get_rangemin_rangemaxXXX (upload_dict, request):  # PR2019-08-19
         period_dict = d.get_period_from_settings(request)
 
 # get today_midnight_local_iso
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
 # get today_midnight_local_iso
         today_utc = d.get_datetime_utc(datetime.utcnow())
@@ -4867,13 +5143,11 @@ class EmplhournoteUploadView(UpdateView):  # PR2020-10-14
                 upload_dict = json.loads(upload_json)
 
 # - get iddict variables
-                ppk_int = f.get_dict_value (upload_dict, ('id', 'ppk'))
-                is_create = f.get_dict_value (upload_dict, ('id', 'create'), False)
-                note = f.get_dict_value (upload_dict, ('note', 'value'))
+                ppk_int = upload_dict.get('ppk')
+                is_create = upload_dict.get('create', False)
+                note = upload_dict.get('note')
 
-                emplhournote = None
-# - Create new orderhour / emplhour if is_create:
-                # update_emplhour is also called when emplhour is_created, save_to_log is called in update_emplhour
+# - Create new emplhournote if is_create:
                 if is_create and ppk_int and note:
                     emplhour = m.Emplhour.objects.get_or_none(pk=ppk_int)
                     if emplhour:
@@ -4904,3 +5178,89 @@ class EmplhournoteUploadView(UpdateView):  # PR2020-10-14
 
 # 9. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+# - end of EmplhournoteUploadView
+
+
+@method_decorator([login_required], name='dispatch')
+class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= EmplhourallowanceUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+# - Reset language
+            #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            #activate(user_lang)
+
+# - get upload_dict from request.POST
+            upload_json = request.POST.get('upload')
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+
+# - get info from upload_dict
+                emplhour_pk = upload_dict.get('emplhour_pk')
+                ehal_list = upload_dict.get('ehal_list')
+
+                if emplhour_pk and ehal_list:
+# - get emplhour
+                    emplhour = m.Emplhour.objects.get_or_none(pk=emplhour_pk)
+                    if emplhour:
+
+# - loop through ehal_list
+                        for ehal in ehal_list:
+                            mode = ehal.get('mode')
+                            ehal_pk = ehal.get('ehal_id')
+                            alw_pk = ehal.get('alw_id')
+                            quantity = ehal.get('quantity', 0)
+
+                            allowancecode = m.Wagecode.objects.get_or_none(pk=alw_pk, key='alw')
+
+                            rate, amount = 0, 0
+                            if allowancecode:
+                                rate = getattr(allowancecode, 'wagerate', 0)
+                                if quantity and rate:
+                                    amount = math.ceil(rate * (quantity / 10000))
+# - Create new emplhourallowance if is_create:
+                            if mode == 'create':
+                                if allowancecode:
+                                    ehal = m.Emplhourallowance(
+                                        emplhour=emplhour,
+                                        allowancecode=allowancecode,
+                                        rate=rate,
+                                        quantity=quantity,
+                                        amount=amount
+                                    )
+                                    ehal.save(request=request)
+                            elif mode == 'delete':
+                                ehal = m.Emplhourallowance.objects.get_or_none(id=ehal_pk, emplhour=emplhour)
+                                if ehal:
+                                    this_text = _("Allowance '%(code)s'") % {'code': ehal.allowancecode.code}
+                                    # update_dict is no longer used in delete_instance, msg_dict is not in use yet PR2020-10-14
+                                    msg_dict = {}
+                                    deleted_ok = m.delete_instance(ehal, msg_dict, request, this_text)
+                                    #if deleted_ok:
+                                        # instance will stay after delete, therefore must set instance = None
+                                        #update_dict['id']['deleted'] = True
+                            elif mode == 'update':
+                                if allowancecode:
+                                    # only quantity field can change, also get rate again from allowancecode
+                                    ehal = m.Emplhourallowance.objects.get_or_none(id=ehal_pk, emplhour=emplhour)
+                                    if ehal:
+                                        ehal.rate = rate
+                                        ehal.quantity = quantity
+                                        ehal.amount = amount
+                                        ehal.save(request=request)
+
+                        emplhourallowance_rows = d.create_emplhourallowance_rows(
+                            request=request,
+                            emplhour_pk=emplhour.pk)
+                        if emplhourallowance_rows:
+                            update_wrap['emplhourallowance_updates'] = emplhourallowance_rows
+                        else:
+                            # if no allowances: return empty row, to remove allownacce icon
+                            update_wrap['emplhourallowance_updates'] = {emplhour_pk: {}}
+
+# 9. return update_wrap
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+# - end of EmplhourallowanceUploadView

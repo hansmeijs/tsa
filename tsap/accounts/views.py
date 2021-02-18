@@ -41,9 +41,11 @@ from accounts import models as am
 from accounts import dicts as ad
 from companies import models as m
 from companies import subscriptions as subscr
+
+from tsap import settings
 from tsap import constants as c
 from tsap import functions as f
-from tsap import settings as s
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,54 +55,9 @@ class UserListView(ListView):
     # PR 2018-04-22 template_name = 'user_list.html' is not necessary, Django looks for <appname>/<model>_list.html
 
     def get(self, request, *args, **kwargs):
-        User = get_user_model()
 
-        # PR2018-04-24 get all user of the country of the current user (for inspection users)
-        # users = User.objects.filter(id__schoolcode_id__country=request_country)
-
-        # PR2018-05-27 list of users in UserListView:
-        # - when role is system: show all users
-        # - when role is company: all users of this company
-        # - else (role is employee): not allowed to view users
-
-        users = None  # User.objects.filter(False) gives error: 'bool' object is not iterable
-        if request.user.role is not None:  # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-            if request.user.is_role_system:
-                users = User.objects.all() # order_by('username') is in model class Meta
-            elif request.user.is_role_company:
-                if request.user.company is not None:
-                    # filter only users from this company, no system role
-                    users = User.objects.filter(company=request.user.company, role__lte=c.ROLE_01_COMPANY)
-
-        else:
-            messages.error(request, _("User has no role."))
-
-        headerbar_param = get_headerbar_param(request, {'users': users})
-        #logger.debug('home headerbar_param: ' + str(headerbar_param))
-        """
-        headerbar_param:
-        {
-            'context':
-                {'schoolyear': '2018-2019', 
-                    'select_schoolyear': True, 
-                    'display_schoolyear': True,
-                    'school': 'CUR02  Skol Avansa Amador Nita - Saan', 
-                    'display_school': False,
-                    'class_examyear_warning': 'navbar-item-warning'},
-
-            'schoolyear_list':
-                [{'pk': '2', 'schoolyear': '2018-2019', 'selected': True},
-                 {'pk': '1', 'schoolyear': '2017-2018', 'selected': False}],
-
-            'school_list':
-                [{'pk': '5', 'school': 'CUR01 -  Ancilla Domini Vsbo', 'selected': False},
-                 {'pk': '6', 'school': 'CUR02 -  Skol Avansa Amador Nita - Saan', 'selected': True},
-                 {'pk': '7', 'school': 'CUR03 -  Juan Pablo Duarte Vsbo', 'selected': False}],
-        }
-        """
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'users.html', headerbar_param)
+        param = {'headerbar_class': settings.HEADER_CLASS}
+        return render(request, 'users.html', param)
 
 # How To Create Users Without Setting Their Password PR2018-10-09
 # from https://django-authtools.readthedocs.io/en/latest/how-to/invitation-email.html
@@ -539,22 +496,22 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-
+            req_user = request.user
 # 1. get upload_dict from request.POST
-            upload_json = request.POST.get('upload', None)
+            upload_json = request.POST.get('upload')
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
                 # PR2020-07-12 debug. creates multiple rows when key does not exist ans newdict has multiple subkeys
-                # TODO find a way to fix this
+                # PR2020-10-04 not any more, don't know why
                 for key, new_setting_dict in upload_dict.items():
                     # key = page_scheme, dict = {'grid_range': 2}
                     # key = selected_pk, dict = {'sel_customer_pk': 749, 'sel_order_pk': 1521}
                     # key = 'payroll_period': {'col_hidden': ['functioncode', 'paydatecode', 'offsetstart']}}
-                    saved_settings_dict = Usersetting.get_jsonsetting(key, request.user)
+                    saved_settings_dict = req_user.get_usersetting(key)
                     #logger.debug('new_setting_dict: ' + str(new_setting_dict))
                     #logger.debug('saved_settings_dict: ' + str(saved_settings_dict))
-                    # loop through saved settings
+                    # loop through new settings
                     for subkey, value in new_setting_dict.items():
                         #logger.debug('subkey: ' + str(subkey))
                         #logger.debug('value: ' + str(value))
@@ -569,16 +526,12 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                         else:
                             if value:
                                 saved_settings_dict[subkey] = value
-                    #logger.debug('Usersetting.set_jsonsetting from UserSettingsUploadView')
-                    Usersetting.set_jsonsetting(key, saved_settings_dict, request.user)
-
+                    req_user.set_usersetting(key, saved_settings_dict)
 
         # c. add update_dict to update_wrap
                     update_wrap['setting'] = {"result": "ok"}
 # F. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
-
-
 
 
 """
@@ -648,14 +601,15 @@ class SignupView(View):
     def get(self, request):
         #logger.debug(' ========== SignupView ===============')
         #logger.debug('request: ' + str(request))
+        param = {'headerbar_class': settings.HEADER_CLASS}
         if request.user and request.user.is_authenticated:
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
             msg_01 = _('You cannot sign up when you are logged in.')
             messages.error(request, msg_01)
-            return render(request, 'home.html')
+            return render(request, 'home.html', param)
         else:
-            return render(request, 'signup.html')
+            return render(request, 'signup.html', param)
 
 
 # === SignupUploadView ===================================== PR2020-03-31
@@ -718,7 +672,7 @@ class SignupUploadView(View):
                                     locked=False,
                                     inactive=False,
                                     activated=False,
-                                    timezone=s.TIME_ZONE,
+                                    timezone=settings.TIME_ZONE,
                                     interval=c.TIMEINTERVAL_DEFAULT,
                                     timeformat=c.TIMEFORMAT_24h,
                                     cat=0,
@@ -956,7 +910,9 @@ class UserUploadView(View):
                                     try:
                                         instance.delete()
                                     except:
-                                        err_dict['msg01'] = _('An error occurred. This user could not be deleted.')
+                                        err_dict['msg01'] = _(
+                                            "User '%(val)s' can not be deleted.\nInstead, you can make the user inactive.") \
+                                                            % {'val': instance.username_sliced}
                                     else:
                                         updated_dict['deleted'] = True
 

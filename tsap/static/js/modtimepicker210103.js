@@ -8,7 +8,7 @@
 
 //========= mtp_TimepickerOpen  ====================================
     function mtp_TimepickerOpen(loc, el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        //console.log("===  mtp_TimepickerOpen  =====");
+        console.log("===  mtp_TimepickerOpen  =====");
         //console.log( "tp_dict: ", tp_dict);
         //console.log( "st_dict: ", st_dict);
         // tp_dict.page is not used in Timepicker. It is used when returned to page
@@ -767,35 +767,37 @@ function CalcMinMax(dict) {
     }  // mtp_calc_minmax_offset
 
 
-//=========  mtp_calc_minmax_offset_values  ================ PR2020-06-30
+//=========  mtp_calc_minmax_offset_values  ================ PR2020-06-30  PR2021-01-03
     function mtp_calc_minmax_offset_values(fldName, offset_start, offset_end, break_duration, time_duration, is_absence){
         //console.log( "=== mtp_calc_minmax_offset ");
-        // function calculates min and max offeset before opening timepicker
 
+        // function calculates min and max offeset before opening timepicker
+        // TODO move to mtp_open. Then all values must be put in tp_dict( offset_start, offset_end, break_duration, time_duration) PR2021-01-03
         if(break_duration == null) {break_duration = 0}
         if(time_duration == null) {time_duration = 0}
-        let minoffset = 0, maxoffset = 1440;
-        if (!is_absence && ["offsetstart", "offsetend"].indexOf(fldName) > -1) {
-            minoffset = -720;
-            maxoffset = 2160};
-        if (offset_start == null) {offset_start = minoffset};
-        if(fldName === "offsetstart") {
-            if (offset_end != null && offset_end - break_duration < maxoffset) {
-                maxoffset = offset_end - break_duration};
+
+        let minoffset = null, maxoffset = null;
+        const default_minoffset = (!is_absence && ["offsetstart", "offsetend"].indexOf(fldName) > -1) ? -720 : 0;
+        const default_maxoffset = (!is_absence && ["offsetstart", "offsetend"].indexOf(fldName) > -1) ? 2160 : 1440;
+
+        if(fldName === "breakduration") {
+            minoffset = default_minoffset
+            const timedur = (offset_start != null && offset_end != null) ? offset_end - offset_start : time_duration;
+            maxoffset = default_maxoffset - timedur;
+
+        } else if(fldName === "timeduration") {
+            minoffset = default_minoffset
+            maxoffset = default_maxoffset - break_duration;
+
+        } else if(fldName === "offsetstart") {
+            minoffset = default_minoffset
+            const timeend = (offset_end != null) ? offset_end : default_maxoffset;
+            maxoffset = timeend - break_duration;
+
         } else if(fldName === "offsetend") {
-            if(offset_start != null && offset_start + break_duration > minoffset) {
-                minoffset = offset_start + break_duration};
-        } else if(fldName === "breakduration"){
-            // if offset_start and offset_end both have values :
-            // break_duration + time_duration is fixed value (offset_end - offset_start)
-             if (offset_start != null && offset_end != null) {
-                if (offset_end - offset_start < maxoffset) {
-                    maxoffset = offset_end - offset_start};
-             } else {
-            // if offset_start or offset_end is blank:
-            // break_duration + time_duration is max 1 day (1440)
-                maxoffset = maxoffset - time_duration;
-            }
+            const timestart = (offset_start != null) ? offset_start : default_minoffset;
+            minoffset = timestart + break_duration;
+            maxoffset = default_maxoffset;
         }
         return [minoffset, maxoffset]
     }  // mtp_calc_minmax_offset_values

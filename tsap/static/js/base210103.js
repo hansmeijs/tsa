@@ -2,7 +2,19 @@
 //========= add csrftoken to ajax header ==================================
     // add csrftoken to ajax header to prevent error 403 Forbidden PR2018-12-03
     // from https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
-    const csrftoken = Cookies.get('csrftoken');
+
+    // PR2021-01-27 debug. Tel Guido: could not download pages, got error 'Reference error: "Cookies not defined"'
+    // most likely something went wrog while downloading "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"
+    // error trapping added
+
+    let csrftoken = null;
+    try {
+        csrftoken = Cookies.get('csrftoken');
+    }
+    catch(err) {
+        alert(err.message);
+    }
+
     const cls_active = "active";
 
     $.ajaxSetup({
@@ -184,8 +196,147 @@
         return dict
     }  // get_dict_value
 
+
+//========= b_get_status_class  ============= PR2021-02-03
+    function b_get_status_class(loc, fldName, status_sum, is_pay_or_inv_locked, has_changed) {
+        //console.log(" ------  b_get_status_class  ------");
+        //console.log("status_sum", status_sum);
+
+        /*
+            STATUS_NONE = 0
+            STATUS_00_CREATED = 1
+            STATUS_01_START_PENDING = 2
+            STATUS_02_START_CONFIRMED = 4
+            STATUS_03_END_PENDING = 8
+            STATUS_04_END_CONFIRMED = 16
+            STATUS_05_LOCKED = 32
+
+            # only used in Emplhourstatus PR2021-02-04
+            STATUS_06_PAYROLLOCKED = 64
+            STATUS_07_INVOICELOCKED = 128
+        */
+
+        const status_array = b_get_status_array(status_sum);
+        const status_array_length = status_array.length;
+        const is_start_confirmed = (status_array_length > 2 && !!status_array[2])
+        const is_end_confirmed = (status_array_length > 4 && !!status_array[4])
+        const is_locked = (status_array_length > 5 && !!status_array[5])
+
+        //const prefix = (stat_index === 5 && has_changed) ? "stat_1_" : "stat_0_";
+        const prefix = (has_changed) ? "stat_1_" : "stat_0_";
+        let icon_index = "0", title = null
+        if(status_array && status_array_length) {
+            if (fldName === "stat_start_conf"){
+                if (status_array_length > 2 && status_array[2]) {icon_index = "2"} // STATUS_02_START_CONFIRMED = 4
+            } else if  (fldName === "stat_end_conf"){
+                 if (status_array_length > 4 && status_array[4])  {icon_index = "3"}  // STATUS_04_END_CONFIRMED = 16
+            } else if (fldName === "status"){
+                if(is_pay_or_inv_locked){
+                    icon_index = "6"  // blue padlock
+                    title = loc.This_shift_is_locked;
+                } else if (status_array_length > 5 && status_array[5]){  // STATUS_05_LOCKED = 32
+                    icon_index = "5"; // blue cube icon
+                    title = loc.This_shift_is_closed;
+                } else if ( (status_array_length > 2 && status_array[2]) || (status_array_length > 4 && status_array[4]) ){
+                    if ( (status_array_length > 2 && status_array[2]) && (status_array_length > 4 && status_array[4]) ) {
+                        icon_index = "4"; // full grey cube icon
+                        title = loc.Start_and_endtime_confirmed;
+                    } else if (status_array_length > 4 && status_array[4]) {
+                        icon_index = "3" // right grey cube icon
+                        title = loc.Endtime_confirmed
+                    } else if (status_array_length > 2 && status_array[2]) {
+                        icon_index = "2"; // left grey cube icon
+                        title = loc.Starttime_confirmed
+                    }
+                } else if (status_array[0]){
+                    icon_index = "1";
+                    title = loc.This_isa_planned_shift;
+                } else {
+                    icon_index = "0"
+                    title = loc.This_isan_added_shift;
+                }
+            }
+        }
+
+        const icon_class = prefix + icon_index
+
+        return [icon_class, title]
+    }  // b_get_status_class
+
+//========= b_get_status_bool_at_index  ============= PR2021-01-15
+    function b_get_status_bool_at_index(status_sum, index) {
+        if(status_sum == null){status_sum = 0};
+        let status_bool = false;
+        const status_array = b_get_status_array(status_sum)
+        if(status_array && index < status_array.length) {
+            status_bool = (status_array[index] === 1);
+        }
+        return status_bool
+    }  // b_get_status_bool_at_index
+
+
+
+//========= b_set_status_bool_at_index  ============= PR2021-01-15
+    function b_set_status_bool_at_index(status_sum, index, new_value) {
+        console.log( " ==== b_set_status_bool_at_index ====");
+
+        if(status_sum == null){status_sum = 0};
+        let new_status_sum = 0;
+        const status_array = b_get_status_array(status_sum)
+        if(status_array && index < status_array.length) {
+    // ---  put new_value at index
+            status_array[index] = (new_value) ? 1 : 0;
+    // ---  convert to integer
+            new_status_sum =  b_get_statussum_from_array(status_array);
+        }
+        return new_status_sum
+    }  // b_set_status_bool_at_index
+
+
+//========= b_get_statussum_from_array  ============= PR2021-02-04
+    function b_get_statussum_from_array(status_array) {
+        // ---  convert to integer
+        let status_sum = null;
+        if(status_array && status_array.length){
+            status_array.reverse();
+            const arr_joined = status_array.join("");
+            status_sum = parseInt(arr_joined,2);
+        }
+        return status_sum;
+    }
+
+//========= b_get_status_array  ============= PR2021-02-03
+    function b_get_status_array(status_sum) {
+        //console.log( " ==== b_set_status_bool_at_index ====");
+        const array_length = 6
+        const leading_zeros = "0".repeat(array_length);
+
+        if(status_sum == null){status_sum = 0};
+        const status_binary = status_sum.toString(2)  // status_binary:  '1101' string
+        const status_binary_extended = leading_zeros + status_binary;  // status_binary_extended: '000001101' string
+        const status_binary_sliced = status_binary_extended.slice(array_length * -1);  // status_binary_sliced: '01101' string
+
+        // PR2021-01-15 from https://www.samanthaming.com/tidbits/83-4-ways-to-convert-string-to-character-array/
+        const status_array = [...status_binary_sliced];   // ... is the spread operator, does not work in IE
+        const status_array_reversed = status_array.reverse();
+
+        for (let i = 0, len = status_array_reversed.length; i < len; i++) {
+            status_array_reversed[i] = Number(status_array_reversed[i]);
+        }
+        // status_array_reversed = [1, 0, 1, 1, 0]
+
+        return status_array_reversed
+    }  // b_get_status_array
+
+
+
+
+
+
+
+// NOT IN USE
 //========= get_status_value  ============= PR2019-10-19
-    function get_status_value(status_sum, status_index) {
+    function get_status_valueXXX(status_sum, status_index) {
         //console.log(" --- get_status_value --- status_sum: ", status_sum, "status_index", status_index);
         let reversed = '';
         // 27 = get_status_str 11011
@@ -203,7 +354,7 @@
         return status_value
 }
 
-// NOT IN USE
+
 //========= get_power_array  ============= PR2019-08-30
     function get_XXXpower_arrayXXX(value) {
         //PR2019-08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
@@ -241,6 +392,7 @@
 //console.log(" --- add_or_remove_class_with_qsAll --- ")
 //console.log("is_add: ", is_add)
 //console.log("filter_class: ", filter_class)
+//console.log("classname: ", classname)
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
@@ -248,6 +400,7 @@
          // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
         let elements = el_container.querySelectorAll(filter_class)
+
         for (let i = 0, len = elements.length; i < len; i++) {
             add_or_remove_class (elements[i], classname, is_add)
 //console.log(elements[i])
@@ -349,10 +502,10 @@
         //console.log(" === add_hover_image === ")
 //- add hover image to element
         if(el && hover_image && default_image){
-            const img = el.children[0];
-            if(img){
-                el.addEventListener("mouseenter", function() { img.setAttribute("src", hover_image) });
-                el.addEventListener("mouseleave", function() { img.setAttribute("src", default_image) });
+            const el_img = el.children[0];
+            if(el_img){
+                el.addEventListener("mouseenter", function() { el_img.setAttribute("src", hover_image) });
+                el.addEventListener("mouseleave", function() { el_img.setAttribute("src", default_image) });
         }}
     }  // add_hover_image
 
@@ -386,23 +539,21 @@
         }
     }  //  highlight_BtnSelect
 
-
-
 // ================ MAP FUNCTIONS ========================
 
-//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
+//========= get_fielddict_from_datamap_by_el  ============= PR2019-10-12
     function get_fielddict_from_datamap_by_el(el, data_map, override_fieldname) {
         let field_dict = {};
         const fieldname = (!!override_fieldname) ? override_fieldname : fieldname = get_attr_from_el_str(el, "data-field");
-        const item_dict = get_itemdict_from_datamap_by_el(el, data_map);
+        const item_dict = get_mapdict_from_datamap_by_el(el, data_map);
         if (!isEmpty(item_dict)) {
             field_dict = get_dict_value(item_dict, [fieldname])
         }
         return field_dict
-    }
+    }  // get_fielddict_from_datamap_by_el
 
-//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12 PR2020-09-13
-    function get_itemdict_from_datamap_by_el(el, data_map) {
+//========= get_mapdict_from_datamap_by_el  ============= PR2019-10-12 PR2020-09-13
+    function get_mapdict_from_datamap_by_el(el, data_map) {
         // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
         let item_dict = {};
         const tblRow = get_tablerow_selected(el);
@@ -469,18 +620,23 @@
 
 //=========  b_get_updated_fields_list  ================ PR2020-09-10
     function b_get_updated_fields_list(field_names, data_map, update_dict) {
-        //console.log(" =====  b_get_updated_fields_list  =====");
+        //consoleconsole.log(" =====  b_get_updated_fields_list  =====");
         //console.log("update_dict", update_dict);
 // ---  function checks which fields are updated, add to list 'updated_columns'
         let updated_columns = [];
         if(!isEmpty(update_dict)){
             const map_id = update_dict.mapid;
-            const arr = (map_id) ? map_id.split("_") : null;
-            const tblName = (arr) ? arr[0] : null;
+            // NIU:
+            //const arr = (map_id) ? map_id.split("_") : null;
+            //const tblName = (arr) ? arr[0] : null;
             if(data_map){
                 const old_map_dict = data_map.get(map_id);
+        //console.log("old_map_dict", old_map_dict);
                 if(!isEmpty(old_map_dict)){
                     for (let i = 1, is_diff, col_field, old_value, new_value; col_field = field_names[i]; i++) {
+        //console.log("col_field", col_field);
+        //console.log("old_value", old_value);
+        //console.log("new_value", new_value);
                         if (col_field in old_map_dict && col_field in update_dict){
                             is_diff = false;
                             // absence "sh_os_arr", "sh_oe_arr", "sh_bd_arr" ,"sh_td_arr" return array with 1 element, check first element
@@ -489,6 +645,7 @@
                             } else {
                                 is_diff = (old_map_dict[col_field] !== update_dict[col_field]);
                             }
+        //console.log("is_diff", is_diff);
                             if (is_diff ) { updated_columns.push(col_field)}
         }}}}};
         return updated_columns;
@@ -843,7 +1000,7 @@
     }
 
 // =========  get_teamcode_abbrev  === PR2020-03-15
-    function get_teamcode_abbrev(input_code, loc){
+    function get_teamcode_abbrev(loc, input_code){
     //console.log("get_teamcode_abbrev", input_code);
 
     let abbrev = ""
@@ -872,6 +1029,19 @@
     }  // if(!!input_code)
     return abbrev;
 }  // get_teamcode_abbrev
+
+
+// =========  display_modifiedby  === PR2021-01-05
+    function display_modifiedby(loc, modat, modby_usr){
+        let display_text = null;
+        if(modat){
+            const modified_dateJS = parse_dateJS_from_dateISO(modat);
+            const modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
+            const modified_by = (modby_usr) ? modby_usr : "-";
+            display_text = loc.Last_modified_by + modified_by + loc._on_ + modified_date_formatted;
+        };
+        return display_text
+    };  // display_modifiedby
 
 //=========  deepcopy_dict  ================ PR2020-05-03
     let deepcopy_dict = function copy_fnc(data_dict) {
@@ -1713,14 +1883,14 @@
         }}};
     };
 
-//========= b_ShowTblrowErrorOK_byID  ====  PR2020-04-13
-    function b_ShowTblrowErrorOK_byID(tr_id, is_show_ok) {
+//========= b_ShowTblrow_OK_Error_byID  ====  PR2020-04-13
+    function b_ShowTblrow_OK_Error_byID(tr_id, is_show_ok) {
         let tblRow = document.getElementById(tr_id);
-        b_ShowTblrowErrorOK(tblRow, is_show_ok);
+        b_ShowTblrow_OK_Error(tblRow, is_show_ok);
     }
 
-//========= b_ShowTblrowErrorOK set_element_class  ====  PR2020-04-13 PR2020-09-20
-    function b_ShowTblrowErrorOK(tblRow, is_show_ok) {
+//========= b_ShowTblrow_OK_Error set_element_class  ====  PR2020-04-13 PR2020-09-20
+    function b_ShowTblrow_OK_Error(tblRow, is_show_ok) {
         // can also use ShowOkElement in format js. That one has border
         const cls_error_ok = (is_show_ok) ?  "tsa_tr_ok" :  "tsa_tr_error";
         if(tblRow){
@@ -1759,6 +1929,13 @@
         }
     }  // set_other_datefield_minmax
 
+
+
+//###########################################################################
+// ================ MODAL FUNCTIONS ========================
+
+
+
 // --- ModConfirm_Message---------------------------------- PR2020-08-11
     function ModConfirm_Message(loc, hdr_text, msg01_txt, msg02_txt, msg03_txt){
     // ---  show modal confirm with message 'First select employee'
@@ -1783,83 +1960,131 @@
         //console.log("--------- get_number_from_input ---------")
         //console.log("fldName", fldName)
         //console.log("input_value", input_value)
-        let caption_str = (loc.Number) ? loc.Number : null;
 
-        let multiplier = 1, min_value = 0, max_value = null;  // max $ 1000, max 1000%
-        let integer_only = false, is_percentage = false
+        let user_lang = loc.user_lang
+        let caption_str = (loc.Number) ? loc.Number : null;
+        let multiplier = 1, min_value = null, max_value = null;  // max $ 1000, max 1000%
+        let null_allowed = true;
+        let integer_only = false, is_percentage = false;
         if(fldName === "cycle"){
             caption_str = loc.Cycle ;
             integer_only = true;
+            null_allowed = false;
             min_value = 1;
-            max_value = 28;
+            const MAX_CYCLE_DAYS = 91  // MAX_CYCLE_DAYS is defined in several places
+            max_value = MAX_CYCLE_DAYS;  // PR2021-01-02 MAX_CYCLE_DAYS = 91. Was: max_value = 28;
         } else if(fldName === "sequence"){
-            caption_str = loc.Sequence ;
+            caption_str = loc.Sequence;
             integer_only = true;
             min_value = 0;
             max_value = null;
         } else if(fldName === "price"){
-            caption_str = loc.Price
+            caption_str = loc.Price;
             multiplier = 100;
             max_value = 100000;  // max $ 1000, max 1000%
-        } else if(fldName === "wagefactor"){
-            caption_str = loc.Wage_factor
+        } else if(fldName === "wfc"){
+            caption_str = loc.Wage_code;
+            null_allowed = false;
             multiplier = 10000;
             is_percentage = true;
+        } else if(fldName === "alw"){
+            caption_str = loc.Allowance;
+            multiplier = 100;
+        } else if(fldName === "quantity"){ // used in emplhourallowance
+            caption_str = loc.Quantity;
+            multiplier = 10000;
         } else if(fldName === "workhoursperweek"){
-            caption_str = loc.Workhours
+            caption_str = loc.Workhours;
             multiplier = 60;
+            min_value = 0;
             max_value = 10080  // 7 * 1440 = 168 * 60
         } else if(fldName === "workminutesperday"){
-            caption_str = loc.Workhours
+            caption_str = loc.Workhours;
             multiplier = 60;
             max_value = 1440;
         } else if(fldName === "leavedays"){
-            caption_str = loc.Vacation_days
+            caption_str = loc.Vacation_days;
             multiplier = 1440;
+            min_value = 0;
             max_value = 525600 // 365 * 1440
         }
 
-        let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
+        //console.log("caption_str", caption_str)
+        //console.log("null_allowed", null_allowed)
+        let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, msg_err = null;
         if(!input_value){
-            output_value = 0;
+            //console.log("null_allowed", null_allowed)
+            if(null_allowed) {
+                output_value = 0;
+            } else {
+                msg_err = ((is_percentage) ? loc.Percentage : loc.Amount) + loc.cannot_be_blank;
+            //console.log("msg_err", msg_err)
+            }
         } else {
-            // replace comma's with dots
-            const replace_value_with_dot = input_value.replace(/\,/g,".");
+            // TODO PR2021-01-31
+            /*
+            //PR2021-01-31 debug: goes wrong when number / percentage also has thousand separator.
+            // solved by leaving out thousand separators in input box
+            // possible are: when number:  1.234,56 or 1,234.56
+            //           when percentage:  1.23 or 1.234 or 1.2345 or 1.234.56
+            // remove thousand separators
+            const arr = [...input_value] // spread
+            // count dots and comma's
+            const pos_dot_arr = (replace_value_with_dot) ? (input_value.match(/./g) || []) : [];
+            const pos_comma_arr = (replace_value_with_dot) ? (input_value.match(/,/g) || []) : [];
+            const dot_comma_count = pos_dot_arr.length + pos_comma_arr.length;
+            if (dot_comma_count === 1 ){
+                if (is_percentage){
+                    // when dot/comma has 3 trailing digits,
+                    // 1,234 can either be 1,234.00% or 1.234%.
+                    // check with user_lang if it is a thousand separator
+                } else {
+                    // when dot/comma has 3 trailing digits: it is a thousand separator, remove it
+                }
+            } else if (dot_comma_count > 1 ){
+             // if value has multiple dots or comma's:
+            }
             // get index of last dot - not in use
             // const index_last_dot = value_with_dot.lastIndexOf(".")
+            */
+
+            //PR2021-01-31 debug: goes wrong with thousand separator.
+            // replace comma's with dots
+            const replace_value_with_dot = input_value.replace(/\,/g,".");
             let value_as_number = Number(replace_value_with_dot);
+
             // not valid when Number = false , i.e. NaN, except when value = 0
             is_not_valid = (!value_as_number && value_as_number !== 0)
 
             if(is_not_valid){
-                if(!err_msg){err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
+                if(!msg_err){msg_err = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number};
             } else {
                 // Math.trunc() returns the integer part of a floating-point number
                 const has_decimal_part = !!(value_as_number - Math.trunc(value_as_number));
                 is_not_valid = (integer_only && has_decimal_part)
                 if(is_not_valid){
-                    if(!err_msg){err_msg = caption_str + " " + loc.err_msg_must_be_integer};
+                    if(!msg_err){msg_err = caption_str + " " + loc.err_msg_must_be_integer};
                 } else {
                     // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
                     output_value = Math.round(multiplier * (value_as_number));
 
                     is_not_valid =( (min_value != null && output_value < min_value) || (max_value != null && output_value > max_value) ) ;
                     if(is_not_valid){
-                        if(!err_msg){
+                        if(!msg_err){
                             if(min_value !== null) {
                                 if(max_value !== null) {
                                     const must_be_str = (is_percentage) ? loc.err_msg_must_be_percentage_between : loc.err_msg_must_be_number_between;
-                                    err_msg = caption_str + " " + must_be_str + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
+                                    msg_err = caption_str + " " + must_be_str + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
                                 } else {
-                                    const must_be = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
-                                    err_msg = caption_str + " " + must_be_str + " " + min_value / multiplier + "."
+                                    const must_be_str = (is_percentage) ? loc.err_msg_must_be_percentage_greater_than_or_equal_to : loc.err_msg_must_be_number_greater_than_or_equal_to;
+                                    msg_err = caption_str + " " + must_be_str + " " + min_value / multiplier + "."
                                 }
                             } else if(max_value !== null) {
                                 const must_be_str = (is_percentage) ? loc.err_msg_must_be_percentage_less_than_or_equal_to : loc.err_msg_must_be_number_less_than_or_equal_to;
-                                err_msg = caption_str + " " + must_be_str + " " + max_value / multiplier + "."
+                                msg_err = caption_str + " " + must_be_str + " " + max_value / multiplier + "."
                 }
         }}}}};
-        return [output_value, err_msg];
+        return [output_value, msg_err];
     }  // get_number_from_input
 
 //========= validate_blank_unique_text  ================= PR2020-06-10

@@ -1,7 +1,6 @@
 # PR2019-03-01
 from django.urls import include, path
 from django.conf.urls import url
-from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 
@@ -15,6 +14,10 @@ from planning import rosterfill as rosterfill_views
 
 from accounts.forms import CompanyAuthenticationForm
 
+from tsap import settings
+
+param = {'headerbar_class': settings.HEADER_CLASS}
+
 urlpatterns = [
 
     path('', company_views.home,  name='home'),
@@ -22,7 +25,7 @@ urlpatterns = [
 
     #path('login', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     #path('login', auth_views.LoginView.as_view(), name='login'),
-    path('login', auth_views.LoginView.as_view(authentication_form=CompanyAuthenticationForm), name='login'),
+    path('login', auth_views.LoginView.as_view(authentication_form=CompanyAuthenticationForm, extra_context=param), name='login'),
     # TODO create custom message when user that is not is_active wants to login - PR2020-08-18
     #      now a 'username password not correct' message appears, that is confusing
     # url(r'^favicon\.ico$',RedirectView.as_view(url='/static/img/favicon.ico')),
@@ -132,6 +135,10 @@ urlpatterns = [
 
     path('session_security', include('session_security.urls')),
 
+# ++++ datalist_download +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     path('company/', include([
         path('', company_views.CompanyView.as_view(), name='company_url'),
         # path('', company_views.CompanyListView.as_view(), name='company_list_url'),
@@ -147,6 +154,7 @@ urlpatterns = [
         path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
         path('pricerate_upload/', customer_views.PricerateUploadView.as_view(), name='pricerate_upload_url'),
+        path('ordernote_upload', customer_views.OrdernoteUploadView.as_view(), name='ordernote_upload_url'),
 
         path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
         path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
@@ -156,7 +164,8 @@ urlpatterns = [
     path('employee/', include([
         path('employee', employee_views.EmployeeView.as_view(), name='employee_url'),
         path('employees', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
-        path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
+        path('employee_upload', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
+        path('employeenote_upload', employee_views.EmployeenoteUploadView.as_view(), name='employeenote_upload_url'),
 
         path('teammember_upload', employee_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),
 
@@ -167,9 +176,9 @@ urlpatterns = [
         path('payroll', employee_views.PayrollView.as_view(), name='payroll_url'),
         path('payroll_upload', employee_views.PayrollUploadView.as_view(), name='payroll_upload_url'),
         path('import_pdc', employee_views.PayrollImportView.as_view(), name='paydatecode_import_url'),
+        path('afas_hours_xlsx', employee_views.PayrollAfasHoursXlsxView.as_view(), name='afas_hours_xlsx_url'),
+        path('afas_ehal_xlsx', employee_views.PayrollAfasEhalXlsxView.as_view(), name='afas_ehal_xlsx_url'),
     ])),
-
-    path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
 
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
@@ -190,10 +199,13 @@ urlpatterns = [
         path('emplhour_download', planning_views.EmplhourDownloadView.as_view(), name='emplhour_download_url'),
         path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
         path('emplhournote_upload', planning_views.EmplhournoteUploadView.as_view(), name='emplhournote_upload_url'),
+        path('emplhourallowance_upload', planning_views.EmplhourallowanceUploadView.as_view(), name='emplhourallowance_upload_url'),
     ])),
 
     path('review/', include([
         path('view', planning_views.ReviewView.as_view(), name='review_url'),
         path('fill', rosterfill_views.FillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
+
+        path('afas_invoice_xlsx', employee_views.ReviewlAfasInvoiceXlsxView.as_view(), name='afas_invoice_xlsx_url'),
     ])),
 ]

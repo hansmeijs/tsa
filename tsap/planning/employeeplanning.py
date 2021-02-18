@@ -14,15 +14,19 @@ logger = logging.getLogger(__name__)
 
 
 def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
-    #logger.debug('   ')
-    #logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
-    #logger.debug('planning_period_dict: ' + str(planning_period_dict))
+    logging_on = True
+    if logging_on:
+        logger.debug('   ')
+        logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
+        logger.debug('planning_period_dict: ' + str(planning_period_dict))
 
-    datefirst_iso = planning_period_dict.get('period_datefirst')
-    datelast_iso = planning_period_dict.get('period_datelast')
-    paydatecode_pk = planning_period_dict.get('paydatecode_pk')
-    pp_employee_pk_list = planning_period_dict.get('employee_pk_list')
-    functioncode_pk_list = planning_period_dict.get('functioncode_pk_list')
+    datefirst_iso, datelast_iso, paydatecode_pk, pp_employee_pk_list, functioncode_pk_list = None, None, None, None, None
+    if planning_period_dict:
+        datefirst_iso = planning_period_dict.get('period_datefirst')
+        datelast_iso = planning_period_dict.get('period_datelast')
+        paydatecode_pk = planning_period_dict.get('paydatecode_pk')
+        pp_employee_pk_list = planning_period_dict.get('employee_pk_list')
+        functioncode_pk_list = planning_period_dict.get('functioncode_pk_list')
 
     """
         if paydatecode_pk:
@@ -138,10 +142,28 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
                                                          paydatecode_pk=paydatecode_pk,
                                                          employee_pk_list=employee_pk_nonull,
                                                          functioncode_pk_list=functioncode_pk_list)
-            # employee_dictlist = {2625: {code: Agata MM}, 2617: {code: Bakhuis RDJ}, ..... }
-            #logger.debug( 'employee_dictlist: ')
-            #for key, value in employee_dictlist.items():
-            #    #logger.debug( '     ' + str(key) + ': ' + str(value.get('code', '---')))
+            """
+            employee_dictlist = 
+            {4: {'id': 4, 'comp_id': 8, 'code': 'Colpa de, William', 'datefirst': None, 'datelast': None, 'namelast': 'Colpa de', 'namefirst': 'William Hendrik', 
+            'identifier': '1991.02.29.04', 'payrollcode': 'M001', 
+            'fnc_id': 5, 'fnc_code': 'bewaker', 'wgc_id': None, 'wgc_code': None, 
+            'pdc_id': 4, 'pdc_code': 'Loonperiode', 'prc_id': None, 'locked': False, 'inactive': False, 'e_wmpd': 300},
+            7: {'id': 7, 'comp_id': 8, 'code': 'Giterson, Lisette', 'datefirst': None, 'datelast': None, 
+            'namelast': 'Giterson', 'namefirst': 'Lisette Sylvia enzo', 'identifier': '1984101610', 'payrollcode': None, 
+            'fnc_id': 20, 'fnc_code': 'secretaresse', 
+            'wgc_id': 20, 'wgc_code': 'secretaresse', 
+            'pdc_id': None, 'pdc_code': None, 'prc_id': None, 'locked': False, 'inactive': False, 'e_wmpd': 480},  
+            """
+            #logger.debug('employee_dictlist: ' + str(employee_dictlist))
+
+# ---  create dict of wagecode and wagecodeitems of this rosterdate (without filter 'key'
+            wagecode_dictlist = create_wagecode_dictlist(request, rosterdate_iso, rosterdate_iso)
+            """
+            wagecode_dictlist: 
+               {2: {'id': 2, 'comp_id': 8, 'key': 'wfc', 'code': 'W150', 'description': None, 
+               'wagerate': 1500000, 'datefirst': None, 'datelast': None, 'comp_wfc_id': 3},
+            """
+            default_wagefactor_pk = get_default_wagefactor_pk(request)
 
 # ---  create list of teammember- / absence- / restshifts of this rosterdate as dict
             # PR2020-10-13
@@ -195,9 +217,30 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
                                     is_companyholiday=is_companyholiday,
                                     order_pk_list=order_pk_list,
                                     employee_pk_list=employee_pk_nonull)
-            #logger.debug('----- teammember_list: ')
-            #for value in teammember_list:
-            #    #logger.debug('..... ' + str(value))
+            """
+            teammember_list 
+            NORMAL SHIFT
+           [ {'tm_id': 30, 'tm_si_id': '30_170', 'tm_rd': datetime.date(2021, 2, 21), 't_id': 32, 't_code': 'Ploeg A', 
+            's_id': 8, 's_code': 'Schema 1', 'o_id': 9, 'o_code': 'Mahaai', 'o_identifier': 'O-009', 'c_id': 3, 'c_code': 'Centrum', 'comp_id': 8,
+             'si_id': 170, 'sh_id': 69, 'sh_code': '14.00 - 16.00', 'sh_isbill': False, 'si_mod': 'n', 'e_id': 8, 'rpl_id': None, 'switch_id': None, 
+             'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2021, 1, 1), 's_dl': None, 's_cycle': 7, 's_exph': False, 's_exch': False, 's_dvgph': True, 
+             'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 'o_seq': 0, 'o_nopay': False, 
+             'wfc_onwd_id': 4, 'wfc_onsat_id': 1, 'wfc_onsun_id': 2, 'wfc_onph_id': 11, 
+             'o_wfc_onwd_id': None, 'o_wfc_onsat_id': None, 'o_wfc_onsun_id': None, 'o_wfc_onph_id': None, 
+             'sh_os': 840, 'sh_oe': 960, 'sh_os_nonull': 840, 'sh_oe_nonull': 960, 'sh_bd': 0, 'sh_td': 0, 
+             'sh_prc_override': False, 'sh_prc_id': 1, 'sh_adc_id': None, 'sh_txc_id': None, 'o_inv_id': None}
+            ABSENCE
+            {'tm_id': 44, 'tm_si_id': '44_175', 'tm_rd': datetime.date(2021, 2, 21), 't_id': 37, 't_code': 'Giterson, Lisette', 
+            's_id': 12, 's_code': 'Giterson, Lisette', 'o_id': 14, 'o_code': 'Onbetaaldtest', 'o_identifier': 'test', 'c_id': 4, 'c_code': 'Afwezig', 'comp_id': 8, 
+            'si_id': 175, 'sh_id': 71, 'sh_code': '-', 'sh_isbill': False, 'si_mod': 'a', 'e_id': 7, 'rpl_id': None, 'switch_id': None, 
+            'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
+            'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 'o_seq': 44, 'o_nopay': False, 
+            'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
+            'o_wfc_onwd_id': 1, 'o_wfc_onsat_id': 9, 'o_wfc_onsun_id': 12, 'o_wfc_onph_id': 4, 
+            'sh_os': None, 'sh_oe': None, 'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'sh_bd': 0, 'sh_td': 0, 
+            'sh_prc_override': False, 'sh_prc_id': 1, 'sh_adc_id': None, 'sh_txc_id': None, 'o_inv_id': None} ]
+    
+            """
 
 # - sort rows
             # TODO test
@@ -247,6 +290,8 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
                             employee_dictlist=employee_dictlist,
                             customer_dictlist=customer_dictlist,
                             order_dictlist=order_dictlist,
+                            wagecode_dictlist=wagecode_dictlist,
+                            default_wagefactor_pk=default_wagefactor_pk,
                             tm_si_id_info=tm_si_id_info,
                             is_saturday=is_saturday,
                             is_sunday=is_sunday,
@@ -278,10 +323,10 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
     return planning_list, customer_dictlist, order_dictlist, elapsed_seconds
 
 
-def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlist, order_dictlist, tm_si_id_info,
+def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlist, order_dictlist, wagecode_dictlist, default_wagefactor_pk, tm_si_id_info,
                         is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                         comp_timezone, request):  # PR2020-01-5 PR2020-08-14
-    #logger.debug(' ============= add_orderhour_emplhour ============= ')
+    logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('row: ' + str(row))
     """
     row: {'tm_id': 1975, 'tm_si_id': '1975_4000', 'tm_rd': datetime.date(2020, 10, 26), 't_id': 2905, 't_code': 'Agata', 
@@ -298,11 +343,11 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
     if row:
         e_id = row.get('e_id')
         e_code, e_identifier, e_payrollcode = None, None, None
-        fnc_id, fnc_code, wgc_id, wgc_code,  pdc_id, pdc_code = None, None, None, None, None, None
+        fnc_id, fnc_code, wgc_id, wgc_code,  pdc_id, pdc_code, e_wmpd = None, None, None, None, None, None, None
 
         if e_id:
             employee_dict = employee_dictlist.get(e_id)
-            #logger.debug('employee_dict: ' + str(employee_dict))
+            logger.debug('employee_dict: ' + str(employee_dict))
             if employee_dict:
                 e_code = employee_dict.get('code')
                 #logger.debug('e_code: ' + str(e_code))
@@ -318,6 +363,8 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                 pdc_id = employee_dict.get('pdc_id')
                 pdc_code = employee_dict.get('pdc_code')
 
+                e_wmpd = employee_dict.get('e_wmpd')
+
                 #TODO add price stc to planning
                 e_prc_id = employee_dict.get('prc_id')
                 e_adc_id = employee_dict.get('adc_id')
@@ -326,6 +373,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
             # necessary for sorted list
             e_code = '---'
 
+        logger.debug('e_wmpd: ' + str(e_wmpd))
 # create note when employee is absent
         note_absent_eid = row.get('note_absent_eid')
         # TODO note_absence_o_code is not working yet
@@ -369,11 +417,12 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         sh_oe = row.get('sh_oe')
         sh_bd = row.get('sh_bd')
         sh_td = row.get('sh_td')
+
         o_s_nosat = row.get('o_s_nosat')
         o_s_nosun = row.get('o_s_nosun')
         o_s_noph = row.get('o_s_noph')
         o_s_noch = row.get('o_s_noch')
-        e_wmpd = row.get('e_wmpd')
+
 
         # - get employee info from row
         # NOTE: row_employee can be different from teammember.employee (when replacement employee)
@@ -384,7 +433,6 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         #  row['isreplacement'] is added in function calculate_add_row_to_dict
         is_replacement = row.get('isreplacement', False)
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
             f.calc_timedur_plandur_from_offset(
                 rosterdate_dte=rosterdate_dte,
@@ -422,12 +470,16 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         #logger.debug('planned_duration: ' + str(planned_duration))
         #logger.debug('time_duration: ' + str(time_duration))
 
-        wfc_id = row.get('wfc_id')
-        wfc_code = row.get('wfc_code')
-        wfc_rate = row.get('wfc_rate')
-        if wfc_rate is None:
-            wfc_rate = 0
         o_nopay = row.get('o_nopay', False)
+
+# get wagefactor from order or shift
+        wagefactor_pk = get_wagefactorpk_from_row(
+            row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
+
+        if wagefactor_pk:
+            wagecode_dict = wagecode_dictlist.get(wagefactor_pk)
+            wagefactor_code = wagecode_dict.get('code')
+            wagefactor_rate = wagecode_dict.get('wagerate', 0)
 
         planning_dict_short = {
                     'fid': '_'.join([str(tm_id), str(si_id), str(tm_rd)]),
@@ -470,9 +522,9 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     'pdc_id': pdc_id,
                     'pdc_code': pdc_code,
 
-                    'wfc_id': wfc_id,
-                    'wfc_code': wfc_code,
-                    'wfc_rate': wfc_rate,
+                    'wfc_id': wagefactor_pk,
+                    'wfc_code': wagefactor_code,
+                    'wfc_rate': wagefactor_rate,
                     'o_nopay': o_nopay,
 
                     'note': note,
@@ -487,20 +539,125 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 
     return planning_dict_short
 
+#==================================
+
+def get_wagefactorpk_from_row(row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday):
+    #logger.debug(' =============== get_default_wagefactor_pk ============= ')
+    # get wagefactor from order (when absence) or from shift (when normal shift) or None (when restshift) # PR2021-02-17
+
+    wagefactor_pk = None
+    if is_restshift:
+        # no wagefactor when restshift
+        pass
+    elif is_absence:
+        # get wagefactor from order (= abscat) when absence
+        if is_publicholiday:
+            wagefactor_pk = row.get('o_wfc_onph_id')
+        elif is_sunday:
+            wagefactor_pk = row.get('o_wfc_onsun_id')
+        elif is_saturday:
+            wagefactor_pk = row.get('o_wfc_onsat_id')
+        # get wagefactor of weekday wagefactor if no value found
+        if wagefactor_pk is None:
+            wagefactor_pk = row.get('o_wfc_onwd_id')
+        if wagefactor_pk is None:
+            wagefactor_pk = default_wagefactor_pk
+    else:
+        # get wagefactor from shift when normal shift
+        if is_publicholiday:
+            wagefactor_pk = row.get('wfc_onph_id')
+        elif is_sunday:
+            wagefactor_pk = row.get('wfc_onsun_id')
+        elif is_saturday:
+            wagefactor_pk = row.get('wfc_onsat_id')
+        # get wagefactor of weekday wagefactor if no value found
+        if wagefactor_pk is None:
+            wagefactor_pk = row.get('wfc_onwd_id')
+        if wagefactor_pk is None:
+            wagefactor_pk = default_wagefactor_pk
+    return wagefactor_pk
+
+
+def get_default_wagefactor_pk(request):
+    #logger.debug(' =============== get_default_wagefactor_pk ============= ')
+    # --- get default wagefactor of this company
+    default_wagefactor_pk = None
+    if request.user.company.pk:
+        sql_keys = {'comp_id': request.user.company.pk}
+        sql = "SELECT comp.wagefactorcode_id FROM companies_company AS comp WHERE (comp.id = %(comp_id)s::INT)"
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        wagefactor_pk_tuple = newcursor.fetchone()
+        #logger.debug(str(wagefactor_pk_tuple))
+        if wagefactor_pk_tuple:
+            default_wagefactor_pk = wagefactor_pk_tuple[0]
+
+    return default_wagefactor_pk
+# --- end of get_default_wagefactor_id
+
+
+def create_wagecode_dictlist(request, datefirst_iso, datelast_iso, wagecode_pk=None):
+    #logger.debug(' =============== create_wagecode_dictlist ============= ')
+    #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' datelast_iso: ' + str(datelast_iso))
+    # --- create rows of employees of this company, in servie in range, not inactive PR2020-10-11
+
+    wagecode_dictlist = {}
+    if request.user.company.pk:
+        sql_keys = {'comp_id': request.user.company.pk}
+
+        sql_list = ["SELECT wgc.id, wgc.company_id AS comp_id,",
+            "wgc.key, wgc.code, wgc.description,",
+            "COALESCE(wi.wagerate, wgc.wagerate, 0) AS wagerate,",
+            "wi.datefirst, wi.datelast,",
+            "comp.wagefactorcode_id AS comp_wfc_id",
+            "FROM companies_wagecode AS wgc",
+            "INNER JOIN companies_company AS comp ON (comp.id = wgc.company_id)",
+            "LEFT JOIN companies_wagecodeitem AS wi ON (wgc.id = wi.wagecode_id)",
+            "WHERE (wgc.company_id = %(comp_id)s::INT) AND (NOT wgc.inactive)"]
+
+        if datefirst_iso:
+            sql_list.append("AND (wi.datelast >= %(df)s::DATE OR wi.datelast IS NULL)")
+            sql_keys['df'] = datefirst_iso
+        if datelast_iso:
+            sql_list.append("AND (wi.datefirst <= %(dl)s::DATE OR wi.datefirst IS NULL)")
+            sql_keys['dl'] = datelast_iso
+
+        if wagecode_pk:
+            sql_keys['wgc_id'] = wagecode_pk
+            sql_list.append("AND (wgc.id = %(wgc_id)s::INT)" )
+
+        sql = ' '.join(sql_list)
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        wagecode_dictlist = f.dictfetchrows(newcursor)
+        #logger.debug(str(wagecode_dictlist))
+
+        #newcursor.execute(sql_employee, sql_keys)
+        #logger.debug('create_wagecode_dictlist: ')
+        #for value in f.dictfetchall(newcursor):
+        #    logger.debug(str(value))
+        #logger.debug('  ---------------------------')
+
+    return wagecode_dictlist
+# --- end of create_wagecode_dictlist
+
 
 def create_employee_dictlist(request, datefirst_iso, datelast_iso, paydatecode_pk, employee_pk_list, functioncode_pk_list):
     #logger.debug(' =============== create_employee_dictlist ============= ')
     #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' datelast_iso: ' + str(datelast_iso))
     # --- create rows of employees of this company, in servie in range, not inactive PR2020-10-11
 
-    employee_dict = {}
+    employee_dictlist = {}
     if request.user.company.pk:
         sql_keys = {'comp_id': request.user.company.pk}
 
         sql_list = ["SELECT e.id, e.company_id AS comp_id, e.code, e.datefirst, e.datelast, e.namelast, e.namefirst, e.identifier, e.payrollcode,",
             "fnc.id AS fnc_id, fnc.code AS fnc_code, wgc.id AS wgc_id, wgc.code AS wgc_code,",
             "pdc.id AS pdc_id, pdc.code AS pdc_code, e.pricecode_id AS prc_id, e.locked, e.inactive, ",
-            "CASE WHEN e.workminutesperday IS NULL OR e.workminutesperday = 0 THEN COALESCE(comp.workminutesperday, " + str(c.EMPLOYEE_DEFAULT_WORKMINUTES) + ") ELSE e.workminutesperday END AS wmpd",
+            "CASE WHEN e.workminutesperday IS NULL OR e.workminutesperday = 0 THEN COALESCE(comp.workminutesperday, " + \
+                    str(c.EMPLOYEE_DEFAULT_WORKMINUTES) + ") ELSE e.workminutesperday END AS e_wmpd",
 
             "FROM companies_employee AS e",
             "INNER JOIN companies_company AS comp ON (comp.id = e.company_id)",
@@ -535,23 +692,26 @@ def create_employee_dictlist(request, datefirst_iso, datelast_iso, paydatecode_p
 
         newcursor = connection.cursor()
         newcursor.execute(sql_employee, sql_keys)
-        employee_dict = f.dictfetchrows(newcursor)
+        employee_dictlist = f.dictfetchrows(newcursor)
 
+        #logger.debug('employee_dictlist: ' + str(employee_dictlist))
         #newcursor.execute(sql_employee, sql_keys)
         #logger.debug('create_employee_dictlist: ')
         #for value in f.dictfetchall(newcursor):
         #    #logger.debug(str(value))
         #logger.debug('  ---------------------------')
 
-    return employee_dict
+    return employee_dictlist
 # --- end of create_employee_dictlist
 
 
 def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list, employee_pk_list):
-    #logger.debug(' ------------- emplan_create_teammember_dict ----------------- ')
-    #logger.debug('order_pk_list' + str(order_pk_list))
-    #logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
-    # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11
+    # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11  PR2021-02-17
+    logging_on = False
+    if logging_on:
+        logger.debug(' ------------- emplan_create_teammember_dict ----------------- ')
+        logger.debug('order_pk_list' + str(order_pk_list))
+        logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
 
     # sql_schemeitem uses parameters 'rd', 'ph' and 'ch'
     sql_keys = {'comp_id': request.user.company.pk,
@@ -574,25 +734,30 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
         "CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END END ELSE",
         "CASE WHEN si_sub.sh_bill = 2 THEN TRUE ELSE FALSE END END END AS sh_isbill,",
 
-        "CASE WHEN c.isabsence THEN o.sequence ELSE -1 END AS o_seq, o.nopay AS o_nopay,",
         "si_sub.si_mod, tm.employee_id AS e_id, tm.replacement_id AS rpl_id, tm.switch_id AS switch_id, tm.datefirst AS tm_df, tm.datelast AS tm_dl,",
         "s.datefirst AS s_df, s.datelast AS s_dl, s.cycle AS s_cycle,",
         "s.excludepublicholiday AS s_exph, s.excludecompanyholiday AS s_exch, s.divergentonpublicholiday AS s_dvgph,",
+
         "CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,",
         "CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,",
         "CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,",
         "CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,",
+
+        "CASE WHEN c.isabsence THEN COALESCE(o.sequence, 0) ELSE 0 END AS o_seq, o.nopay AS o_nopay,",
+
+        "si_sub.wfc_onwd_id, si_sub.wfc_onsat_id, si_sub.wfc_onsun_id, si_sub.wfc_onph_id,",
+
+        "o.wagefactorcode_id AS o_wfc_onwd_id, o.wagefactoronsat_id AS o_wfc_onsat_id,",
+        "o.wagefactoronsun_id AS o_wfc_onsun_id, o.wagefactoronph_id AS o_wfc_onph_id,",
+
+        "si_sub.wfc_onwd_id, si_sub.wfc_onsat_id, si_sub.wfc_onsun_id, si_sub.wfc_onph_id,",
         "si_sub.sh_os, si_sub.sh_oe, si_sub.sh_os_nonull, si_sub.sh_oe_nonull, si_sub.sh_bd, si_sub.sh_td,",
 
-        "CASE WHEN si_sub.wfc_id IS NULL THEN comp.wagefactorcode_id ELSE si_sub.wfc_id END AS wfc_id,",
-        "CASE WHEN si_sub.wfc_id IS NULL THEN wfc.code ELSE si_sub.wfc_code END AS wfc_code,",
-        "CASE WHEN si_sub.wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.wfc_rate END AS wfc_rate,",
-
         "si_sub.sh_prc_override,",
-        "CASE WHEN si_sub.sh_prc_id IS NULL THEN CASE WHEN o.pricecode_id IS NULL THEN comp.pricecode_id ELSE o.pricecode_id END ELSE si_sub.sh_prc_id END AS sh_prc_id,",
-        "CASE WHEN si_sub.sh_adc_id IS NULL THEN CASE WHEN o.additioncode_id IS NULL THEN comp.additioncode_id ELSE o.additioncode_id END ELSE si_sub.sh_adc_id END AS sh_adc_id,",
-        "CASE WHEN si_sub.sh_txc_id IS NULL THEN CASE WHEN o.taxcode_id IS NULL THEN comp.taxcode_id ELSE o.taxcode_id END ELSE si_sub.sh_txc_id END AS sh_txc_id,",
-        "CASE WHEN o.invoicecode_id IS NULL THEN c.invoicecode_id ELSE o.invoicecode_id END AS o_inv_id",
+        "COALESCE(si_sub.sh_prc_id, o.pricecode_id, comp.pricecode_id) AS sh_prc_id,",
+        "COALESCE(si_sub.sh_adc_id, o.additioncode_id, comp.additioncode_id) AS sh_adc_id,",
+        "COALESCE(si_sub.sh_txc_id, o.taxcode_id, comp.taxcode_id) AS sh_txc_id,",
+        "COALESCE(o.invoicecode_id, c.invoicecode_id) AS o_inv_id",
 
         "FROM companies_teammember AS tm",
         "INNER JOIN companies_team AS t ON (t.id = tm.team_id)",
@@ -601,7 +766,7 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
         "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
         "INNER JOIN companies_company AS comp ON (comp.id = c.company_id)",
         "INNER JOIN  ( " + sql_schemeitem + " ) AS si_sub ON (si_sub.t_id = t.id)",
-        "LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)",
+        #"LEFT JOIN companies_wagecode AS wfc ON (wfc.id = comp.wagefactorcode_id)",
 
         "WHERE (c.company_id = %(comp_id)s) AND (NOT c.istemplate)",
         "AND (NOT c.inactive AND NOT o.inactive AND NOT s.inactive)",
@@ -623,17 +788,18 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
     newcursor.execute(sql, sql_keys)
     rows = f.dictfetchall(newcursor)
 
-    #newcursor.execute(sql, sql_keys)
-    #logger.debug('sql_teammember: ')
-    #frows = f.dictfetchall(newcursor)
-    #for row in frows:
-    #    #logger.debug('     ' + str(row.get('c_code')) + ' - ' + str(row.get('o_code')) + ' sh_code: ' + str(row.get('sh_code')) +
-    #                  ' e_id: ' + str(row.get('e_id')) + ' rpl_id: ' + str(row.get('rpl_id')) )
-    #logger.debug('  ---------------------------')
+    if logging_on:
+        newcursor.execute(sql, sql_keys)
+        frows = f.dictfetchall(newcursor)
+        logger.debug('sql_teammember: ')
+        logger.debug('  ---------------------------')
+        for row in frows:
+            logger.debug(row)
+            logger.debug('  ---------------------------')
 
     return rows
 
-# --- end of create_employee_rows
+# --- end of emplan_create_teammember_list
 
 #######################################################
 def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte):
@@ -961,7 +1127,7 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
 # +++  if employee has teammembers: loop through tm_si_id_arr to check for absence
             for tm_si_id in tm_si_id_arr:
                 tm_si_info = tm_si_id_info.get(tm_si_id)
-        # - skip when tmsid_info_dict is None: tm_si_info might be removed because it is a double
+        # - skip when tm_si_info is None: tm_si_info might be removed because it is a double
                 if tm_si_info is not None:
                     #logger.debug('     tm_si_info: ' + str(tm_si_id) +
                     #             ' e_id: ' + str(f.get_dict_value(tm_si_info, ('e_id',))) +
@@ -1103,6 +1269,7 @@ def get_sql_schemeitem():
             "si.inactive AS si_inactive, s.datefirst AS s_df, s.datelast AS s_dl, s.cycle AS s_cycle,",
             "s.excludepublicholiday AS s_exph, s.excludecompanyholiday AS s_exch, s.divergentonpublicholiday AS s_dvgph,",
             "s.nohoursonsaturday AS s_nosat, s.nohoursonsunday AS s_nosun, s.nohoursonpublicholiday AS s_noph, s.nohoursoncompanyholiday AS s_noch,",
+
             "si.onpublicholiday AS si_onph, CAST(si.rosterdate AS date) AS si_rd,",
             "CASE WHEN c.isabsence THEN 'a' ELSE CASE WHEN si.shift_id IS NULL THEN '-' ELSE CASE WHEN sh.isrestshift THEN 'r' ELSE 'n' END END END AS si_mod,",
             "CASE WHEN sh.isrestshift THEN 0 ELSE sh.billable END AS sh_bill,",
@@ -1110,7 +1277,9 @@ def get_sql_schemeitem():
             "COALESCE(sh.offsetstart, 0) AS sh_os_nonull, COALESCE(sh.offsetend, 1440) AS sh_oe_nonull,",
             "COALESCE(sh.breakduration, 0) AS sh_bd, COALESCE(sh.timeduration, 0) AS sh_td,",
             "sh.pricecodeoverride AS sh_prc_override, sh.pricecode_id AS sh_prc_id, sh.additioncode_id AS sh_adc_id, sh.taxcode_id AS sh_txc_id,",
-            "sh.wagefactorcode_id AS wfc_id, wfc.code AS wfc_code, COALESCE(wfc.wagerate, 0) AS wfc_rate",
+
+            "sh.wagefactorcode_id AS wfc_onwd_id, sh.wagefactoronsat_id AS wfc_onsat_id,",
+            "sh.wagefactoronsun_id AS wfc_onsun_id, sh.wagefactoronph_id AS wfc_onph_id",
 
             "FROM companies_schemeitem AS si",
             "INNER JOIN companies_scheme AS s ON (s.id = si.scheme_id)",

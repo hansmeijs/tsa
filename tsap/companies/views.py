@@ -21,6 +21,7 @@ from django.utils.encoding import force_text
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
 
+from tsap import settings
 from tsap.headerbar import get_headerbar_param
 from tsap import constants as c
 
@@ -37,51 +38,29 @@ class LazyEncoder(DjangoJSONEncoder):
             return force_text(obj)
         return super(LazyEncoder, self).default(obj)
 
+# === Home ===================================== PR2021-02-17
 def home(request):
-    # function get_headerbar_param sets:
-    # - activates request.user.language
-    # - display/select schoolyear, schoolyear list, color red when not this schoolyear
-    # - display/select school, school list
-    # - display user dropdown menu
-    # note: schoolyear, school and user are only displayed when user.is_authenticated
 
-    # set headerbar parameters PR2018-08-06
-    _display_school = False
-    _display_dep = False
-    if request.user:
-        _display_school = True
-        _display_dep = True
-    _param = get_headerbar_param(request, {
-        'display_school': _display_school,
-        'display_dep': _display_dep
-    })
+    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+    activate(user_lang)
+
+    param = {'headerbar_class': settings.HEADER_CLASS}
     # PR2019-02-15 go to login form if user is not authenticated
-    if request.user.is_authenticated:    # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'home.html', _param)
+    if request.user.is_authenticated:
+        return render(request, 'home.html', param)
     else:
         # return redirect('login')
-        return render(request, 'home.html', _param)
+        return render(request, 'home.html', param)
 
 
 
-# === CompanyView ===================================== PR2020-04-14
+# === CompanyView ===================================== PR2020-04-14 PR2021-02-17
 @method_decorator([login_required], name='dispatch')
 class CompanyView(View):
 
     def get(self, request):
-        params = get_headerbar_param(request, {'display_user': True})
-        companies = None
-        if request.user.is_role_system:
-            companies = Company.objects.all()
-        elif request.user.is_role_company:
-            if request.user.company:
-                companies = Company.objects.filter(id=request.user.company.id)
-        # add companies to headerbar parameters PR2018-08-12
-        if companies:
-            params.update({'companies': companies})
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'company.html', params)
+        param = {'headerbar_class': settings.HEADER_CLASS}
+        return render(request, 'company.html', param)
 
 
 # === CompanyListView ===================================== PR2019-03-02

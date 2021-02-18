@@ -15,8 +15,8 @@
                             bc_color_default, bc_color_selected, bc_color_hover,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                             header_txt, title_header_btn, title_row_btn) {
-        //console.log("===== t_Fill_SelectTable ===== ", tblName);
-        //console.log("header_txt = ", header_txt)
+        console.log("===== t_Fill_SelectTable ===== ", tblName);
+        console.log("header_txt = ", header_txt)
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive filters in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -40,6 +40,7 @@
         let is_selected_row = false, tblRow_selected = null;
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
+
             const row_index = null // add row at end when no rowindex
             let selectRow = t_CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton, has_delete_btn,
@@ -359,19 +360,19 @@
 
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
-    function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk, col_index) {
-        //console.log( "===== t_Filter_SelectRows  ========= ");
+    function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk, col_index_list) {
+        console.log( "===== t_Filter_SelectRows  ========= ");
         //console.log( "filter_text: <" + filter_text + ">");
         //console.log( "has_ppk_filter: " + has_ppk_filter);
         //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
 
         const filter_text_lower = (filter_text) ? filter_text.toLowerCase() : "";
-        if(!col_index){col_index = 0}
         let has_selection = false, has_multiple = false;
         let sel_value = null, sel_pk = null, sel_ppk = null, sel_display = null, sel_rowid = null;
         let row_count = 0;
         for (let i = 0, tblRow; tblRow = tblBody_select.rows[i]; i++) {
             if (!!tblRow){
+
                 let hide_row = false
 // ---  show only rows of selected_ppk_str, only if has_ppk_filter = true
                 if(has_ppk_filter){
@@ -381,26 +382,34 @@
                     } else {
                         hide_row = true;
                 }};
+
 // ---  hide inactive rows when filter_show_inactive = false
                 if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
                     if (!!inactive_str) {
                         hide_row = (inactive_str.toLowerCase() === "true")
                 }};
+
 // ---  show all rows if filter_text = ""
                 if (!hide_row && filter_text_lower){
                     let found = false
                     // PR2020-11-02 col_index added to be able to filter on second column
-                    const cell = tblRow.cells[col_index];
-                    if(cell){
-                        const el_div = cell.children[0];
-                        if(el_div){
-                            let el_value = el_div.innerText;
-                            if(el_value){
-                                el_value = el_value.toLowerCase();
-                                found = (el_value.indexOf(filter_text_lower) !== -1)
-                            }
-                        }
+                    // PR2021-02-01  made col_index_list so you can filter on multiple columns
+
+                    if(!col_index_list){col_index_list = [0]}
+                    const len = col_index_list.length;
+                    for (let i = 0, cell, col_index, len = col_index_list.length; i < len; i++) {
+                        col_index = col_index_list[i]
+                        cell = tblRow.cells[col_index];
+                        if(cell){
+                            const el_div = cell.children[0];
+                            if(el_div){
+                                let el_value = el_div.innerText;
+                                if(el_value){
+                                    el_value = el_value.toLowerCase();
+                                    found = (el_value.indexOf(filter_text_lower) !== -1)
+                        }}}
+                        if(found){break};
                     }
                     hide_row = (!found)
                 };
@@ -416,6 +425,8 @@
                         sel_value = get_attr_from_el(tblRow, "data-value");
                         sel_display = get_attr_from_el(tblRow, "data-display");
                         sel_rowid = get_attr_from_el(tblRow, "id");
+
+        console.log( "tblRow", tblRow);
                     } else {
                         has_multiple = true;
                     }
@@ -1145,16 +1156,27 @@
         //console.log("remove_err_del_cre_updated__from_itemdict")
         if(!isEmpty(item_dict)){
 //--- remove 'updated, deleted created and msg_err from item_dict
-            Object.keys(item_dict).forEach(function(key) {
+            //PR2021-01-04 was: Object.keys(item_dict).forEach(function(key) {
+            for (const [key, value] of Object.entries(item_dict)) {
                 const field_dict = item_dict[key];
-                if (!isEmpty(field_dict)){
-                    if ("updated" in field_dict){delete field_dict["updated"]};
-                    if ("msg_err" in field_dict){delete field_dict["msg_err"]};
-                    if(key === "id"){
-                        if ("created" in field_dict){delete field_dict["created"]};
-                        if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
-                        if ("deleted" in field_dict){delete field_dict["deleted"]};
-                    }}})};
+                // PR2021-01-04 debug: value is not always a dict, can be other type as well
+                if(value instanceof Object){
+                    if (!isEmpty(value)){
+                        if ("updated" in value){delete value["updated"]};
+                        if ("msg_err" in value){delete value["msg_err"]};
+                        if(key === "id"){
+                            if ("created" in value){delete value["created"]};
+                            if ("temp_pk" in value){delete value["temp_pk"]};
+                            if ("deleted" in value){delete value["deleted"]};
+                        }
+                    }
+                } else {
+                    if(["created", "deleted"].indexOf(key) > -1){
+                        delete item_dict[key]
+                    };
+                }
+            }
+        }
     };  // remove_err_del_cre_updated__from_itemdict
 
 //========= lookup_itemdict_from_datadict  ======== PR2019-09-24
@@ -1975,7 +1997,7 @@
         let period_text = null;
         if (!isEmpty(selected_period)){
 
-            if(selected_period.sel_view && selected_period.sel_view === "payrollperiod"){
+            if(selected_period.sel_view && selected_period.sel_view === "payroll_period"){
                 // PR2020-09-28
                 const datefirst_iso = get_dict_value(selected_period, ["paydateitem_datefirst"]);
                 const datelast_iso = get_dict_value(selected_period, ["paydateitem_datelast"]);
@@ -2033,43 +2055,57 @@
         el_select.innerHTML = option_text;
     }  // function t_FillOptionsPeriodExtension
 
-//========= t_FillOptionsAbscatFunction  ============= PR2020-09-11
+//========= t_FillOptionsAbscatFunction  ============= PR2020-09-11 PR2021-02-15
     function t_FillOptionsAbscatFunction(loc, tblName, el_select, data_map, selected_pk) {
         //console.log( "=====  t_FillOptionsAbscatFunction  =====  ");
         //console.log( "data_map", data_map);
         //console.log( "selected_pk", selected_pk);
-
+        // tables are: "abscat", "functioncode", "paydatecode", "wagefactor"
 // ---  fill options of select box
         let option_text = "";
-        el_select.innerText = null
+        el_select.innerText = null;
         let row_count = 0
-// --- loop through data_map (abscat_map, functioncode_map)
+// --- loop through data_map (abscat_map, functioncode_map, wagefactor_map)
         if (data_map.size) {
             for (const [map_id, map_dict] of data_map.entries()) {
-                const pk_int = (map_dict.id) ? map_dict.id : 0;
-                const is_inactive = map_dict.inactive;
-                const ppk_int =(tblName === "abscat") ? map_dict.c_id : map_dict.comp_id;
-                let code = (tblName === "abscat") ? map_dict.o_code : map_dict.code;
-                if(!code) {code = "-"};
-                const is_selected = (selected_pk && pk_int === selected_pk);
-                // show only not-inactive, but also current item if inactive
-                if (!is_inactive || is_selected) {
-                    option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
-    // --- add selected if selected_pk has value
-                    if (is_selected) {option_text += " selected=true" };
-                    option_text +=  ">" + code + "</option>";
-                    row_count += 1
+                // tables "functioncode" and "wagefactor" use data_map 'wagecode' with key 'fnc', 'wfc'
+                let show_row = (tblName === "functioncode" && map_dict.key === 'fnc') ||
+                               (tblName === "wagefactor" && map_dict.key === 'wfc') ||
+                               (tblName === "abscat" ) || (tblName === "paydatecode" );
+                if(show_row){
+                    const pk_int = (map_dict.id) ? map_dict.id : 0;
+                    const is_inactive = map_dict.inactive;
+                    const ppk_int =(tblName === "abscat") ? map_dict.c_id : map_dict.comp_id;
+                    let code = (tblName === "abscat") ? map_dict.o_code : map_dict.code;
+                    if(!code) {code = "-"};
+                    const is_selected = (selected_pk && pk_int === selected_pk);
+                    // show only not-inactive, but also current item if inactive
+                    if (!is_inactive || is_selected) {
+                        option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
+        // --- add selected if selected_pk has value
+                        if (is_selected) {option_text += " selected=true" };
+                        option_text +=  ">" + code + "</option>";
+                        row_count += 1
+                    }
                 }
             }  // for (const [map_id, map_dict] of data_map.entries())
         }  // if (!!len)
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
         let select_first_option = false
         if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + loc.No_absence_categories + "</option>"
+            const caption = (tblName === "abscat") ? loc.No_absence_categories :
+                            (tblName === "functioncode") ? loc.No_function_codes :
+                            (tblName === "paydatecode") ? loc.No_paydate_codes :
+                            (tblName === "wagefactor") ? loc.No_wage_factors : loc.No_items;
+            option_text = "<option value=\"\" disabled selected hidden>" + caption + "</option>"
         } else if (row_count === 1) {
             select_first_option = true
         } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + loc.Select_abscat + "</option>" + option_text
+            const caption = (tblName === "abscat") ? loc.Select_abscat :
+                            (tblName === "functioncode") ? loc.Select_functioncode :
+                            (tblName === "paydatecode") ? loc.Select_paydatecode : "---";
+            option_text = "<option value=\"\" disabled selected hidden>" + caption + "</option>" + option_text
+
         }
         el_select.innerHTML = option_text;
 
@@ -2446,40 +2482,34 @@
         return new_code;
     } ; // get_schemecode_with_sequence
 
-    function get_teamcode_with_sequence_from_map(team_map, parent_pk, default_code){
+// ==== get_teamcode_with_sequence_from_map === PR2021-01-05
+    function get_teamcode_with_sequence_from_map(loc, team_map, parent_pk){
         "use strict";
         //console.log(' --- get_teamcode_with_sequence_from_map --- ')
-        //console.log('parent_pk: ', parent_pk)
         // create new code with sequence character 1 higher than existing code PR2019-12-28
-        if (!default_code) {default_code = "Team" }
+        const default_code = (loc && loc.Team) ? loc.Team : "Team";
         const default_code_len = default_code.length
         let count = 0, max_index = 64;
         // --- loop through team_map
         // lookup teams of this scheme that end with a character, like 'Team C'
-        for (const [map_id, item_dict] of team_map.entries()) {
-            const team_ppk = get_dict_value(item_dict, ["id", "ppk"])
-            if(!!team_ppk && team_ppk === parent_pk){
-                count += 1;
-                const code_value = get_dict_value(item_dict, ["code", "value"], "")
-
-
-                if (code_value){
-                    const arr = code_value.split(" ");
-                    if (arr.length === 2){
-                        const index_str = arr[1];
-                        if(!!index_str && index_str.length === 1){
-                            const index = index_str.charCodeAt(0);
-                            if (!!index){
-                                if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
-                                    if (index > max_index) {
-                                        max_index = index
-                }}}}}}
-
-
-
-            }
-        };
-        // when 4 teams exists, new team must have name 'Team E'
+        if(parent_pk){
+            for (const [map_id, item_dict] of team_map.entries()) {
+                const team_ppk = (item_dict.s_id) ? item_dict.s_id : null;
+                if(team_ppk && team_ppk === parent_pk){
+                    count += 1;
+                    const code_value = (item_dict.code) ? item_dict.code : null;
+                    if (code_value){
+                        const arr = code_value.split(" ");
+                        if (arr.length === 2){
+                            const index_str = arr[1];
+                            if(!!index_str && index_str.length === 1){
+                                const index = index_str.charCodeAt(0);
+                                if (!!index){
+                                    if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
+                                        if (index > max_index) {
+                                            max_index = index
+        }}}}}}}}};
+// ---  when 4 teams exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {
             new_index = count + 65
@@ -2487,23 +2517,26 @@
         return default_code + " " + String.fromCharCode(new_index);
     } ; // get_teamcode_with_sequence_from_map
 
-    function get_teamcode_with_sequence_from_list(teams_list, parent_pk, default_code){
+// ==== get_teamcode_with_sequence_from_list === PR2021-01-05
+    function get_teamcode_with_sequence_from_list(loc, teams_list, parent_pk){
         "use strict";
         //console.log(' --- get_teamcode_with_sequence_from_list --- ')
         //console.log('parent_pk: ', parent_pk)
+        // TODO check if this one has no bugs, changes not tested yet PR2021-01-05
         // create new code with sequence character 1 higher than existing code PR2019-12-28
-        if (!default_code) {default_code = "Team" }
+        const default_code = (loc && loc.Team) ? loc.Team : "Team";
         const default_code_len = default_code.length
         let count = 0, max_index = 64;
         // --- loop through team_map
         // lookup teams of this scheme that end with a character, like 'Team C'
         const len = teams_list.length;
-        if(!!len){
+        if(len && parent_pk){
             for (let i = 0; i < len; i++) {
                 let item_dict = teams_list[i];
-                if(!isEmpty(item_dict)){
+                const team_ppk = (item_dict.s_id) ? item_dict.s_id : null;
+                if(team_ppk && team_ppk === parent_pk){
                     count += 1;
-                    const code_value = get_dict_value(item_dict, ["code", "value"], "")
+                    const code_value = (item_dict.code) ? item_dict.code : null;
                     if (code_value){
                         const arr = code_value.split(" ");
                         if (arr.length === 2){
@@ -2518,7 +2551,7 @@
                 }
             }
         };
-        // when 4 teams exists, new team must have name 'Team E'
+// ---  when 4 teams exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {
             new_index = count + 65

@@ -484,7 +484,12 @@ color: #000;
     width: 100%;
 }
 
-/* xxxxxxxxxxxxxxxxxxx   Modal for roster xxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+/* xxxxxxxxxxxxxxxxxxx   Modal xxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+
+.modal-body {
+    padding-top: 0px;
+    padding-bottom: 4px;
+}
 
 .modal_container {
         /*PR2019-02-05 from https://css-tricks.com/snippets/css/a-guide-to-flexbox/*/
@@ -493,6 +498,7 @@ color: #000;
     display: -ms-flexbox;
     display: flex;
 }
+
 .modal_body_left {
     flex: 1;
     text-align: left;

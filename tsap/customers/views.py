@@ -17,6 +17,7 @@ from customers import dicts as cd
 from tsap.headerbar import get_headerbar_param
 from planning.views import update_scheme, update_shift_instance
 
+from tsap import settings
 from tsap import constants as c
 from tsap import functions as f
 from tsap import validators as v
@@ -48,7 +49,7 @@ class CustomerListView(View):
                 'ppk': request.user.company.pk
             })
 
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        param = {'headerbar_class': settings.HEADER_CLASS}
         return render(request, 'customers.html', param)
 
 
@@ -70,6 +71,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
+
+                logging_on = False
 
 # 3. get iddict variables
                 id_dict = f.get_dict_value(upload_dict, ('id',))
@@ -208,7 +211,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # F. update order, also when it is created
                                 if instance:
-                                    update_order(instance, parent, upload_dict, update_dict, user_lang, request)
+                                    update_order(instance, parent, upload_dict, update_dict, logging_on, request)
 
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                             if instance:
@@ -240,6 +243,57 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
+
+@method_decorator([login_required], name='dispatch')
+class OrdernoteUploadView(UpdateView):  # PR2021-02-16
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ')
+        logger.debug(' ============= OrdernoteUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+
+# - get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+
+# - get iddict variables
+                ppk_int = upload_dict.get('ppk')
+                is_create = upload_dict.get('create', False)
+                note = upload_dict.get('note')
+
+                logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('ppk_int: ' + str(ppk_int))
+                logger.debug('is_create: ' + str(is_create))
+
+# - get parent (order)
+                order = m.Order.objects.get_or_none(pk=ppk_int, customer__company=request.user.company)
+                if order:
+# - Create new note:
+                    if is_create and note:
+                        ordernote = m.Ordernote(
+                            order=order,
+                            note=note
+                        )
+                        ordernote.save(request=request)
+# - get employeenote_rows
+                        filter_dict = {'order_pk_list': [order.pk]}
+                        ordernote_rows = cd.create_ordernote_rows(
+                            period_dict=filter_dict,
+                            request=request)
+                        if ordernote_rows:
+                            update_wrap['ordernote_updates'] = ordernote_rows
+
+# 9. return update_wrap
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+# - end of OrdernoteUploadView
+
+
+
+
+
 @method_decorator([login_required], name='dispatch')
 class PricerateUploadView(UpdateView):# PR2019-10-02
 
@@ -259,6 +313,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
+
+                logging_on = False
 
     # 3. get iddict variables
                 id_dict = upload_dict.get('id')
@@ -281,7 +337,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                             #logger.debug('parent: ' + str(instance))
                             if instance:
-                                update_order(instance, parent, upload_dict, update_dict, user_lang, request)
+                                update_order(instance, parent, upload_dict, update_dict, logging_on, request)
                         f.remove_empty_attr_from_dict(update_dict)
 # =====  SCHEME  ==========
                     if table == "scheme":
@@ -518,135 +574,159 @@ def create_order(parent, upload_dict, update_dict, request):
     return instance
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def update_order(instance, parent, upload_dict, update_dict, user_lang, request):
+def update_order(instance, parent, upload_dict, update_dict, logging_on, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    #logger.debug(' --- update_order --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    if logging_on:
+        logger.debug(' --- update_order --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     if instance:
         table = 'order'
         save_changes = False
-        for field in c.FIELDS_ORDER:
-            # --- get field_dict from  item_dict  if it exists
-            field_dict = upload_dict[field] if field in upload_dict else {}
+
+        for field, field_dict in upload_dict.items():
+            if logging_on:
+                logger.debug('field: ' + str(field))
+                logger.debug('   field_dict: ' + str(field_dict))
+
             if field_dict:
-                if 'update' in field_dict:
-                    is_updated = False
+                is_updated = False
 # - get new_value
-                    new_value = field_dict.get('value')
 # - save changes in field 'code', 'name', 'identifier'
-                    if field in ['code', 'name', 'identifier']:
-        # a. get old value
-                        saved_value = getattr(instance, field)
-                        # fields 'code', 'name' are required
-                        if new_value != saved_value:
-        # b. validate code or name
-                            msg_err = v.validate_code_name_identifier(table, field,
-                                                                        new_value, False, parent, update_dict, {}, request, instance.pk)
-                            if not msg_err:
-        # c. save field if changed and no_error
-                                setattr(instance, field, new_value)
-                                is_updated = True
+                if field in ['code', 'name', 'identifier']:
+                    new_value = field_dict.get('value')
+
+    # a. get old value
+                    saved_value = getattr(instance, field)
+                    # fields 'code', 'name' are required
+                    if new_value != saved_value:
+    # b. validate code or name
+                        msg_err = v.validate_code_name_identifier(table, field,
+                                                                    new_value, False, parent, update_dict, {}, request, instance.pk)
+                        if not msg_err:
+    # c. save field if changed and no_error
+                            setattr(instance, field, new_value)
+                            is_updated = True
 
 # - save changes in field 'sequence'
-                    elif field == 'sequence':
-                        saved_value = getattr(instance, field)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
+                elif field == 'sequence':
+                    new_value = field_dict.get('value')
+                    saved_value = getattr(instance, field)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        is_updated = True
 
 # - save changes in field 'billable'
-                    elif field in ['billable']:
-                        is_override = field_dict.get('override', False)
-                        is_billable = field_dict.get('billable', False)
-                        #logger.debug('is_override: ' + str(is_override))
-                        #logger.debug('is_billable: ' + str(is_billable))
-                        new_value = 0
-                        if is_override:
-                            new_value = 2 if is_billable else 1
-                        #logger.debug('new_value: ' + str(new_value))
-                        saved_value = getattr(instance, field, 0)
-                        #logger.debug('saved_value: ' + str(saved_value))
+                elif field in ['billable']:
+                    is_override = field_dict.get('override', False)
+                    is_billable = field_dict.get('billable', False)
+                    #logger.debug('is_override: ' + str(is_override))
+                    #logger.debug('is_billable: ' + str(is_billable))
+                    new_value = 0
+                    if is_override:
+                        new_value = 2 if is_billable else 1
+                    #logger.debug('new_value: ' + str(new_value))
+                    saved_value = getattr(instance, field, 0)
+                    #logger.debug('saved_value: ' + str(saved_value))
 
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        is_updated = True
 
 # - save changes in date fields
-                    elif field in ['datefirst', 'datelast']:
-        # a. get new_date
-                        new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
-        # b. validate value
-                        if msg_err:
+                elif field in ['datefirst', 'datelast']:
+                    new_value = field_dict.get('value')
+    # a. get new_date
+                    new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
+    # b. validate value
+                    if msg_err:
+                        update_dict[field]['error'] = msg_err
+                        has_error = True
+                    else:
+    # c. save field if changed and no_error
+                        old_date = getattr(instance, field)
+                        if new_date != old_date:
+                            setattr(instance, field, new_date)
+                            is_updated = True
+
+                elif field in ( 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+    # a. get old value
+                    new_value = field_dict.get('value', False)
+                    saved_value = getattr(instance, field, False)
+                    if new_value != saved_value:
+    # c. save field if changed
+                        setattr(instance, field, new_value)
+                        is_updated = True
+
+                elif field in ('wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph'):
+                    # a. get old value
+                    new_pk_int = field_dict.get('value', False)
+                    new_wagefactor = m.Wagecode.objects.get_or_none(
+                        id=new_pk_int,
+                        key= 'wfc')
+                    saved_wagefactor = getattr(instance, field, False)
+                    if new_wagefactor != saved_wagefactor:
+                        # c. save field if changed
+                        setattr(instance, field, new_wagefactor)
+                        is_updated = True
+                    if logging_on:
+                        logger.debug('new_pk_int: ' + str(new_pk_int))
+                        logger.debug('new_wagefactor: ' + str(new_wagefactor))
+                        logger.debug('saved_wagefactor: ' + str(saved_wagefactor))
+                        logger.debug('is_updated: ' + str(is_updated))
+
+# 4. save changes in fields 'priceratejson'
+                elif field in ['priceratejson']:
+                    #logger.debug('field: ' + str(field))
+                    # TODO save pricerate with date and wagefactor
+                    rosterdate = None
+                    wagefactor = None
+
+                    # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
+                    #if pricerate_is_updated:
+                    #    is_updated = True
+
+                    #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
+                    #logger.debug('is_updated: ' + str(is_updated))
+
+# 4. save changes in field 'taxcode'
+                elif field in ['taxcode']:
+        # a. get new taxcode_pk
+                    new_taxcode_pk = int(field_dict.get('pk', 0))
+                    if new_taxcode_pk:
+        # b. check if new_taxcode exists
+                        taxcode = m.Pricecode.objects.get_or_none(
+                            id=new_taxcode_pk,
+                            istaxcode=True,
+                            company=request.user.company
+                        )
+        # c. upate if exists. msg_err if not found
+                        if taxcode is None:
+                            msg_err = _('This field could not be updated.')
                             update_dict[field]['error'] = msg_err
-                            has_error = True
                         else:
-        # c. save field if changed and no_error
-                            old_date = getattr(instance, field)
-                            if new_date != old_date:
-                                setattr(instance, field, new_date)
-                                is_updated = True
-
-                    if field in ( 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
-        # a. get old value
-                        new_value = field_dict.get('value', False)
-                        saved_value = getattr(instance, field, False)
-                        if new_value != saved_value:
-        # c. save field if changed
-                            setattr(instance, field, new_value)
+                            setattr(instance, field, taxcode)
+                            is_updated = True
+        # d. remove taxcode from order when pk is None
+                    else:
+                        if instance.taxcode is not None:
+                            instance.taxcode = None
                             is_updated = True
 
-    # 4. save changes in fields 'priceratejson'
-                    elif field in ['priceratejson']:
-                        #logger.debug('field: ' + str(field))
-                        # TODO save pricerate with date and wagefactor
-                        rosterdate = None
-                        wagefactor = None
-
-                        # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
-                        #if pricerate_is_updated:
-                        #    is_updated = True
-
-                        #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
-                        #logger.debug('is_updated: ' + str(is_updated))
-
-    # 4. save changes in field 'taxcode'
-                    elif field in ['taxcode']:
-            # a. get new taxcode_pk
-                        new_taxcode_pk = int(field_dict.get('pk', 0))
-                        if new_taxcode_pk:
-            # b. check if new_taxcode exists
-                            taxcode = m.Pricecode.objects.get_or_none(
-                                id=new_taxcode_pk,
-                                istaxcode=True,
-                                company=request.user.company
-                            )
-            # c. upate if exists. msg_err if not found
-                            if taxcode is None:
-                                msg_err = _('This field could not be updated.')
-                                update_dict[field]['error'] = msg_err
-                            else:
-                                setattr(instance, field, taxcode)
-                                is_updated = True
-            # d. remove taxcode from order when pk is None
-                        else:
-                            if instance.taxcode is not None:
-                                instance.taxcode = None
-                                is_updated = True
-
-    # 5. save changes in field 'inactive'
-                    elif field == 'inactive':
-                        saved_value = getattr(instance, field)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
+# 5. save changes in field 'inactive'
+                elif field == 'inactive':
+                    new_value = field_dict.get('value', False)
+                    saved_value = getattr(instance, field)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        is_updated = True
 
 # - add 'updated' to field_dict'
-                    if is_updated:
-                        update_dict[field]['updated'] = True
-                        save_changes = True
+                if is_updated:
+                    update_dict[field]['updated'] = True
+                    save_changes = True
 # --- end of for loop ---
 
 # 5. save changes
@@ -687,7 +767,7 @@ class OrderImportView(View):
                 caption = json.dumps(caption_dict, cls=LazyEncoder)
                 param = get_headerbar_param(request, {'caption': caption, 'setting': coldefs_json})
 
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        param = {'headerbar_class': settings.HEADER_CLASS}
         return render(request, 'order_import.html', param)
 
 
@@ -709,7 +789,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                     new_has_header = True
                     new_coldefs = {}
                     settings_key = c.KEY_ORDER_COLDEFS
-                    stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
+                    stored_json = request.user.company.get_companysetting(settings_key)
                     if stored_json:
                         stored_setting = json.loads(stored_json)
                         #logger.debug('stored_setting: ' + str(stored_setting))
@@ -731,7 +811,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                     new_setting_json = json.dumps(new_setting)
                     #logger.debug('---  set_jsonsettingg  ------- ')
                     #logger.debug(new_setting_json)
-                    m.Companysetting.set_jsonsetting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
+                    request.user.company.set_companysetting(c.KEY_ORDER_COLDEFS, new_setting_json)
 
         # only for testing
                     # ----- get user_lang
@@ -757,7 +837,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
         activate(user_lang)
 
 # - get stored setting from Companysetting
-        stored_setting_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
+        stored_setting_json = request.user.company.get_companysetting(c.KEY_ORDER_COLDEFS)
 
         tsaKey_list = []
         if stored_setting_json:

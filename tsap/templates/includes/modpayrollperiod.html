@@ -6,7 +6,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_MPP_hdr_payrolperiod" class="modal-title mx-2" >{% trans 'Payrol period' %}</h4>
+                    <h4 class="modal-title mx-2" >{% trans 'Payrol period' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -64,6 +64,7 @@
                                     <div class="mx-2">
                                         <small id="id_MPP_dayofmonth_02" class="text-muted">{% trans "If a date does not exist, the last day of the month wil be entered." %}</small>
                                     </div>
+
                                 </div>
                                 <div class="rec_show rec_biweekly display_hide">
                                     <label class="tsa_margin_form_label">{% trans "Enter a closing date" %}:</label>
@@ -81,7 +82,7 @@
                                 </div>
                                 <div class="rec_show rec_irregular display_hide">
                                     <label class="tsa_margin_form_label">{% trans "Select a year" %}:</label>
-                                    <input id="id_MPP_input_year" type="number" min="2020" max="2100" data-field="year" class="form-control tsa_input_text mx-0 my-1">
+                                    <input id="id_MPP_input_year" type="number" min="2020" max="2200" data-field="year" class="form-control tsa_input_text mx-0 my-1">
                                     <div class="mx-2">
                                         <small id="id_MPP_msg_year" class="text-muted"></small>
                                     </div>

@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_emplhour_download = get_attr_from_el(el_data, "data-emplhour_download_url");
         const url_emplhour_upload = get_attr_from_el(el_data, "data-emplhour_upload_url");
         const url_emplhournote_upload = get_attr_from_el(el_data, "data-emplhournote_upload_url");
+        const url_employeenote_upload = get_attr_from_el(el_data, "data-employeenote_upload_url");
+        const url_ordernote_upload = get_attr_from_el(el_data, "data-ordernote_upload_url");
+        const url_emplhourallowance_upload = get_attr_from_el(el_data, "data-emplhourallowance_upload_url");
 
         const url_emplhour_fill_rosterdate = get_attr_from_el(el_data, "data-emplhour_fill_rosterdate_url");
         const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
@@ -80,13 +83,14 @@ document.addEventListener('DOMContentLoaded', function() {
         let mod_dict = {};
         let mod_confirm_dict = {};
         let mod_status_dict = {};
+        let mod_MAL_dict = {};
+        let mod_MNO_dict = {};
 
         let emplhour_map = new Map();
         let emplhour_totals = {};
         let company_dict = {};
         let log_list = [];
         let log_file_name = "";
-
 
         let abscat_map = new Map();
         let employee_map = new Map();
@@ -95,6 +99,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let shift_map = new Map();
         let replacement_map = new Map();
         let emplhournote_rows = {};
+        let emplhourstatus_rows = {};
+        let emplhourallowance_dict = {};
+
+        let employeenote_rows = {};
+        let ordernote_rows = {};
+
+        let allowance_map = new Map();
 
         let filter_dict = {};
         let filter_mod_employee = "";
@@ -111,14 +122,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- field settings used in CreateTblRow and CreateTblHeader
         const field_settings = {
             //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
-            field_caption: ["", "Date", "Order", "Shift", "Employee", "-", "Start_time", "-", "End_time", "Break", "Hours", "-", "-"],
-            field_names: ["select", "rosterdate", "c_o_code", "shiftcode", "employeecode", "stat_start_conf", "offsetstart", "stat_end_conf", "offsetend", "breakduration", "timeduration", "hasnote", "status"],
-            field_tags: ["div", "input", "input", "input", "input", "div", "input", "div", "input", "input", "input", "div", "div"],
-            filter_tags: ["div", "text", "text", "text", "text", "img", "text", "img", "text", "duration", "duration", "status", "status"],
-            field_width:  ["016", "090", "200", "150", "180", "020", "090", "020", "090", "075", "075", "020", "020"],
-            field_align: ["c", "l", "l", "l", "l", "r", "l", "r", "l", "l", "l", "c"]
+            field_caption: ["", "Date", "-", "Order", "Shift", "-", "Employee", "-", "Start_time", "-", "End_time", "Break", "Hours", "-", "-", "-"],
+            field_names: ["select", "rosterdate", "ordernote", "c_o_code", "shiftcode", "employeenote", "employeecode", "stat_start_conf", "offsetstart", "stat_end_conf", "offsetend", "breakduration", "timeduration", "hasallowance", "hasnote", "status"],
+            field_tags: ["div", "input", "div", "input", "input", "div", "input", "div", "input", "div", "input", "input", "input", "div", "div", "div"],
+            filter_tags: ["div", "text", "img", "text", "text", "img", "text", "img", "text", "img", "text", "duration", "duration", "status", "status", "status"],
+            field_width:  ["016", "090", "020","200", "150", "020","180", "020", "090", "020", "090", "075", "075", "020", "020","020"],
+            field_align: ["c", "l","c", "l", "l", "c","l", "r", "l", "r", "l", "l", "l", "l", "c"]
         }
-
+        const fields_allowance = {
+            field_caption: ["", "Wage_component", "Description", "Amount_per_unit", "Quantity", ""],
+            field_names: ["select", "code", "description", "wagerate", "quantity", "delete"],
+            field_tags: ["div", "div", "div", "div", "input", "div"],
+            field_width: ["020", "120", "180", "120", "090", "032"],
+            field_align: ["c", "l", "l", "r", "r", "c"]
+        }
+        const fields_select_allowance = {
+            field_caption: ["Wage_component", "Description", "Amount_per_unit"],
+            field_names: ["code", "description", "wagerate"],
+            field_tags: ["div", "div",  "div"],
+            field_width: ["150", "180", "120"],
+            field_align: ["l", "l", "r"]
+        }
 // --- trailing spaces, used in data-orderby attr for sorting
         const spaces_48 = " ".repeat(48);
 
@@ -237,6 +261,18 @@ document.addEventListener('DOMContentLoaded', function() {
             el_confirm_btn_save.addEventListener("click", function() {DeleteShift_ConfirmSave()}, false )
         const el_confirm_btn_cancel = document.getElementById("id_confirm_btn_cancel")
 
+// ---  MOD ALLOWANCE ------------------------------------
+        const el_MAL_header = document.getElementById("id_MAL_header")
+        const el_MAL_modifiedby = document.getElementById("id_MAL_modifiedby")
+        const el_MAL_btn_save = document.getElementById("id_MAL_btn_save")
+            el_MAL_btn_save.addEventListener("click", function() {MAL_Save()}, false )
+
+// ---  MOD SELECT ALLOWANCE ------------------------------------
+        const el_MSA_input = document.getElementById("id_MSA_input");
+        el_MSA_input.addEventListener("keyup", function(event){
+            setTimeout(function() {MSA_Filter(el_MSA_input)}, 50)});
+        const el_MSA_btn_save = document.getElementById("id_MSA_btn_save")
+
 // ---  MOD NOTE ------------------------------------
         const el_MNO_header = document.getElementById("id_MNO_header")
         const el_MNO_note_container = document.getElementById("id_MNO_note_container")
@@ -320,8 +356,15 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MRO_btn_save.addEventListener("click", function() {MRO_Save()}, false )
 
 // ---  MODAL STATUS ------------------------------------
+        const el_mod_status_time_container= document.getElementById("id_mod_status_time_container")
+        const el_mod_status_time_label = document.getElementById("id_mod_status_time_label")
         const el_mod_status_time =  document.getElementById("id_mod_status_time")
             el_mod_status_time.addEventListener("click", function() {MRE_MRO_TimepickerOpen(el_mod_status_time, "mod_status", "mod_status")}, false)
+            add_hover(el_mod_status_time);
+        const el_mod_status_note = document.getElementById("id_mod_status_note")
+        const el_mod_status_lockall_container = document.getElementById("id_mod_status_lockall_container");
+        const el_mod_status_lockall_label = document.getElementById("id_mod_status_lockall_label");
+        const el_mod_status_lockall = document.getElementById("id_mod_status_lockall");
         const el_mod_status_btn_save =  document.getElementById("id_mod_status_btn_save")
             el_mod_status_btn_save.addEventListener("click", function() {ModalStatusSave()}, false )
 
@@ -352,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
-        let intervalID = window.setInterval(CheckForUpdates, 30000);  // every 30 seconds
+        // TODO enable: let intervalID = window.setInterval(CheckForUpdates, 30000);  // every 30 seconds
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
 
 // ---  set selected menu button active
@@ -382,7 +425,9 @@ document.addEventListener('DOMContentLoaded', function() {
             //team: {istemplate: false},
             //teammember: {datefirst: null, datelast: null, employee_nonull: false},
             employee_rows: {get: true},
-            abscat_rows: {inactive: false}
+            abscat_rows: {get: true},
+            allowance_rows: {inactive: false},
+            wagecode_rows: {inactive: false}
         };
         DatalistDownload(datalist_request, false);
 
@@ -439,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     permit_unlock_rows = !!selected_period.requsr_perm_hrman
 
                     permit_add_notes = (!!selected_period.requsr_perm_supervisor || !!selected_period.requsr_perm_planner ||
-                                        !!selected_period.requsr_perm_hrman || !!selected_period.requsr_acc_hrman)
+                                        !!selected_period.requsr_perm_hrman || !!selected_period.requsr_perm_accman)
 
                     const permit_has_allowed_customers = (!!selected_period.requsr_perm_customers && !!selected_period.requsr_perm_customers.length);
                     const permit_has_allowed_orders = (!!selected_period.requsr_perm_orders && !!selected_period.requsr_perm_orders.length);
@@ -474,20 +519,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map, "order")};
                 if ("shift_rows" in response) {refresh_datamap(response.shift_rows, shift_map, "shift")};
                 if ("abscat_rows" in response) {refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
+                if ("allowance_rows" in response) {refresh_datamap(response.allowance_rows, allowance_map, "wagecode")}
 
                 let fill_table = false, check_status = false;
                 // emplhournote_rows must come before RefreshEmplhourMap and fill_table
+                if ("emplhourallowance_rows" in response) {
+                    emplhourallowance_dict = response.emplhourallowance_rows;
+                    UpdateAllowance(emplhourallowance_dict);
+
+                    }
                 if ("emplhournote_rows" in response) {
-                    emplhournote_rows = response.emplhournote_rows;
-                }
+                    UpdateEmplhourNotes(response.emplhournote_rows);
+                    }
+                if ("emplhourstatus_rows" in response) {
+                    emplhourstatus_rows = response.emplhourstatus_rows;
+                    UpdateEmplhourStatus(emplhourstatus_rows);
+                    }
+                if ("employeenote_rows" in response) {
+                    employeenote_rows = response.employeenote_rows;
+                    UpdateEmployeeOrderNotes("employeenote", employeenote_rows)}
+                if ("ordernote_rows" in response) {
+                    ordernote_rows = response.ordernote_rows;
+                    UpdateEmployeeOrderNotes("ordernote", ordernote_rows)}
                 if ("emplhour_rows" in response) {
                     FillEmplhourMap(response.emplhour_rows);
                     fill_table = true;
                     check_status = true;
                 }
+                if("emplhourallowance_updates" in response){
+                    RefreshEmplhourAllowanceRows(response.emplhourallowance_updates)
+                }
                 if ("emplhournote_updates" in response) {
                     RefreshEmplhourNoteRows(response.emplhournote_updates)
                 }
+
                 if ("emplhour_updates" in response) {
                     RefreshEmplhourMap(response.emplhour_updates, true)
                 };
@@ -513,8 +578,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 Sidebar_DisplaySelectText();
 
                 if (check_status) {
-// check for overlap
-                    const datalist_request = {overlap: {get: true}, roster_period: selected_period};
+
+// check for overlap, also get emplhourallowance and emplhournote (and emplhourstatus
+                    // these are also called in ModRosterdateFinished, after adding / deleting rosterdate
+                    const datalist_request = {
+                        overlap: {get: true},
+                        emplhourallowance: {get: true},
+                        emplhournote: {get: true},
+                        emplhourstatus: {get: true},
+                        employeenote: {get: true},
+                        ordernote: {get: true},
+                        roster_period: selected_period};
                     DatalistDownload(datalist_request, true); // true = no_loader
                     CheckStatus()
                 }
@@ -608,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function HandleBtnClicked() {
     }
-//????????????????????????????????????????????????????????
+
 ///////////////////////////////
 
 //=========  CreateTblHeader  === PR2020-07-21 PR2020-08-13
@@ -639,23 +713,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++ add th to tblRow_header +++
             let th = document.createElement("th");
+// --- add div to th, margin not working with th
                 let el = document.createElement("div");
-                    if ( ["stat_start_conf", "stat_end_conf", "status", "hasnote"].indexOf(field_name) > -1) {
+                    if ( ["ordernote", "employeenote", "stat_start_conf", "stat_end_conf", "status", "hasallowance", "hasnote"].indexOf(field_name) > -1) {
                         const class_name = (field_name === "stat_start_conf") ? "stat_0_2" :
                                            (field_name === "stat_end_conf") ? "stat_0_3" :
-                                           (field_name === "hasnote") ? "edit_1_5" :
+                                           (field_name === "hasallowance") ? "edit_0_7" :
+                                           ( ["ordernote", "employeenote", "hasnote"].indexOf(field_name) > -1) ? "edit_0_1" :
                                            (field_name === "status") ? "stat_0_4" : "";
                         el.classList.add(class_name)
                     } else {
                         el.innerText = caption;
                     }
-
-
+// --- add width, text_align
                     el.classList.add(class_width, class_align);
                 th.appendChild(el);
             tblRow_header.appendChild(th);
 
-// +++ add th to tblRow_filter  +++
+// ++++++++++ create filter row +++++++++++++++
+// --- add th to tblRow_filter.
             th = document.createElement("th");
                 el = document.createElement(field_tag);
                     el.setAttribute("data-field", field_name);
@@ -672,6 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         el.setAttribute("ondragstart", "return false;");
                         el.setAttribute("ondrop", "return false;");
                     }
+// --- add width, text_align
                     el.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                 th.appendChild(el);
             tblRow_filter.appendChild(th);
@@ -688,8 +765,8 @@ document.addEventListener('DOMContentLoaded', function() {
             for (const [map_id, map_dict] of emplhour_map.entries()) {
                 const tblRow = CreateTblRow(map_id, map_dict, -1, false)
                 UpdateTblRow(tblRow, map_dict)
-            }  // for (const [map_id, map_dict] of emplhour_map.entries())
-        }  // if(emplhour_map)
+            }
+        }
     }  // FillTblRows
 
 //=========  CreateTblRow  ===== PR2020-08-12
@@ -699,7 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = "emplhour";
 
-// +++  insert tblRow into tblBody
+// +++  insert tblRow into tblBody at row_index
         let tblRow = tblBody_datatable.insertRow(row_index);
         tblRow.id = map_id;
         //tblRow.setAttribute("data-table", tblName);
@@ -707,12 +784,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  add data-orderby attribute to tblRow, for ordering new rows
         // happens in UpdateTblRow
+
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTblRowClicked(tblRow);}, false )
 
 //+++ insert td's into tblRow
         const column_count = field_settings.field_names.length;
         for (let j = 0; j < column_count; j++) {
+    // --- insert td element,
             let td = tblRow.insertCell(-1);
     // --- create div element
             let el = document.createElement("div");
@@ -724,10 +803,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(permit_lock_rows || permit_unlock_rows){
                     el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
                     el.classList.add("stat_0_0")
+                    add_hover(el)
                     // may open modconfirm depends if status = locked.
-                    // Therefore set add_hover and pointer_show in UpdateTblRow
+                    // therefore set add_hover and pointer_show in UpdateTblRow
                 };
-            } else if (field_name === "hasnote"){
+
+            } else if (field_name === "hasallowance"){
+                    // everybody may see notes, permit_add_notes is used in MAL_Open
+                    el.addEventListener("click", function() {MAL_Open(el)}, false)
+                    el.classList.add("edit_0_0", "pointer_show")
+                    add_hover(el)
+            } else if ( ["ordernote", "employeenote", "hasnote"].indexOf(field_name) > -1){
                     // everybody may see notes, permit_add_notes is used in MNO_open
                     el.addEventListener("click", function() {MNO_Open(el)}, false)
                     el.classList.add("edit_0_0", "pointer_show")
@@ -764,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return tblRow
     };// CreateTblRow
 
-//========= UpdateTblRow ====== PR2020-08-12
+//========= UpdateTblRow ====== PR2020-08-12 PR2021-02-04
     function UpdateTblRow(tblRow, map_dict){
         //console.log(" ------  UpdateTblRow  ------");
         //console.log("tblRow", tblRow);
@@ -772,22 +858,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (tblRow && !isEmpty(map_dict)) {
             const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
-            const is_locked =  (map_dict.stat_locked || map_dict.stat_pay_locked || map_dict.stat_inv_locked);
-            const is_restshift = map_dict.oh_isrestshift;
-            const is_absence = map_dict.c_isabsence;
+            const is_pay_or_inv_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            const is_locked = (is_pay_or_inv_locked || map_dict.stat_locked);
+            const status_array = b_get_status_array(map_dict.status);
 
-            const has_changed = map_dict.haschanged;
-            const data_haschanged = (has_changed) ? "1" : "0";
+            const data_haschanged = (map_dict.haschanged) ? "1" : "0";
             tblRow.setAttribute("data-haschanged", data_haschanged);
 
             let order_by = t_get_orderby_exceldate_cocode_excelstart(map_dict, spaces_48);
             tblRow.setAttribute("data-orderby", order_by);
 
+
 // --- loop through cells of tblRow
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 // el is first child of td, td is cell of tblRow
                 let el = tblRow.cells[i].children[0];
-                UpdateField(tblRow, el, map_dict)
+                UpdateField(tblRow, el, map_dict, is_pay_or_inv_locked, is_locked, status_array)
             }  //  for (let j = 0; j < 8; j++)
 
         };  // if (!!map_dict && !!tblRow)
@@ -795,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 ///////////////////////////////////////
 //========= UpdateField ====== PR2020-08-23
-    function UpdateField(tblRow, el, map_dict){
+    function UpdateField(tblRow, el, map_dict, is_pay_or_inv_locked, is_locked, status_array){
         //console.log(" ------  UpdateField  ------");
         //console.log("tblRow", tblRow);
         //console.log("map_dict", map_dict);
@@ -803,60 +889,60 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el && !isEmpty(map_dict)) {
             const has_changed = map_dict.haschanged;
 
-            const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
-            const is_locked = (map_dict.stat_locked || map_dict.stat_pay_locked || map_dict.stat_inv_locked);
             const is_pay_or_inv_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
-            const is_restshift = map_dict.oh_isrestshift;
-            const is_absence = map_dict.c_isabsence;
+            const is_locked = (is_pay_or_inv_locked || map_dict.stat_locked);
 
             const fldName = get_attr_from_el(el, "data-field");
             let inner_text = null, filter_value = null;
-            let title = ""; // title must be "", not null PR2020-10-26
             if (fldName === "rosterdate") {
                 // function format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long)
                 inner_text = format_dateISO_vanilla (loc, map_dict.rosterdate, false, true);
                 filter_value = inner_text;
+
             } else if (fldName === "c_o_code") {
+                const abscat_enabled = (!is_locked && map_dict.c_isabsence && permit_edit_rows);
                 inner_text = (map_dict.c_o_code) ? map_dict.c_o_code : "\n";
                 filter_value = (map_dict.c_o_code) ? map_dict.c_o_code.toLowerCase() : "";
-                // <PERMIT> enable field when it is absence
-                const is_disabled = (!permit_edit_rows || is_locked || !is_absence);
-                el.disabled = is_disabled
-                add_or_remove_class(el, "tsa_color_darkgrey", is_disabled )
+                el.disabled = !abscat_enabled
+                add_or_remove_class(el, "tsa_color_darkgrey", !abscat_enabled )
                 // hover doesn't show when el is disabled PR2020-07-22
-                // <PERMIT>
-                add_or_remove_class (el, "pointer_show", permit_edit_rows && !is_locked && is_absence)
+                add_or_remove_class (el, "pointer_show", abscat_enabled)
+
             } else if (fldName === "shiftcode") {
-                inner_text = (is_restshift) ? (map_dict.shiftcode) ? map_dict.shiftcode + " (R)" : loc.Rest_shift : map_dict.shiftcode;
+                inner_text = (map_dict.oh_isrestshift) ? (map_dict.shiftcode) ? map_dict.shiftcode + " (R)" : loc.Rest_shift : map_dict.shiftcode;
                 filter_value = (inner_text && inner_text !== "-") ? inner_text.toLowerCase() : "";
                 if(!inner_text) {inner_text = "\n"}
-                if (is_restshift) {title = loc.This_isa_restshift}
+                if (map_dict.oh_isrestshift) {
+                    el.title = loc.This_isa_restshift;
+                }
             } else if (fldName === "employeecode") {
+                // disable field employee when is_locked, also when is_restshift or is_absence
+                const employee_enabled = (!is_locked && !map_dict.oh_isrestshift && !map_dict.c_isabsence && permit_edit_rows);
                 let value = map_dict.employeecode;
                 // add * in front of name when is_replacement
                 if(map_dict.eh_isrpl) {value = "*" + value}
                 filter_value = (value) ? value.toLowerCase() : "";
                 // put any character in field, to show pointer
                 inner_text = (value) ? value : "---";
-                // disable field employee when is_locked, also when is_restshift or is_absence
-                const is_disabled = (!permit_edit_rows || is_locked || is_restshift || is_absence);
-                add_or_remove_class(el, "tsa_color_darkgrey",is_disabled)
+                add_or_remove_class(el, "tsa_color_darkgrey", !employee_enabled)
                 // hover doesn't show when el is disabled PR2020-07-22
-                add_or_remove_class (el, "pointer_show", permit_edit_rows && !is_locked && !is_restshift && !is_absence)
+                add_or_remove_class (el, "pointer_show", employee_enabled)
 
             } else if (["offsetstart", "offsetend"].indexOf( fldName ) > -1){
+                const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
+                const offset_enabled = (!is_locked && !confirmed_any && permit_edit_rows);
                 const offset = (fldName === "offsetstart") ? map_dict.offsetstart : map_dict.offsetend;
                 inner_text = format_time_from_offset_JSvanilla( loc, map_dict.rosterdate, offset, true, false, false)
                 filter_value = inner_text;
                  // true = display24, false = only_show_weekday_when_prev_next_day, false = skip_hour_suffix
                 if(!inner_text) {inner_text = "\n"}
-                 // PERMITS
-                const is_disabled = (!permit_edit_rows || is_locked || confirmed_any);
-                add_or_remove_class(el, "tsa_color_darkgrey", is_disabled)
+                add_or_remove_class(el, "tsa_color_darkgrey", !offset_enabled)
                 // hover doesn't show when el is disabled PR2020-07-22
-                add_or_remove_class (el, "pointer_show", !is_disabled)
+                add_or_remove_class (el, "pointer_show", offset_enabled)
 
             } else if (["timeduration", "breakduration"].indexOf( fldName ) > -1){
+                const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
+                const offset_enabled = (!is_locked && !confirmed_any && permit_edit_rows);
                 const duration = (fldName === "timeduration") ? map_dict.timeduration : map_dict.breakduration;
                 inner_text = display_duration (duration, loc.user_lang)
                 filter_value = duration;
@@ -865,116 +951,59 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (map_dict.offsetstart != null && map_dict.offsetend != null && map_dict.timeduration) {
                         if(map_dict.offsetend - map_dict.offsetstart - map_dict.breakduration !== map_dict.timeduration ) {
                             inner_text += "*";
-                            title = loc.dst_warning;
+                            el.title = loc.dst_warning;
                         }
                     }
                 }
                 if(!inner_text) {inner_text = "\n"}
-                const is_disabled = (!permit_edit_rows || is_locked || confirmed_any);
-                add_or_remove_class(el, "tsa_color_darkgrey", is_disabled)
+                add_or_remove_class(el, "tsa_color_darkgrey", !offset_enabled)
                 // hover doesn't show when el is disabled PR2020-07-22
-                add_or_remove_class (el, "pointer_show", !is_disabled)
+                add_or_remove_class (el, "pointer_show", offset_enabled)
 
             } else if (["stat_start_conf", "stat_end_conf"].indexOf( fldName ) > -1){
-                // el_img does not exist, update status column instead PR2020-07-26
-                //format_confirmation_element (loc, el, fldName, field_dict,
-                //    imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
-                //    "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due" )
+                // keep value of haschanged = false, don't show haschanged in these columns
+                const arr = b_get_status_class(loc, fldName, map_dict.status, is_pay_or_inv_locked, false);
+                const icon_class = arr[0];
+                el.className = icon_class;
+                filter_value = icon_class;
+
+                // PERMITS supervisor can confirm and undo confirm. Must come after el.className = icon_class_confirmed;
+                const is_enabled = (!is_pay_or_inv_locked && permit_lock_rows && !is_locked) ||
+                                   (!is_pay_or_inv_locked && permit_unlock_rows)
+                if (is_enabled ){
+                    //add_hover(el);
+                    //el.classList.add("pointer_show")
+                };
+                add_hover(el);
 
             } else if (["status"].indexOf(fldName ) > -1){
-                // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
-                let is_enabled = false;
-                // no changes allowed when is_pay_or_inv_locked
-                if(!is_pay_or_inv_locked) {
-                    if(permit_lock_rows) {
-                        is_enabled = (!is_locked);
-                    } else if(permit_unlock_rows) {
-                        is_enabled = true;
-                    }
-                }
-                if ( is_enabled ){
-                    add_hover(el)
-                    el.classList.add("pointer_show");
-                }
                 const modified_dateJS = parse_dateJS_from_dateISO(map_dict.eh_modat);
                 const modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
                 const modified_by = (map_dict.u_usr) ? map_dict.u_usr : "-";
 
-                let icon_class = "stat_0_0"
-
-                if(map_dict.stat_pay_locked || map_dict.stat_inv_locked){
-                    icon_class = "stat_0_6"
-                    title = loc.This_shift_is_locked;
-                } else if (map_dict.stat_locked){
-                    icon_class = (has_changed) ? "stat_1_5" : "stat_0_5"
-                    title = loc.This_shift_is_closed;
-                } else if (confirmed_any){
-                    if (map_dict.stat_start_conf && map_dict.stat_end_conf) {
-                        icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
-                        title = loc.Start_and_endtime_confirmed;
-                    } else if (map_dict.stat_end_conf) {
-                        icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
-                        title = loc.Endtime_confirmed
-                    } else if (map_dict.stat_start_conf) {
-                        icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
-                        title = loc.Starttime_confirmed
-                    }
-                } else if (map_dict.stat_planned){
-                    icon_class = (has_changed) ? "stat_1_1" : "stat_0_1"
-                    title = loc.This_isa_planned_shift;
-                } else {
-                    icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
-                    title = loc.This_isan_added_shift;
-                }
+                const arr = b_get_status_class(loc, fldName, map_dict.status, is_pay_or_inv_locked, map_dict.haschanged);
+                let title = arr[1];
                 if(has_changed){
                     title += "\n" + loc.Modified_by + modified_by + "\n" + loc._on_ + modified_date_formatted
                 }
-                // first remove all classes from el, put pointer_show back later
-                let classList = el.classList;
-                const contains_pointer_show = classList.contains("pointer_show");
-                while (classList.length > 0) {
-                    classList.remove(classList.item(0));
-                }
-                if(contains_pointer_show) {el.classList.add("pointer_show")};
-                el.classList.add(icon_class)
-                filter_value = icon_class;
+                el.title = (title) ? title : null;
+                el.className = arr[0];  // icon_class = arr[0];
+                filter_value = arr[0];  // icon_class = arr[0];
 
+                // PERMITS hrman can unlock, supervisor can only lock PR20202-08-05
+                const is_enabled = (!is_pay_or_inv_locked && permit_lock_rows && !is_locked) ||
+                                   (!is_pay_or_inv_locked && permit_unlock_rows)
+                if (is_enabled ){ add_hover(el); el.classList.add("pointer_show")};
+
+            } else if (fldName === "hasallowance"){
+                // icon hasallowance wil be added by UpdateAllowance
             } else if (fldName === "hasnote"){
-        //console.log("................fldName:", fldName)
-        //console.log("................map_dict.hasnote:", map_dict.hasnote)
-        //console.log("................map_dict.id:", map_dict.id)
-        //console.log("................emplhournote_rows:", emplhournote_rows)
-                let has_usernote = false
-                if (map_dict.hasnote && emplhournote_rows && map_dict.id){
-                    const note = emplhournote_rows[map_dict.id];
-        //console.log("................note:", note)
-        //console.log("................note.usernote_count:", note.usernote_count)
-                    if(note){
-                        if(note.usernote_count) {has_usernote = true }
-                        const len = note.note_agg.length;
-                        //if (note.note_agg[len -1]) { title = note.note_agg[len -1] }
-                        for (let i = 0, value; i < len; i++) {
-                            value = note.note_agg[i];
-                            if(value){
-                                if (title) {title += "\n"}
-                                title += value
-                            }
-                        }
-                    }
-                }
-        //console.log("................title:", title)
-                el.className = (has_usernote) ? "edit_1_5" : (map_dict.hasnote) ? "edit_0_5" : "edit_0_0" ;
-                el.classList.add("pointer_show")
+                // icon and title of note will be added by UpdateEmplhourNote
             }  // if (fldName === "rosterdate")
 
 // ---  put value in innerText and title
             el.innerText = inner_text;
-            if(title){
-                el.setAttribute("title", title)
-            } else {
-                el.removeAttribute("title")
 
-            }
             if(filter_value){
                 el.setAttribute("data-filter", filter_value)
             } else {
@@ -993,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= HandleConfirmMouseenter  ====================================
     function HandleConfirmMouseenter(el) {
         //console.log(" --- HandleConfirmMouseenter --- ")
-        const item_dict = get_itemdict_from_datamap_by_el(el, emplhour_map);
+        const item_dict = get_mapdict_from_datamap_by_el(el, emplhour_map);
         let data_field = get_attr_from_el_str(el, "data-field")
         const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
         const img_src = (data_field === "confirmstart") ? imgsrc_stat02 : imgsrc_stat03;
@@ -1196,7 +1225,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }
 
-
 //###########################################################################
 // +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
@@ -1365,7 +1393,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         el_sidebar_select_employee.value = header_text
     }; // Sidebar_DisplaySelectText
-
 
 // +++++++++++++++++ SIDEBAR SELECT ABSENCE OR RESTSHIFT OR SHOW ALL +++++++++++++++++++++++++++++++++++++++++++
 //=========  Sidebar_SelectOptionChanged  ================ PR2020-01-09
@@ -1793,7 +1820,7 @@ rowcount: 11
 // set header text
         const el_header = document.getElementById("id_MSS_header");
         const employee_code = get_dict_value(mod_dict, ["employee", "code"])
-        const header_text = (employee_code) ? loc.Select_shift + " " + loc.for_txt + " " + employee_code : loc.Select_shift + ":"
+        const header_text = (employee_code) ? loc.Select_shift +  loc.for_txt + employee_code : loc.Select_shift + ":"
         el_header.innerText = header_text;
 // ---  reset input boxes
         const el_MSS_input_container = document.getElementById("id_MSS_input_container");
@@ -1902,32 +1929,527 @@ rowcount: 11
         }
     }  // ModOrderSelectCustomer
 
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//========= MOD ALLOWANCE Open====================================
+    function MAL_Open (el_input) {
+        console.log("===  MAL_Open  =====") ;
+        //  emplhourallowance_dict contains key = alw_pk for every allowance (also created and deleted ones)
+        // plus key emplhour_pk and mapid
+        mod_MAL_dict = {}
+
+// get info from emplhour_map
+        let emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
+        if(!isEmpty(emplhour_dict)){
+
+// ---  set header text
+            let headertext = loc.Allowances + loc.for_txt + emplhour_dict.employeecode + "\n"
+            headertext += format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
+            if(emplhour_dict.c_o_code) { headertext += " - " + emplhour_dict.c_o_code };
+            if(emplhour_dict.shiftcode) { headertext += "  " + emplhour_dict.shiftcode };
+            el_MAL_header.innerText = headertext;
+
+// ---  put emplhour_pk and mapid in mod_MAL_dict
+            mod_MAL_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid};
+
+// ---  put allowance rows in mod_MAL_dict
+            const empl_alw_dict = get_dict_value(emplhourallowance_dict, [emplhour_dict.id])
+            MAL_fill_MAL_dict(empl_alw_dict)
+
+// ---  display modified_by
+            // loop through allowances and put last modifiedat and username in
+            const modat = get_dict_value(mod_MAL_dict, ["max_modifiedat"])
+            const modby = get_dict_value(mod_MAL_dict, ["max_modifiedby"])
+            el_MAL_modifiedby.innerText = display_modifiedby(loc, modat, modby);
+
+// ---  fill table empl_alw
+            MAL_FillTable("alw_listdict");
+
+            //const el_input = document.getElementById("id_MNO_input_note")
+            //if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
+
+            $("#id_mod_emplhourallowance").modal({backdrop: true});
+        }
+    }  // MAL_Open
+
+//========= MNO_Save============== PR2021-01-30
+    function MAL_Save () {
+        console.log("===  MAL_Save  =====");
+
+        console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict);
+
+        if(permit_add_notes){
+            let ehal_list = [];
+            for (const [key, alw_dict] of Object.entries(mod_MAL_dict.alw_listdict)) {
+                // add only items with mode 'create, 'delete' or 'update'. This skips unchanged items
+                if(alw_dict.create || alw_dict.delete || alw_dict.update){
+                    alw_dict.mode = (alw_dict.delete) ? "delete" : (alw_dict.create) ? "create" : (alw_dict.update) ? "update" : null;
+                    ehal_list.push(alw_dict);
+                }
+            }
+            if(ehal_list.length){
+                const upload_dict = {emplhour_pk: mod_MAL_dict.emplhour_pk, ehal_list: ehal_list}
+                UploadChanges(upload_dict, url_emplhourallowance_upload);
+            }
+       }
+// hide modal
+        $("#id_mod_emplhourallowance").modal("hide");
+    }  // MAL_Save
+
+//=========  MAL_CreateTblHeader  === PR2021-01-30
+    function MAL_CreateTblHeader(table, fields) {
+        console.log("===  MAL_CreateTblHeader == ");
+
+        const tblHead_id = (table === "alw_listdict")  ? "id_MAL_thead" :
+                   (table === "allowance_map")  ? "id_MSA_thead" : "none";
+        const tblHead = document.getElementById(tblHead_id);
+
+        tblHead.innerText = null
+        let tblRow = tblHead.insertRow (-1);
+//--- insert th's to tblHead
+        const col_count = fields.field_names.length;
+        for (let j = 0; j < col_count; j++) {
+// --- add th to tblRow.
+            let th = document.createElement("th");
+            tblRow.appendChild(th);
+// --- add div to th, margin not workign with th
+                let el_div = document.createElement("div");
+    // --- add innerText to th
+                const data_text = loc[fields.field_caption[j]];
+                if(data_text) el_div.innerText = data_text;
+    // --- add width to el
+                el_div.classList.add("tw_" + fields.field_width[j])
+    // --- add text_align
+                el_div.classList.add("ta_" + fields.field_align[j])
+            th.appendChild(el_div)
+        }  // for (let j = 0; j < column_count; j++)
+    };  // MAL_CreateTblHeader
+
+//=========  MAL_CreateTblFooter  === PR2021-01-30
+    function MAL_CreateTblFooter(fields){
+        //console.log("===  MAL_CreateTblFooter == ");
+
+        let tblFoot = document.getElementById("id_MAL_tfoot");
+        tblFoot.innerText = null;
+
+        let tblRow = tblFoot.insertRow(-1);
+        // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
+        const col_count = fields.field_names.length;
+        for (let j = 0; j < col_count; j++) {
+            let td = tblRow.insertCell(-1);
+            if(j === 1){
+// --- create element with tag from field_tags
+                let el = document.createElement("div");
+                el.setAttribute("tabindex", "0")
+                el.setAttribute("colspan", "5")
+
+                //el.classList.add("pointer_show")
+                td.classList.add("tsa_color_darkgrey")
+                el.classList.add("ml-2")
+                el.innerText = loc.Add_allowance + "..."
+                add_hover(td)
+// --- add EventListener to td
+                el.addEventListener("click", function() {MSA_Open()}, false);
+                td.appendChild(el);
+            }
+        }
+    };  // MAL_CreateTblFooter
+
+//========= MSOD SELECT ALLOWANCE ============= PR2021-01-31
+    function MSA_Open() {
+        console.log( " ==== MSA_Open ====");
+        // function is called when clicked on footer 'New allowance
+
+    // ---  fill selct table allowance
+        MAL_FillTable("allowance_map");
+
+        $("#id_mod_select_allowance").modal({backdrop: true});
+
+        //MAL_BtnSaveDeleteEnable();
+
+    }  // MSA_Open
+
+//========= MAL_DeleteAlw  ============= PR2021-01-30
+    function MAL_DeleteAlw(tblRow) {
+        console.log( " ==== MAL_DeleteAlw ====");
+        console.log( "tblRow", tblRow);
+
+        const teammember_pk = get_attr_from_el(tblRow, "data-pk", 0);
+        const team_pk = get_attr_from_el(tblRow, "data-ppk", 0);
+
+        console.log( "teammember_pk", teammember_pk);
+        console.log( "team_pk", team_pk);
+        let teammember_dict = mod_MGT_dict[teammember_pk]
+        if(teammember_dict) {
+            teammember_dict.delete = true;
+        }
+        mod_MGT_dict.update = true;
+        console.log( "mod_MGT_dict", mod_MGT_dict);
+
+        MAL_BtnSaveDeleteEnable();
+
+        MGT_FillTableTeammember(team_pk)
+    }  // MAL_DeleteAlw
+
+//=========  MAL_BtnSaveDeleteEnable  ================ PR2021-01-30
+    function MAL_BtnSaveDeleteEnable(){
+        console.log( "MAL_BtnSaveDeleteEnable");
+/*
+        el_MAL_btn_save.disabled = !mod_dict.update;
+
+        const team_mode = get_dict_value(mod_dict, ["team", "mode"])
+        const btn_delete_hidden = (!selected.scheme_pk || team_mode === "create");
+        console.log( "team_mode", team_mode);
+        console.log( "btn_delete_hidden", btn_delete_hidden);
+        add_or_remove_class (el_MAL_btn_save, cls_hide, btn_delete_hidden) // args: el, classname, is_add
+*/
+    }  // MAL_BtnSaveDeleteEnable
+
+
+//=========  MAL_fill_MAL_dict  ================  PR2021-01-31
+    function MAL_fill_MAL_dict(empl_alw_dict){
+        console.log( "MAL_fill_MAL_dict");
+        console.log( "empl_alw_dict", empl_alw_dict);
+        // only called by MAL_Open
+        // function fills mod_MAL_dict.alw_list with allowances of this emplhour
+        /*
+        empl_alw_dict = {id: 47
+                        ehal_id_agg: (2) [1, 2]
+                        code_agg: (2) ["235", "A00"]
+                        description_agg: (2) ["Maaltijd", null]
+                        quantity_agg: (2) [2, 4]
+                        amount_agg: (2) [12, 27]
+                        modifiedat_agg: (2) ["2021-01-31T04:00:00Z", "2021-01-31T04:00:00Z"]
+                        modifiedby_agg: (2) ["Hans", "Hans"]
+        */
+        const alw_listdict = {}
+        const ehal_id_list = (empl_alw_dict && empl_alw_dict.ehal_id_agg) ? empl_alw_dict.ehal_id_agg : [];
+        const len = ehal_id_list.length;
+        let max_modifiedat_index = 0, max_modifiedat = null, max_modifiedby = null;
+        if(len) {
+            for (let i = 0; i < len; i++) {
+                const map_id = "ehal_" + ehal_id_list[i];
+                alw_listdict[map_id] = {
+                    ehal_id: ehal_id_list[i],
+                    alw_id: empl_alw_dict.alw_id_agg[i],
+                    code: empl_alw_dict.code_agg[i],
+                    wagerate: empl_alw_dict.wagerate_agg[i],
+                    description: empl_alw_dict.description_agg[i],
+                    quantity: empl_alw_dict.quantity_agg[i],
+                    amount: empl_alw_dict.amount_agg[i],
+                    modifiedat: empl_alw_dict.modifiedat_agg[i],
+                    modifiedby: empl_alw_dict.modifiedby_agg[i]
+                };
+                if (max_modifiedat == null || empl_alw_dict.modifiedat_agg[i] > max_modifiedat){
+                    max_modifiedat_index = i;
+                    max_modifiedat = empl_alw_dict.modifiedat_agg[i];
+                }
+            }
+            max_modifiedby = empl_alw_dict.modifiedby_agg[max_modifiedat_index];
+
+        }
+        mod_MAL_dict.alw_listdict = alw_listdict;
+
+        mod_MAL_dict.max_modifiedat = max_modifiedat;
+        mod_MAL_dict.max_modifiedby = max_modifiedby;
+
+        console.log( "mod_MAL_dict", mod_MAL_dict);
+
+    }  // MAL_fill_MAL_dict
+
+//========= MAL_FillTable  ==========  PR2021-01-30
+    function MAL_FillTable(table){
+        console.log( "===== MAL_FillTable  ========= ");
+        console.log( "table", table);
+        console.log( "mod_MAL_dict", mod_MAL_dict);
+
+        const emplhour_pk = get_dict_value(mod_MAL_dict, ["emplhour_pk"]);
+        const fields = (table === "alw_listdict") ? fields_allowance :
+                       (table === "allowance_map") ? fields_select_allowance : null;
+
+        MAL_CreateTblHeader(table, fields);
+        if (table === "alw_listdict") {
+            MAL_CreateTblFooter(fields)
+        }
+
+        const tblBody_id = (table === "alw_listdict")  ? "id_MAL_tbody" :
+                           (table === "allowance_map")  ? "id_MSA_tbody_select" : "none";
+        const tblBody = document.getElementById(tblBody_id);
+        if(tblBody){
+
+// --- reset tblBody
+            tblBody.innerText = null;
+// --- loop through mod_MAL_dict.alw_listdict, skip when delete=true
+            const obj_entries = (table === "alw_listdict")  ? Object.entries(mod_MAL_dict.alw_listdict) :
+                               (table === "allowance_map")  ? allowance_map.entries() : null;
+
+            if (fields && obj_entries) {
+                for (const [map_id, dict] of obj_entries) {
+                    const is_delete = get_dict_value(dict, ["delete"], false);
+                    const is_inactive = get_dict_value(dict, ["inactive"], false);
+                    if (!is_delete && !is_inactive){
+                        const tblRow = MAL_CreateTblRow(tblBody, table, fields, emplhour_pk, map_id)
+                        MAL_UpdateTblRow(tblRow, table, dict)
+                    }
+                }
+            }
+        }  // if(tblBody)
+    }  // MAL_FillTable
+
+//=========  MAL_CreateTblRow  ================ PR2021-01-31
+    function MAL_CreateTblRow(tblBody, table, fields, emplhour_pk, map_id){
+        //console.log("--- MAL_CreateTblRow  --------------");
+
+// --- insert tblRow into tblBody or tfoot
+        let tblRow = tblBody.insertRow(-1);
+        tblRow.setAttribute("id", map_id);
+
+// --- add EventListener to tblRow.
+        if(table === "allowance_map"){
+            tblRow.addEventListener("click", function() {MSA_TblRowClicked(tblRow)}, false )
+            add_hover(tblRow);
+        }
+//+++ insert td's into tblRow
+        const col_count = fields.field_names.length;
+        for (let j = 0, field; j < col_count; j++) {
+            field = fields.field_names[j];
+            let td = tblRow.insertCell(-1);
+// --- create element with tag from field_tags
+            let el = document.createElement( fields.field_tags[j] );
+// --- add data-field Attribute.
+            el.setAttribute("data-field", field);
+// --- add img delete to col_delete
+            if (table === "alw_listdict" && field === "delete") {
+                el.addEventListener("click", function() {MAL_DeleteClicked(tblRow)}, false )
+        // --- add div with image delete
+                let el_img = document.createElement("div");
+                    el_img.className = "delete_0_1";
+                    el.appendChild(el_img);
+                el.addEventListener("mouseenter", function() {el_img.className = "delete_0_2"});
+                el.addEventListener("mouseleave", function() {el_img.className = "delete_0_1"});
+            } else if (table === "alw_listdict" && field === "quantity") {
+                el.addEventListener("change", function() {MAL_QuantityChanged(tblRow, el)}, false )
+            }
+// --- add width to el - not necessary, tblhead has width
+            el.classList.add("tw_" + fields.field_width[j])
+// --- add text_align
+            el.classList.add("ta_" + fields.field_align[j])
+// --- add other classes to td
+            el.classList.add("border_none");
+            //el.setAttribute("autocomplete", "off");
+            //el.setAttribute("ondragstart", "return false;");
+            //el.setAttribute("ondrop", "return false;");
+            td.appendChild(el);
+        }
+        return tblRow
+    };// MAL_CreateTblRow
+
+//========= MAL_UpdateTblRow  ============= PR2021-01-30
+    function MAL_UpdateTblRow(tblRow, table, alw_dict){
+       console.log("--- MAL_UpdateTblRow  --------------");
+       console.log("tblRow", tblRow);
+       console.log("alw_dict", alw_dict);
+       console.log("table", table);
+
+        if (!!tblRow && !isEmpty(alw_dict)) {
+            // add data-pk and data-display for t_Filter_SelectRows
+            if(table === "allowance_map"){
+                tblRow.setAttribute("data-pk", alw_dict.id);
+                const display = (alw_dict.code || "") + " " + (alw_dict.description || "");
+                tblRow.setAttribute("data-display", display);
+            }
+// check if tblBody = tfoot, if so: is_addnew_row = true
+            let tblBody = tblRow.parentNode;
+            const tblBody_id_str = get_attr_from_el(tblBody, "id")
+            const arr = tblBody_id_str.split("_");
+            const is_addnew_row = (arr.length > 1 && arr[1] === "tfoot");
+
+// move the new row in alfabetic order
+            // TODO: also when name has changed
+            // GetNewSelectRowIndex only uses update_dict.code.value
+            //const row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, loc.user_lang);
+           // tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
+
+            for (let i = 0, cell, len = tblRow.cells.length; i < len; i++) {
+                cell = tblRow.cells[i];
+                if(!!cell){
+                    let el_input = cell.children[0];
+                    if(!!el_input){
+                        const fldName = get_attr_from_el(el_input, "data-field")
+                        const value = get_dict_value(alw_dict, [fldName]);
+                        if (["code", "description"].indexOf( fldName ) > -1){
+                            el_input.innerText = (value || "---");
+                        } else if (fldName === "quantity"){
+                            el_input.value = (value) ? value / 10000 : 0;
+
+                        } else if (["amount", "wagerate"].indexOf( fldName ) > -1){
+                            el_input.innerText = format_pricerate (loc.user_lang, value, false , true) // false = is_percentage , true = show_zero
+
+                        }
+       //console.log("alw_dict", alw_dict);
+       //console.log("fldName", fldName);
+       //console.log("value", value);
+       //console.log("format_pricerate", value);
+
+                    }
+                }
+            }
+        };
+    }  // function MAL_UpdateTblRow
+
+//========= MSA_TblRowClicked  ============= PR2021-01-31
+    function MSA_TblRowClicked(tblRow){
+        console.log("=== MSA_TblRowClicked ===") ;
+
+        const map_dict = get_mapdict_from_datamap_by_id(allowance_map, tblRow.id)
+        console.log("map_dict", map_dict) ;
+
+        id_new += 1;
+        const pk_new = "new" + id_new.toString()
+        const map_id = "ehal_" + pk_new;
+
+        mod_MAL_dict.alw_listdict[map_id] = {ehal_id: pk_new,
+                        alw_id: map_dict.id,
+                        code: map_dict.code,
+                        description: map_dict.description,
+                        wagerate: map_dict.wagerate,
+                        quantity: 10000,
+                        create: true
+        }
+// ---  fill table empl_alw
+            MAL_FillTable("alw_listdict");
+
+// hide modal
+        $("#id_mod_select_allowance").modal("hide");
+    }  // MSA_TblRowClicked
+
+//========= MAL_DeleteClicked  ============= PR2021-01-31
+    function MAL_DeleteClicked(tblRow){
+       console.log("MAL_DeleteClicked") ;
+
+        const map_id = tblRow.id;
+        const ehal_dict = mod_MAL_dict.alw_listdict[map_id];
+        if (ehal_dict){
+            if (get_dict_value(ehal_dict, ["create"], false )){
+                // delete item from dict when it is a new item
+                delete mod_MAL_dict.alw_listdict[map_id];
+            } else {
+                // set delete=true when it is an existing item
+                ehal_dict.delete = true;
+            }
+// ---  fill table empl_alw
+            MAL_FillTable("alw_listdict");
+        }
+        console.log("mod_MAL_dict", mod_MAL_dict) ;
+    }  // MAL_DeleteClicked
+
+//========= MAL_QuantityChanged  ============= PR2021-01-31
+    function MAL_QuantityChanged(tblRow, el){
+        console.log("MAL_QuantityChanged")
+        console.log("el.value", el.value)
+        const ehal_dict = get_dict_value(mod_MAL_dict, ["alw_listdict", tblRow.id ]);
+
+        console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict)
+        console.log("tblRow.id", tblRow.id)
+
+        if (ehal_dict){
+
+        const arr = get_number_from_input(loc, "quantity", el.value);
+
+        const quantity = arr[0];
+        const msg_err = arr[1];
+        console.log("quantity", quantity)
+            ehal_dict.quantity = quantity;
+            ehal_dict.update = true;
+        }
+
+        console.log("ehal_dict", ehal_dict)
+    }  // MAL_QuantityChanged
+
+
+//=========  MSA_Filter  ================ PR2021-02-01
+    function MSA_Filter (el_input) {
+        console.log("=====  MSA_Filter =====")
+        console.log("el_input.value", el_input.value)
+// ---  get value of new_filter
+        let new_filter = el_input.value
+
+        let tblBody = document.getElementById("id_MSA_tbody_select");
+        const len = tblBody.rows.length;
+        if (len){
+// ---  filter rows in table select_employee
+            const col_index_list = [1, 2, 3]
+            const filter_dict = t_Filter_SelectRows(tblBody, new_filter, false, false, null, col_index_list);
+
+        console.log("filter_dict", filter_dict)
+// ---  if filter results have only one row: put selected row in el_input
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            const selected_value = get_dict_value(filter_dict, ["selected_value"])
+            if (selected_pk) {
+                el_input.value = selected_value
+// ---  put pk of selected row in mod_dict
+                mod_MAL_dict.selected_allowance_pk = selected_pk;
+               //console.log("mod_dict.selected_emplhour_pk: ", mod_dict.selected_emplhour_pk)
+                el_MSA_input.value = selected_value;
+                el_MSA_btn_save.disabled = false;
+                set_focus_on_el_with_timeout(el_MSA_btn_save , 50)
+            }  //  if (!!selected_pk) {
+        }
+    }  // MSA_Filter
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= MOD NOTE Open====================================
     function MNO_Open (el_input) {
-       //console.log("===  MNO_Open  =====") ;
+       console.log("===  MNO_Open  =====") ;
 
 // get tr_selected
-        let tr_selected = get_tablerow_selected(el_input)
+        let emplhour_dict = null
+        mod_MNO_dict = {};
+        if(el_input){
+            const fldName = get_attr_from_el(el_input, "data-field");
+            const tr_selected = get_tablerow_selected(el_input)
+            console.log("fldName", fldName) ;
 // get info from emplhour_map
-        let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
-        if(!isEmpty(emplhour_dict)){
-            let headertext = format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
-            if(emplhour_dict.c_o_code) { headertext += " - " + emplhour_dict.c_o_code };
-            if(emplhour_dict.shiftcode) { headertext += "  " + emplhour_dict.shiftcode };
-            if(emplhour_dict.employeecode) { headertext += "\n" + emplhour_dict.employeecode };
-            el_MNO_header.innerText = headertext;
+            emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
+            console.log("emplhour_dict", emplhour_dict) ;
+            if(!isEmpty(emplhour_dict)){
 
-            mod_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid}
+                let show_note = (fldName === "hasnote") || (fldName === "employeenote") || (fldName === "ordernote" && !emplhour_dict.c_isabsence && !emplhour_dict.oh_isrestshift);
+                if(show_note){
+                    const pk_int = (fldName === "ordernote") ? emplhour_dict.o_id : (fldName === "employeenote") ? emplhour_dict.employee_id : null;
+                    const tblName = (fldName === "ordernote") ? "order" : (fldName === "employeenote") ? "employee" : null;
+                    let map_dict = null;
+                    if (fldName === "hasnote") {
+                        map_dict = emplhour_dict;
+                    } else if (fldName === "ordernote") {
+                        map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", pk_int)
+                    } else if (fldName === "employeenote") {
+                        map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", pk_int)
+                    }
+                    if(!isEmpty(map_dict)){
+                        let header_txt = (fldName === "ordernote") ? map_dict.c_o_code : (fldName === "employeenote") ? map_dict.code : null;
+                        if (fldName === "hasnote") {
+                            header_txt = format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
+                            if(emplhour_dict.c_o_code) { headertext += " - " + emplhour_dict.c_o_code };
+                            if(emplhour_dict.shiftcode) { headertext += "  " + emplhour_dict.shiftcode };
+                            if(emplhour_dict.employeecode) { headertext += "\n" + emplhour_dict.employeecode };
+                        } else if (fldName === "ordernote") {
+                            header_txt = map_dict.c_o_code;
+                        } else if (fldName === "employeenote") {
+                            header_txt = map_dict.code;
+                        }
+                        el_MNO_header.innerText = header_txt;
 
-            MNO_FillNotes(emplhour_dict.id);
+                        mod_MNO_dict = {table: tblName, pk: map_dict.id}
+                        MNO_FillNotes(tblName, map_dict.id);
 
-            const el_input = document.getElementById("id_MNO_input_note")
-            if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
+                        const el_input = document.getElementById("id_MNO_input_note")
+                        if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
 
-// get info from emplhour_map
-            $("#id_mod_note").modal({backdrop: true});
+                        $("#id_mod_note").modal({backdrop: true});
+                    }
+                }
+
+            }
         }
     }  // MNO_Open
 
@@ -1938,10 +2460,14 @@ rowcount: 11
         if(permit_add_notes){
             const note = document.getElementById("id_MNO_input_note").value;
             if(note){
-                // put note in tblRow on response
-                let upload_dict = { id: {ppk: mod_dict.emplhour_pk,  table: "Emplhournote", create: true},
-                                    note: {value: note, update: true}};
-                UploadChanges(upload_dict, url_emplhournote_upload) ;
+                const url_str = (mod_MNO_dict.table === "emplhour") ? url_emplhournote_upload :
+                                (mod_MNO_dict.table === "employee") ? url_employeenote_upload :
+                                (mod_MNO_dict.table === "order") ? url_ordernote_upload : null;
+                const upload_dict = { ppk: mod_MNO_dict.pk,
+                                      table: mod_MNO_dict.table,
+                                      note: note,
+                                      create: true};
+                UploadChanges(upload_dict, url_str) ;
            }
        }
 // hide modal
@@ -1949,13 +2475,16 @@ rowcount: 11
     }  // MNO_Save
 
 //========= MNO_FillNotes============== PR2020-10-15
-    function MNO_FillNotes (emplhour_pk) {
-        //console.log("===  MNO_FillNotes  =====") ;
+    function MNO_FillNotes (tblName, pk_int) {
+        console.log("===  MNO_FillNotes  =====") ;
         el_MNO_note_container.innerText = null;
+        const note_rows = (tblName === "emplhour") ? emplhournote_rows :
+                          (tblName === "employee") ? employeenote_rows :
+                          (tblName === "order") ? ordernote_rows : null;
 
-        const note = get_dict_value(emplhournote_rows, [emplhour_pk]);
+        const note = get_dict_value(note_rows, [pk_int]);
         if(note){
-            const len = note.ehn_id_agg.length;
+            const len = note.id_agg.length;
             for (let i = 0; i < len; i++) {
                 const note_text = (note.note_agg[i]) ? note.note_agg[i] : "";
                 const note_len = (note_text) ? note_text.length : 0;
@@ -2010,280 +2539,260 @@ rowcount: 11
 
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-//========= ModalStatusOpen====================================
+//========= ModalStatusOpen========================= PR2021-02-04
     function ModalStatusOpen (el_input) {
-       //console.log("===  ModalStatusOpen  =====") ;
+       console.log("===  ModalStatusOpen  =====") ;
         // PERMISSIONS: only hrman can unlock shifts, supervisor can only block shifts PR2020-08-05
-        // TODO correct
-       // return false
+        // supervisor can confirm / undo confirm / close shift
+        // hrman can close shift / undo close shift / close all shifts of this day
+        /*
+            permit_lock_rows = !!selected_period.requsr_perm_supervisor
+            permit_unlock_rows = !!selected_period.requsr_perm_hrman
+        */
+
         mod_status_dict = {};
 
-// get tr_selected, fldName and emplhour_dict
-        let tr_selected = get_tablerow_selected(el_input)
-        const fldName = get_attr_from_el(el_input, "data-field");
 // get status from field status, not from confirm start/end
-        let emplhour_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
-       //console.log("emplhour_dict", emplhour_dict) ;
+        let emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
+        const row_is_locked = (emplhour_dict.stat_pay_locked || emplhour_dict.stat_inv_locked);
 
-        const status_sum = emplhour_dict.status;
+        if(!row_is_locked && (permit_lock_rows || permit_unlock_rows) ){
 
-        let btn_save_text = loc.Confirm;
+// get tr_selected, fldName and emplhour_dict
+            let tr_selected = get_tablerow_selected(el_input)
+            const fldName = get_attr_from_el(el_input, "data-field");
+            const stat_index = (fldName === "stat_start_conf") ? 2 : (fldName === "stat_end_conf") ? 4 : (fldName === "status") ? 5 : -1;
+            const is_field_start_conf = (fldName === "stat_start_conf");
+            const is_field_end_conf = (fldName === "stat_end_conf");
+            const is_field_status = (fldName === "status");
 
-        let time_col_index = 0
-        let is_fldName_status = false;
+            const status_array = b_get_status_array(emplhour_dict.status)
+            const stat_start_conf = (!!status_array[2]); // STATUS_02_START_CONFIRMED = 4
+            const stat_end_conf = (!!status_array[4]);  // STATUS_04_END_CONFIRMED = 16
+            const stat_locked = (!!status_array[5]); // STATUS_05_LOCKED = 32
 
-        let field_is_locked = (emplhour_dict.stat_locked || emplhour_dict.stat_pay_locked || emplhour_dict.stat_inv_locked )
+            const field_is_confirmed = ( (is_field_start_conf && stat_start_conf) || (is_field_end_conf && stat_end_conf) );
 
-        const allow_lock_status = (!field_is_locked);
-// only HR-man can unlock, only when not stat_pay_locked and not stat_inv_locked
-        const allow_unlock_status = (!emplhour_dict.stat_pay_locked && !emplhour_dict.stat_inv_locked && permit_unlock_rows);
+            console.log("emplhour_dict", emplhour_dict) ;
 
-        let field_is_confirmed = false;
-        if (fldName === "stat_start_conf" && emplhour_dict.stat_start_conf) {
-            field_is_locked = true;
-            field_is_confirmed = true;
-        } else if (fldName === "stat_start_end" && emplhour_dict.stat_start_end) {
-            field_is_locked = true;
-            field_is_confirmed = true;
-        }
+            console.log("permit_lock_rows", permit_lock_rows) ;
+            console.log("stat_locked", stat_locked) ;
 
-        const child_el = el_input.children[0];
+       //console.log("allow_open", allow_open)
+            //if (allow_open) {
 
-        const col_index = (fldName === "stat_start_conf") ? 5 : 7;
-        const time_el = tr_selected.cells[col_index].children[0]
-        const has_overlap = (time_el.classList.contains("border_bg_invalid"));
+       // only HR-man can unlock, only when not stat_pay_locked and not stat_inv_locked
+                const allow_unlock_status = (!emplhour_dict.stat_pay_locked && !emplhour_dict.stat_inv_locked && permit_unlock_rows);
 
-        //const has_overlap = ("overlap" in time_fielddict)
-        const has_no_employee = (!emplhour_dict.employee_id)
-        const has_no_order = (!emplhour_dict.o_id)
-        const has_no_time = ( (fldName === "stat_start_conf" && !emplhour_dict.offsetstart) || (fldName === "stat_end_conf" && !emplhour_dict.offsetend) )
+                const time_col_index = (is_field_start_conf) ? 6 : 8;
+                const time_el = tr_selected.cells[time_col_index].children[0];
+                const has_overlap = (time_el.classList.contains("border_bg_invalid"));
 
-       //console.log("has_no_order", has_no_order) ;
-// put values in mod_status_dict
-        mod_status_dict = {
-            emplhour_pk: emplhour_dict.id,
-            emplhour_ppk: emplhour_dict.comp_id,
-            field: emplhour_dict.fldName,
-            status_sum: emplhour_dict.status,
-            locked: field_is_locked,
-            confirmed: field_is_confirmed
-        }
+                const has_no_employee = (!emplhour_dict.employee_id)
+                const has_no_order = (!emplhour_dict.o_id)
+                const has_no_time = ( (is_field_start_conf && !emplhour_dict.offsetstart) || (is_field_end_conf && !emplhour_dict.offsetend) )
 
+       // put values in mod_status_dict
+                mod_status_dict = {
+                    mapid: emplhour_dict.mapid,
 
+                    emplhour_pk: emplhour_dict.id,
+                    orderhour_pk: emplhour_dict.oh_id,
+                    rosterdate: emplhour_dict.rosterdate,
 
-        let header_text = null;
-        if (fldName === "stat_start_conf") {
-            header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_start_of_shift;
-            btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
+                    offsetstart: emplhour_dict.offsetstart,
+                    offsetend: emplhour_dict.offsetend,
+                    timeduration: emplhour_dict.timeduration,
+                    breakduration: emplhour_dict.breakduration,
 
-            time_col_index = 5
-        } else if (fldName === "stat_start_end") {
-            header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_end_of_shift;
-            btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
-            time_col_index = 7
-        } else if (fldName === "status") {
-            is_fldName_status = true;
+                    field: fldName,
+                    is_field_start_conf: is_field_start_conf,
+                    is_field_end_conf: is_field_end_conf,
+                    is_field_status: is_field_status,
 
-            if (emplhour_dict.stat_locked) {
-                header_text = loc.Unlock + " " + loc.Shift.toLowerCase();
-                btn_save_text = loc.Unlock;
-            } else {
-                header_text = loc.Lock + " " + loc.Shift.toLowerCase();
-                btn_save_text = loc.Lock;
-            }
-            time_col_index = 9
-        }
+                    status_array: status_array,
+                    field_is_confirmed: field_is_confirmed,
+                    stat_locked: stat_locked
+                }
+               console.log("emplhour_dict", emplhour_dict) ;
+               console.log("mod_status_dict", mod_status_dict) ;
 
+               console.log("is_field_start_conf", is_field_start_conf) ;
+               console.log("stat_start_conf", stat_start_conf, typeof stat_start_conf) ;
+               console.log("stat_end_conf", stat_end_conf) ;
 
-// don't open modal when locked and confirmstart / confirmend
-        let allow_open = false;
-        if (is_fldName_status){
-            allow_open = (emplhour_dict.stat_locked) ? permit_unlock_rows : permit_lock_rows;
-        } else {
-            // PERMITS confirm field can only be opened by supervisor
-            if (permit_lock_rows){
-                // cannot open confirm field when time field is locked
-                if (!field_is_locked){
-                // when field is not confirmed: can only confirm when has employee and has no overlap:
-                    if (!field_is_confirmed && !has_overlap) {
-                        allow_open = true;
+                let header_text = null, btn_save_text = loc.Confirm;
+                if (is_field_start_conf) {
+                    header_text = (stat_start_conf) ? loc.Undo_confirmation : loc.Confirm_start_of_shift;
+                    btn_save_text = (stat_start_conf) ? loc.Undo : loc.Confirm;;
+                } else if (is_field_end_conf) {
+                    header_text = (stat_end_conf) ? loc.Undo_confirmation : loc.Confirm_end_of_shift;
+                    btn_save_text = (stat_end_conf) ? loc.Undo : loc.Confirm;
+                } else if (is_field_status) {
+                    if (stat_locked) {
+                        header_text = loc.Unlock + " " + loc.Shift.toLowerCase();
+                        btn_save_text = loc.Unlock;
                     } else {
-                    // when field is not confirmed: can undo,
-                    // also when has_overlap or has_no_employee (in case not allowing confirmation has gone wrong)
-                        allow_open = true;
+                        header_text = loc.Lock + " " + loc.Shift.toLowerCase();
+                        btn_save_text = loc.Lock;
                     }
                 }
-            }
-        }
-        //console.log("allow_open", allow_open)
 
-        if (allow_open) {
-
-            document.getElementById("id_mod_status_header").innerText = header_text
-            let time_label = null, time_display = null;
-            if(fldName === "stat_start_conf"){
-                time_label = loc.Start_time + ":";
-                time_display = format_time_from_offset_JSvanilla( loc, emplhour_dict.rosterdate, emplhour_dict.offsetstart, true, false, false)
-            } else if (fldName === "stat_start_end") {
-                time_label = loc.End_time + ":";
-                time_display = format_time_from_offset_JSvanilla( loc, emplhour_dict.rosterdate, emplhour_dict.offsetend, true, false, false)
-            }
-            document.getElementById("id_mod_status_time_label").innerText = time_label;
-            document.getElementById("id_mod_status_time").value = time_display;
-
-            document.getElementById("id_mod_status_order").innerText = emplhour_dict.c_o_code;
-            document.getElementById("id_mod_status_employee").innerText = emplhour_dict.employeecode;
-            document.getElementById("id_mod_status_shift").innerText = (emplhour_dict.shiftcode);
-
-            let msg01_text = null;
-            if(has_no_order){
-                msg01_text = loc.You_must_first_select + loc.an_order + loc.select_before_confirm_shift;
-            } else if(has_no_employee && !is_fldName_status){
-                msg01_text = loc.You_must_first_select + loc.an_employee + loc.select_before_confirm_shift;
-            } else if(has_overlap && !is_fldName_status){
-                msg01_text = loc.You_cannot_confirm_overlapping_shift;
-            } else if(has_no_time && !is_fldName_status){
-                msg01_text = loc.You_must_first_enter +
-                             ( (fldName === "stat_start_conf") ? loc.a_starttime : loc.an_endtime ) +
-                             loc.enter_before_confirm_shift;
-            }
-
-           //console.log("is_fldName_status", is_fldName_status) ;
-           //console.log("allow_lock_status", allow_lock_status) ;
-
-            let show_confirm_box = false;
-            if (fldName === "status" && allow_lock_status) {
-                show_confirm_box = true;
-            } else {
-                if(field_is_confirmed) {
-                    // when field is confirmed: can undo
-                    show_confirm_box = true;
-                } else if (!msg01_text){
-                    show_confirm_box = true;
+                document.getElementById("id_mod_status_header").innerText = header_text
+                let time_label = null, time_display = null;
+                if(is_field_start_conf){
+                    time_label = loc.Start_time + ":";
+                    time_display = format_time_from_offset_JSvanilla( loc, emplhour_dict.rosterdate, emplhour_dict.offsetstart, true, false, false)
+                } else if (is_field_end_conf) {
+                    time_label = loc.End_time + ":";
+                    time_display = format_time_from_offset_JSvanilla( loc, emplhour_dict.rosterdate, emplhour_dict.offsetend, true, false, false)
                 }
-            }
-            if(show_confirm_box) {
-                el_mod_status_btn_save.innerText = btn_save_text;
-    // ---  show modal
-                $("#id_mod_status").modal({backdrop: true});
-            } else {
+                el_mod_status_time_label.innerText = time_label;
+                el_mod_status_time.innerText = time_display;
 
-// ---  show modal confirm with message 'First select employee'
-                document.getElementById("id_confirm_header").innerText = loc.Confirm + " " + loc.Shift.toLowerCase();
-                document.getElementById("id_confirm_msg01").innerText = msg01_text;
-                document.getElementById("id_confirm_msg02").innerText = null;
-                document.getElementById("id_confirm_msg03").innerText = null;
+                document.getElementById("id_mod_status_order").innerText = emplhour_dict.c_o_code;
+                document.getElementById("id_mod_status_employee").innerText = emplhour_dict.employeecode;
+                document.getElementById("id_mod_status_shift").innerText = (emplhour_dict.shiftcode);
 
-                add_or_remove_class (el_confirm_btn_save, cls_hide, true) // args: el, classname, is_add
-                el_confirm_btn_cancel.innerText = loc.Close;
-                setTimeout(function() {el_confirm_btn_cancel.focus()}, 50);
+                let msg01_text = null;
+                if(has_no_order){
+                    msg01_text = loc.Cannot_confirm_shift_without_order;
+                } else if(has_no_employee && !is_field_status){
+                    msg01_text = loc.Cannot_confirm_shift_without_employee;
+                } else if(has_overlap && !is_field_status){
+                    msg01_text = loc.You_cannot_confirm_overlapping_shift;
+                } else if(has_no_time && !is_field_status){
+                    msg01_text = loc.You_must_first_enter +
+                                 ( (is_field_start_conf) ? loc.a_starttime : loc.an_endtime ) +
+                                 loc.enter_before_confirm_shift;
+                }
 
-                 $("#id_mod_confirm").modal({backdrop: true});
-             }  // if (allow_lock_status) || (!field_text) {
-        };  // if (allow_open) {
+           // open msgbox when when locked and confirmstart / confirmend
+                // don't open modal when locked and confirmstart / confirmend
+
+                // mod_confirm is msgbox 'OK / Cancel'
+                // mod_status is also for setting confirmation
+                let show_mod_status = false;
+                if (is_field_status) {
+                    // PERMITS status field can only be unlocked by HRman
+                    // - supervisor can only lock single row
+                    // - HRman can lock and unlock_rows, also lock all rows of this rosterdate
+                    show_mod_status = (permit_unlock_rows) ? true : !stat_locked;
+               } else if (is_field_start_conf || is_field_end_conf){
+                    // PERMITS confirm field can only be opened by supervisor
+                    // can only confirm and undo confirm when not stat_locked
+                    if (permit_lock_rows){
+                        if (stat_locked){
+                            msg01_text = loc.This_shift_is_locked;
+                        } else {
+                            // - when field is confirmed: can undo,
+                            //      also when has_overlap or has_no_employee (in case not allowing confirmation has gone wrong)
+                            // when field is not confirmed: can only confirm when has employee and has no overlap:
+                            // allow_open =  (field_is_confirmed ) ? true : !has_overlap;
+                            if(field_is_confirmed) {
+                                // when field is confirmed: can undo
+                                show_mod_status = true;
+                            } else if (!msg01_text){
+                                show_mod_status = true;
+                            }
+                        }
+                    }
+
+                }
+                if(show_mod_status) {
+                    // hide start / end time when is_field_status or when field_is_confirmed
+                    add_or_remove_class(el_mod_status_time_container, cls_hide, is_field_status || field_is_confirmed );
+
+                    el_mod_status_note.value = null;
+
+                    // show el_lockall_container only when is_field_status and when HRman
+                    add_or_remove_class(el_mod_status_lockall_container, cls_hide, !(is_field_status && permit_unlock_rows));
+                    el_mod_status_lockall.checked = false;
+                    let caption = (stat_locked) ? loc.Unlock_all_shifts_of : loc.Lock_all_shifts_of;
+                    // function format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long)
+                    caption += format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, false, true , true);
+                    el_mod_status_lockall_label.innerText = caption;
+                    el_mod_status_btn_save.innerText = btn_save_text;
+                    set_focus_on_el_with_timeout(el_mod_status_btn_save, 50);
+        // ---  show modal
+                    $("#id_mod_status").modal({backdrop: true});
+                } else {
+
+    // ---  show modal confirm with message 'First select employee'
+                    document.getElementById("id_confirm_header").innerText = loc.Confirm + " " + loc.Shift.toLowerCase();
+                    document.getElementById("id_confirm_msg01").innerText = msg01_text;
+                    document.getElementById("id_confirm_msg02").innerText = null;
+                    document.getElementById("id_confirm_msg03").innerText = null;
+
+                    add_or_remove_class (el_confirm_btn_save, cls_hide, true) // args: el, classname, is_add
+                    el_confirm_btn_cancel.innerText = loc.Close;
+                    setTimeout(function() {el_confirm_btn_cancel.focus()}, 50);
+
+                     $("#id_mod_confirm").modal({backdrop: true});
+                 }  // iif(!show_mod_status)
+            //};  // if (allow_open) {
+        }  // if(!row_is_locked && (permit_lock_rows || permit_unlock_rows) ){
     }; // function ModalStatusOpen
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        //console.log("===  ModalStatusSave =========");
+        console.log("===  ModalStatusSave =========");
 
-        // put values in el_body
-        let el_body = document.getElementById("id_mod_status_body")
-        //const tblName = get_attr_from_el(el_body, "data-table")
-        const data_ppk = get_attr_from_el(el_body, "data-ppk")
-        const data_field = get_attr_from_el(el_body, "data-field")
-        const field_is_confirmed = (get_attr_from_el(el_body, "data-confirmed", false) === "true")
-        const status_value = get_attr_from_el_int(el_body, "data-value")
+        const stat_locked = mod_status_dict.stat_locked;
 
-        //console.log("el_body: ", el_body);
-        //console.log("field_is_confirmed: ", field_is_confirmed);
-        //console.log("data_field: ", data_field);
+        let tr_changed = document.getElementById(mod_status_dict.mapid)
 
-        const data_pk = get_attr_from_el(el_body, "data-pk")
-        let tr_changed = document.getElementById(data_pk)
+// ---  toggle status
+        const status_array  = mod_status_dict.status_array;
+        let new_value_bool = null;
+        if(mod_status_dict.is_field_start_conf){
+            new_value_bool = (!status_array[2]);// STATUS_02_START_CONFIRMED = 2
+            // PR2021-02-10 debug: also delete STATUS_01_START_PENDING whem deleting start_conf; happens on server
 
-        const id_dict = get_iddict_from_element(el_body);
+        } else if(mod_status_dict.is_field_end_conf){
+            new_value_bool = (!status_array[4]); // STATUS_04_END_CONFIRMED = 4
+            // PR2021-02-10 debug: also delete STATUS_03_END_PENDING whem deleting start_end; happens on server
+        } else if(mod_status_dict.is_field_status){
+            new_value_bool = (!status_array[5]);// STATUS_05_LOCKED = 32
+        }
+
         // period_datefirst and period_datelast necessary for check_emplhour_overlap PR2020-07-22
-        let upload_dict = {id: id_dict,
-                            period_datefirst: selected_period.period_datefirst,
-                            period_datelast: selected_period.period_datelast
+        const upload_dict = {id: {pk: mod_status_dict.emplhour_pk,
+                                ppk: mod_status_dict.orderhour_pk
+                                },
+                            //period_datefirst: selected_period.period_datefirst,
+                            //period_datelast: selected_period.period_datelast,
+                            status: {field: mod_status_dict.field,
+                                     value: new_value_bool,
+                                     update: true}
                             }
+        if(mod_status_dict.new_offset) {
+            const field = (mod_status_dict.is_field_start_conf) ? "offsetstart" :  (mod_status_dict.is_field_end_conf) ? "offsetend" : null;
+            if (field){ upload_dict[field] = {value: mod_status_dict.new_offset, update: true}};
+         }
+         if(el_mod_status_note.value) {
+            upload_dict.note =  {value: el_mod_status_note.value, update: true};
+         }
+         const el_lockall = document.getElementById("id_mod_status_lockall");
 
-        //console.log("---------------status_value: ", status_value);
-        //console.log("---------------data_field: ", data_field);
-        //console.log("---------------field_is_confirmed: ", field_is_confirmed, typeof field_is_confirmed);
-        let status_dict = {}, confirmstart_dict = null, confirmend_dict = null;
-        if(data_field === "confirmstart"){
-            confirmstart_dict  = {"value": field_is_confirmed, "update": true};
-            if (field_is_confirmed) {
-                status_dict = {"value": 2, "remove": true, "update": true}  // STATUS_004_START_CONFIRMED = 2
-                //console.log("confirmstart field_is_confirmed ", status_dict);
+         if(mod_status_dict.is_field_status && el_lockall.checked) {
+            if(new_value_bool) {
+                upload_dict.lockall =  {value: true, update: true};
             } else {
-                status_dict = {"value": 2, "update": true}  // STATUS_004_START_CONFIRMED = 2
-                //console.log("confirmstart field_is_NOT confirmed ", status_dict);
+                upload_dict.unlockall =  {value: true, update: true};
             }
-        } else if(data_field === "confirmend"){
-            confirmend_dict  = {"value": field_is_confirmed, "update": true};
-            if (field_is_confirmed) {
-                 status_dict = {"value": 4, "remove": true, "update": true}  // STATUS_016_END_CONFIRMED = 4
-                //console.log("confirmend field_is_confirmed ", status_dict);
-            } else {
-                 status_dict = {"value": 4, "update": true}  // STATUS_016_END_CONFIRMED = 4
-                //console.log("confirmend field_is_NOT_confirmed ", status_dict);
-            }
-        } else if(data_field === "status"){
-            if(status_value >= 8){
-                status_dict = {"value": 8, "remove": true, "update": true}  // STATUS_032_LOCKED = 8
-                //console.log("status status_value >= 8 ", status_dict);
-            } else {
-                status_dict = {"value": 8, "update": true}   // STATUS_032_LOCKED = 8
-                //console.log("status status_value < 8 ", status_dict);
-            }
-        }
-        //console.log("---------------status_dict: ", status_dict);
-        upload_dict["status"] = status_dict
-        if(!!confirmstart_dict){
-            upload_dict["confirmstart"] = confirmstart_dict
-        }
-        if(!!confirmend_dict){
-            upload_dict["confirmend"] = confirmend_dict
-        }
+         }
 
         $("#id_mod_status").modal("hide");
 
-        if(!!upload_dict) {
-            //console.log( "upload_dict", upload_dict);
-            let parameters = {"upload": JSON.stringify(upload_dict)};
+        UploadChanges(upload_dict, url_emplhour_upload) ;
 
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_emplhour_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
-
-                    if ("item_update" in response) {
-                        let item_dict =response["item_update"]
-                        //const tblName = get_dict_value (item_dict, ["id", "table"], "")
-
-                        UpdateTblRow(tr_changed, item_dict)
-                    }
-                },
-                error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-        }  //  if(!!new_item)
     }  // ModalStatusSave
 
 
 //  #############################################################################################################
 
-//=========  UpdateOverlap  === PR2020-08-06
+//=========  CheckForUpdates  === PR2020-08-06
     function CheckForUpdates() {
         //console.log("===  CheckForUpdates == ");
         const datalist_request = {
@@ -2291,13 +2800,12 @@ rowcount: 11
             emplhour: {mode: "emplhour_check"}
             }
         DatalistDownload(datalist_request, true); // no_loader = true
-    }
+    }  // CheckForUpdates
 
 //=========  UpdateOverlap  === PR2020-05-13
     function UpdateOverlap(overlap_dict, skip_reset_all) {
-        //console.log("===  UpdateOverlap == ");
-        //console.log("overlap_dict", overlap_dict);
-        // --- lookup input field with name: fieldname
+        console.log("===  UpdateOverlap == ");
+        console.log("overlap_dict", overlap_dict);
         // --- lookup input field with name: fieldname
                 //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
                 // CSS.escape not supported by IE, Chrome and Safari,
@@ -2317,52 +2825,49 @@ rowcount: 11
         }
 // loop through overlap_dict
         // overlap_dict: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
-        for(var key in overlap_dict) {
-            if(overlap_dict.hasOwnProperty(key)) {
-                const item_dict = overlap_dict[key];
-                const map_id = "emplhour_" + key;  //key.toString();
+        for (const [key, item_dict] of Object.entries(overlap_dict)) {
+            const map_id = "emplhour_" + key;
+            const row = document.getElementById(map_id)
+            if(row){
                 const emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, map_id)
                 const employee_code = emplhour_dict.employeecode;
-                const row = document.getElementById(map_id)
-                //console.log("row", row);
-                if(row){
-                    const fields = ["start", "end"];
-                    for (let i = 0, field; i<2; i++) {
-                        field = fields[i];
-                        const filter = "[data-field='offset" + field + "']";
-                        let el = row.querySelector(filter);
-                        if (field in item_dict){
-                            let title_overlap = (employee_code) ? employee_code + " " + loc.has_overlapping_shift + ":" :
-                                                                  loc.Shift_has_overlap_with + ":"
-                            const arr = item_dict[field];
-                            for (let j = 0, emplh_pk; emplh_pk = arr[j]; j++) {
-                                const emplh_dict = get_mapdict_from_datamap_by_tblName_pk(emplhour_map, "emplhour", emplh_pk.toString())
-                                const cust_order_code = emplh_dict.c_o_code;
-                                const timestart = format_time_from_offset_JSvanilla( loc, emplh_dict.rosterdate, emplh_dict.offsetstart, true, false, false)
-                                const timeend = format_time_from_offset_JSvanilla( loc, emplh_dict.rosterdate, emplh_dict.offsetend, true, false, false)
-                                const is_restshift = emplh_dict.oh_isrestshift;
+                const fields = ["start", "end"];
+                for (let i = 0, field; i<2; i++) {
+                    field = fields[i];
+                    const filter = "[data-field='offset" + field + "']";
+                    let el = row.querySelector(filter);
+                    if (field in item_dict){
+                        let title_overlap = (employee_code) ? employee_code + " " + loc.has_overlapping_shift + ":" :
+                                                              loc.Shift_has_overlap_with + ":"
+                        const arr = item_dict[field];
+                        for (let j = 0, emplh_pk; emplh_pk = arr[j]; j++) {
+                            const emplh_dict = get_mapdict_from_datamap_by_tblName_pk(emplhour_map, "emplhour", emplh_pk.toString())
+                            const cust_order_code = emplh_dict.c_o_code;
+                            const timestart = format_time_from_offset_JSvanilla( loc, emplh_dict.rosterdate, emplh_dict.offsetstart, true, false, false)
+                            const timeend = format_time_from_offset_JSvanilla( loc, emplh_dict.rosterdate, emplh_dict.offsetend, true, false, false)
+                            const is_restshift = emplh_dict.oh_isrestshift;
 
-                                if(cust_order_code) {
-                                    if(is_restshift){
-                                        title_overlap += "\n" + cust_order_code + ", " + loc.Rest_shift.toLowerCase();
-                                        if(timestart || timeend) {title_overlap += " " + timestart + " - " + timeend};
-                                    } else {
-                                        title_overlap += "\n" + cust_order_code + ", " + timestart + " - " + timeend;
-                                    }
+                            if(cust_order_code) {
+                                if(is_restshift){
+                                    title_overlap += "\n" + cust_order_code + ", " + loc.Rest_shift.toLowerCase();
+                                    if(timestart || timeend) {title_overlap += " " + timestart + " - " + timeend};
                                 } else {
-                                    title_overlap += "\n" + "<" + loc.Shift_outside_display_period + ">";
+                                    title_overlap += "\n" + cust_order_code + ", " + timestart + " - " + timeend;
                                 }
+                            } else {
+                                title_overlap += "\n" + "<" + loc.Shift_outside_display_period + ">";
                             }
-                            add_or_remove_class(el, "border_bg_invalid", true)
-                            add_or_remove_attr(el, "title", true, title_overlap)
-                        } else {
-// remove red background when field not found in emplhour record
-                            add_or_remove_class(el, "border_bg_invalid", false)
-                            add_or_remove_attr(el, "title", false, title_overlap)
                         }
+                        add_or_remove_class(el, "border_bg_invalid", true)
+                        add_or_remove_attr(el, "title", true, title_overlap)
+                    } else {
+// remove red background when field not found in item_dict
+                        add_or_remove_class(el, "border_bg_invalid", false)
+                        add_or_remove_attr(el, "title", false, title_overlap)
                     }
                 }
             }
+
         }
     }
 
@@ -2416,9 +2921,9 @@ rowcount: 11
                 const item_dict = get_mapdict_from_datamap_by_id (emplhour_map, tblRow.id)
                 // TODO correct
                 const status_sum = get_dict_value(item_dict, ["status", "value"])
-                const start_confirmed = status_found_in_statussum(2, status_sum);//STATUS_004_START_CONFIRMED
-                const end_confirmed = status_found_in_statussum(4, status_sum);//STATUS_016_END_CONFIRMED
-                const status_locked = (status_sum >= 8) //STATUS_032_LOCKED = 8
+                const start_confirmed = status_found_in_statussum(2, status_sum);//STATUS_02_START_CONFIRMED
+                const end_confirmed = status_found_in_statussum(4, status_sum);//STATUS_04_END_CONFIRMED
+                const status_locked = (status_sum >= 8) //STATUS_05_LOCKED = 8
 
                 let img_src = imgsrc_stat00
                 const timestart_iso = get_dict_value(item_dict, ["timestart", "datetime"])
@@ -2463,17 +2968,251 @@ rowcount: 11
             }  // for (let row_index = 0)
         }  // if ( !!len){
     }  // function CheckStatus
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//=========  UpdateEmployeeOrderNotes  === PR2021-02-16
+    function UpdateEmployeeOrderNotes(fldName, note_rows, pk_str) {
+        console.log("===  UpdateEmployeeOrderNotes == ");
+        console.log("fldName" , fldName);
+        console.log("note_rows" , note_rows);
 
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000
-    //========= function pop_background_remove  ====================================
-    function popupbox_removebackground(class_name){
-        // remove selected color from all input popups
-        if(!class_name){class_name = ".pop_background"}
-        let elements = document.getElementsByClassName(class_name);
-        for (let i = 0, len = elements.length; i < len; i++) {
-            elements[i].classList.remove("pop_background");
+        for (let i = 0, tblRow; tblRow = tblBody_datatable.rows[i]; i++) {
+            const el_div = tblRow.querySelector("[data-field='" + fldName  + "']");
+            if(el_div){
+                const map_dict = get_mapdict_from_datamap_by_id(emplhour_map, tblRow.id);
+                const id_int = (fldName === "employeenote") ? map_dict.employee_id :
+                            (fldName === "ordernote") ? map_dict.o_id : null;
+                if(!pk_str || Number(pk_str) === id_int){
+                    let title = "";
+                    if (id_int in note_rows){
+                        const note_row = note_rows[id_int];
+                        const len = note_row.note_agg.length;
+                        for (let i = 0, value; i < len; i++) {
+                            value = note_row.note_agg[i];
+                            if(value){
+                                if (title) {title += "\n"};
+                                title += value;
+                    }}};
+                    if(title){
+                        el_div.title = title ;
+                    } else {
+                        el_div.removeAttribute("title")
+                    }
+                    add_or_remove_class(el_div, "edit_0_1", !!title)
+
+                    if(pk_str){ShowOkElement(el_div)};
+                }}}
+    }  // UpdateEmployeeOrderNotes
+
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//=========  UpdateEmplhourNotes  === PR2021-02-14
+    function UpdateEmplhourNotes(response_emplhournote_rows, skip_reset_all) {
+        //console.log("===  UpdateEmplhourNotes == ");
+        //console.log("emplhournote_rows", emplhournote_rows);
+
+        const icon_note = "edit_0_1", icon_usernote = "edit_1_1"
+
+        emplhournote_rows = response_emplhournote_rows;
+// remove all note icons from emplhour rows
+        if(!skip_reset_all){
+            //  code is same as add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class)
+            let elements = tblBody_datatable.querySelectorAll(".edit_0_1, .edit_1_1");
+            for (let i = 0, el; el = elements[i]; i++) {
+                add_or_remove_class (el, icon_note, false)
+                add_or_remove_class (el, icon_usernote, false)
+                el.removeAttribute("data-icon_class_has_usernote")
+            };
         }
-    }
+
+// loop through emplhournote_rows
+        // emplhournote_rows: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
+        for (const [emplhour_pk, item_dict] of Object.entries(emplhournote_rows)) {
+            //console.log ("item_dict", item_dict)
+
+            let has_usernote = (!!item_dict.usernote_count)
+            const len = item_dict.note_agg.length;
+            let title = "";
+            for (let i = 0, value; i < len; i++) {
+                value = item_dict.note_agg[i];
+                if(value){
+                    if (title) {title += "\n"}
+                    title += value
+                }
+            }
+            UpdateEmplhourNotesIcon(emplhour_pk, has_usernote, title, true )
+        }
+    }  // UpdateEmplhourNotes
+
+//=========  UpdateEmplhourNotesIcon  === PR2021-02-10
+    function UpdateEmplhourNotesIcon(emplhour_pk, has_usernote, title, add_icon, show_ok) {
+        //console.log("===  UpdateEmplhourNotesIcon == ");
+        const map_id = "emplhour_" + emplhour_pk
+        const icon_note = "edit_0_1", icon_usernote = "edit_1_1"
+        const row = document.getElementById(map_id);
+        if(row){
+            const el = row.querySelector("[data-field='hasnote']");
+            if(el){
+                const icon_class = (has_usernote) ? icon_usernote : icon_note;
+                add_or_remove_class(el, icon_class, add_icon)
+                if (add_icon){
+                    el.setAttribute("data-filter", "1")
+                } else {
+                    el.removeAttribute("data-filter")
+                }
+
+                el.title = title;
+
+                if(show_ok){ShowOkElement(el);}
+        }}
+    }  // UpdateEmplhourNotesIcon
+
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+//=========  UpdateEmplhourStatus  === PR2021-02-14
+    function UpdateEmplhourStatus(emplhourstatus_dict, skip_reset_all) {
+        console.log("===  UpdateEmplhourStatus == ");
+        //console.log("emplhourallowance_dict", emplhourallowance_dict);
+        // --- lookup input field with name: fieldname
+                //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                // CSS.escape not supported by IE, Chrome and Safari,
+                // CSS.escape is not necessary, there are no special characters in fieldname
+                // a space between two selecors makes it a descendant selector
+                // from https://developer.mozilla.org/en-US/docs/Web/CSS/Descendant_combinator
+        const icon_class = "edit_0_7"
+// remove all allowance icons from emplhour rows
+/*
+        if(!skip_reset_all){
+            //  code is same as add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class)
+            let elements = tblBody_datatable.querySelectorAll("." + icon_class);
+            for (let i = 0, el; el = elements[i]; i++) {
+                add_or_remove_class (el, icon_class, false)
+                el.removeAttribute("data-filter")
+            };
+        }
+*/
+
+// loop through emplhourallowance_dict
+        // emplhourallowance_dict: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
+        for (const [emplhour_pk, item_dict] of Object.entries(emplhourstatus_dict)) {
+            UpdateEmplhourStatusItem(emplhour_pk, item_dict, true)
+        }
+    }  // UpdateEmplhourStatus
+
+//=========  UpdateEmplhourStatusItem  === PR2021-02-10
+    function UpdateEmplhourStatusItem(emplhour_pk, item_dict, add_icon, show_ok) {
+        console.log("===  UpdateEmplhourStatusItem == ");
+        const map_id = "emplhour_" + emplhour_pk
+        const icon_class = "edit_0_7";
+        const row = document.getElementById(map_id);
+        console.log("item_dict", item_dict);
+        console.log("row", row);
+        if(row){
+            let title_start = "", title_end = "";
+            for (let i = 0, status, is_removed, ehal_id; ehal_id = item_dict.ehst_id_agg[i]; i++) {
+                status = item_dict.ehst_status_agg[i];
+                is_removed = item_dict.ehst_isremoved_agg[i];
+
+                const modified_dateJS = parse_dateJS_from_dateISO(item_dict.ehst_modifiedat_agg[i]);
+                const modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
+
+                if(status === 4){
+                    if (title_start) {title_start += "\n"}
+                    title_start += (is_removed) ? loc.Cancelled_by : loc.Confirmed_by;
+                    title_start += (item_dict.ehst_modifiedby_agg[i]) ? item_dict.ehst_modifiedby_agg[i] : "-";
+                    title_start += loc._on_ +  modified_date_formatted;
+                } else if (status === 16){
+                    if (title_end) {title_end += "\n"}
+                    title_end += (is_removed) ? loc.Cancelled_by : loc.Confirmed_by;
+                    title_end += (item_dict.ehst_modifiedby_agg[i]) ? item_dict.ehst_modifiedby_agg[i] : "-";
+                    title_end += loc._on_ +  modified_date_formatted;
+                }
+            }
+
+            /*
+                        add_or_remove_class(el, icon_class, add_icon)
+            if (add_icon){
+                el.setAttribute("data-filter", "1")
+            } else {
+                el.removeAttribute("data-filter")
+            }
+            */
+
+            const el_start = row.querySelector("[data-field='stat_start_conf']");
+            if (el_start) {
+                el_start.title = title_start
+                if(show_ok){ShowOkElement(el_start)};
+            };
+            const el_end = row.querySelector("[data-field='stat_end_conf']");
+            if (el_end) {
+                el_end.title = title_end
+                if(show_ok){ShowOkElement(el_end)};
+            };
+
+
+        }
+    }  // UpdateEmplhourStatusItem
+
+
+//=========  UpdateAllowance  === PR2021-02-10
+    function UpdateAllowance(emplhourallowance_dict, skip_reset_all) {
+        //console.log("===  UpdateAllowance == ");
+        //console.log("emplhourallowance_dict", emplhourallowance_dict);
+        // --- lookup input field with name: fieldname
+                //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                // CSS.escape not supported by IE, Chrome and Safari,
+                // CSS.escape is not necessary, there are no special characters in fieldname
+                // a space between two selecors makes it a descendant selector
+                // from https://developer.mozilla.org/en-US/docs/Web/CSS/Descendant_combinator
+        const icon_class = "edit_0_7"
+// remove all allowance icons from emplhour rows
+        if(!skip_reset_all){
+            //  code is same as add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class)
+            let elements = tblBody_datatable.querySelectorAll("." + icon_class);
+            for (let i = 0, el; el = elements[i]; i++) {
+                add_or_remove_class (el, icon_class, false)
+                el.removeAttribute("data-filter")
+            };
+        }
+
+// loop through emplhourallowance_dict
+        // emplhourallowance_dict: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
+        for (const [emplhour_pk, item_dict] of Object.entries(emplhourallowance_dict)) {
+            UpdateAllowanceIcon(emplhour_pk, item_dict, true)
+        }
+    }  // UpdateAllowance
+
+//=========  UpdateAllowanceIcon  === PR2021-02-10
+    function UpdateAllowanceIcon(emplhour_pk, item_dict, add_icon, show_ok) {
+        const map_id = "emplhour_" + emplhour_pk
+        const icon_class = "edit_0_7";
+        const row = document.getElementById(map_id);
+        //console.log("row", row);
+        if(row){
+
+            const el = row.querySelector("[data-field='hasallowance']");
+            if(el){
+                add_or_remove_class(el, icon_class, add_icon)
+                if (add_icon){
+                    el.setAttribute("data-filter", "1")
+                } else {
+                    el.removeAttribute("data-filter")
+                }
+
+                let title = "";
+                for (let i = 0, ehal_id; ehal_id = item_dict.ehal_id_agg[i]; i++) {
+                    if (title) {title += "\n"}
+                    title += (item_dict.description_agg[i]) ? item_dict.description_agg[i] : "";
+                    const quantity = item_dict.quantity_agg[i];
+                    if (!quantity){
+                        title +=  " (-)"
+                    } else {
+                        title +=  " (" + quantity / 10000 + "x)"
+                    }
+                }
+                el.title = title;
+
+                if(show_ok){ShowOkElement(el);}
+        }}
+    }  // UpdateAllowanceIcon
 
 
 //############################################################################
@@ -2777,7 +3516,7 @@ rowcount: 11
             const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]))
             if(is_delete){
                 const map_id = get_mapid_from_dict (upload_dict);
-                b_ShowTblrowErrorOK_byID(map_id);
+                b_ShowTblrow_OK_Error_byID(map_id);
             }  // if(is_delete){
 
             let response = "";
@@ -2796,10 +3535,19 @@ rowcount: 11
                         FillTblRows();
                     };
                     // update changed rows only
+                    if ("emplhourallowance_updates" in response) {
+                        RefreshEmplhourAllowanceRows(response.emplhourallowance_updates)
+                    }
 
                     // update EmplhourNotes must come before RefreshEmplhourMap
                     if ("emplhournote_updates" in response) {
                         RefreshEmplhourNoteRows(response.emplhournote_updates)
+                    }
+                    if ("employeenote_updates" in response) {
+                        RefreshEmployeeNoteRows(response.employeenote_updates)
+                    }
+                    if ("ordernote_updates" in response) {
+                        RefreshOrderNoteRows("ordernote", response.ordernote_updates)
                     }
                     if ("emplhour_updates" in response) {
                         RefreshEmplhourMap (response.emplhour_updates, false)
@@ -2871,7 +3619,7 @@ rowcount: 11
 
 //=========  RefreshEmplhour_MapItem  ================ PR2020-08-14
     function RefreshEmplhour_MapItem(update_dict, is_update_check) {
-        //console.log(" --- RefreshEmplhour_MapItem  ---");
+        console.log(" --- RefreshEmplhour_MapItem  ---");
         //console.log("is_update_check", is_update_check);
         //console.log("update_dict", deepcopy_dict(update_dict));
 
@@ -2913,8 +3661,7 @@ rowcount: 11
                     }
                 }
             };
-            //console.log("updated_columns", updated_columns);
-            // check haschanges, update status field when changed
+            //check haschanges, update status field when changed
             if ("haschanged" in old_map_dict && "haschanged" in update_dict){
                 if (old_map_dict.haschanged !== update_dict.haschanged ) {
                     updated_columns.push("status")
@@ -2961,14 +3708,20 @@ rowcount: 11
 //--- make tblRow green for 2 seconds
             } else if(is_created){
                 ShowOkElement(tblRow);
+
             } else if(updated_columns){
+                const is_pay_or_inv_locked = (update_dict.stat_pay_locked || update_dict.stat_inv_locked);
+                const is_locked = (is_pay_or_inv_locked || update_dict.stat_locked);
+                const status_array = b_get_status_array(update_dict.status);
+
 // ---  make updated fields green for 2 seconds
                 for (let i = 0, cell, el; cell = tblRow.cells[i]; i++) {
                     const el = cell.children[0];
                     if(el){
                         const el_field = get_attr_from_el(el, "data-field")
                         if(updated_columns.includes(el_field)){
-                            UpdateField(tblRow, el, update_dict)
+
+                            UpdateField(tblRow, el, update_dict, is_pay_or_inv_locked, is_locked, status_array)
                             ShowOkElement(cell);
                         }
                     }
@@ -2978,6 +3731,27 @@ rowcount: 11
     }  // RefreshEmplhour_MapItem
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+//=========  RefreshEmplhourAllowanceRows  ================ PR2021-02-10
+    function RefreshEmplhourAllowanceRows(emplhourallowance_updates) {
+        console.log(" ----- RefreshEmplhourAllowanceRows  -----");
+        if (emplhourallowance_updates) {
+            for (const [emplhour_pk, updated_row] of Object.entries(emplhourallowance_updates)) {
+                console.log("updated_row", updated_row);
+                const add_icon = (!isEmpty(updated_row))
+                if(add_icon){
+                    emplhourallowance_dict[emplhour_pk] = updated_row;
+                } else {
+                    delete emplhourallowance_dict[emplhour_pk]
+                }
+                UpdateAllowanceIcon(emplhour_pk, updated_row, add_icon, true); // true = show_ok
+        }}
+         console.log("emplhourallowance_dict", emplhourallowance_dict);
+    } // RefreshEmplhourAllowanceRows
+
+
+
+
 //=========  RefreshEmplhourNoteRows  ================ PR2020-10-15
     function RefreshEmplhourNoteRows(emplhournote_updates) {
         if (emplhournote_rows && emplhournote_updates) {
@@ -2989,6 +3763,34 @@ rowcount: 11
         }
     } // RefreshEmplhourNoteRows
 
+
+//=========  RefreshEmployeeNoteRows  ================ PR2021-02-16
+    function RefreshEmployeeNoteRows(employeenote_updates) {
+        console.log("RefreshEmployeeNoteRows: ");
+        //console.log("employeenote_updates: ", employeenote_updates);
+        if (employeenote_updates && employeenote_updates) {
+            for (const [employee_pk, updated_row] of Object.entries(employeenote_updates)) {
+                employeenote_rows[employee_pk] = updated_row;
+                UpdateEmployeeOrderNotes("employeenote", employeenote_rows, employee_pk)
+            }
+        }
+        //console.log("employeenote_rows: ", employeenote_rows);
+    } // RefreshEmployeeNoteRows
+
+
+//=========  RefreshOrderNoteRows  ================ PR2021-02-16
+    function RefreshOrderNoteRows(tblName, note_updates) {
+        console.log("RefreshOrderNoteRows: ");
+        //console.log("note_updates: ", note_updates);
+        const note_rows = (tblName === "employeenote") ? employeenote_rows : (tblName === "ordernote") ? ordernote_rows : null;
+        if (note_updates && note_rows) {
+            for (const [pk_str, updated_row] of Object.entries(note_updates)) {
+                note_rows[pk_str] = updated_row;
+                UpdateEmployeeOrderNotes(tblName, note_rows, pk_str)
+            }
+        }
+        //console.log("employeenote_rows: ", employeenote_rows);
+    } // RefreshEmploye
 
 //=========  refresh_abscat_map  ======= PR2020-08-14
     function refresh_abscat_map(data_list) {
@@ -3304,9 +4106,19 @@ rowcount: 11
                           }
 // ---  hide loader
         el_MRD_loader.classList.add(cls_hide)
-// ---  check for overlap
-        const datalist_request = {overlap: {get: true}, roster_period: selected_period};
-        // TODO TEST >> DatalistDownload(datalist_request, true); // true = no_loader
+
+// check for overlap, also get emplhourallowance and emplhournote (and emplhourstatus
+        const datalist_request = {
+            overlap: {get: true},
+            emplhourallowance: {get: true},
+            emplhournote: {get: true},
+            emplhourstatus: {get: true},
+            employeenote: {get: true},
+            ordernote: {get: true}
+            // skip this one : roster_period: selected_period};
+        }
+        DatalistDownload(datalist_request, true); // true = no_loader
+
 
 // ---  set info textboxes
         //const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
@@ -3717,7 +4529,7 @@ rowcount: 11
 
 //=========  MSE_MSO_MRE_MRO_FillSelectRow  ================ PR2020-08-18
     function MSE_MSO_MRE_MRO_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, row_index, selected_pk, rosterdate) {
-        console.log( "===== MSE_MSO_MRE_MRO_FillSelectRow ========= ");
+        //console.log( "===== MSE_MSO_MRE_MRO_FillSelectRow ========= ");
         //console.log( "pgeName: ", pgeName, "tblName: ", tblName);
         //console.log( "map_dict: ", map_dict);
 
@@ -3761,9 +4573,9 @@ rowcount: 11
        } else if(tblName === "employee") {
             ppk_int =  map_dict.comp_id;
             code_value = map_dict.code;
-       console.log( "code_value: ", code_value);
+       //console.log( "code_value: ", code_value);
             const within_range = period_within_range_iso(map_dict.datefirst, map_dict.datelast, rosterdate, rosterdate)
-       console.log( "within_range: ", within_range);
+       //console.log( "within_range: ", within_range);
             // don't add current employee in list when list is list of replacement employees
             const skip_selected_pk = (!mod_dict.is_add_employee && mod_dict.cur_employee_pk && pk_int === mod_dict.cur_employee_pk);
             // <PERMIT> 2020-11-07
@@ -3808,8 +4620,8 @@ rowcount: 11
 
 //=========  MSE_MSO_MRE_MRO_AddAllToList  ================ PR2020-08-24
     function MSE_MSO_MRE_MRO_AddAllToList(tblBody_select, pgeName, tblName){
-        console.log( "===== MSE_MSO_MRE_MRO_AddAllToList ========= ");
-        console.log( "pgeName", pgeName);
+        //console.log( "===== MSE_MSO_MRE_MRO_AddAllToList ========= ");
+       // console.log( "pgeName", pgeName);
         let map_dict = {};
         if (pgeName === "MSE") {
             const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
@@ -3823,13 +4635,13 @@ rowcount: 11
                 map_dict = {id: 0, c_id: ppk_int, code: "<" + loc.All_orders + ">"};
             }
         }
-        console.log( "map_dict: ", map_dict);
+        //console.log( "map_dict: ", map_dict);
         MSE_MSO_MRE_MRO_FillSelectRow(map_dict, tblBody_select, pgeName, tblName, 0, 0)
     }  // MSE_MSO_MRE_MRO_AddAllToList
 
 //=========  MSE_MSO_MRE_MRO_SelecttableClicked  ================ PR2020-08-19
     function MSE_MSO_MRE_MRO_SelecttableClicked(pgeName, tblName, tblRow) {
-        console.log( "===== MSE_MSO_MRE_MRO_SelecttableClicked ========= ");
+        //console.log( "===== MSE_MSO_MRE_MRO_SelecttableClicked ========= ");
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(tblRow) {
@@ -3862,7 +4674,6 @@ rowcount: 11
                          (tblName === "abscat") ? abscat_map :
                          (tblName === "employee") ? employee_map : null;
         const map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
-
 
         let el_focus = null;
 
@@ -3924,7 +4735,7 @@ rowcount: 11
             el_MRE_input_abscat.value = mod_dict.abscat_code;
 
             el_focus = el_MRE_input_replacement;
-            
+
             MRE_btn_SelectAndDisable(null, true)
 
         } else if (tblName === "employee") {
@@ -4003,7 +4814,22 @@ rowcount: 11
         let offset_value = null, offset_start = null, offset_end = null, break_duration = 0, time_duration = 0;
         let show_btn_delete = true;  // offsetsplit is required
         let map_id = null, pk_int = null, ppk_int = null, tblName = "emplhour";
-        if (calledby === "tblRow") {
+
+        if (calledby === "mod_status") {
+            console.log("mod_status_dict", mod_status_dict);
+            fldName = (mod_status_dict.is_field_start_conf) ? "offsetstart" : (mod_status_dict.is_field_end_conf) ? "offsetend" : null;
+
+            rosterdate = mod_status_dict.rosterdate;
+            // offset can have null value, 0 = midnight
+
+            offset_start = mod_status_dict.offsetstart;
+            offset_end = mod_status_dict.offsetend;
+            break_duration = mod_status_dict.breakduration;
+            time_duration = mod_status_dict.timeduration;
+            offset_value = (mod_status_dict.is_field_start_conf) ? offset_start : (mod_status_dict.is_field_end_conf) ? offset_end : null;
+
+            fldName = mod_status_dict
+        } else if (calledby === "tblRow") {
             let tblRow = get_tablerow_selected(el_input)
             map_id = tblRow.id;
 
@@ -4122,9 +4948,9 @@ rowcount: 11
 
 //========= MRE_MRO_TimepickerResponse  ============= PR2019-10-12
     function MRE_MRO_TimepickerResponse(tp_dict) {
-        //console.log(" === MRE_MRO_TimepickerResponse ===" );
-        //console.log("tp_dict", tp_dict);
-        //console.log("mod_dict", deepcopy_dict(mod_dict));
+        console.log(" === MRE_MRO_TimepickerResponse ===" );
+        console.log("tp_dict", tp_dict);
+        console.log("mod_dict", deepcopy_dict(mod_dict));
 
         // new value of quicksave is uploaded to server in ModTimepicker
         if("quicksave" in tp_dict) {is_quicksave = tp_dict.quicksave};
@@ -4132,47 +4958,55 @@ rowcount: 11
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
             const fldName = tp_dict.field;
-console.log( "fldName: ", fldName);
 
 // ---  get new value from tp_dict
             let new_offset = get_dict_value(tp_dict, ["offset"])
-console.log( "new_offset: ", new_offset);
+
+// ---  put new_offset in mod_status_dict when called by page "mod_status"
+            const called_by_page = tp_dict.page;
+        console.log("called_by_page", called_by_page);
+            if(called_by_page === "mod_status"){
+                mod_status_dict.new_offset = new_offset;
+        console.log("mod_status_dict.new_offset", mod_status_dict.new_offset);
+                el_mod_status_time.innerText = display_offset_time (loc, new_offset, false, false);
+            } else {
 
 // ---  calculate timeduration and min max
-            const shift_dict = mtp_calc_timeduration_minmax(loc, fldName, new_offset,
-                                            mod_dict.shift_code,
-                                            mod_dict.offsetstart,
-                                            mod_dict.offsetend,
-                                            mod_dict.breakduration,
-                                            mod_dict.timeduration)
+                const shift_dict = mtp_calc_timeduration_minmax(loc, fldName, new_offset,
+                                                mod_dict.shift_code,
+                                                mod_dict.offsetstart,
+                                                mod_dict.offsetend,
+                                                mod_dict.breakduration,
+                                                mod_dict.timeduration)
 
-// ---  put new value in variable
-            if (["offset_split_before", "offset_split_after"].indexOf(fldName) > -1) {
-                mod_dict.offsetsplit = new_offset;
-                const display_offset = display_offset_time (loc, new_offset, false, false);
-                el_MRE_split_time.innerText = display_offset;    // set focus to save button
-                // store offsetsplit as offsetend, used to set new endtime in update_emplhour
-                //mod_dict.offsetend = new_offset
-                setTimeout(function() { el_MRE_btn_save.focus()}, 50);
-            } else {
-                mod_dict.code = shift_dict.code.value
-                mod_dict.offsetstart = shift_dict.offsetstart.value
-                mod_dict.offsetend = shift_dict.offsetend.value
-                mod_dict.breakduration = shift_dict.breakduration.value
-                mod_dict.timeduration = shift_dict.timeduration.value
+    // ---  put new value in variable
+                if (["offset_split_before", "offset_split_after"].indexOf(fldName) > -1) {
+                    mod_dict.offsetsplit = new_offset;
+                    const display_offset = display_offset_time (loc, new_offset, false, false);
+                    el_MRE_split_time.innerText = display_offset;    // set focus to save button
+                    // store offsetsplit as offsetend, used to set new endtime in update_emplhour
+                    //mod_dict.offsetend = new_offset
+                    setTimeout(function() { el_MRE_btn_save.focus()}, 50);
+                } else {
+                    mod_dict.code = shift_dict.code.value
+                    mod_dict.offsetstart = shift_dict.offsetstart.value
+                    mod_dict.offsetend = shift_dict.offsetend.value
+                    mod_dict.breakduration = shift_dict.breakduration.value
+                    mod_dict.timeduration = shift_dict.timeduration.value
 
-                el_MRO_offsetstart.innerText = display_offset_time (loc, mod_dict.offsetstart, false, false);
-                el_MRO_offsetend.innerText = display_offset_time (loc, mod_dict.offsetend, false, false);
-                el_MRO_breakduration.innerText =  display_duration (mod_dict.breakduration, loc.user_lang);
-                el_MRO_timeduration.innerText = display_duration (mod_dict.timeduration, loc.user_lang);
-                setTimeout(function() { el_MRO_input_employee.focus()}, 50);
-            }
-            MSE_MSO_MRE_MRO_SetHeaderAndEnableBtnSave (tp_dict.page)
+                    el_MRO_offsetstart.innerText = display_offset_time (loc, mod_dict.offsetstart, false, false);
+                    el_MRO_offsetend.innerText = display_offset_time (loc, mod_dict.offsetend, false, false);
+                    el_MRO_breakduration.innerText =  display_duration (mod_dict.breakduration, loc.user_lang);
+                    el_MRO_timeduration.innerText = display_duration (mod_dict.timeduration, loc.user_lang);
+                    setTimeout(function() { el_MRO_input_employee.focus()}, 50);
+                }
+                MSE_MSO_MRE_MRO_SetHeaderAndEnableBtnSave (tp_dict.page)
 
-// set forcus to btn save in modal MRE
-            if(tp_dict.page === "MRE"){ el_MRE_btn_save.focus() }
+    // set focus to btn save in modal MRE
+                if(tp_dict.page === "MRE"){ el_MRE_btn_save.focus() }
 
-        //console.log("end mod_dict", deepcopy_dict(mod_dict));
+            //console.log("end mod_dict", deepcopy_dict(mod_dict));
+            }  //   if(called_by_page === "mod_status"){
         }  // if("save_changes" in tp_dict) {
      }  //MRE_MRO_TimepickerResponse
 
@@ -4244,8 +5078,8 @@ console.log( "new_offset: ", new_offset);
 
         if(pgeName === "MSS"){
 // ---  hide loader
-            const el_loader = document.getElementById("id_MSS_loader");
-            el_loader.classList.add(cls_visible_hide);
+            const el_MSS_loader = document.getElementById("id_MSS_loader");
+            el_MSS_loader.classList.add(cls_visible_hide);
 
             const order_dict = mod_upload_dict.emplh_shift_dict;
             const shift_dict = get_dict_value(order_dict, [mod_upload_dict.order_pk]);
@@ -4437,7 +5271,7 @@ console.log( "new_offset: ", new_offset);
 // ++++ MOD ROSTER EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // =========  MRE_Open  ================ PR2019-06-23 PR2020-08-22
     function MRE_Open(el_input) {
-        //console.log(" =========  MRE_Open  ==========")
+        console.log(" =========  MRE_Open  ==========")
 
 // reset mod_dict
         mod_dict = {};
@@ -4447,9 +5281,17 @@ console.log( "new_offset: ", new_offset);
         const tblRow = get_tablerow_selected(el_input);
         const map_dict = get_mapdict_from_datamap_by_id(emplhour_map, tblRow.id);
         const fldName = get_attr_from_el(el_input, "data-field")
-
+        let row_is_locked = false;
         mod_dict = {};
         if(!isEmpty(map_dict)){
+            row_is_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            if(!row_is_locked){
+                // check if row status is 'locked'
+                const status_array = b_get_status_array(map_dict.status)
+                row_is_locked = (!!status_array[5]); // STATUS_05_LOCKED = 32
+            }
+
+            console.log("map_dict", map_dict)
             mod_dict = {rosterdate: map_dict.rosterdate,
                         mapid: map_dict.mapid,
                         isabsence: map_dict.c_isabsence,
@@ -4472,7 +5314,9 @@ console.log( "new_offset: ", new_offset);
 
 // ---  set dont_show_modal:
         let dont_show_modal = false;
-        if (mod_dict.isrestshift){
+        if (row_is_locked){
+            dont_show_modal = true;
+        } else if (mod_dict.isrestshift){
             dont_show_modal = true;
         } else if (mod_dict.isabsence){
             dont_show_modal = (fldName === "employeecode" || !mod_dict.cur_employee_pk)
@@ -4569,6 +5413,7 @@ console.log( "new_offset: ", new_offset);
         } else if (mod_dict.btn_select === "tab_switch"){
             shift_option = "switch_shift";
         }
+        //console.log("shift_option", shift_option);
 
 // ---  create id_dict of current emplhour record
         let upload_dict = { id: {pk: mod_dict.emplhour_pk,
@@ -4595,6 +5440,7 @@ console.log( "new_offset: ", new_offset);
                 // happens in UploadChanges
             }
         } else {
+
 // ---  create employee_dict
             // when make_absent or split_shift: selected_employee is replacement employee
             if(["enter_employee", "make_absent", "make_absent_and_split", "split_shift"].indexOf(shift_option) > -1)
@@ -4610,6 +5456,7 @@ console.log( "new_offset: ", new_offset);
                                                 code: null, // necessary to make tblRow field blank
                                                 update: true}
             }
+
 // ---  put new selected_employee_code in tblRow,
             // - only when  selected_employee_pk has value
             // - not when split_shift or switch_shift (in that case selected_employee is added in new row)
@@ -4620,7 +5467,9 @@ console.log( "new_offset: ", new_offset);
             }
 
 // ---  create abscat_dict
-            if(["make_absent", "change_absence"].indexOf(shift_option) > -1){
+            // PR2021-01-09 debug: mail Romy: puts default abscat when spli, forgot to add ""make_absent_and_split",
+            // was: if(["make_absent", "change_absence"].indexOf(shift_option) > -1){
+            if(["make_absent", "change_absence", "make_absent_and_split"].indexOf(shift_option) > -1){
                 // when abcat has no pk, the default abscat will be saved. abscat_dict = {} gives error.
                 upload_dict.abscat = { pk: mod_dict.abscat_pk,
                                         ppk: mod_dict.abscat_ppk,
@@ -4642,6 +5491,11 @@ console.log( "new_offset: ", new_offset);
                     }
                 }
             }
+        }
+
+        UploadChanges(upload_dict, url_emplhour_upload);
+
+        $('#id_modroster_employee').modal('hide');
 
             // when shift_option = "enter_employee":
                 // when no employee in emplhour: selected_employee is put in field 'employee' in 'update_emplhour'
@@ -4668,7 +5522,6 @@ console.log( "new_offset: ", new_offset);
                 // emplhour keeps employee. Seletec employee is put in new emplhour record
                 // upload_dict.switchemployee: get current employee from emplhour at server
 
-        }
         /*
                 } else if (mod_dict.btn_select === "tab_switchXX"){
                     let el_select_replacement = document.getElementById("id_MRE_select_shift")
@@ -4698,9 +5551,7 @@ console.log( "new_offset: ", new_offset);
                     let selected_option = el_select_replacement.options[el_select_replacement.selectedIndex];
                 }
         */
-        UploadChanges(upload_dict, url_emplhour_upload);
 
-        $('#id_modroster_employee').modal('hide');
     }  // MRE_Save
 
 //========= MRE_set_fieldvalue_in_tblrow  ============= PR2020-04-13 PR2020-08-30

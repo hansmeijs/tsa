@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Roster' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/roster201123.js' %}"></script>
+    <script src="{% static 'js/roster210214.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -33,7 +33,6 @@
         <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Shifts' %}:</h6>
            <select id="id_SBR_select_shift"
-                type="text"
                 class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
@@ -50,7 +49,6 @@
         <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
            <select id="id_SBR_select_absence"
-                type="text"
                 class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
@@ -60,7 +58,6 @@
         <div class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Rest shifts' %}:</h6>
            <select id="id_SBR_select_restshift"
-                type="text"
                 class="tw_200 border_none px-2"
                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
            ></select>
@@ -73,7 +70,7 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
-    <div class="tsa_margin_top48_left24 mx-4">
+    <div class="tsa_margin_top48_left24 mx-4X">
 
     {% if user.is_authenticated %}
     {% if user.is_perm_supervisor or user.is_perm_planner or user.is_perm_hrman or user.is_perm_accman %}
@@ -82,58 +79,48 @@
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
-<!-- =================== POPUP DATE  ===================
-         <div id="id_popup_date_container" class="popup_box display_hide">
-             <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
-         </div>
--->
-<!-- =================== MODAL CONFIRM  =================== -->
-        {% include 'includes/confirm.html' %}
-<!-- =================== MODAL PERIOD  =================== -->
+
         {% include 'includes/modselectperiod.html' %}
-<!-- =================== MODAL TIMEPICKER  =================== -->
-        {% include 'includes/modtimepicker.html' %}
-<!-- =================== MODAL ROSTERDATE  =================== -->
-        {% include 'includes/modrosterdate.html' %}
-<!-- =================== MODAL ROSTER ORDER  =================== -->
-        {% include 'includes/modrosterorder.html' %}
-<!-- =================== MODAL SELECT ORDER  ===================-->
         {% include 'includes/modselectcustomerorder.html' %}
-<!-- =================== MODAL SELECT EMPLOYEE  ===================-->
         {% include 'includes/modselectemployee.html' %}
-<!-- =================== MODAL SELECT SHIFT  ===================-->
         {% include 'includes/modselectshift.html' %}
-<!-- =================== MODAL ROSTER EMPLOYEE  =================== -->
+
+        {% include 'includes/modrosterdate.html' %}
+        {% include 'includes/modrosterorder.html' %}
         {% include 'includes/modrosteremployee.html' %}
-<!-- =================== MODAL STATUS  =================== -->
-        {% include 'includes/modstatus.html' %}
-<!-- =================== MODAL NOTE  =================== -->
+        {% include 'includes/modtimepicker.html' %}
+
         {% include 'includes/modnote.html' %}
+        {% include 'includes/modemplhourallowance.html' %}
+        {% include 'includes/modselectallowance.html' %}
+
+        {% include 'includes/modstatus.html' %}
+        {% include 'includes/confirm.html' %}
 
 <!-- =================== CONTAINER =================== -->
         <div class="containerXX">
 
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_48 mx-4">
+            <div class="tsa_margin_top_48 mr-4X">
             <!-- content_header -->
-                <div class="content_header ">
+                <div class="content_header">
                 <!-- header_text -->
                     <div class="content_subheader_left mx-4">
                         <h5 id="id_hdr_period"></h5>
                     </div>
             <!-- loader -->
                     <div class="content_header_middle ">
-                        <div id="id_loader" class="image_container visibility_hide">
-                            <img src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
+                        {% include 'includes/loader.html' %}
                     </div>
                 </div>
+
+
             <!-- end content_header -->
             </div>
 <!-- end CONTENT HEADER - LOADER -->
 
 <!-- CONTENT BODY -->
-            <div class="content_body mx-4">
+            <div class="content_body mr-4">
 
 <!-- =================== DATA TABLE  =================== -->
                  <div>
@@ -153,6 +140,9 @@
             data-emplhour_download_url="{% url 'emplhour_download_url' %}"
             data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
             data-emplhournote_upload_url="{% url 'emplhournote_upload_url' %}"
+            data-employeenote_upload_url="{% url 'employeenote_upload_url' %}"
+            data-ordernote_upload_url="{% url 'ordernote_upload_url' %}"
+            data-emplhourallowance_upload_url="{% url 'emplhourallowance_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"

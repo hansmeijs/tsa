@@ -185,7 +185,7 @@ def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
         emplhour_count_confirmed_or_locked = m.Emplhour.objects.filter(
             orderhour__order__customer__company=company,
             rosterdate=rosterdate_dte,
-            status__gte=c.STATUS_004_START_CONFIRMED).count()
+            status__gte=c.STATUS_02_START_CONFIRMED).count()
 
     return emplhour_count, emplhour_count_confirmed_or_locked
 
@@ -253,7 +253,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
         new_period_dict['today'] = today
 
         period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
-        Usersetting.set_jsonsetting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
+        request.user.set_usersetting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json)
 
     #logger.debug('new_period_dict: ' + str(new_period_dict))
     return new_period_dict
@@ -417,13 +417,13 @@ def get_period_from_settings(request):  # PR2019-07-09
 
 # get period from Usersetting
         saved_period_dict = {}
-        dict_json = Usersetting.get_jsonsetting(c.KEY_USER_PERIOD_EMPLHOUR, request.user)
+        dict_json = request.user.get_usersetting(c.KEY_USER_PERIOD_EMPLHOUR)
         if dict_json:
             saved_period_dict = json.loads(dict_json)
 
 # if not found: get period from Companysetting
         else:
-            dict_json = m.Companysetting.get_setting(c.KEY_USER_PERIOD_EMPLHOUR, request.user.company)
+            dict_json = request.user.company.get_companysetting(c.KEY_USER_PERIOD_EMPLHOUR)
             if dict_json:
                 saved_period_dict = json.loads(dict_json)
 
@@ -713,30 +713,13 @@ def create_schemeitem_list(filter_dict, company):
     #logger.debug('customer_pk: ' + str(customer_pk))
     #logger.debug('order_pk: ' + str(order_pk))
 
-    sql_schemeitem = """SELECT 
-        si.id AS si_id, 
-        si.rosterdate,
-        si.onpublicholiday,
-        si.inactive,
-        si.cat,
-        
-        s.id AS s_id, 
-        s.code AS s_code,
-        
-        o.id AS o_id, 
-        o.isabsence,
-        o.istemplate,
-        
-        sh.id AS sh_id,
-        sh.code AS sh_code,
-        sh.isrestshift AS sh_isrestshift,
-        sh.offsetstart AS sh_offsetstart,
-        sh.offsetend  AS sh_offsetend,
-        sh.breakduration AS sh_breakduration,
-        sh.timeduration AS sh_timeduration,
-
-        t.id AS t_id,
-        t.code AS t_code
+    sql_schemeitem = """SELECT si.id AS si_id, CONCAT('schemeitem_', sh.id::TEXT) AS mapid, 'schemeitem' AS table,
+        si.rosterdate, si.onpublicholiday, si.inactive, si.cat,
+        s.id AS s_id, s.code AS s_code, o.id AS o_id, o.isabsence, o.istemplate,
+        sh.id AS sh_id, sh.code AS sh_code, sh.isrestshift AS sh_isrestshift,
+        sh.offsetstart AS sh_offsetstart, sh.offsetend  AS sh_offsetend,
+        sh.breakduration AS sh_breakduration, sh.timeduration AS sh_timeduration,
+        t.id AS t_id, t.code AS t_code
         
         FROM companies_schemeitem AS si 
         INNER JOIN companies_scheme AS s ON (s.id = si.scheme_id) 
@@ -956,78 +939,78 @@ def create_schemeitem_dict(schemeitem, item_dict):
 # ----------- end of create_schemeitem_dict -----------
 
 
-def create_shift_list(filter_dict, company, user_lang):
+def create_shift_rows(filter_dict, company):
     # ---  create list of all shifts of this order  PR2019-08-08 PR2020-05-23
-    #logger.debug(' --- create_shift_list --- ')
+    #logger.debug(' --- create_shift_rows --- ')
     #logger.debug('filter_dict' + str(filter_dict))
 
+    # calculate billable_value. Value = value * -1 when it is an inherited value
+    """
+        sql "comp.billable = 2" is short for CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END"
+            "CASE WHEN c.isabsence OR sh.isrestshift THEN FALSE ELSE",
+                "CASE WHEN sh.billable = 0 OR sh.billable IS NULL THEN",
+                    "CASE WHEN o.billable = 0 OR o.billable IS NULL THEN",
+                        "CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END",
+                    "ELSE",
+                        "CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END",
+                    "END",
+                "ELSE",
+                    "CASE WHEN sh.billable = 2 THEN TRUE ELSE FALSE END",
+                "END ",
+            "END AS sh_isbillable,",
+    """
 
     company_pk = company.pk
     sql_keys = {'compid': company_pk}
 
-    sql_list = []
-    sql_list.append("""SELECT 
-        sh.id, 
-        sh.code,
-        sh.offsetstart,
-        sh.offsetend ,
-        sh.breakduration,
-        sh.timeduration,
+    sql_list = [
+        "SELECT sh.id, sh.code, CONCAT('shift_', sh.id::TEXT) AS mapid, 'shift' AS table,",
+        "sh.offsetstart, sh.offsetend, sh.breakduration, sh.timeduration, sh.isrestshift,",
+        "s.id AS s_id, o.id AS o_id, c.isabsence AS c_isabsence, c.istemplate AS c_istemplate,",
 
-        sh.isrestshift,
-        
-        s.id AS s_id,
-        o.id AS o_id,
-        c.isabsence AS c_isabsence,
-        c.istemplate AS c_istemplate,
-        
-        sh.pricecode_id,
-        sh.additioncode_id,
-        sh.taxcode_id,
-        sh.wagefactorcode_id,
-        
-        sh.wagefactoronsat_id,
-        sh.wagefactoronsun_id,
-        sh.wagefactoronph_id,
+        "CASE WHEN c.isabsence OR sh.isrestshift THEN FALSE ELSE",
+            "CASE WHEN sh.billable = 0 OR sh.billable IS NULL THEN",
+                "CASE WHEN o.billable = 0 OR o.billable IS NULL",
+                "THEN comp.billable = 2 ELSE o.billable = 2 END",
+            "ELSE sh.billable = 2 END",
+        "END AS sh_isbillable,",
 
-        CONCAT('shift_', sh.id::TEXT) AS mapid
-        
-        FROM companies_shift AS sh 
-        INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        "sh.pricecode_id, sh.additioncode_id, sh.taxcode_id,",
+        "sh.wagefactorcode_id AS wfc_onwd, sh.wagefactoronsat_id AS wfc_onsat,"
+        "sh.wagefactoronsun_id AS wfc_onsun, sh.wagefactoronph_id AS wfc_onph,",
+        "sh.modifiedat AS modat, COALESCE(SUBSTRING (au.username, 7), '') AS modby_usr",
 
-        WHERE c.company_id = %(compid)s 
-        """)
+        "FROM companies_shift AS sh",
+        "INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id)",
+        "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "INNER JOIN companies_company AS comp ON (comp.id = c.company_id)",
+        "LEFT JOIN accounts_user AS au ON (au.id = sh.modifiedby_id)",
+        "WHERE comp.id = %(compid)s::INT"]
 
-    customer_pk = filter_dict.get('customer_pk')
+    shift_pk = filter_dict.get('shift_pk')
     order_pk = filter_dict.get('order_pk')
-    if order_pk:
-            sql_list.append('AND ( o.id = CAST(%(o_id)s AS INTEGER))')
-            sql_keys['o_id'] = order_pk
+    customer_pk = filter_dict.get('customer_pk')
+    if shift_pk:
+        sql_keys['sh_id'] = shift_pk
+        sql_list.append('AND sh.id = %(sh_id)s::INT')
+    elif order_pk:
+        sql_keys['o_id'] = order_pk
+        sql_list.append('AND o.id = %(o_id)s::INT')
     elif customer_pk:
-            sql_list.append('AND ( c.id = CAST(%(c_id)s AS INTEGER))')
-            sql_keys['c_id'] = customer_pk
+        sql_keys['c_id'] = customer_pk
+        sql_list.append('AND ( c.id = CAST(%(c_id)s AS INTEGER))')
+    if order_pk or customer_pk:
+        sql_list.append('ORDER BY sh.isrestshift, offsetstart NULLS LAST')
 
-    sql_list.append('ORDER BY sh.isrestshift, offsetstart NULLS LAST')
     sql = ' '.join(sql_list)
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
     shift_rows = f.dictfetchall(newcursor)
 
-    shift_list = []
-    for shift in shift_rows:
+    return shift_rows
 
-        #logger.debug('shift' + str(shift))
-        item_dict = {}
-        create_shift_dict_from_sql(shift, item_dict, user_lang)
-
-        if item_dict:
-            shift_list.append(item_dict)
-
-    return shift_list, shift_rows
-
-def create_shift_dict_from_sql(shift, update_dict, user_lang):  # PR2020-05-23
+def create_shift_dict_from_sqlXXX(shift, update_dict, user_lang):  # PR2020-05-23
     #logger.debug(' ----- create_shift_dict_from_sql ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
@@ -1121,178 +1104,96 @@ def create_shift_dict_from_sql(shift, update_dict, user_lang):  # PR2020-05-23
 # ----------- end of create_shift_dict_from_sql -----------
 
 
-def create_shift_dict(shift, update_dict, user_lang):
-    #logger.debug(' ----- create_shift_dict ----- ')
+def create_shift_dictXXX(shift, update_dict, user_lang):  # PR2021-01-04
+    logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
-    #                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-    #                 'wagefactor', 'priceratejson', 'additionjson')
-
     if shift:
-        offsetstart_value = getattr(shift, 'offsetstart') # offsetstart can have value 'None'
-        offsetend_value = getattr(shift, 'offsetend') # offsetend can have value 'None'
-        breakduration_value = getattr(shift, 'breakduration', 0)
-        timeduration_value = getattr(shift, 'timeduration', 0)
-        is_restshift = getattr(shift, 'isrestshift', False)
+        scheme = shift.scheme
+        order = scheme.order
+        customer = order.customer
 
-# calculate timeduration
-        # if both offsetstart and offsetend have value: calculate timeduration
-        # else: use stored value of timeduration
-        # timeduration = 0 in restshift
-        timeduration = f.calc_timeduration_from_values(
-            is_restshift=is_restshift,
-            offsetstart=offsetstart_value,
-            offsetend=offsetend_value,
-            breakduration=breakduration_value,
-            saved_timeduration=timeduration_value)
+    # calculate billable_value
+        field = 'billable'
+        billable_value = getattr(shift, field, 0)
+        if not billable_value:
+            ordr_billable = getattr(shift.scheme.order, field, 0)
+            if ordr_billable:
+                billable_value = ordr_billable * -1  # inherited value gets negative sign
+            else:
+                comp_billable = getattr(shift.scheme.order.customer.company, field, 0)
+                if comp_billable:
+                    billable_value = comp_billable * -1  # inherited value gets negative sign
 
-        for field in c.FIELDS_SHIFT:
+        shift_dict = {'mapid': 'shift_' + str(shift.pk),
+            'id': shift.pk,
+            's_id': scheme.pk,
+            'o_id': order.pk,
+            'c_isabsence': getattr(customer, 'isabsence', False ),
+            'c_istemplate':  getattr(customer, 'istemplate', False ),
+            'code': shift.code, # offsetstart can have value 'None'
+            'offsetstart': shift.offsetstart, # offsetstart can have value 'None'
+            'offsetend': shift.offsetend ,# offsetend can have value 'None'
+            'breakduration': getattr(shift, 'breakduration', 0),
+            'timeduration': getattr(shift, 'timeduration', 0),
+            'isrestshift': getattr(shift, 'isrestshift', False),
+            'billable': billable_value,
+            'sh_modat': shift.modifiedat,
+            'au_usr': shift.modifiedby.username_sliced if shift.modifiedby else None
+        }
+        # NIU  'pricecode_id': None, 'additioncode_id':  None, 'taxcode_id':  None,
+        # 'wagefactorcode_id':  None, 'wagefactoronph_id':  None,
+        # 'wagefactoronsat_id':  None, 'wagefactoronsun_id':  None
 
-# --- get field_dict from  item_dict if it exists
-            field_dict = update_dict[field] if field in update_dict else {}
 
-# --- create field_dict 'id'
-            if field == 'id':
-                field_dict['pk'] = shift.pk
-                field_dict['ppk'] = shift.scheme.pk
-                field_dict['table'] = 'shift'
-                if shift.istemplate:
-                    field_dict['istemplate'] = True
-                if shift.cat:
-                    field_dict['cat'] = shift.cat
-                field_dict['order_pk'] = shift.scheme.order.pk
+        update_dict['shift'] = shift_dict
 
-            elif field == 'istemplate':
-                pass
-
-            elif field == 'isrestshift':
-                # TODO remove, show when false is only for testing
-                 field_dict['value'] = getattr(shift, field, False)
-
-            elif field in ['isrestshift', 'cat', 'code', 'billable']:
-                value = getattr(shift, field)
-                if value:
-                    field_dict['value'] = value
-
-            elif field == 'offsetstart':
-                # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetstart_value is not None:
-                    field_dict['value'] = offsetstart_value
-                field_dict["minoffset"] = -720
-
-                maxoffset = 1440
-                if offsetend_value is not None:
-                    maxoffset = offsetend_value - breakduration_value
-                    if maxoffset > 1440:
-                        maxoffset = 1440
-                field_dict["maxoffset"] = maxoffset
-
-            elif field == 'offsetend':
-                # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetend_value is not None:
-                    field_dict['value'] = offsetend_value
-                field_dict["maxoffset"] = 2160
-
-                minoffset = 0
-                if offsetstart_value is not None:
-                    minoffset = offsetstart_value + breakduration_value
-                    if minoffset < 0:
-                        minoffset = 0
-                field_dict["minoffset"] = minoffset
-
-            elif field == 'breakduration':
-                field_dict['value'] = breakduration_value
-                field_dict["minoffset"] = 0
-                field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
-
- # calculate timeduration
-            elif field == 'timeduration':
-                if timeduration:
-                    field_dict['value'] = timeduration
-
-            elif field == 'billable':
-                value = getattr(shift, field, 0)
-                if not value:
-                    schm_billable = getattr(shift.scheme, field, 0)
-                    if schm_billable:
-                        value = schm_billable * -1  # inherited value gets negative sign
-                    else:
-                        ordr_billable = getattr(shift.scheme.order, field, 0)
-                        if ordr_billable:
-                            value = ordr_billable * -1  # inherited value gets negative sign
-                        else:
-                            cust_billable = getattr(shift.scheme.order.customer, field, 0)
-                            if cust_billable:
-                                value = cust_billable * -1  # inherited value gets negative sign
-                            else:
-                                comp_billable = getattr(shift.scheme.order.customer.company, field, 0)
-                                if comp_billable:
-                                    value = comp_billable * -1  # inherited value gets negative sign
-                if value:
-                    field_dict['value'] = value
-
-            if field_dict:
-                update_dict[field] = field_dict
-
-    #logger.debug('------------- update_dict: ' + str(update_dict))
-    # 7. remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(update_dict)
-
-    shift_update = update_dict
-    return shift_update
+    logger.debug('update_dict: ' + str(update_dict))
+    return update_dict
 # ----------- end of create_shift_dict -----------
 
 
-def create_team_list(filter_dict, company):
-    # create list of teams of this order PR2019-09-02 PR2020-05-24
-    #logger.debug(' ----- create_team_list  -----  ')
+def create_team_rows(filter_dict, company):
+    # create list of teams of this order PR2019-09-02 PR2020-05-24 PR2021-01-05
+    #logger.debug(' ----- create_team_rows  -----  ')
 
-    order_pk = None
+    company_pk = company.pk
+    sql_keys = {'compid': company_pk}
+
+    sql_list = ["SELECT t.id, t.code, CONCAT('team_', t.id::TEXT) AS mapid, 'team' AS table,",
+        "s.id AS s_id, s.code AS s_code, o.id AS o_id, c.isabsence AS c_isabsence, o.istemplate AS o_istemplate,",
+        "t.modifiedat AS modat, COALESCE(SUBSTRING (au.username, 7), '') AS modby_usr",
+
+        "FROM companies_team AS t",
+        "INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id)",
+        "INNER JOIN companies_order AS o ON (o.id = s.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "LEFT JOIN accounts_user AS au ON (au.id = t.modifiedby_id)",
+        "WHERE c.company_id = %(compid)s::INT"]
+
+    team_pk = filter_dict.get('team_pk')
+    order_pk = filter_dict.get('order_pk')
     customer_pk = filter_dict.get('customer_pk')
-    if customer_pk is None:
-        order_pk = filter_dict.get('order_pk')
-    #logger.debug('customer_pk: ' + str(customer_pk) + ' order_pk: ' + str(order_pk))
+    if team_pk:
+        sql_keys['t_id'] = team_pk
+        sql_list.append('AND t.id = %(t_id)s::INT')
+    elif order_pk:
+        sql_keys['o_id'] = order_pk
+        sql_list.append('AND o.id = %(o_id)s::INT')
+    elif customer_pk:
+        sql_keys['c_id'] = customer_pk
+        sql_list.append('AND c.id = %(c_id)s::INT')
+    if order_pk or customer_pk:
+        sql_list.append('ORDER BY t.code')
 
-    sql_teams = """SELECT 
-        t.id AS t_id, 
-        t.code AS t_code,
-
-        s.id AS s_id,
-        s.code AS s_code,
-        o.id AS o_id,
-        c.isabsence AS c_isabsence,
-        o.istemplate AS o_istemplate
-
-        FROM companies_team AS t 
-        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-
-        WHERE c.company_id = %(compid)s
-        AND ( c.id = CAST(%(c_id)s AS INTEGER) OR %(c_id)s IS NULL )  
-        AND ( o.id = CAST(%(o_id)s AS INTEGER) OR %(o_id)s IS NULL )  
-        ORDER BY t.code    
-        """
+    sql = ' '.join(sql_list)
     newcursor = connection.cursor()
-    newcursor.execute(sql_teams, {
-        'compid': company.id,
-        'c_id': customer_pk,
-        'o_id': order_pk
-    })
-    teams = f.dictfetchall(newcursor)
+    newcursor.execute(sql, sql_keys)
+    team_rows = f.dictfetchall(newcursor)
 
-    team_list = []
-    for team in teams:
-        item_dict = {}
-        create_team_dict_from_sql(team, item_dict)
+    return team_rows
 
-        if item_dict:
-            team_list.append(item_dict)
-
-    return team_list
-
-def create_team_dict_from_sql(team, item_dict):
+def create_team_dict_from_sqlXXX(team, item_dict):
     # --- create dict of this team PR2019-08-08
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     #logger.debug(' --- create_team_dict ---')
@@ -1418,14 +1319,13 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
 # - period_dict comes from request_item
     period_dict = request_item if request_item else {}
 
-    #logger.debug(' period_dict: ' + str(period_dict))
 # - check if values must be retrieved from Usersetting
     # {'get': True} not in use any more: get values from saved_period_dict when they are not in period_dict
 
 # - get saved period_dict
-    saved_period_dict = Usersetting.get_jsonsetting(key, request.user)
-
+    saved_period_dict = request.user.get_usersetting(key)
     #logger.debug(' saved_period_dict: ' + str(saved_period_dict))
+
 # - get customer_pk, order_pk or employee_pk
     # if key exists in dict: use that value (can be null), get saved otherwise
 
@@ -1517,7 +1417,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     emplhour_pk = period_dict.get('emplhour_pk')
 
 # +++  get paydatecode_pk
-    paydatecode_pk, paydatecode_code, paydateitem_year, paydateitem_datefirst, paydateitem_datelast = None, None, None, None, None
+    paydatecode_pk, paydatecode_code, paydateitem_year, paydateitem_period = None, None, None, None
+    paydateitem_datefirst, paydateitem_datelast = None, None
     if 'paydatecode_pk' in period_dict:
         new_paydatecode_pk = period_dict.get('paydatecode_pk')
         if new_paydatecode_pk:
@@ -1525,8 +1426,10 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             if paydatecode:
                 # paydatecode may have been deleted, therefore make save_setting only True when paydatecode exists
                 paydatecode_pk = paydatecode.pk
+
                 paydatecode_code = period_dict.get('paydatecode_code')
                 paydateitem_year = period_dict.get('paydateitem_year')
+                paydateitem_period = period_dict.get('paydateitem_period')
                 paydateitem_datefirst = period_dict.get('paydateitem_datefirst')
                 paydateitem_datelast = period_dict.get('paydateitem_datelast')
                 save_setting = True
@@ -1542,6 +1445,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
                 paydatecode_pk = paydatecode.pk
                 paydatecode_code = saved_period_dict.get('paydatecode_code')
                 paydateitem_year =  saved_period_dict.get('paydateitem_year')
+                paydateitem_period = saved_period_dict.get('paydateitem_period')
                 paydateitem_datefirst = saved_period_dict.get('paydateitem_datefirst')
                 paydateitem_datelast = saved_period_dict.get('paydateitem_datelast')
 
@@ -1560,6 +1464,14 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         save_setting = True
     else:
         is_restshift = saved_period_dict.get('isrestshift')
+
+# +++  get is_allownace - used in payrool page to show allowance instead of hours
+    if 'isallowance' in period_dict:
+        is_allowance = period_dict.get('isallowance', False)
+        save_setting = True
+    else:
+        is_allowance = saved_period_dict.get('isallowance', False)
+    #logger.debug(' is_allowance: ' + str(is_allowance))
 
 # +++  get daynightshift
     # value 0: AllShifts, 1: 'NightshiftsOnly', 2: 'DayshiftsOnly', 3: 'EveningshiftsOnly
@@ -1586,7 +1498,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
     else:
         sel_view = saved_period_dict.get('sel_view')
     if sel_view is None:
-        sel_view = 'calendarperiod'
+        sel_view = 'calendar_period'
 
 # +++  get col_hidden - col_hidden ia a tuple of the fieldnames that must be hidden
     if 'col_hidden' in period_dict:
@@ -1634,6 +1546,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             'employee_pk': employee_pk,
             'isabsence': is_absence,
             'isrestshift': is_restshift,
+            'isallowance': is_allowance,
             'daynightshift': daynightshift,
             'sel_btn': sel_btn,
             'col_hidden': col_hidden,
@@ -1656,10 +1569,9 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
             setting_tobe_saved['paydateitem_datefirst'] = paydateitem_datefirst
             setting_tobe_saved['paydateitem_datelast'] = paydateitem_datelast
             setting_tobe_saved['paydateitem_year'] = paydateitem_year
+            setting_tobe_saved['paydateitem_period'] = paydateitem_period
 
-        #logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
-        #logger.debug('Usersetting.set_jsonsetting from period_get_and_save')
-        Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
+        request.user.set_usersetting(key, setting_tobe_saved)
 
 # 5. create update_dict
     update_dict = {'key': key,
@@ -1711,6 +1623,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['paydatecode_pk'] = paydatecode_pk
         update_dict['paydatecode_code'] = paydatecode_code
         update_dict['paydateitem_year'] = paydateitem_year
+        update_dict['paydateitem_period'] = paydateitem_period
         update_dict['paydateitem_datefirst'] = paydateitem_datefirst
         update_dict['paydateitem_datelast'] = paydateitem_datelast
 
@@ -1722,6 +1635,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['isrestshift'] = is_restshift
     if daynightshift is not None:
         update_dict['daynightshift'] = daynightshift
+    if is_allowance is not None:
+        update_dict['isallowance'] = is_allowance
 
     if period_datefirst_dte:
         # period_datefirst_minus1 is used in create_emplhour_list
@@ -1750,7 +1665,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
                                                                        periodend_datetimelocal, timeformat, user_lang)
 
-    if sel_view == 'payrollperiod':
+    if sel_view == 'payroll_period':
         paydateitem_datefirst_dte = f.get_dateobj_from_dateISOstring(paydateitem_datefirst)
         paydateitem_datelast_dte = f.get_dateobj_from_dateISOstring(paydateitem_datelast)
         update_dict['dates_display_long'] = f.format_period_from_date(paydateitem_datefirst_dte, paydateitem_datelast_dte, False,
@@ -1763,6 +1678,7 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
                                                                        user_lang)
 
+    #logger.debug('update_dict: ' + str(update_dict))
     return update_dict
 # ---  end of period_get_and_save
 
@@ -1773,6 +1689,14 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
     # get now_usercomp_dtm from now_arr
     # now is the time of the computer of the current user. May be different from company local
     today_dte, now_usercomp_dtm = f.get_today_usertimezone(period_dict)
+    logging_on = False
+    if logging_on:
+        logger.debug('===== calc_periodstart_datetimelocal_periodend_datetimelocal ===== ')
+        logger.debug('period_tag: ' + str(period_tag))
+        logger.debug('extend_offset: ' + str(extend_offset))
+        logger.debug('period_dict: ' + str(period_dict))
+        logger.debug('save_period_setting: ' + str(save_period_setting))
+        logger.debug('saved_period_dict: ' + str(saved_period_dict))
 
 # - get periodstart_datetimelocal/periodend_datetimelocal
     period_datefirst_dte = None
@@ -1860,14 +1784,16 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
 
             # if 'other' in period_dict: get dates from period_dict, (in this case  save_period_setting = True)
             # if 'other' retrieved from saved_period: get dates from saved_period_dict
-            #logger.debug('>>>>>>>>>> save_period_setting: ' + str(save_period_setting))
-            if save_period_setting:  # save_period_setting is true when period_tag exists in request_item
-                period_datefirst_iso = period_dict.get('period_datefirst')
-                period_datelast_iso = period_dict.get('period_datelast')
-            else:
+
+            period_datefirst_iso, period_datelast_iso = None, None
+            if period_dict:
+                if save_period_setting:  # save_period_setting is true when period_tag exists in request_item
+                    period_datefirst_iso = period_dict.get('period_datefirst')
+                    period_datelast_iso = period_dict.get('period_datelast')
+            if period_datefirst_iso is None: # PR2021-02-18 was bug, didnt retrieve saved value
                 period_datefirst_iso = saved_period_dict.get('period_datefirst')
+            if period_datelast_iso is None:
                 period_datelast_iso = saved_period_dict.get('period_datelast')
-            #logger.debug('---> period_datelast_iso: ' + str(period_datelast_iso) + ' ' + str(type(period_datelast_iso)))
 
             # if one date blank: use other date, if both blank: use today. Dont use saved dates when blank
             if period_datefirst_iso is None:
@@ -1881,22 +1807,26 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
                     period_datelast_iso = period_datefirst_iso
             period_datefirst_dte = f.get_dateobj_from_dateISOstring(period_datefirst_iso)
             period_datelast_dte = f.get_dateobj_from_dateISOstring(period_datelast_iso)
-            #logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
+
+            if logging_on:
+                logger.debug(' save_period_setting: ' + str(save_period_setting))
+                logger.debug('---> period_datelast_iso: ' + str(period_datelast_iso) + ' ' + str(type(period_datelast_iso)))
+                logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
         else:
             # in case period_tag not in the list: set to 'tweek'
             period_tag = 'tweek'
             period_datefirst_dte = f.get_firstof_week(today_dte, 0)
             period_datelast_dte = f.get_lastof_week(today_dte, 0)
 
-        #logger.debug('---> period_datefirst_dte: ' + str(period_datefirst_dte) + ' ' + str(type(period_datefirst_dte)))
-        #logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
-
         periodstart_datetimelocal = f.get_datetimelocal_from_offset(period_datefirst_dte, offset_firstdate,
                                                                     comp_timezone)
         periodend_datetimelocal = f.get_datetimelocal_from_offset(period_datelast_dte, offset_lastdate, comp_timezone)
-        #logger.debug('---> periodend_datetimelocal: ' + str(periodend_datetimelocal) + ' ' + str(type(periodend_datetimelocal)))
 
-    #logger.debug('---> sel_btn: ' + str(sel_btn))
+    if logging_on:
+        logger.debug('---> period_datefirst_dte: ' + str(period_datefirst_dte) + ' ' + str(type(period_datefirst_dte)))
+        logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
+        logger.debug('---> periodend_datetimelocal: ' + str(periodend_datetimelocal) + ' ' + str(type(periodend_datetimelocal)))
+
     return period_datefirst_dte, period_datelast_dte, periodstart_datetimelocal, periodend_datetimelocal
 
 
@@ -1904,8 +1834,10 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
 def create_deletedrows_from_emplhourlog(period_dict, request, last_emplhour_check):
     # get deleted rows from emplhourlog  # PR2020-08-23
 
-    period_datefirst = period_dict.get('period_datefirst')
-    period_datelast = period_dict.get('period_datelast')
+    period_datefirst, period_datelast = None, None
+    if period_dict:
+        period_datefirst = period_dict.get('period_datefirst')
+        period_datelast = period_dict.get('period_datelast')
 
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     deleted_emplhour_rows = None
@@ -1966,11 +1898,12 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
     # periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
     #logger.debug('periodstart_datetime_utc_naive: ' + str(periodend_datetime_utc_naive) + ' ' + str(type(periodend_datetime_utc_naive)))
     # periodstart_datetime_utc_naive: 2020-01-30 18:29:00 <class 'datetime.datetime'>
-
-    rosterdatefirst = period_dict.get('period_datefirst')
-    rosterdatelast = period_dict.get('period_datelast')
-    rosterdatefirst_minus1 = period_dict.get('period_datefirst_minus1')
-    rosterdatelast_plus1 = period_dict.get('period_datelast_plus1')
+    rosterdatefirst, rosterdatelast, rosterdatefirst_minus1, rosterdatelast_plus1 = None, None, None, None
+    if period_dict:
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
+        rosterdatefirst_minus1 = period_dict.get('period_datefirst_minus1')
+        rosterdatelast_plus1 = period_dict.get('period_datelast_plus1')
 
     # Exclude template.
 
@@ -2020,64 +1953,7 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         # instead:
         # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
         # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
-        """SELECT eh.id, 
-            oh.id AS oh_id, 
-            o.id AS o_id, 
-            c.id AS c_id, 
-            c.company_id AS comp_id, 
-            CONCAT('emplhour_', eh.id::TEXT) AS mapid,
 
-            eh.rosterdate, 
-            eh.exceldate,
-
-            oh.customercode,
-            oh.ordercode,
-            CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
-            oh.shiftcode,
-            eh.employee_id, 
-            eh.employeecode ,
-
-            eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,
-            eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration, 
-
-            eh.functioncode_id AS fnc_id,
-            fnc.code AS fnc_code,
-
-            eh.wagefactorcode_id AS wfc_id,
-            wfc.code AS wfc_code,
-            eh.wagefactor,
-
-            eh.haschanged, 
-            eh.status,
-            (MOD(eh.status, 2) = 1) AS stat_planned, 
-            (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending, 
-            (TRUNC( MOD(eh.status, 8) / 4) = 1) AS stat_start_conf, 
-            (TRUNC( MOD(eh.status, 16) / 8) = 1) AS stat_end_pending, 
-            (TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf, 
-            (TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,
-            eh.lockedpaydate AS stat_pay_locked,
-            oh.lockedinvoice AS stat_inv_locked, 
-
-            c.isabsence AS c_isabsence, 
-            oh.isrestshift AS oh_isrestshift, 
-            oh.issplitshift AS oh_issplitshift, 
-            eh.isreplacement AS eh_isrpl,
-
-            eh.overlap AS eh_ov,
-            eh.modifiedat AS eh_modat,
-            COALESCE(SUBSTRING (u.username, 7), '') AS u_usr,
-            eh.hasnote
-
-            FROM companies_emplhour AS eh 
-            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
-            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            LEFT JOIN accounts_user AS u ON (u.id = eh.modifiedby_id)
-            LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id) 
-            LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id) 
-
-            WHERE (c.company_id = %(comp_id)s)
-        """
 
         sql_keys = {'comp_id': company_pk}
         sql_list = ["SELECT eh.id, oh.id AS oh_id, o.id AS o_id, c.id AS c_id, c.company_id AS comp_id,  CONCAT('emplhour_', eh.id::TEXT) AS mapid,",
@@ -2085,11 +1961,14 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         "oh.shiftcode, eh.employee_id, eh.employeecode, eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,",
         "eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration,",
         "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, eh.wagefactorcode_id AS wfc_id, wfc.code AS wfc_code, eh.wagefactor,",
-        "eh.haschanged, eh.status, (MOD(eh.status, 2) = 1) AS stat_planned, (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending,",
-        "(TRUNC( MOD(eh.status, 8) / 4) = 1) AS stat_start_conf, (TRUNC( MOD(eh.status, 16) / 8) = 1) AS stat_end_pending,",
-        "(TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf, (TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,",
+        "eh.haschanged, eh.status,",
+        # PR2021-02-03 calulate status on client side
+        # PR2021-02-10 keep stat_start_conf and stat_end_conf, to update fields in table
+        #"(MOD(eh.status, 2) = 1) AS stat_planned, (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending,",
+        "(TRUNC( MOD(eh.status, 8) / 4) = 1) AS stat_start_conf,", #"(TRUNC( MOD(eh.status, 16) / 8) = 1) AS stat_end_pending,",
+        "(TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf,", # "(TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,",
         "eh.lockedpaydate AS stat_pay_locked, oh.lockedinvoice AS stat_inv_locked,",
-        "c.isabsence AS c_isabsence,   oh.isrestshift AS oh_isrestshift,   oh.issplitshift AS oh_issplitshift, eh.isreplacement AS eh_isrpl,",
+        "c.isabsence AS c_isabsence, oh.isrestshift AS oh_isrestshift, oh.issplitshift AS oh_issplitshift, eh.isreplacement AS eh_isrpl,",
         "eh.overlap AS eh_ov, eh.modifiedat AS eh_modat, COALESCE(SUBSTRING (u.username, 7), '') AS u_usr, eh.hasnote",
         "FROM companies_emplhour AS eh",
         "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
@@ -2230,8 +2109,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
 # - get datetime when this user last checked for updates. This is stored in Usersetting key: last_emplhour_check
         key = 'last_emplhour_check'
         last_emplhour_check = Usersetting.get_datetimesetting(key, request.user)
-
-        last_emplhour_check_format = last_emplhour_check.isoformat().replace('T', ' ')[0:19]
+        if last_emplhour_check:
+            last_emplhour_check_format = last_emplhour_check.isoformat().replace('T', ' ')[0:19]
         #logger.debug('last_emplhour_check: ' + last_emplhour_check_format)
 
 # - set new datetime in last_emplhour_check in Usersetting
@@ -2240,19 +2119,19 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
         # convert now to timezone utc
         new_last_emplhour_check = now_utc_naive.replace(tzinfo=pytz.utc)
         Usersetting.set_datetimesetting(key, new_last_emplhour_check, request.user)
-
-        new_last_emplhour_check_format = new_last_emplhour_check.isoformat().replace('T', ' ')[0:19]
+        if new_last_emplhour_check:
+            new_last_emplhour_check_format = new_last_emplhour_check.isoformat().replace('T', ' ')[0:19]
         #logger.debug('new_emplhour_check:  ' + new_last_emplhour_check_format)
 
 # - get datetime when last emplhour records are updated from Companysetting
     # - is stored in CompanySetting, to mak it faster then checking the emplhour table itself
         key = 'last_emplhour_updated'
         last_emplhour_updated, last_emplhour_deleted = m.Companysetting.get_datetimesetting(key, request.user.company)
-
-        last_emplhour_updated_format = last_emplhour_updated.isoformat().replace('T', ' ')[0:19]
+        if last_emplhour_updated:
+            last_emplhour_updated_format = last_emplhour_updated.isoformat().replace('T', ' ')[0:19]
         #logger.debug('last_emplhr_updated: ' + last_emplhour_updated_format)
-
-        last_emplhour_deleted_format = last_emplhour_deleted.isoformat().replace('T', ' ')[0:19]
+        if last_emplhour_deleted:
+            last_emplhour_deleted_format = last_emplhour_deleted.isoformat().replace('T', ' ')[0:19]
         #logger.debug('last_emplhr_deleted: ' + last_emplhour_deleted_format)
 
 # if there are no updated records since last update: skip create_emplhour_rows,
@@ -2269,7 +2148,8 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
 
     #logger.debug('no_updates: ' + str(no_updates))
     #logger.debug('no_deletes: ' + str(no_deletes))
-# - get updated emplhour records, including deleted records
+# - get emplhour records, including deleted records
+    # no_updates is only true when emplhour_checked and no updates found
     emplhour_rows = []
     if not no_updates:
         emplhour_rows = create_emplhour_rows(period_dict, request, last_emplhour_check)
@@ -2284,237 +2164,152 @@ def create_emplhour_list(period_dict, is_emplhour_check, request):
     return emplhour_rows, no_changes, last_emplhour_check_format, last_emplhour_updated_format, last_emplhour_deleted_format, new_last_emplhour_check_format
 
 
-def create_emplhour_itemdict_from_row(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    #logger.debug(' === create_emplhour_itemdict_from_row ==')
-    #logger.debug('row: ' + str(row))
-
-    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    # --- start of create_emplhour_itemdict_from_row
-
-    # get pk and ppk
-    pk_int = row.get('id')  # emplhour.id
-    ppk_int = row.get('oh_id')  # orderhour.id
-
-    is_absence = row.get('o_abs', False)
-    is_restshift = row.get('oh_rest', False)
-
-    # lock field when status = locked or higher
-    status_sum = row.get('eh_st')  # instance.status
-    status_conf_start = f.get_status_value(status_sum, 1)
-    status_conf_end = f.get_status_value(status_sum, 2)
-    status_locked = (status_sum and status_sum >= c.STATUS_032_LOCKED)
-    has_changed = row.get('eh_haschanged', False)
-
-    comp_id = row.get('comp_id')
-    cust_id = row.get('cust_id')
-    o_id = row.get('o_id')  # order.id
-    o_code = row.get('oh_ordercode') if row.get('oh_ordercode') else ''
-    c_code = row.get('oh_customercode') if row.get('oh_customercode') else ''
-
-    eh_employee_id = row.get('eh_employee_id')
-    eh_employeecode = row.get('eh_employeecode', '')
-    eh_isrpl = row.get('eh_isrpl', False)
-
-    oh_shift = row.get('oh_shiftcode', '')
-
-    eh_breakdur = row.get('eh_breakdur', 0)
-    eh_timedur = row.get('eh_timedur', 0)
-    eh_plandur = row.get('eh_plandur', 0)
-    eh_billdur = row.get('eh_billdur', 0)
-
-    rosterdate_dte = row.get('eh_rd')  # instance.rosterdate
-    rosterdate_iso = rosterdate_dte.isoformat()
-    excel_date = f.get_Exceldate_from_datetime(rosterdate_dte)
-
-    timestart_utc = row.get('eh_ts')  # instance.timestart
-    timeend_utc = row.get('eh_te')  # instance.timeend
-    overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
-
-    # daylight saving time warning
-    timestart_local = None
-    timeend_local = None
-    dst_warning = False
-    if timestart_utc and timeend_utc:
-        timezone = pytz.timezone(comp_timezone)
-        timestart_local = timestart_utc.astimezone(timezone)
-        timeend_local = timeend_utc.astimezone(timezone)
-        timestart_utc_offset = timestart_local.utcoffset()
-        timeend_utc_offset = timeend_local.utcoffset()
-        dst_warning = (timestart_utc_offset != timeend_utc_offset)
-
-    # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
-    item_dict = {}
-    if update_dict is None:
-        update_dict = {}
-
-    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-    #                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
-    #                    'paydatecode', 'lockedpaydate',
-    #                    'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                    'plannedduration', 'billingduration',
-    #                    'wagerate', 'wagefactor', 'wage',
-    #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
-    #                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
-
-    for field in c.FIELDS_EMPLHOUR:
-        #logger.debug('...........field: ' + str(field))
-
-# --- get field_dict from update_dict if it exists (only when update)
-        field_dict = update_dict[field] if field in update_dict else {}
-        #logger.debug('field_dict: ' + str(field_dict))
-
-        # 2. lock date when locked=true of  timestart and timeend are both confirmed
-        if status_locked:
-            field_dict['locked'] = True
-
-        # cannot change employee when start OR endtime are confirmed
-        if field == 'employee':
-            if status_conf_start or status_conf_end:
-                field_dict['locked'] = True
-        # cannot change timestart when starttime is confirmed
-        elif field == 'timestart':
-            if status_conf_start:
-                field_dict['confirmed'] = True
-        # cannot change timeend when endtime is confirmed
-        elif field == 'timeend':
-            if status_conf_end:
-                field_dict['confirmed'] = True
-        # camnnot change breakduration when start AND endtime are confirmed
-        if field == 'breakduration':
-            if status_conf_start and status_conf_end:
-                field_dict['locked'] = True
-        # camnnot enter timeduration when start OR endtime are confirmed
-        if field == 'timeduration':
-            if status_conf_start or status_conf_end:
-                field_dict['locked'] = True
-
-        if field == 'id':
-            field_dict['pk'] = pk_int
-            field_dict['ppk'] = ppk_int
-            field_dict['table'] = 'emplhour'
-            if is_absence:
-                field_dict['isabsence'] = is_absence
-            if is_restshift:
-                field_dict['isrestshift'] = is_restshift
-            item_dict['pk'] = pk_int
-
-        # orderhour is parent of emplhour
-        elif field == 'orderhour':
-            field_dict['pk'] = ppk_int
-            field_dict['ppk'] = o_id
-
-        # 'order' is necessary to udate absence category
-        elif field == 'order':
-            cust_order_code = ' - '.join([c_code, o_code])
-
-            field_dict['pk'] = o_id
-            field_dict['ppk'] = cust_id
-            field_dict['code'] = o_code
-            field_dict['display'] = cust_order_code
-
-            item_dict['customer'] = {'pk': cust_id, 'code': c_code}
-
-        # shift info is stored in orderhour
-        elif field == 'shift':
-            field_dict['code'] = oh_shift
-            #logger.debug('..........item_dict[shift]: ' + str(field_dict))
-
-        elif field == 'employee':
-            #logger.debug('.......... e_id: ' + str(e_id))
-            #logger.debug('.......... e_code: ' + str(e_code))
-            #logger.debug('.......... field_dict: ' + str(field_dict))
-
-            # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
-            field_dict['pk'] = eh_employee_id  # employee.id
-            field_dict['ppk'] = comp_id
-            field_dict['code'] = eh_employeecode
-
-            #  make field red when has overlap
-            if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
-                field_dict['overlap'] = True
-            #  lock field employee when start is confirmed > already locked above
-
-            if eh_isrpl:
-                field_dict['isreplacement'] = eh_isrpl
-
-        elif field == 'rosterdate':
-            if rosterdate_dte:
-                field_dict['value'] = rosterdate_iso
-                field_dict['exceldate'] = excel_date
-
-                field_dict['timestartend'] = f.format_time_range(
-                    timestart_local=timestart_local,
-                    timeend_local=timeend_local,
-                    timeformat=timeformat,
-                    user_lang=user_lang)
-
-        # also add date when empty, to add min max date
-        elif field in ('timestart', 'timeend'):
-            has_overlap = (field == 'timestart' and overlap in (1, 3)) or \
-                          (field == 'timeend' and overlap in (2, 3))
-            set_fielddict_datetime(field=field,
-                                   field_dict=field_dict,
-                                   rosterdate_dte=rosterdate_dte,
-                                   timestart_utc=timestart_utc,
-                                   timeend_utc=timeend_utc,
-                                   has_overlap=has_overlap,
-                                   comp_timezone=comp_timezone,
-                                   timeformat=timeformat,
-                                   user_lang=user_lang)
-
-        elif field == 'breakduration':
-            if eh_breakdur:
-                field_dict['value'] = eh_breakdur
-                field_dict['display'] = f.display_duration(eh_breakdur, user_lang, False) # False = dont skip_prefix_suffix
-
-        elif field == 'timeduration':
-            #if eh_timedur:
-            field_dict['value'] = eh_timedur
-            field_dict['display'] = f.display_duration(eh_timedur, user_lang, False)  # False = dont skip_prefix_suffix
-            if dst_warning:
-                field_dict['dst_warning'] = True
-                field_dict['title'] = _('Daylight saving time has changed. This has been taken into account.')
-
-        elif field == 'plannedduration':
-            if eh_plandur:
-                field_dict['value'] = eh_plandur
-                field_dict['display'] = f.display_duration(eh_plandur, user_lang, False)  # False = dont skip_prefix_suffix
-
-        elif field == 'billingduration':
-            if eh_billdur:
-                field_dict['value'] = eh_billdur
-                field_dict['display'] = f.display_duration(eh_billdur, user_lang, False)  # False = dont skip_prefix_suffix
-
-        elif field in ('confirmstart', 'confirmend'):
-            index = 2 if field == 'confirmend' else 1
-            status_confirmed = f.get_status_value(status_sum, index)
-            field_dict['value'] = status_confirmed
-
-        elif field == 'status':
-            field_dict['value'] = status_sum
-            field_dict['haschanged'] = has_changed
-            if has_changed:
-                field_dict['modified_by'] = row.get('u_usr')
-                field_dict['modified_date'] = row.get('eh_modat')
-
-        item_dict[field] = field_dict
-
-# --- remove empty attributes from item_dict
-    f.remove_empty_attr_from_dict(item_dict)
-
-    return item_dict
-# --- end of create_emplhour_itemdict_from_row
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_emplhourallowance_rows(request, period_dict=None, last_emplhour_check=None, emplhour_pk=None):  # PR2021-02-10
+    #logger.debug(' ============= create_emplhourallowance_rows ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
+    company_pk = request.user.company.pk
+
+    rosterdatefirst, rosterdatelast = None, None
+    if period_dict:
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
+
+    emplhourallowance_rows = {}
+    sql_list = []
+    sql_keys = {'comp_id': company_pk}
+    if company_pk:
+        sql_sub = """SELECT ehal.id, ehal.emplhour_id, ehal.quantity, ehal.amount, ehal.modifiedat,
+            alw.id AS alw_id, alw.code, alw.description, alw.wagerate,
+            COALESCE(SUBSTRING (u.username, 7), '') AS modifiedby
+
+            FROM companies_emplhourallowance AS ehal
+            INNER JOIN companies_wagecode AS alw ON (alw.id = ehal.allowancecode_id)  
+            LEFT JOIN accounts_user AS u ON (u.id = ehal.modifiedby_id)
+
+            ORDER BY ehal.modifiedat
+        """
+        sql_list.append("""SELECT eh.id,             
+            ARRAY_AGG(ehal_sub.id ORDER BY ehal_sub.id) AS ehal_id_agg,
+            ARRAY_AGG(ehal_sub.alw_id ORDER BY ehal_sub.id) AS alw_id_agg,
+            ARRAY_AGG(ehal_sub.code ORDER BY ehal_sub.id) AS code_agg,
+            ARRAY_AGG(ehal_sub.description ORDER BY ehal_sub.id) AS description_agg,
+            ARRAY_AGG(ehal_sub.wagerate ORDER BY ehal_sub.id) AS wagerate_agg,
+            ARRAY_AGG(ehal_sub.quantity ORDER BY ehal_sub.id) AS quantity_agg,
+            ARRAY_AGG(ehal_sub.amount ORDER BY ehal_sub.id) AS amount_agg,
+            ARRAY_AGG(ehal_sub.modifiedby ORDER BY ehal_sub.id) AS modifiedby_agg,
+            ARRAY_AGG(ehal_sub.modifiedat ORDER BY ehal_sub.id) AS modifiedat_agg
+
+            FROM companies_emplhour AS eh
+            INNER JOIN (""" + sql_sub + """) AS ehal_sub ON (ehal_sub.emplhour_id = eh.id)
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
+            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+
+            WHERE c.company_id = %(comp_id)s::INT
+        """)
+        if emplhour_pk:
+            # when emplhour_pk has value: skip other filters
+            sql_keys['eh_id'] = emplhour_pk
+            sql_list.append('AND eh.id = %(eh_id)s::INT')
+        elif rosterdatefirst and rosterdatelast:
+            sql_keys['rdf'] = rosterdatefirst
+            sql_keys['rdl'] = rosterdatelast
+            sql_list.append('AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE')
+
+# when last_emplhour_check: get only records that are updated after last_mod date
+            if last_emplhour_check is not None:
+                sql_keys['last_mod'] = last_emplhour_check
+                sql_list.append('AND (eh.modifiedat > %(last_mod)s)')
+
+        sql_list.append('GROUP BY eh.id')
+        sql = ' '.join(sql_list)
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        emplhourallowance_rows = f.dictfetchrows(newcursor)
+
+    return emplhourallowance_rows
+# - end of create_emplhourallowance_rows
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def create_emplhourstatus_rows(period_dict, last_emplhour_check, request):  # PR2021-02-12
+    #logger.debug(' ============= create_emplhourstatus_rows ============= ')
+
+    company_pk = request.user.company.pk
+
+    rosterdatefirst, rosterdatelast, emplhour_pk_list = None, None, None
+    if period_dict:
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
+        emplhour_pk_list = period_dict.get('eplh_update_list')
+
+    emplhourstatus_rows = {}
+
+    if company_pk:
+        sql_keys = {'comp_id': company_pk}
+        sql_sub_list = ["SELECT ehst.id, ehst.emplhour_id, ehst.status, ehst.isremoved, ehst.modifiedat,",
+            "COALESCE(SUBSTRING (u.username, 7), '') AS modifiedby",
+            "FROM companies_emplhourstatus AS ehst",
+            "LEFT JOIN accounts_user AS u ON (u.id = ehst.modifiedby_id)",
+            "ORDER BY ehst.modifiedat"]
+        sql_sub = ' '.join(sql_sub_list)
+        sql_list = ["SELECT eh.id, eh.status, eh.modifiedat,",
+            "COALESCE(SUBSTRING (au.username, 7), '') AS modifiedby,",
+            "ARRAY_AGG(ehst_sub.id ORDER BY ehst_sub.id) AS ehst_id_agg,",
+            "ARRAY_AGG(ehst_sub.status ORDER BY ehst_sub.id) AS ehst_status_agg,",
+            "ARRAY_AGG(ehst_sub.isremoved ORDER BY ehst_sub.id) AS ehst_isremoved_agg,",
+            "ARRAY_AGG(ehst_sub.modifiedby ORDER BY ehst_sub.id) AS ehst_modifiedby_agg,",
+            "ARRAY_AGG(ehst_sub.modifiedat ORDER BY ehst_sub.id) AS ehst_modifiedat_agg",
+
+            "FROM companies_emplhour AS eh",
+            "INNER JOIN (" + sql_sub + ") AS ehst_sub ON (ehst_sub.emplhour_id = eh.id)",
+            "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) ",
+            "INNER JOIN companies_order AS o ON (o.id = oh.order_id) ",
+            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+            "LEFT JOIN accounts_user AS au ON (au.id = eh.modifiedby_id)",
+
+            "WHERE c.company_id = %(comp_id)s::INT"]
+
+        if emplhour_pk_list:
+            # when emplhour_pk_list has value: skip other filters
+            sql_keys['eh_id_arr'] = emplhour_pk_list
+            sql_list.append('AND eh.id IN ( SELECT UNNEST( %(eh_id_arr)s::INT[] ) )')
+
+        elif rosterdatefirst and rosterdatelast:
+            sql_keys['rdf'] = rosterdatefirst
+            sql_keys['rdl'] = rosterdatelast
+            sql_list.append('AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE')
+
+# when last_emplhour_check: get only records that are updated after last_mod date
+        if last_emplhour_check is not None:
+            sql_keys['last_mod'] = last_emplhour_check
+            sql_list.append('AND (eh.modifiedat > %(last_mod)s)')
+
+        sql_list.append('GROUP BY eh.id, eh.status, eh.modifiedat, au.username')
+        sql = ' '.join(sql_list)
+
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        emplhourstatus_rows = f.dictfetchrows(newcursor)
+
+    return emplhourstatus_rows
+
+# - end of create_emplhourstatus_rows
 
 def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR2020-10-14
     #logger.debug(' ============= create_emplhournote_rows ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
 
     company_pk = request.user.company.pk
-    rosterdatefirst = period_dict.get('period_datefirst')
-    rosterdatelast = period_dict.get('period_datelast')
-    emplhour_pk_list = period_dict.get('eplh_update_list')
+
+    rosterdatefirst, rosterdatelast, emplhour_pk_list = None, None, None
+    if period_dict:
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
+        emplhour_pk_list = period_dict.get('eplh_update_list')
 
     emplhournote_rows = {}
     sql_list = []
@@ -2529,7 +2324,7 @@ def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR20
             ORDER BY ehn.modifiedat
         """
         sql_list.append("""SELECT eh.id,             
-            ARRAY_AGG(ehn_sub.id ORDER BY ehn_sub.id) AS ehn_id_agg,
+            ARRAY_AGG(ehn_sub.id ORDER BY ehn_sub.id) AS id_agg,
             ARRAY_AGG(ehn_sub.note ORDER BY ehn_sub.id) AS note_agg,
             ARRAY_AGG(ehn_sub.modifiedby ORDER BY ehn_sub.id) AS modifiedby_agg,
             ARRAY_AGG(ehn_sub.modifiedat ORDER BY ehn_sub.id) AS modifiedat_agg,
@@ -2567,6 +2362,7 @@ def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR20
 
     return emplhournote_rows
 
+# - end of create_emplhournote_rows
 
 def create_teammemberabsence_list(dict, company):
     #logger.debug('create_emplabs_list: ' + str(dict))
@@ -2636,9 +2432,8 @@ def create_replacementshift_list(dict, company):
 
 # 3. get replacement period from Companysetting
         # this period is rosterdate_min till rosterdate_min + REPLACEMENT_PERIOD_DEFAULT (days)
-        replacement_period = m.Companysetting.get_setting(
+        replacement_period = company.get_companysetting(
             key_str=c.KEY_COMP_REPLACEMENT_PERIOD,
-            company=company,
             default_setting=c.REPLACEMENT_PERIOD_DEFAULT
         )
 
@@ -2659,12 +2454,12 @@ def create_replacementshift_list(dict, company):
 # 6. get emplhour records of replacement employee of this date
             # filter company, rosterdate
             # exclude cat: skip emplhours from restshift, absence and template orders (replacement not in use in table order)
-            # exclude emplhours that have STATUS_004_START_CONFIRMED or higher
+            # exclude emplhours that have STATUS_02_START_CONFIRMED or higher
             # TODO remove SHIFT_CAT_0032_REPLACEMENT
             crit = Q(orderhour__order__customer__company=company) & \
                     Q(rosterdate=rosterdate_cur_str) & \
                     Q(orderhour__order__cat__lt=c.SHIFT_CAT_0032_REPLACEMENT) & \
-                    Q(status__lt=c.STATUS_004_START_CONFIRMED) & \
+                    Q(status__lt=c.STATUS_02_START_CONFIRMED) & \
                     Q(orderhour__order__locked=False) & \
                     Q(employee_id=reployee_pk)
             emplhours = m.Emplhour.objects.filter(crit)
@@ -2818,8 +2613,11 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
         #logger.debug(' ============= create_review_customer_list ============= ')
         #logger.debug('period_dict:  ' + str(period_dict))
 
-        period_datefirst = period_dict.get('period_datefirst')
-        period_datelast = period_dict.get('period_datelast')
+        period_datefirst, period_datelast = None, None
+        if period_dict:
+            period_datefirst = period_dict.get('period_datefirst')
+            period_datelast = period_dict.get('period_datelast')
+
         if period_datefirst is None:
             period_datefirst = '1900-01-01'
         if period_datelast is None:
@@ -2952,8 +2750,11 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
         #logger.debug(' ============= create_review_list ============= ')
         #logger.debug('period_dict:  ' + str(period_dict))
 
-        period_datefirst = period_dict.get('period_datefirst')
-        period_datelast = period_dict.get('period_datelast')
+        period_datefirst, period_datelast = None, None
+        if period_dict:
+            period_datefirst = period_dict.get('period_datefirst')
+            period_datelast = period_dict.get('period_datelast')
+
         if period_datefirst is None:
             period_datefirst = '1900-01-01'
         if period_datelast is None:
@@ -3688,8 +3489,8 @@ def get_team_code(team):
 
 def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user_lang):
     # PR2020-05-23 used in scheme page, to retrieve schemes, etc from selected order
-    #logger.debug(' ================ create_page_scheme_list ================ ')
-    #logger.debug('filter_dict: ' + str(filter_dict))
+    logger.debug(' ================ create_page_scheme_list ================ ')
+    logger.debug('filter_dict: ' + str(filter_dict))
     # customer_pk is only used when is_absence
     checked_customer_pk = None
     checked_order_pk = None
@@ -3714,8 +3515,8 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
     elif checked_customer_pk is not None:
         new_filter_dict['customer_pk'] = checked_customer_pk
 
-    #logger.debug('is_absence: ' + str(is_absence))
-    #logger.debug('new_filter_dict: ' + str(new_filter_dict))
+    logger.debug('is_absence: ' + str(is_absence))
+    logger.debug('new_filter_dict: ' + str(new_filter_dict))
 
     if checked_order_pk is not None or checked_customer_pk is not None:
         #logger.debug('new_filter_dict: ' + str(new_filter_dict))
@@ -3736,22 +3537,26 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
             if scheme_list:
                 datalists['scheme_list'] = scheme_list
             #logger.debug('scheme_list: ' + str(scheme_list))
-# ----- shift_list
-            shift_list, shift_rows = create_shift_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
-            if shift_list:
-                datalists['shift_list'] = shift_list
+# ----- shift_rows
+            shift_rows = create_shift_rows( filter_dict=new_filter_dict, company=company)
             if shift_rows:
                 datalists['shift_rows'] = shift_rows
-# ----- team_list
-            team_list = create_team_list( filter_dict=new_filter_dict, company=company)
-            if team_list:
-                datalists['team_list'] = team_list
+            #logger.debug('shift_rows: ' + str(shift_rows))
+# ----- team_rows
+            team_rows = create_team_rows( filter_dict=new_filter_dict, company=company)
+            if team_rows:
+                datalists['team_rows'] = team_rows
+            #logger.debug('team_rows: ' + str(team_rows))
 # ----- teammember_list
-            teammember_list = ed.ed_create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
+            teammember_list, teammember_rows = ed.ed_create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
+            logger.debug('teammember_rows: ' + str(teammember_rows))
             if teammember_list:
                 datalists['teammember_list'] = teammember_list
+            if teammember_rows:
+                datalists['teammember_rows'] = teammember_rows
 # ----- schemeitem_list
             schemeitem_list = create_schemeitem_list(filter_dict=new_filter_dict, company=company)
+            #logger.debug('schemeitem_list: ' + str(schemeitem_list))
             if schemeitem_list:
                 datalists['schemeitem_list'] = schemeitem_list
 
@@ -3794,17 +3599,14 @@ def create_schemes_extended_dict(filter_dict, company, comp_timezone, user_lang)
 
         if item_dict:
         # add shiftlist to scheme_dict:
-            shift_list, shift_rows = create_shift_list(
+            shift_rows = create_shift_rows(
                 filter_dict={'scheme_pk': scheme.pk},
-                company=company,
-                user_lang=user_lang)
-            if shift_list:
-                item_dict['shift_list'] = shift_list
+                company=company)
             if shift_rows:
                 item_dict['shift_rows'] = shift_rows
 
         # add teamlist to scheme_dict:
-            team_list = create_team_list(
+            team_list = create_team_rows(
                 filter_dict={'scheme_pk': scheme.pk},
                 company=company)
             if team_list:
@@ -3895,3 +3697,227 @@ def create_scheme_dict_extended(scheme, item_dict, user_lang):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
+
+
+# NIU PR2021-02-03
+def create_emplhour_itemdict_from_rowXXX(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
+    #logger.debug(' === create_emplhour_itemdict_from_row ==')
+    #logger.debug('row: ' + str(row))
+
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # --- start of create_emplhour_itemdict_from_row
+
+    # get pk and ppk
+    pk_int = row.get('id')  # emplhour.id
+    ppk_int = row.get('oh_id')  # orderhour.id
+
+    is_absence = row.get('o_abs', False)
+    is_restshift = row.get('oh_rest', False)
+
+    # lock field when status = locked or higher
+    status_sum = row.get('eh_st')  # instance.status
+    status_conf_start = f.get_status_value(status_sum, 1)
+    status_conf_end = f.get_status_value(status_sum, 2)
+    status_locked = (status_sum and status_sum >= c.STATUS_05_LOCKED)
+    has_changed = row.get('eh_haschanged', False)
+
+    comp_id = row.get('comp_id')
+    cust_id = row.get('cust_id')
+    o_id = row.get('o_id')  # order.id
+    o_code = row.get('oh_ordercode') if row.get('oh_ordercode') else ''
+    c_code = row.get('oh_customercode') if row.get('oh_customercode') else ''
+
+    eh_employee_id = row.get('eh_employee_id')
+    eh_employeecode = row.get('eh_employeecode', '')
+    eh_isrpl = row.get('eh_isrpl', False)
+
+    oh_shift = row.get('oh_shiftcode', '')
+
+    eh_breakdur = row.get('eh_breakdur', 0)
+    eh_timedur = row.get('eh_timedur', 0)
+    eh_plandur = row.get('eh_plandur', 0)
+    eh_billdur = row.get('eh_billdur', 0)
+
+    rosterdate_dte = row.get('eh_rd')  # instance.rosterdate
+    rosterdate_iso = rosterdate_dte.isoformat()
+    excel_date = f.get_Exceldate_from_datetime(rosterdate_dte)
+
+    timestart_utc = row.get('eh_ts')  # instance.timestart
+    timeend_utc = row.get('eh_te')  # instance.timeend
+    overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
+
+    # daylight saving time warning
+    timestart_local = None
+    timeend_local = None
+    dst_warning = False
+    if timestart_utc and timeend_utc:
+        timezone = pytz.timezone(comp_timezone)
+        timestart_local = timestart_utc.astimezone(timezone)
+        timeend_local = timeend_utc.astimezone(timezone)
+        timestart_utc_offset = timestart_local.utcoffset()
+        timeend_utc_offset = timeend_local.utcoffset()
+        dst_warning = (timestart_utc_offset != timeend_utc_offset)
+
+    # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
+    item_dict = {}
+    if update_dict is None:
+        update_dict = {}
+
+    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
+    #                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
+    #                    'paydatecode', 'lockedpaydate',
+    #                    'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
+    #                    'plannedduration', 'billingduration',
+    #                    'wagerate', 'wagefactor', 'wage',
+    #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+    #                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
+
+    for field in c.FIELDS_EMPLHOUR:
+        #logger.debug('...........field: ' + str(field))
+
+# --- get field_dict from update_dict if it exists (only when update)
+        field_dict = update_dict[field] if field in update_dict else {}
+        #logger.debug('field_dict: ' + str(field_dict))
+
+        # 2. lock date when locked=true of  timestart and timeend are both confirmed
+        if status_locked:
+            field_dict['locked'] = True
+
+        # cannot change employee when start OR endtime are confirmed
+        if field == 'employee':
+            if status_conf_start or status_conf_end:
+                field_dict['locked'] = True
+        # cannot change timestart when starttime is confirmed
+        elif field == 'timestart':
+            if status_conf_start:
+                field_dict['confirmed'] = True
+        # cannot change timeend when endtime is confirmed
+        elif field == 'timeend':
+            if status_conf_end:
+                field_dict['confirmed'] = True
+        # camnnot change breakduration when start AND endtime are confirmed
+        if field == 'breakduration':
+            if status_conf_start and status_conf_end:
+                field_dict['locked'] = True
+        # camnnot enter timeduration when start OR endtime are confirmed
+        if field == 'timeduration':
+            if status_conf_start or status_conf_end:
+                field_dict['locked'] = True
+
+        if field == 'id':
+            field_dict['pk'] = pk_int
+            field_dict['ppk'] = ppk_int
+            field_dict['table'] = 'emplhour'
+            if is_absence:
+                field_dict['isabsence'] = is_absence
+            if is_restshift:
+                field_dict['isrestshift'] = is_restshift
+            item_dict['pk'] = pk_int
+
+        # orderhour is parent of emplhour
+        elif field == 'orderhour':
+            field_dict['pk'] = ppk_int
+            field_dict['ppk'] = o_id
+
+        # 'order' is necessary to udate absence category
+        elif field == 'order':
+            cust_order_code = ' - '.join([c_code, o_code])
+
+            field_dict['pk'] = o_id
+            field_dict['ppk'] = cust_id
+            field_dict['code'] = o_code
+            field_dict['display'] = cust_order_code
+
+            item_dict['customer'] = {'pk': cust_id, 'code': c_code}
+
+        # shift info is stored in orderhour
+        elif field == 'shift':
+            field_dict['code'] = oh_shift
+            #logger.debug('..........item_dict[shift]: ' + str(field_dict))
+
+        elif field == 'employee':
+            #logger.debug('.......... e_id: ' + str(e_id))
+            #logger.debug('.......... e_code: ' + str(e_code))
+            #logger.debug('.......... field_dict: ' + str(field_dict))
+
+            # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
+            field_dict['pk'] = eh_employee_id  # employee.id
+            field_dict['ppk'] = comp_id
+            field_dict['code'] = eh_employeecode
+
+            #  make field red when has overlap
+            if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
+                field_dict['overlap'] = True
+            #  lock field employee when start is confirmed > already locked above
+
+            if eh_isrpl:
+                field_dict['isreplacement'] = eh_isrpl
+
+        elif field == 'rosterdate':
+            if rosterdate_dte:
+                field_dict['value'] = rosterdate_iso
+                field_dict['exceldate'] = excel_date
+
+                field_dict['timestartend'] = f.format_time_range(
+                    timestart_local=timestart_local,
+                    timeend_local=timeend_local,
+                    timeformat=timeformat,
+                    user_lang=user_lang)
+
+        # also add date when empty, to add min max date
+        elif field in ('timestart', 'timeend'):
+            has_overlap = (field == 'timestart' and overlap in (1, 3)) or \
+                          (field == 'timeend' and overlap in (2, 3))
+            set_fielddict_datetime(field=field,
+                                   field_dict=field_dict,
+                                   rosterdate_dte=rosterdate_dte,
+                                   timestart_utc=timestart_utc,
+                                   timeend_utc=timeend_utc,
+                                   has_overlap=has_overlap,
+                                   comp_timezone=comp_timezone,
+                                   timeformat=timeformat,
+                                   user_lang=user_lang)
+
+        elif field == 'breakduration':
+            if eh_breakdur:
+                field_dict['value'] = eh_breakdur
+                field_dict['display'] = f.display_duration(eh_breakdur, user_lang, False) # False = dont skip_prefix_suffix
+
+        elif field == 'timeduration':
+            #if eh_timedur:
+            field_dict['value'] = eh_timedur
+            field_dict['display'] = f.display_duration(eh_timedur, user_lang, False)  # False = dont skip_prefix_suffix
+            if dst_warning:
+                field_dict['dst_warning'] = True
+                field_dict['title'] = _('Daylight saving time has changed. This has been taken into account.')
+
+        elif field == 'plannedduration':
+            if eh_plandur:
+                field_dict['value'] = eh_plandur
+                field_dict['display'] = f.display_duration(eh_plandur, user_lang, False)  # False = dont skip_prefix_suffix
+
+        elif field == 'billingduration':
+            if eh_billdur:
+                field_dict['value'] = eh_billdur
+                field_dict['display'] = f.display_duration(eh_billdur, user_lang, False)  # False = dont skip_prefix_suffix
+
+        elif field in ('confirmstart', 'confirmend'):
+            index = 2 if field == 'confirmend' else 1
+            status_confirmed = f.get_status_value(status_sum, index)
+            field_dict['value'] = status_confirmed
+
+        elif field == 'status':
+            field_dict['value'] = status_sum
+            field_dict['haschanged'] = has_changed
+            if has_changed:
+                field_dict['modified_by'] = row.get('u_usr')
+                field_dict['modified_date'] = row.get('eh_modat')
+
+        item_dict[field] = field_dict
+
+# --- remove empty attributes from item_dict
+    f.remove_empty_attr_from_dict(item_dict)
+
+    return item_dict
+# --- end of create_emplhour_itemdict_from_row
+

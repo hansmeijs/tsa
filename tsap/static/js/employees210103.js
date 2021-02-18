@@ -292,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MAB_breakduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_breakduration)}, false );
         const el_MAB_timeduration = document.getElementById("id_MAB_input_timeduration")
             el_MAB_timeduration.addEventListener("click", function() {MAB_TimepickerOpen(el_MAB_timeduration)}, false );
+        const el_MAB_modifiedby = document.getElementById("id_MAB_modifiedby");
         const el_MAB_btn_save = document.getElementById("id_MAB_btn_save");
             el_MAB_btn_save.addEventListener("click", function() {MAB_Save("save")}, false );
         const el_MAB_btn_delete = document.getElementById("id_MAB_btn_delete");
@@ -467,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                el_loader.classList.add(cls_visible_hide)
             },
             error: function (xhr, msg) {
-               //console.log(msg + '\n' + xhr.responseText);
+                console.log(msg + '\n' + xhr.responseText);
                 // hide loader
                 el_loader.classList.add(cls_visible_hide)
                 alert(msg + '\n' + xhr.responseText);
@@ -685,10 +686,12 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_div, loc.Add_employee, function() {HandleAddNewBtn()}, ["mx-2"], "id_submenu_add")
         AddSubmenuButton(el_div, loc.Delete_employee, function() {ModConfirmOpen("delete")}, ["mx-2"], "id_submenu_delete")
 
-        if (has_perm_add_edit_delete_employees){
+        // PR2020-12-04 debug. Don't use "if (has_perm_add_edit_delete_employees){",
+        // because the settings are not back from server when creating submenu
+        // was: if (has_perm_add_edit_delete_employees){
             const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
             AddSubmenuButton(el_div, loc.Upload_employees, null, ["mx-2"], "id_submenu_employee_import", url_employee_import);
-        }
+
         AddSubmenuButton(el_div, loc.Preview_planning, function() { HandlePrintPlanning("preview")}, ["mx-2"], "id_submenu_planning_preview");
         AddSubmenuButton(el_div, loc.Download_planning, function() { HandlePrintPlanning("print")}, ["mx-2"], "id_submenu_planning_print");
 
@@ -3132,7 +3135,7 @@ if(pgeName === "absence"){
             const tblRow_employee_ppk = get_attr_from_el(tblRow, "data-ppk" )
             const map_id = (tblRow) ? tblRow.id : null
             //console.log("map_id", map_id)
-    // ---  create  mod_MFE_dict
+    // ---  create mod_MFE_dict
             mod_MFE_dict = deepcopy_dict(get_mapdict_from_datamap_by_id(employee_map, map_id))
             //console.log("mod_MFE_dict", mod_MFE_dict)
     // ---  update selected.employee_pk
@@ -3141,6 +3144,7 @@ if(pgeName === "absence"){
             const header_text = (mod_MFE_dict.code) ? mod_MFE_dict.code : loc.Employee;
             document.getElementById("id_MFE_hdr_employee").innerText = header_text;
     // ---  fill functioncode select options. t_FillOptionsAbscatFunction is also used for functioncodes
+            // TODO add fill wagecodes
             const el_MFE_functioncode = document.getElementById("id_MFE_functioncode");
             //  function t_FillOptionsAbscatFunction(loc, tblName, el_select, data_map, selected_pk) {
             t_FillOptionsAbscatFunction(loc, "functioncode", el_MFE_functioncode, functioncode_map, mod_MFE_dict.functioncode);
@@ -3395,6 +3399,9 @@ if(pgeName === "absence"){
             mod_MAB_dict.replacement_datefirst = map_dict.rpl_df;
             mod_MAB_dict.replacement_datelast = map_dict.rpl_dl;
 
+            mod_MAB_dict.modat = map_dict.modat;
+            mod_MAB_dict.modby_usr = map_dict.modby_usr;
+
             // changes of the fields below cannot be stored in element,
             // original values are stored as 'old_order_pk' etc, changed values are stored in 'order_pk' etc
             mod_MAB_dict.old_order_pk = mod_MAB_dict.order_pk;
@@ -3410,7 +3417,7 @@ if(pgeName === "absence"){
             el_MAB_input_employee.value = mod_MAB_dict.employee_code;
             el_MAB_input_abscat.value = mod_MAB_dict.order_code
             el_MAB_input_replacement.value =  mod_MAB_dict.replacement_code;
-
+            el_MAB_modifiedby.innerText = display_modifiedby(loc, mod_MAB_dict.modat, mod_MAB_dict.modby_usr);
         }
         //console.log("mod_MAB_dict", deepcopy_dict(mod_MAB_dict))
 // --- when no employee selected: fill select table employee
@@ -3441,25 +3448,16 @@ if(pgeName === "absence"){
         $("#id_mod_absence").modal({backdrop: true});
     }  // MAB_Open
 
-//=========  ModAbsence_Save  ================  PR2020-05-17 PR2020-09-09
+//=========  ModAbsence_Save  ================  PR2020-05-17 PR2020-09-09 PR2021-01-06
     function MAB_Save(crud_mode) {
         //console.log(" -----  MAB_Save  ----", crud_mode);
         //console.log( "mod_MAB_dict: ", mod_MAB_dict);
 
+// ---  get mode and teammember_pk
         const is_delete = (crud_mode === "delete");
-        const is_create = (!mod_MAB_dict.teammember_pk);
-
-        // upload_dict needs shiftoption='isabsence' and id.pk or id.create or id.delete
-        let upload_dict = {id: {shiftoption: "isabsence"}};
-
-        if(mod_MAB_dict.teammember_pk) {
-            upload_dict.id.pk = mod_MAB_dict.teammember_pk
-            if(is_delete) {
-                upload_dict.id.delete = true;
-            }
-        } else {
-            upload_dict.id.create = true;
-        }
+        const mode = (!mod_MAB_dict.teammember_pk) ? "create" : (is_delete) ? "delete" : "update";
+        const upload_dict = {shiftoption: "isabsence", mode: mode};
+        upload_dict.teammember_pk = (mod_MAB_dict.teammember_pk) ? mod_MAB_dict.teammember_pk : null;
 
 // ---  update_dict is to update row before response is back from server
         let update_dict = {
@@ -3477,45 +3475,55 @@ if(pgeName === "absence"){
             }
 
         if (mod_MAB_dict.order_pk !== mod_MAB_dict.old_order_pk) {
-            upload_dict.order = {pk: mod_MAB_dict.order_pk,
-                                    ppk: mod_MAB_dict.order_ppk,
-                                    code: mod_MAB_dict.order_code,
-                                    update: true};
+            // PR2021-01-06 was:
+            //upload_dict.order = {pk: mod_MAB_dict.order_pk,
+            //                        ppk: mod_MAB_dict.order_ppk,
+            //                        code: mod_MAB_dict.order_code,
+            //                        update: true};
+            upload_dict.order_pk = mod_MAB_dict.order_pk;
             update_dict.o_code = mod_MAB_dict.order_code;
         }
         if (el_MAB_datefirst.value !== mod_MAB_dict.old_datefirst) {
-            upload_dict.datefirst = {value: el_MAB_datefirst.value, update: true};
+            // PR2021-01-06 was: upload_dict.datefirst = {value: el_MAB_datefirst.value, update: true};
+            upload_dict.datefirst = el_MAB_datefirst.value;
             update_dict.s_df = el_MAB_datefirst.value;
         }
         if (el_MAB_datelast.value !== mod_MAB_dict.old_datelast) {
-            upload_dict.datelast = {value: el_MAB_datelast.value, update: true}
+            // PR2021-01-06 was: upload_dict.datelast = {value: el_MAB_datelast.value, update: true}
+            upload_dict.datelast = el_MAB_datelast.value;
             update_dict.s_dl = el_MAB_datelast.value;
         }
         if (mod_MAB_dict.offsetstart !== mod_MAB_dict.old_offsetstart) {
-            upload_dict.offsetstart = {value: mod_MAB_dict.offsetstart, update: true};
+            // PR2021-01-06 was: upload_dict.offsetstart = {value: mod_MAB_dict.offsetstart, update: true};
+            upload_dict.offsetstart = mod_MAB_dict.offsetstart;
             update_dict.sh_os_arr = [mod_MAB_dict.offsetstart];
         }
         if (mod_MAB_dict.offsetend !== mod_MAB_dict.old_offsetend) {
-            upload_dict.offsetend = {value: mod_MAB_dict.offsetend, update: true};
+            // PR2021-01-06 was: upload_dict.offsetend = {value: mod_MAB_dict.offsetend, update: true};
+            upload_dict.offsetend = mod_MAB_dict.offsetend;
             update_dict.sh_oe_arr = [mod_MAB_dict.offsetend];
         }
         if (mod_MAB_dict.breakduration !== mod_MAB_dict.old_breakduration) {
-            upload_dict.breakduration = {value: mod_MAB_dict.breakduration, update: true};
+            // PR2021-01-06 was: upload_dict.breakduration = {value: mod_MAB_dict.breakduration, update: true};
+            upload_dict.breakduration = mod_MAB_dict.breakduration;
             update_dict.sh_bd_arr = [mod_MAB_dict.breakduration];
         }
         if (mod_MAB_dict.timeduration !== mod_MAB_dict.old_timeduration) {
-            upload_dict.timeduration = {value: mod_MAB_dict.timeduration, update: true};
+            // PR2021-01-06 was: upload_dict.timeduration = {value: mod_MAB_dict.timeduration, update: true};
+            upload_dict.timeduration = mod_MAB_dict.timeduration;
             update_dict.sh_td_arr = [mod_MAB_dict.timeduration];
         }
-        if (mod_MAB_dict.employee_pk !== mod_MAB_dict.old_employee_pk) {
-            upload_dict.employee = {pk: mod_MAB_dict.employee_pk,
-                                    ppk: mod_MAB_dict.employee_ppk,
-                                    update: true};
+        if (mod_MAB_dict.employee_pk && mod_MAB_dict.employee_pk !== mod_MAB_dict.old_employee_pk) {
+            // PR2021-01-06 was: upload_dict.employee = {pk: mod_MAB_dict.employee_pk,
+            //                        ppk: mod_MAB_dict.employee_ppk,
+            //                        update: true};
+            upload_dict.employee_pk = mod_MAB_dict.employee_pk;
         }
-        if (mod_MAB_dict.replacement_pk !== mod_MAB_dict.old_replacement_pk) {
-            upload_dict.replacement = {pk: mod_MAB_dict.replacement_pk,
-                                    ppk: mod_MAB_dict.replacement_ppk,
-                                    update: true};
+        if (mod_MAB_dict.replacement_pk && mod_MAB_dict.replacement_pk !== mod_MAB_dict.old_replacement_pk) {
+            // PR2021-01-06 was: upload_dict.replacement = {pk: mod_MAB_dict.replacement_pk,
+            //                        ppk: mod_MAB_dict.replacement_ppk,
+            //                        update: true};
+            upload_dict.replacement_pk = mod_MAB_dict.replacement_pk;
         }
 // - make tblRow red when delete or update existing tblRow
         const tblRow = document.getElementById(mod_MAB_dict.map_id)
@@ -4231,7 +4239,7 @@ if(pgeName === "absence"){
             if(isEmpty(team_dict)){
                 id_new = id_new + 1
                 team_pk = "new" + id_new.toString();
-                const team_code = (!!employee_code) ? employee_code : get_teamcode_with_sequence_from_map(team_map, scheme_pk, loc.Team)
+                const team_code = (!!employee_code) ? employee_code : get_teamcode_with_sequence_from_map(loc, team_map, scheme_pk)
                 team_dict = {pk: team_pk,
                               ppk: scheme_pk,
                               table: "team",
@@ -6384,7 +6392,7 @@ console.log( "filter_dict", filter_dict);
                     } else {
                         if(i === 2){
                             // format_pricerate (loc.user_lang, value_int, is_percentage, show_zero, no_decimals) {
-                            display = format_pricerate (loc.user_lang, 100 * planning_total_row[i], false, false, true); // is_percentage = false, show_zero = false, hide_decimals = true
+                            display = format_pricerate (loc.user_lang, 100 * planning_total_row[i], false, false); // is_percentage = false, show_zero = false
                         } else {
                             display = format_total_duration(planning_total_row[i]);
                         }

@@ -1,0 +1,41 @@
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+
+    <div class="border_bg_transparent">
+        <div id="id_wfc_header" class="px-2 pb-2"></div>
+        <div id="id_wfc_container" class="content_header">
+            <div class="tsa_flex_1 mx-1">
+                <label id="id_wfc_onwd_label" for="id_wfc_onwd" class="px-2">{% trans 'Weekdays' %}:</label>
+                <select id="id_wfc_onwd" data-field= "wfc_onwd" class="form-control tsa_input_select"
+                    autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                </select>
+            </div>
+            <div class="tsa_flex_1 mx-1 wfc_satsunph">
+                <label for="id_wfc_onsat" class="px-2">{% trans 'Saturdays' %}:</label>
+                <select id="id_wfc_onsat" data-field= "wfc_onsat" class="form-control tsa_input_select"
+                    autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                </select>
+            </div>
+            <div class="tsa_flex_1 mx-1 wfc_satsunph">
+                <label for="id_wfc_onsun" class="px-2">{% trans 'Sundays' %}:</label>
+                <select id="id_wfc_onsun" data-field= "wfc_onsun" class="form-control tsa_input_select"
+                    autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                </select>
+            </div>
+            <div class="tsa_flex_1 mx-1 wfc_satsunph">
+                <label for="id_wfc_onph" class="px-2">{% trans 'Public holidays' %}:</label>
+                <select id="id_wfc_onph" data-field= "wfc_onph" class="form-control tsa_input_select"
+                    autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                </select>
+            </div>
+
+        </div>
+        <div id="id_wfc_checkbox_container" class="mx-1 mt-1">
+            <span>
+                <input id="id_wfc_checkbox_diff" type="checkbox" data-field="diff_wfc" class="tsa_input_checkbox tw_032">
+                <label for="id_wfc_checkbox_diff" class="mx-1 mt-2 mb-0">{% trans 'Use different wage component on Saturdays, Sundays or public holidays' %}</label>
+            </span>
+        </div>
+
+    </div>

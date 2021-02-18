@@ -1,50 +1,46 @@
  {% load i18n %}
 {% load static %}
 
- <!-- =================== MODAL SELECT EMPLOYEE FUNCTION =================== -->
-    <div class="modal" id="id_mod_select_employee_function" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+ <!-- =================== MODAL SELECT ALLOWANCE  =================== -->
+    <div class="modal" id="id_mod_select_allowance" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_MSEF_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <h4 id="id_MSA_header" class="modal-title mx-2" >{% trans 'Add allowance' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_MSEF_select_employee_body" class="modal-body">
+                <div  id="id_MSA_select_employee_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains employee select table -->
-                        <div class="modal_body_left">
+                        <div class="flex_3">
                             <div class="content_subheader_left mx-1 my-1">
                                  <!-- this div is necessary to get standard structure for FilterTableRows -->
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
-                                <div class="tbl_div_390_220">
+                                <div class="tbl_div_390_360X">
                                     <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_MSEF_tbody_select" data-table="employeeXX">
+                                        <thead id="id_MSA_thead"></thead>
+                                        <tbody id="id_MSA_tbody_select" data-table="allowance">
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="modal_body_right mx-2 my-2">
-                                 <div id="id_MSEF_btn_container" class="btn-group btn-block mx-2 my-2 " role="group" aria-label="Choose option" >
-                                    <button data-btn="employee" class="btn btn-secondary ">{% trans 'Select employee' %}</button>
-                                    <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Select function' %}</button>
-                                </div>
-
+                        <div class="flex_2 mx-2 my-2">
                             <div class="mx-2 my-2">
-                                <label id="id_MSEF_input_label" class="mx-2 my-1">{% trans 'Select employee' %}:</label>
+                                <label id="id_MSA_label" class="mx-2 my-1">{% trans 'Select allowance' %}:</label>
                                 <div class="form-group">
-                                    <input id="id_MSEF_input"
+                                    <input id="id_MSA_input"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
                                         ondrop="return false;"
                                         class="form-control"
-                                        placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
+                                        placeholder="{% trans 'Type a few letters ...' %}">
                                 </div>
                             </div>
                         </div>
@@ -53,7 +49,7 @@
                 <div class="modal-footer">
                     <div class="content_subheader_right">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_MSEF_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_MSA_btn_save" type="button" class="btn btn-primary">{% trans 'Add allowance' %}</button>
                     </div>
                 </div>
 

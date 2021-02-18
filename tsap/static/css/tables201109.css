@@ -111,13 +111,6 @@
     text-overflow: ellipsis;
 }
 
-.pop_background {
-    /*border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
-    /*border-radius: .25rem; */
-    /*background: #ffd01c; /* tsa yellow */
-    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
-    background: #fbedba; /* lighter shade of tsa yellow */
-}
 
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 .tsa_tbl  {
@@ -217,12 +210,16 @@
 .stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6,
 .inactive_0_0, .inactive_0_1, .inactive_0_2, .inactive_0_3,
 .inactive_1_0, .inactive_1_1, .inactive_1_2, .inactive_1_3,
-.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5,
-.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5,
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5, .edit_0_6, .edit_0_7,
+.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5, .edit_1_6, .edit_1_7,
+.edit_2_0, .edit_2_1, .edit_2_2, .edit_2_3, .edit_2_4, .edit_2_5, .edit_2_6, .edit_2_7,
 .xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3,
 .exclamation_0_0, .exclamation_0_1, .exclamation_0_2,
-.tickmark_0_0, .tickmark_0_1, .tickmark_0_2,
-.tickmark_1_0, .tickmark_1_1, .tickmark_1_2,
+
+.tick_0_0, .tick_0_1, .tick_0_2,
+.tick_1_0, .tick_1_1, .tick_1_2,
+.tick_2_0, .tick_2_1, .tick_2_2,
+
 .flag_0_0, .flag_0_1, .flag_0_2,
 .flag_1_0, .flag_1_1, .flag_1_2,
 .delete_0_0, .delete_0_1, .delete_0_2 {
@@ -236,7 +233,7 @@
 
 .stat_0_0, .stat_0_1, .stat_0_2, .stat_0_3, .stat_0_4, .stat_0_5, .stat_0_6,
 .stat_1_0, .stat_1_1, .stat_1_2, .stat_1_3, .stat_1_4, .stat_1_5, .stat_1_6 {
-    background-image: url('/static/img/status.png');
+    background-image: url('/static/img/status210214.png');
     background-size: 140px 40px;
 }
 .stat_0_0 { background-position: -0px -0px;}
@@ -268,10 +265,11 @@
 .inactive_1_2 { background-position: -40px -20px;}
 .inactive_1_3 { background-position: -60px -20px;}
 
-.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5,
-.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5 {
-    background-image: url('/static/img/editor.png');
-    background-size: 120px 40px;
+.edit_0_0, .edit_0_1, .edit_0_2, .edit_0_3, .edit_0_4, .edit_0_5, .edit_0_6, .edit_0_7,
+.edit_1_0, .edit_1_1, .edit_1_2, .edit_1_3, .edit_1_4, .edit_1_5, .edit_1_6, .edit_1_7,
+.edit_2_0, .edit_2_1, .edit_2_2, .edit_2_3, .edit_2_4, .edit_2_5, .edit_2_6, .edit_2_7 {
+    background-image: url('/static/img/editor210202.png');
+    background-size: 160px 60px;
 }
 .edit_0_0 { background-position: -0px -0px;}
 .edit_0_1 { background-position: -20px -0px;}
@@ -279,12 +277,24 @@
 .edit_0_3 { background-position: -60px -0px;}
 .edit_0_4 { background-position: -80px -0px;}
 .edit_0_5 { background-position: -100px -0px;}
+.edit_0_6 { background-position: -120px -0px;}
+.edit_0_7 { background-position: -140px -0px;}
 .edit_1_0 { background-position: -0px -20px;}
 .edit_1_1 { background-position: -20px -20px;}
 .edit_1_2 { background-position: -40px -20px;}
 .edit_1_3 { background-position: -60px -20px;}
 .edit_1_4 { background-position: -80px -20px;}
 .edit_1_5 { background-position: -100px -20px;}
+.edit_1_6 { background-position: -120px -20px;}
+.edit_1_7 { background-position: -140px -20px;}
+.edit_2_0 { background-position: -0px -40px;}
+.edit_2_1 { background-position: -20px -40px;}
+.edit_2_2 { background-position: -40px -40px;}
+.edit_2_3 { background-position: -60px -40px;}
+.edit_2_4 { background-position: -80px -40px;}
+.edit_2_5 { background-position: -100px -40px;}
+.edit_2_6 { background-position: -120px -40px;}
+.edit_2_7 { background-position: -140px -40px;}
 
 .xmark_0_0, .xmark_0_1, .xmark_0_2, .xmark_0_3 {
     background-image: url('/static/img/xmark.png');
@@ -303,17 +313,21 @@
 .exclamation_0_1 { background-position: -20px -0px;}
 .exclamation_0_2 { background-position: -40px -0px;}
 
-.tickmark_0_0, .tickmark_0_1, .tickmark_0_2,
-.tickmark_1_0, .tickmark_1_1, .tickmark_1_2 {
-    background-image: url('/static/img/tickmark.png');
-    background-size: 60px 40px;
+.tick_0_0, .tick_0_1, .tick_0_2,
+.tick_1_0, .tick_1_1, .tick_1_2,
+.tick_2_0, .tick_2_1, .tick_2_2 {
+    background-image: url('/static/img/tick.png');
+    background-size: 60px 60px;
 }
-.tickmark_0_0 { background-position: -0px -0px;}
-.tickmark_0_1 { background-position: -20px -0px;}
-.tickmark_0_2 { background-position: -40px -0px;}
-.tickmark_1_0 { background-position: -0px -20px;}
-.tickmark_1_1 { background-position: -20px -20px;}
-.tickmark_1_2 { background-position: -40px -20px;}
+.tick_0_0 { background-position: -0px -0px;}
+.tick_0_1 { background-position: -20px -0px;}
+.tick_0_2 { background-position: -40px -0px;}
+.tick_1_0 { background-position: -0px -20px;}
+.tick_1_1 { background-position: -20px -20px;}
+.tick_1_2 { background-position: -40px -20px;}
+.tick_2_0 { background-position: -0px -40px;}
+.tick_2_1 { background-position: -20px -40px;}
+.tick_2_2 { background-position: -40px -40px;}
 
 .delete_0_0, .delete_0_1, .delete_0_2 {
     background-image: url('/static/img/btn_del.png');
@@ -338,8 +352,10 @@
     padding-top: 0px;
     cursor: pointer;
 }
-.btn_del_0_1 { background-position: -28px -0px;}
-.btn_del_0_2 { background-position: -56px -0px;}
+
+.btn_note_1 { background-position: -28px -0px;}
+.btn_note_2 { background-position: -56px -0px;}
+
 
 .flag_0_0, .flag_0_1, .flag_0_2,
 .flag_1_0, .flag_1_1, .flag_1_2 {
@@ -564,27 +580,32 @@
     max-height: 50vh;
     overflow: auto;
 }
-.tbl_div_390_220 {
+
+.tbl_div_390_280, .tbl_div_390_220, .tbl_div_390_360,
+.tbl_div_50vh_200, .tbl_div_25vh_200 {
     overflow-x: hidden;
     overflow-y: auto;
+}
+
+.tbl_div_390_280 {
+    height: 390px;
+    width: 280px;
+}
+.tbl_div_390_220 {
     height: 390px;
     width: 220px;
 }
 .tbl_div_390_360 {
-    overflow-x: hidden;
-    overflow-y: auto;
     height: 390px;
     width: 360px;
 }
 .tbl_div_50vh_200 {
-    overflow-x: hidden;
-    overflow-y: auto;
     max-height: 50vh;
     width: 200px;
 }
 .tbl_div_25vh_200 {
-    overflow-x: hidden;
-    overflow-y: auto;
     max-height: 25vh;
     width: 200px;
 }
+
+

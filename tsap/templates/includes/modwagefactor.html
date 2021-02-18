@@ -6,16 +6,16 @@
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_MWF_hdr_payrolperiod" class="modal-title mx-2" >{% trans 'Wage factor' %}</h4>
+                    <h4 id="id_MWF_header" class="modal-title mx-2" >{% trans 'Wage factor' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div class="modal-body">
+                <div id="id_MWF_input_container" class="modal-body ">
                     <div class="content_header mx-2 my-1">
                         <div class="tsa_flex_1 mx-1">
-                            <label for="id_MWF_input_code" class="tsa_margin_form_label">{% trans 'Description wage factor' %}:</label>
+                            <label for="id_MWF_input_code" class="tsa_margin_form_label">{% trans 'Wage component' %}:</label>
                             <input id="id_MWF_input_code" type="text" data-field= "code"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
@@ -23,8 +23,21 @@
                                 <small id="id_MWF_err_code" class="text-danger"></small>
                             </div>
                         </div>
+                        <div class="tsa_flex_3 mx-1">
+                            <label for="id_MWF_input_description" class="tsa_margin_form_label">{% trans 'Description' %}:</label>
+                            <input id="id_MWF_input_description" type="text" data-field= "description"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                class="tsa_input_text form-control">
+                            <div class="tsa_flex_1 mx-2 my-1">
+                                <small id="id_MWF_err_description" class="text-danger"></small>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="content_header mx-2 my-1">
                         <div class="tsa_flex_1 mx-1">
-                            <label for="id_MWF_input_wagerate" class="tsa_margin_form_label">{% trans 'Percentage' %}:</label>
+                            <label id="id_MWF_label_rate" for="id_MWF_input_wagerate" class="tsa_margin_form_label"></label>
                             <input id="id_MWF_input_wagerate" type="text" data-field= "wagerate"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                 class="tsa_input_text form-control">
@@ -33,21 +46,26 @@
                             </div>
                         </div>
                     </div>
-                    <div class="content_subheader_left mx-1">
+
+
+
+
+
+                    <div class="content_subheader_left mx-1 tsa_mfw_default">
                         <span>
                             <input id="id_MWF_input_default" type="checkbox" data-field="default" class="tw_032 mx-2">
-                            <label for="id_MWF_input_default" class="mb-0">{% trans 'This is the default wagefactor' %}</label>
+                            <label for="id_MWF_input_default" class="mb-0">{% trans 'This is the default wage component' %}</label>
                         </span>
                     </div>
-                    <div class="content_subheader_left mx-2">
-                        <small>{% trans 'It will be used, when no wagefactor is entered in a shift.' %}</small>
+                    <div class="content_subheader_left mx-4 tsa_mfw_default">
+                        <small>{% trans 'The default wage component will be used, when no wage component is entered in a shift.' %}</small>
                     </div>
 
                 </div>
 
                 <div class="modal-footer pr-4">
                     <div class="content_subheader_left mx-1">
-                        <button id="id_MWF_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete wage factor' %}</button>
+                        <button id="id_MWF_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger"></button>
                     </div>
                     <div class="content_subheader_right">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>

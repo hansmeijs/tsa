@@ -1,16 +1,11 @@
 # PR2019-02-28
 import os
-
 from decouple import config, Csv  # PR2019-02-28
-
 from django.utils.translation import ugettext_lazy as _  # PR2019-02-28
-
 import dj_database_url  # PR2018-04-29
 
 # PR2018-05-06 from https://simpleisbetterthancomplex.com/tips/2016/09/06/django-tip-14-messages-framework.html
 from django.contrib.messages import constants as messages
-
-from tsap import constants as c
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +18,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config('SECRET_KEY')  # PR2019-02-28
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool) # PR2019-02-28
+DEBUG = config('DEBUG', default=False, cast=bool) # PR2019-02-28
+
+LOGGING_HIDE = config('LOGGING_HIDE', default='WARNING') # PR2021-01-09 sets level of loggers that must be showed
 
 # ALLOWED_HOSTS =
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())  # PR2019-02-28
@@ -146,12 +143,19 @@ STATICFILES_DIRS = [
 # PR 2018-03-06 STATIC_ROOT is the folder where all static files will be stored after a manage.py collectstatic.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# TODO cache busting PR2019-11-17
+# cache busting PR2019-11-17
+# PR2020-10-30 cache busting not working. put date at end of fileneame instead.
 # PR2019-11-17 from https://docs.djangoproject.com/en/2.2/ref/contrib/staticfiles/#manifeststaticfilesstorage
 # and https://blog.xoxzo.com/en/2018/08/22/cache-busting-in-django/
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 STATICFILES_STORAGE = config('STATICFILES_STORAGE', default='django.contrib.staticfiles.storage.StaticFilesStorage')
+
+#
+# PR2021-01-11 NOT IN USE, gave errors, use SimpleBackup instead
+# added for djang-dbbackup, also add in .env
+#DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+#DBBACKUP_STORAGE_OPTIONS = {'location': os.path.join(BASE_DIR, 'backups')} # path backups: C:\dev\tsa\tsap\backups
 
 # PR 2018-03-27
 LOGIN_URL = 'login'
@@ -166,7 +170,6 @@ LOGOUT_REDIRECT_URL = 'home'
 # The number of days a password reset link is valid for
 # changed to 7 days PR2020-08-15
 PASSWORD_RESET_TIMEOUT_DAYS = 7
-
 
 # was: PR 2018-03-27  EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
@@ -232,6 +235,9 @@ LANGUAGES = (
 
 # Set the default language for your site.
 LANGUAGE_CODE = 'nl'
+
+HEADER_CLASS = config('HEADER_CLASS', default='headerbar') # PR2021-02-17 sets color of header for production or test environment
+
 
 # Tell Django where the project's translation files should be.
 LOCALE_PATHS = (

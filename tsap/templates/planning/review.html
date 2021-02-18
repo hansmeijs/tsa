@@ -62,10 +62,13 @@
                 <h5 id="id_hdr_text"></h5>
             </div>
     <!-- loader -->
-            <div class="content_header_middle ">
+            <div class="content_header_middle py-2">
+                <!--
                 <div id="id_loader" class="image_container visibility_hide">
                     <img src="{% static 'img/loader.gif' %}" class="icon_24">
                 </div>
+                -->
+                 {% include 'includes/loader.html' %}
             </div>
         </div>
 <!-- end CONTENT HEADER - LOADER -->
@@ -99,6 +102,7 @@
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"
             data-datalist_prices_upload_url="{% url 'prices_upload_url' %}"
+            data-afas_invoice_xlsx_url="{% url 'afas_invoice_xlsx_url' %}"
 
             data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"

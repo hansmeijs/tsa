@@ -17,10 +17,33 @@ h4 h5 {
 
   text-decoration: none;
   list-style: none;
-  color: #868e96;
+  color: #212529;  /* dark dark grey blue */
+  /* color: #868e96; /* blueish grey */
   background-color: #ffd01c;  /* tsa yellow */
   border-bottom: 1px solid #f3f3f3; /* offwhite */
 }
+
+.headerbar_test {
+/*
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  list-style: none;
+*/
+  display: block;
+  padding: 0 .5rem;
+  margin: 0;
+
+  text-decoration: none;
+  list-style: none;
+  /* color: #868e96; /* blueish grey */
+  color: #212529;  /* dark dark grey blue */
+  /*background-color: #ffd01c;  /* tsa yellow */
+  background-color: #ff5722;  /* orange, for testing site */
+  border-bottom: 1px solid #f3f3f3; /* offwhite */
+}
+
 
 .headerbutton {
   display: inline-block;
@@ -74,7 +97,7 @@ h4 h5 {
   color: black;
 }
 .menubar a.active {
-  background-color: #646464; /* #606060; */
+  background-color: #646464; /* dark grey */
   color: white;
 }
 
@@ -120,7 +143,7 @@ h4 h5 {
   color: black;
 }
 .submenubar a.active {
-  background-color: #646464; /* #606060; */
+  background-color: #646464; /* dark grey */
   color: white;
 }
 
@@ -160,6 +183,9 @@ h4 h5 {
     border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */
     border-radius: .25rem;
     background-color: transparent;
+
+    margin: 8px;
+    padding: 8px;
 }
 .border_bg_message {
     border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */
@@ -213,6 +239,87 @@ h4 h5 {
 .z_index_2099 {
     z-index: 2099;
 }
+
+
+/* CSS loader */
+.loader {
+  position: relative;
+  width: 40px; /*  width: 80px; */
+  margin: 10px auto; /*  margin: 100px auto; */
+}
+
+.duo {
+  height: 10px;  /* height: 10px;*/
+  width: 25px;  /* width: 25px; */
+  background: hsla(0, 0%, 0%, 0.0);
+  position: absolute;
+}
+
+.duo, .dot {
+  animation-duration: 0.8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.duo1 {
+  left: 0;
+}
+
+.duo2 {
+  left: 15px
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  /*background: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
+  background: #646464; /* dark grey */
+  position: absolute;
+}
+
+.dot-a {
+  left: 0px;
+}
+
+.dot-b {
+  right: 0px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) }
+   50% { transform: rotate(180deg) }
+  100% { transform: rotate(180deg) }
+}
+
+@keyframes onOff {
+    0% { opacity: 0; }
+   49% { opacity: 0; }
+   50% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.duo1 {
+  animation-name: spin;
+}
+
+.duo2 {
+  animation-name: spin;
+  animation-direction: reverse;
+}
+
+.duo2 .dot-b {
+  animation-name: onOff;
+}
+
+.duo1 .dot-a {
+  opacity: 0;
+  animation-name: onOff;
+  animation-direction: reverse;
+}
+
+/* end of CSS loader */
+
 /* ============== mtp-modal ================= PR2020-04-13 */
 .mtp_modal {
   /*background-color: rgba(0,0,0,0.02); /* Transparent dimmed overlay */
@@ -437,7 +544,7 @@ h4 h5 {
     font-size: 14px;
     font-family: "Lucida Sans", sans-serif;
     color: #fff; /* #ffd01c; */
-    background: #646464;
+    background: #646464; /* dark grey */
     text-shadow: 0px 1px 1px #000;
 
   text-align: center;
@@ -484,7 +591,7 @@ h4 h5 {
 
 .msgbox {
     position: absolute;
-    background: #646464;
+    background: #646464; /* dark grey */
     border-radius:4px;
     padding: 6px 12px;
     font-family: arial;
@@ -500,7 +607,7 @@ h4 h5 {
     height: 0;
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
-    border-top: 10px solid #646464;
+    border-top: 10px solid #646464; /* dark grey */
     position:absolute;
     bottom:-5px;
     left:5px;

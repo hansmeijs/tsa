@@ -1231,11 +1231,13 @@
     }  // get_month_year_text
 
 //=========  set_cell_innertext  === PR2020-03-15
-    function set_cell_innertext(inner_text, team_abbrev, is_remove) {
+    function set_cell_innertext(loc, inner_text, team_code, is_remove) {
        //console.log( "=========== set_cell_innertext ================");
        //console.log( "inner_text", inner_text);
        //console.log( "team_abbrev", team_abbrev);
        //console.log( "is_remove", is_remove);
+
+        const team_abbrev = get_teamcode_abbrev(loc, team_code);
 
 // ---  add team_abbrev to cell.innerText, sort if there are multiple teams in one cell
         let new_innerText = "";
@@ -1302,7 +1304,7 @@
     function f_create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code, is_restshift) {
         //console.log( "=== f_create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
-         // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
+         // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<'  4) first 2 characters are digits
         // const lastCharCode = shift_code.charCodeAt(shift_code.length - 1);
         // let shift_code_without_restchar = (lastCharCode === 9790) ? shift_code.slice(0, -1) : shift_code
 
@@ -1453,19 +1455,18 @@
         return display_text;
     }  // format_wagefactor
 
-//========= format_pricerate ======== PR2019-08-22 PR2020-07-10
-    function format_pricerate (user_lang, value_int, is_percentage, show_zero, no_decimals) {
+//========= format_pricerate ======== PR2019-08-22 PR2020-07-10 PR2021-01-29
+    function format_pricerate (user_lang, value_int, is_percentage, show_zero, no_thousand_separators) {
         //console.log(" --- format_pricerate  -----")
-        // TODO this one is not correct. debug it
         is_percentage = (is_percentage) ? is_percentage : false;
         show_zero = (show_zero) ? show_zero : false;
-        no_decimals = (no_decimals) ? no_decimals : false;
-        //console.log("no_decimals", no_decimals)
 
-        //console.log("value_int", value_int)
         let display_text = "";
 
-        if (!!value_int) {
+        if (!value_int) {
+            if(show_zero) {display_text = "0"};
+        } else {
+// --- when negative: make positive, add minus sign at the end
             let minus_sign = "";
             if (value_int < 0 ){
                 value_int = value_int * -1
@@ -1473,47 +1474,50 @@
             }
             const decimal_separator = (user_lang === "en") ? "." : ",";
             const thousand_separator = (user_lang === "en") ? "," : ".";
-            const divisor = 100; // is_percentage ? 10000 : 100;
-
+            const divisor = is_percentage ? 10000 : 100;
+// --- calculate whole number ('dollar' when currency)
+    // --- divide by 100 when number, by 10,000 when percentage
             // PR2019-08-22 debug: dont use Math.floor, gives wrong value when negative. Was: const hours = Math.floor(value_int/60);
               // The Math.floor() function returns the largest integer less than or equal to a given number.
             const dollars_int = Math.trunc(value_int/divisor);
+            const cents_int = value_int % divisor  // % is modulo 'remainder' operator
+
             let dollar_text = dollars_int.toString()
-        //console.log("dollars_int", dollars_int)
-        //console.log("dollar_text", dollar_text)
-            if (dollars_int >= 1000000) {
-                const pos = dollar_text.length - 6 ;
-                dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
-            }
-            if (dollars_int >= 1000) {
-                const pos = dollar_text.length - 3 ;
-                dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
-            }
-        //console.log("dollars_int", dollars_int)
-        //console.log("dollar_text", dollar_text)
-            if(no_decimals){
-                display_text = minus_sign + dollar_text;
-            } else {
-                const cents_int = value_int - dollars_int * divisor  // % is remainder operator
-                let cent_text = "";
-                const cents_str = "00" + cents_int.toString()
-        //console.log("cents_int", cents_int)
-        //console.log("cents_str", cents_str)
-                // dont show decimals '00' when percentage
-                if ((is_percentage && !!cents_int) || (!is_percentage)){
-                    const cents_str = "00" + cents_int.toString()
-                    cent_text = decimal_separator + cents_str.slice(-2);
-        //console.log("cent_text", cent_text)
+// --- add  thousand_separator when value >= 1,000,000
+            if(!no_thousand_separators){
+                if (dollars_int >= 1000000) {
+                    const pos = dollar_text.length - 6 ;
+                    dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
                 }
-                display_text = minus_sign + dollar_text + cent_text;
-        //console.log("display_text", display_text)
+// --- add thousand_separator when value >= 1,000
+                if (dollars_int >= 1000) {
+                    const pos = dollar_text.length - 3 ;
+                    dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
+                }
             }
-        } else if(show_zero) {
-            display_text = "0"
+// --- create cents text
+            let cent_text = "";
+            if(is_percentage && !cents_int){
+                // don't show trailing zero'ds when is_percentage
+            } else {
+                cent_text = "0000" + cents_int.toString()
+                const digits = (is_percentage) ? -4 : -2
+                cent_text = cent_text.slice(digits);
+    // --- remove trailing zero's when  is_percentage
+                if(is_percentage){
+                    if (cent_text.slice(-3) === "000"){
+                        cent_text = cent_text.slice(0, -3);
+                    } else if (cent_text.slice(-2) === "00"){
+                        cent_text = cent_text.slice(0, -2);
+                    } else if (cent_text.slice(-1) === "0"){
+                        cent_text = cent_text.slice(0, -1);
+                    };
+                }
+                cent_text = decimal_separator + cent_text;
+            }
+            display_text = minus_sign + dollar_text + cent_text;
         }  // if (!!value_int)
-
-        if (!!display_text && is_percentage) { display_text += "%" }
-
+        if (display_text && is_percentage) {display_text += "%" }
         return display_text
     }  // format_pricerate
 
@@ -1729,22 +1733,22 @@
             let imgsrc = imgsrc_stat00;
             let title = "";
             let icon_class = "stat_0_0"
-            if (!status_sum ) { //STATUS_000_NONE = 0
+            if (!status_sum ) { //STATUS_NONE = 0
                 icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
                 title = loc.This_isan_added_shift;
-            } else if (status_sum === 1) { //STATUS_001_CREATED = 1
+            } else if (status_sum === 1) { //STATUS_00_CREATED = 1
                 icon_class = (has_changed) ? "stat_1_1" : "stat_0_1"
                 title = loc.This_isa_planned_shift;
-            } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_004_START_CONFIRMED
+            } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_2" : "stat_0_2"
                 title = loc.Starttime_confirmed
-            } else if ([4,5].indexOf(status_sum) > -1) { //STATUS_016_END_CONFIRMED
+            } else if ([4,5].indexOf(status_sum) > -1) { //STATUS_04_END_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_3" : "stat_0_3"
                 title = loc.Endtime_confirmed
-            } else if ([6,7].indexOf(status_sum) > -1) { //STATUS_004_START_CONFIRMED + STATUS_016_END_CONFIRMED
+            } else if ([6,7].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED + STATUS_04_END_CONFIRMED
                 icon_class = (has_changed) ? "stat_1_4" : "stat_0_4"
                 title = loc.Start_and_endtime_confirmed;
-            } else { //STATUS_032_LOCKED = 32
+            } else { //STATUS_05_LOCKED = 32
                 icon_class = (has_changed) ? "stat_1_5" : "stat_0_5"
                 title = loc.This_shift_is_locked;
             }
@@ -1825,23 +1829,27 @@
 //=========  ShowOkRow  ================ PR2019-05-31
     function ShowOkRow(tblRow ) {
         // make row green, / --- remove class 'ok' after 2 seconds
-        tblRow.classList.add("tsa_tr_ok");
-        setTimeout(function (){
-            tblRow.classList.remove("tsa_tr_ok");
-        }, 2000);
+        if(tblRow){
+            tblRow.classList.add("tsa_tr_ok");
+            setTimeout(function (){
+                tblRow.classList.remove("tsa_tr_ok");
+            }, 2000);
+        }
     }
 
-//=========  ShowOkElement  ================ PR2019-11-27 PR2020-07-23
+//=========  ShowOkElement  ================ PR2019-11-27 PR2020-07-23 PR2021-01-04
     function ShowOkElement(el_input, ok_class, cur_class) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
         //console.log("ShowOkElement");
-        if(cur_class) {el_input.classList.remove(cur_class)};
-        if(!ok_class) {ok_class = "border_bg_valid"};
-        el_input.classList.add(ok_class);
-        setTimeout(function (){
-            el_input.classList.remove(ok_class);
-            if(cur_class) {el_input.classList.add(cur_class)};
-        }, 2000);
+        if(el_input){
+            if(cur_class) {el_input.classList.remove(cur_class)};
+            if(!ok_class) {ok_class = "border_bg_valid"};
+            el_input.classList.add(ok_class);
+            setTimeout(function (){
+                el_input.classList.remove(ok_class);
+                if(cur_class) {el_input.classList.add(cur_class)};
+            }, 2000);
+        }
     }
 
 //=========  ShowClassWithTimeout  ================ PR2020-04-26 PR2020-07-15

@@ -753,7 +753,7 @@
                                         if(shift_dict.display_time) {shift_list.push(shift_dict.display_time)};
 
                                         if(is_order_planning){
-                                            // PR2020-11-05 ... is the spread operator
+                                            // ... is the spread operator, does not work in IE
                                             // from https://medium.com/@luke_smaki/javascript-es6-spread-operator-and-rest-parameters-b3e89d112281
                                             // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
                                             const employee_code_list = (shift_dict.e_codes) ? shift_dict.e_codes : "";
@@ -1126,7 +1126,7 @@
         //console.log("pos.top: ", pos.top )
         let pos_x = pos.left;
         let pos_y = pos.top;
-        for (let weekday = 1, day_list, shift_list, text_str, pos_x, height; weekday <= 7; weekday++) {
+        for (let weekday = 1, day_list, text_str, pos_x, height; weekday <= 7; weekday++) {
             // print one line of one shift of one weekday
             day_list = week_list[weekday];
 

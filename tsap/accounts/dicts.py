@@ -8,6 +8,11 @@ logger = logging.getLogger(__name__)
 def create_user_list(request, user_pk=None):
     # --- create list of all users of this company, or 1 user with user_pk PR2020-07-31
     #logger.debug(' =============== create_user_list ============= ')
+
+    # PR2018-05-27 list of users in UserListView:
+    # - show only users of this company
+    # - only when permit is sysadmin
+
     if request.user.company and request.user.is_perm_sysadmin:
         company_pk = request.user.company.pk
         sql_employee = """ SELECT 

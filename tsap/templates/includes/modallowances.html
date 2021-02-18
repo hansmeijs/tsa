@@ -1,0 +1,53 @@
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+
+    <div class="border_bg_transparent">
+        <div id="id_allowance_header" class="px-2 pb-2"></div>
+        <div id="id_allowance_container" class="content_header">
+            <div class="tsa_flex_1 mx-1">
+                <div style="overflow-x:hidden;overflow-y:hidden;width:150px;height:auto">
+                    <table  class="table tsa_tbl mb-0">
+                        <thead id="id_allowance_thead_weekdays"> <th>{% trans 'Weekdays' %}</th>  </thead>
+                        <tbody id="id_allowance_tbody_weekdays"><td>Body</td> </tbody>
+                        <tfoot id="id_allowance_tfoot_weekdays"><td>Footer</td></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="tsa_flex_1 mx-1 tsa_hide_satsunph">
+                <div style="overflow-x:hidden;overflow-y:hidden;width:150px;height:auto">
+                    <table  class="table tsa_tbl mb-0">
+                        <thead id="id_allowance_thead_sat"> <th>{% trans 'Saturdays' %}</th>  </thead>
+                        <tbody id="id_allowance_tbody_sat"><td>Body</td> </tbody>
+                        <tfoot id="id_allowance_tfoot_sat"><td>Footer</td></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="tsa_flex_1 mx-1 tsa_hide_satsunph">
+                <div style="overflow-x:hidden;overflow-y:hidden;width:150px;height:auto">
+                    <table  class="table tsa_tbl mb-0">
+                        <thead id="id_allowance_thead_sun"> <th>{% trans 'Sundays' %}</th>  </thead>
+                        <tbody id="id_allowance_tbody_sun"><td>Body</td> </tbody>
+                        <tfoot id="id_allowance_tfoot_sun"><td>Footer</td></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="tsa_flex_1 mx-1 tsa_hide_satsunph">
+                <div style="overflow-x:hidden;overflow-y:hidden;width:150px;height:auto">
+                    <table  class="table tsa_tbl mb-0">
+                        <thead id="id_allowance_thead_ph"> <th>{% trans 'Public holidays' %}</th>  </thead>
+                        <tbody id="id_allowance_tbody_ph"><td>Body</td> </tbody>
+                        <tfoot id="id_allowance_tfoot_ph"><td>Footer</td></tfoot>
+                    </table>
+                </div>
+
+            </div>
+            <div class="mx-1 mt-1">
+                <span>
+                    <input id="id_allowance_diff" type="checkbox" data-field="diff_wfc" class="tsa_input_checkbox tw_032">
+                    <label for="id_allowance_diff" class="mx-1 mt-2 mb-0">{% trans 'Use different allowance on Saturdays, Sundays or public holidays' %}</label>
+                </span>
+            </div>
+        </div>
+
+    </div>

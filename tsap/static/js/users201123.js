@@ -331,12 +331,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             // default empty icon necessary to set pointer_show
                             //el_filter.addEventListener("click", function(event){HandleFilter_Tickmark(el_filter)});
                             const el_icon = document.createElement("div");
-                                el_icon.classList.add("tickmark_0_0", "tw-20")
+                                el_icon.classList.add("tick_0_0", "tw-20")
                             el_filter.appendChild(el_icon);
                             el_filter.classList.add("pointer_show");
                         } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
                             // default empty icon necessary to set pointer_show
-                            //append_background_class(el_filter,"tickmark_0_0");
+                            //append_background_class(el_filter,"tick_0_0");
                         }
 
 // --- add width, text_align
@@ -447,13 +447,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateField  ================ PR2020-08-16
     function UpdateField(el_div, map_dict) {
-        //console.log("=========  UpdateField =========");
-        //console.log("el_div", el_div)
-        //console.log("map_dict", map_dict)
+        console.log("=========  UpdateField =========");
+        console.log("el_div", el_div)
+        console.log("map_dict", map_dict)
         if(el_div){
             const field_name = get_attr_from_el(el_div, "data-field");
             const fld_value = map_dict[field_name];
 
+        console.log("field_name", field_name)
+        console.log("fld_value", fld_value)
             if(field_name){
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
@@ -512,9 +514,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const permit_value = (!is_true) ? 0 : (!Number(value_str)) ? 0 : Number(value_str);
 
                     el_div.setAttribute("data-value", permit_value);
-                    add_or_remove_class (el_div, "tickmark_1_2", is_true, "tickmark_0_0");
+                    add_or_remove_class (el_div, "tick_2_2", is_true, "tick_0_0");
                     //let el_icon = el_div.children[0];
-                    //if(el_icon){add_or_remove_class (el_icon, "tickmark_1_2", is_true, "tickmark_0_0")};
+                    //if(el_icon){add_or_remove_class (el_icon, "tick_2_2", is_true, "tick_0_0")};
 
                 } else if ( field_name === "activated") {
                     const is_activated = (fld_value) ? fld_value : false;
@@ -527,13 +529,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // PR2020-11-03 was:
                     //let el_icon = el_div.children[0];
                     //if(el_icon){
-                    //    add_or_remove_class (el_icon, "tickmark_1_2", is_activated);
+                    //    add_or_remove_class (el_icon, "tick_2_2", is_activated);
                     //    add_or_remove_class (el_icon, "exclamation_0_2", is_expired);
-                   //     add_or_remove_class (el_icon, "tickmark_0_0", !is_activated && !is_expired);
+                   //     add_or_remove_class (el_icon, "tick_0_0", !is_activated && !is_expired);
                     //}
-                    add_or_remove_class (el_div, "tickmark_1_2", is_activated);
+                    add_or_remove_class (el_div, "tick_2_2", is_activated);
                     add_or_remove_class (el_div, "exclamation_0_2", is_expired);
-                    add_or_remove_class (el_div, "tickmark_0_0", !is_activated && !is_expired);
+                    add_or_remove_class (el_div, "tick_0_0", !is_activated && !is_expired);
 
 
 // ---  add EventListener
@@ -549,7 +551,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_div.setAttribute("data-value", ((is_inactive) ? 1 : 0) );
                     //const img_class = (is_inactive) ? "inactive_1_3" : "inactive_0_2";
                     //refresh_background_class(el_div, img_class)
+                    add_or_remove_class (el_div, "inactive_1_3", is_inactive, "inactive_0_2")
+        console.log("is_inactive", is_inactive)
+        console.log("el_div", el_div)
+
                     let el_icon = el_div.children[0];
+
                     if(el_icon){add_or_remove_class (el_icon, "inactive_1_3", is_inactive, "inactive_0_2")};
 // ---  add title
                     add_or_remove_attr (el_div, "title", is_inactive, loc.This_user_is_inactive);
@@ -703,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  change icon, before uploading
                     el_div.setAttribute("data-value", permit_value);
-                    add_or_remove_class (el_div, "tickmark_1_2", !!new_permit_value, "tickmark_0_0");
+                    add_or_remove_class (el_div, "tick_2_2", !!new_permit_value, "tick_0_0");
 // ---  upload changes
                     const upload_dict = { id: {pk: map_dict.id,
                                                ppk: map_dict.company_id,
@@ -1196,8 +1203,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const new_filter = el_input.value
         if (tblBody_select.rows.length){
 // ---  filter select rows
-            const col_index = 1;
-            t_Filter_SelectRows(tblBody_select, new_filter, false, false, null, col_index);
+            const col_index_list = [1];
+            t_Filter_SelectRows(tblBody_select, new_filter, false, false, null, col_index_list);
         }
     }  // MSM_InputKeyup
 
@@ -1257,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', function() {
             td.classList.add("mx-1", "tw_032")
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
         let el = document.createElement("div");
-            const el_class = (row_is_selected) ? "tickmark_1_2" : "tickmark_0_0";
+            const el_class = (row_is_selected) ? "tick_2_2" : "tick_0_0";
             el.classList.add(el_class)
         td.appendChild(el);
 // ---  add first td to tblRow.
@@ -1279,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             tblRow.setAttribute("data-selected", (is_selected) ? "1" : "0")
 
-            add_or_remove_class(tblRow.cells[0].children[0], "tickmark_1_2", is_selected, "tickmark_0_0")
+            add_or_remove_class(tblRow.cells[0].children[0], "tick_2_2", is_selected, "tick_0_0")
             // row 'all' has pk = 0
             if(is_selected){
                 const pk_int = get_attr_from_el_int(tblRow, "data-pk");
@@ -1292,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let remove_selected = (pk_int === 0) ? (lookup_pk_int !== 0) : (lookup_pk_int === 0);;
                     if(remove_selected){
                         lookup_row.setAttribute("data-selected", "0");
-                        add_or_remove_class(lookup_row.cells[0].children[0], "tickmark_1_2", false, "tickmark_0_0") ;;
+                        add_or_remove_class(lookup_row.cells[0].children[0], "tick_2_2", false, "tick_0_0") ;;
                     }
                 }
             }
@@ -1527,8 +1534,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  refresh_usermap_item  ================ PR2020-08-16
     function refresh_usermap_item(update_dict) {
-       //console.log(" --- refresh_usermap_item  ---");
-       //console.log("update_dict", update_dict);
+       console.log(" --- refresh_usermap_item  ---");
+       console.log("update_dict", update_dict);
         if(!isEmpty(update_dict)){
 // ---  update or add update_dict in user_map
             let updated_columns = [];
@@ -1638,10 +1645,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  change icon
             let el_icon = el.children[0];
             if(el_icon){
-                add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
+                add_or_remove_class(el_icon, "tick_0_0", !filter_checked)
                 if(filter_tag === "toggle"){
-                    add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
-                    add_or_remove_class(el_icon, "tickmark_1_2", filter_checked === 1)
+                    add_or_remove_class(el_icon, "tick_1_1", filter_checked === -1)
+                    add_or_remove_class(el_icon, "tick_2_2", filter_checked === 1)
                 } else  if(filter_tag === "inactive"){
                     add_or_remove_class(el_icon, "inactive_0_2", filter_checked === -1)
                     add_or_remove_class(el_icon, "inactive_1_3", filter_checked === 1)
@@ -1661,10 +1668,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  change icon
             let el_icon = el.children[0];
             if(el_icon){
-                add_or_remove_class(el_icon, "tickmark_0_0", !filter_checked)
+                add_or_remove_class(el_icon, "tick_0_0", !filter_checked)
                 add_or_remove_class(el_icon, "exclamation_0_2", filter_checked === -2)
-                add_or_remove_class(el_icon, "tickmark_0_1", filter_checked === -1)
-                add_or_remove_class(el_icon, "tickmark_1_2", filter_checked === 1)
+                add_or_remove_class(el_icon, "tick_1_1", filter_checked === -1)
+                add_or_remove_class(el_icon, "tick_2_2", filter_checked === 1)
 
             }
         }
@@ -1776,7 +1783,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 while (classList.length > 0) {
                                     classList.remove(classList.item(0));
                                 }
-                                el_icon.classList.add("tickmark_0_0")
+                                el_icon.classList.add("tick_0_0")
                             }
                         }
                     }

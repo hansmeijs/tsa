@@ -14,7 +14,7 @@
                     </div>
 
                     <div  id="id_mod_status_body" class="modal-body">
-                        <div class="modal_container">
+                        <div class="modal_container pt-4">
                             <div class="modal_body_left">
                                 <h6 class="modal-title mx-2" >{% trans 'Order' %}:</h6>
                             </div>
@@ -30,7 +30,7 @@
                                 <h6 id="id_mod_status_employee" class="modal-title mx-2" ></h6>
                             </div>
                         </div>
-                        <div class="modal_container">
+                        <div class="modal_container mb-4">
                             <div class="modal_body_left">
                                 <h6 class="modal-title mx-2" >{% trans 'Shift' %}:</h6>
                             </div>
@@ -38,29 +38,31 @@
                                 <h6 id="id_mod_status_shift" class="modal-title mx-2" ></h6>
                             </div>
                         </div>
-                         <div class="modal_container">
-                            <div class="modal_body_left">
-                                <div class="form-group">
-                               <label id="id_mod_status_time_label" for="id_mod_status_time" class="mx-2 mt-4"></label>
-                                <input id="id_mod_status_time" type="text"
-                                       autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                                    </div>
-                                </div>
+                        <div class="modal_container m-2">
+                            <div id="id_mod_status_time_container" class="modal_body_left">
+                                <label id="id_mod_status_time_label" for="id_mod_status_time" class="m-2"></label>
+                                <div id="id_mod_status_time" class="form-control"></div>
                             </div>
-
-                        <div class="modal_container">
+                        </div>
+                        <div class="modal_container m-2">
                             <div class="modal_body_left">
                                 <div class="form-group">
-                                    <label for="id_mod_status_note" class="mx-2 my-2">{% trans 'Notes' %}:</label>
-                                    <input id="id_mod_status_note"
-                                        type="textarea"
+                                    <label for="id_mod_status_note" class="m-2">{% trans 'Note' %}:</label>
+                                    <textarea id="id_mod_status_note" rows="1"
                                         autocomplete="off"
                                         ondragstart="return false;"
                                         ondrop="return false;"
-                                        class="form-control">
+                                        class="form-control"></textarea>
                                 </div>
                             </div>
                         </div>
+                    <div id="id_mod_status_lockall_container" class="content_subheader_left mx-1 tsa_mfw_default">
+                        <span>
+                            <input id="id_mod_status_lockall" type="checkbox" data-field="default" class="tw_032 mx-2">
+                            <label id="id_mod_status_lockall_label" for="id_mod_status_lockall" class="mb-0"></label>
+                        </span>
+                    </div>
+
                         <div class="modal_container">
                             <h6 id="id_mod_status_ftr_msg" class="modal-title mx-2"></h6>
                         </div>

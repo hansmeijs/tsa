@@ -115,7 +115,6 @@ class User(AbstractUser):
         super(User, self).save(force_insert=not self.is_update, force_update=self.is_update, **kwargs)
         # self.id gets its value in super(Country, self).save
 
-
     @property
     def username_sliced(self):
         # PR2019-03-13 Show username 'Hans' instead of '000001Hans'
@@ -379,6 +378,47 @@ class User(AbstractUser):
 
 # +++++++++++++++++++  END OF FORM PERMITS  +++++++++++++++++++++++
 
+    def get_usersetting(cls, key_str):  # PR2019-07-02 PR2021-01-27
+        setting_dict = {}
+        row_jsonsetting = None
+        try:
+            if cls and key_str:
+                row = Usersetting.objects.filter(user=cls, key=key_str).order_by('-id').first()
+                if row:
+                    row_jsonsetting = row.jsonsetting
+                    if row_jsonsetting:
+                         # no need to use json.loads: Was: setting_dict = json.loads(row.jsonsetting)
+                        setting_dict = row_jsonsetting
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('row_jsonsetting: ', str(row_jsonsetting))
+        #logger.debug('setting_dict: ' + str(setting_dict) + ' ' + str(type(setting_dict)))
+        return setting_dict
+
+    def set_usersetting(cls, key_str, setting_dict):  # PR2019-07-02 PR2020-07-12 PR2021-01-27
+        #logger.debug('---  set_usersetting  ------- ')
+        #logger.debug('key_str: ' + str(key_str))
+        #logger.debug('setting_dict: ' + str(setting_dict))
+        # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
+        try:
+            if cls and key_str:
+                # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+                row = Usersetting.objects.filter(user=cls, key=key_str).order_by('-id').first()
+                if row:
+                    #logger.debug('row exists')
+                    row.jsonsetting = setting_dict
+                elif setting_dict:
+                    #logger.debug('row does not exist')
+                    row = Usersetting(user=cls, key=key_str, jsonsetting=setting_dict)
+                row.save()
+
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('setting_dict: ', str(setting_dict))
+
+
 # PR2018-05-06
 class Usersetting(Model):
     objects = CustomUserManager()
@@ -390,114 +430,34 @@ class Usersetting(Model):
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
     datetimesetting = DateTimeField(null=True)  #  for last_emplhour_check PR2020-08-06
 
-# ===========  Classmethod
-    # TODO removen setting is already removed
     @classmethod
-    def get_settingXXX(cls, key_str, user): #PR2019-07-02
-        # function returns value of setting row that matches the filter
-        # logger.debug('---  get_setting  ------- ')
-        setting = None
-        # if user and key_str:
-        #     row = cls.objects.filter(user=user, key=key_str).first()
-        #     if row:
-        #         if row.setting:
-        #             setting = row.setting
-        return setting
-
-    @classmethod
-    def set_settingXXX(cls, key_str, setting, user): #PR2019-07-02
-        # function renews setting rows that matches the filter, adds if not exist
-        # logger.debug('---  set_setting  ------- ')
-        # logger.debug('setting: ' + str(setting))
-        # get
-        if user and key_str:
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                row.setting = setting
-            else:
-                if setting:
-                    row = cls(user=user, key=key_str, setting=setting)
-            row.save()
-
-    @classmethod
-    def get_jsonsetting(cls, key_str, user):  # PR2019-07-02
-        setting_dict = {}
-        if user and key_str:
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                if row.jsonsetting:
-                     # no need to use json.loads: Was: setting_dict = json.loads(row.jsonsetting)
-                    setting_dict = row.jsonsetting
-
-        return setting_dict
-
-    @classmethod
-    def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02 PR2020-07-12
-        #logger.debug('---  set_jsonsetting  ------- ')
-        #logger.debug('key_str: ' + str(key_str))
-        #logger.debug('setting_dict: ' + str(setting_dict))
-        # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
-        if user and key_str:
-            rowcount = cls.objects.filter(user=user, key=key_str).count()
-            #logger.debug('rowcount: ' + str(rowcount))
-            #rows = cls.objects.filter(user=user, key=key_str)
-            #for item in rows:
-                #logger.debug('row key: ' + str(item.key) + ' jsonsetting: ' + str(item.jsonsetting))
-
-            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                #logger.debug('row exists')
-                row.jsonsetting = setting_dict
-            elif setting_dict:
-                #logger.debug('row does not exist')
-                row = cls(user=user, key=key_str, jsonsetting=setting_dict)
-            row.save()
-
-    @classmethod
-    def get_datetimesetting(cls, key_str, user):  # PR2020-08-06
+    def get_datetimesetting(cls, key_str, user):  # PR2020-08-06 PR2021-01-27
         saved_datetime_setting = None
-        if user and key_str:
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                if row.datetimesetting:
-                    saved_datetime_setting = row.datetimesetting
-
+        try:
+            if user and key_str:
+                row = cls.objects.filter(user=user, key=key_str).order_by('-id').first()
+                if row:
+                    if row.datetimesetting:
+                        saved_datetime_setting = row.datetimesetting
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('saved_datetime_setting: ', str(saved_datetime_setting))
         return saved_datetime_setting
 
     @classmethod
-    def set_datetimesetting(cls, key_str, new_datetime, user):   # PR2020-08-06
-        if user and key_str:
-            # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
-            row = cls.objects.filter(user=user, key=key_str).first()
-            if row:
-                row.datetimesetting = new_datetime
-            elif new_datetime:
-                #logger.debug('row does not exist')
-                row = cls(user=user, key=key_str, datetimesetting=new_datetime)
-            row.save()
-
-
-    # TODO get rid of set_selected_pk
-    @classmethod
-    def set_selected_pk(cls, new_setting, user):  # PR2020-05-24
-        #logger.debug('---  set_selected_pk  ------- ')
-        #logger.debug('new_setting: ' + str(new_setting))
-        # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
-        if user:
-            key_str = 'selected_pk'
-            selected_pk_dict = cls.get_jsonsetting(key_str, user)
-            # key 'sel_cust_pk' is replaced by 'sel_customer_pk'. remove old key (temporary) TODO remove PR2020-05-21
-            if 'sel_cust_pk' in selected_pk_dict:
-                selected_pk_dict.pop('sel_cust_pk')
-            # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
-            for sel_pk in new_setting:
-                sel_value = new_setting[sel_pk]
-                selected_pk_dict[sel_pk] = sel_value
-
-            # new_setting is in json format, no need for json.loads and json.dumps
-            # new_setting = json.loads(request.POST['setting'])
-            # new_setting_json = json.dumps(new_setting)
-            if selected_pk_dict:
-                cls.set_jsonsetting(key_str, selected_pk_dict, user)
-            return selected_pk_dict
+    def set_datetimesetting(cls, key_str, new_datetime, user):   # PR2020-08-06 PR2021-01-27
+        try:
+            if user and key_str:
+                # don't use get_or_none, gives none when multiple settings exist and will create extra setting.
+                row = cls.objects.filter(user=user, key=key_str).first()
+                if row:
+                    row.datetimesetting = new_datetime
+                elif new_datetime:
+                    #logger.debug('row does not exist')
+                    row = cls(user=user, key=key_str, datetimesetting=new_datetime)
+                row.save()
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('new_datetime: ', str(new_datetime))

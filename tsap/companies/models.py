@@ -97,7 +97,6 @@ class TsaBaseModel(Model):
         # save to logfile before deleting record happens outside this function
         # self.save_to_log()
 
-
         super(TsaBaseModel, self).delete(*args, **kwargs)
 
     @property
@@ -134,6 +133,8 @@ class TsaBaseModel(Model):
 class Company(TsaBaseModel):
     objects = TsaManager()
 
+    identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+
     issystem = BooleanField(default=False)
     timezone = CharField(max_length=c.NAME_MAX_LENGTH, default=TIME_ZONE)
     interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
@@ -150,6 +151,7 @@ class Company(TsaBaseModel):
     pricecode_id = IntegerField(null=True)
     additioncode_id = IntegerField(null=True)
     taxcode_id = IntegerField(null=True)
+
     invoicecode_id = IntegerField(null=True)
     wagefactorcode_id = IntegerField(null=True)
 
@@ -170,6 +172,152 @@ class Company(TsaBaseModel):
         #PR2019-03-13 CompanyPrefix is added at front of username, to make usernames unique per company
         id_str = '000000' + str(self.pk)
         return id_str[-6:]
+
+    def get_companysetting(cls, key_str, default_setting=None): # PR2019-03-09 PR2019-08-17   PR2021-01-27
+        # function returns value of jsonsetting row that match the filter
+
+        setting_dict = {}
+        row_jsonsetting = None
+        try:
+            if cls and key_str:
+                row = Companysetting.objects.filter(company=cls, key=key_str).order_by('-id').first()
+                if row:
+                    row_jsonsetting = row.jsonsetting
+                    if row_jsonsetting:
+                        setting_dict = row_jsonsetting
+            if row_jsonsetting is None:
+                if default_setting:
+                    setting_dict = default_setting
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('row_jsonsetting: ', str(row_jsonsetting))
+        return setting_dict
+
+    def set_companysetting(cls, key_str, jsonsetting): # PR2019-03-09 PR2021-01-27
+        #logger.debug('---  set_jsonsettingg  ------- ')
+        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+        try:
+            if cls and key_str:
+                # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
+                row = Companysetting.objects.filter(company=cls, key=key_str).order_by('-id').first()
+                if row:
+                    row.jsonsetting = jsonsetting
+                else:
+                    if jsonsetting:
+                        row = Companysetting(company=cls, key=key_str, jsonsetting=jsonsetting)
+                row.save()
+
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('key_str: ', str(key_str))
+            logger.error('jsonsetting: ', str(jsonsetting))
+
+
+class Paydatecode(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    locked = None
+
+    code = CharField(db_index=True, max_length=c.USERNAME_MAX_LENGTH)
+    recurrence = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    dayofmonth = SmallIntegerField(null=True)
+    referencedate = DateField(null=True) # this field contains the closingdate for weekly and biweekly periods
+    isdefault = BooleanField(default=False)
+
+    afascode = PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['code']
+
+    def has_lockedpaydate_emplhours(self):  # PR2020-06-26
+        # function checks if this paydatcode has emplhours with lockedpaydate=True
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(paydatecode_id=self.pk, lockedpaydate=True).exists()
+        return has_locked_emplhours
+
+
+class Paydateitem(TsaBaseModel):
+    objects = TsaManager()
+    paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=CASCADE)
+
+    code = None
+    name = None
+    inactive = None
+    locked = None
+
+    year = PositiveSmallIntegerField(default=0)
+    period = PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['datelast']
+
+
+class Wagecode(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='wagecodes', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+    name = None
+
+    description = CharField(max_length=c.USER_LASTNAME_MAX_LENGTH, null=True, blank=True)
+
+    # PR20202-07-18 removed:  sequence, rate. Rename iswage to iswagecode. leave 'name' for notes??
+    # wagerate    /100 unit currency   wagerate 10.000 = 100 US$
+    # wagefactor  /1.000.000 unitless, wagefactor 100%  = 1.000.000
+    wagerate = IntegerField(default=0)
+    #sequence = PositiveSmallIntegerField(default=0)
+    #rate = JSONField(null=True)  # stores price plus startdate
+
+    # TODO key will replace iswagecode etc.
+    key = CharField(db_index=True, max_length=4)
+
+    iswagecode = BooleanField(default=False)
+    iswagefactor = BooleanField(default=False)
+    isfunctioncode = BooleanField(default=False)
+    isallowance = BooleanField(default=False)
+    isdefault = BooleanField(default=False)
+
+    class Meta:
+        ordering = ['code']
+
+    def __str__(self):
+        return self.code
+
+    def has_lockedwagecode_emplhours(self):  # PR2020-07-14
+        # function checks if this wagecode has emplhours with lockedpaydate=True
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
+        return has_locked_emplhours
+
+    def has_lockedfunctioncode_emplhours(self):  # PR2020-07-18
+        # function checks if this functioncode has emplhours with lockedpaydate=True
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
+        return has_locked_emplhours
+
+
+class Wagecodeitem(TsaBaseModel):
+    objects = TsaManager()
+    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=CASCADE)
+    # wagefactor has no wagecode items PR2021-02-15
+    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
+    code = None
+    name = None
+    locked = None
+
+    wagerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
+
+    class Meta:
+        ordering = ['-datefirst']
 
 
 class Pricecode(TsaBaseModel):
@@ -216,6 +364,67 @@ class Pricecodeitem(TsaBaseModel):
     class Meta:
         ordering = ['-datefirst']
 
+
+# NOT IN USE PR2021-01-27
+"""
+class Timecode(TsaBaseModel): # Workingday, Saturday, SUnday, Public Holiday, general holiday, + wagefactor
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+
+    sequence = PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sequence']
+
+    def __str__(self):
+        return self.code
+"""
+
+class Calendar(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='calendars', on_delete=CASCADE)
+
+    rosterdate = DateField(db_index=True)
+    year = PositiveSmallIntegerField(default=0)
+
+    iscompanyholiday = BooleanField(default=False)
+    ispublicholiday = BooleanField(default=False)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    class Meta:
+        ordering = ['rosterdate']
+
+
+# NOT IN USE PR2021-01-27
+"""
+class CalendarTimecode(TsaBaseModel): # List of dates with timecodes, to be generated each year
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='CalendarTimecodes', on_delete=CASCADE)
+    timecode = ForeignKey(Timecode, related_name='CalendarTimecodes', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    locked = None
+
+    class Meta:
+        ordering = ['datefirst']
+
+    def __str__(self):
+        return self.code
+"""
 
 class Customer(TsaBaseModel):
     objects = TsaManager()
@@ -293,11 +502,22 @@ class Order(TsaBaseModel):
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
+    # wagefactor: only used in absence, to set absence wagefactor in emplhour PR2021-01-27
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagefactoronsat = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagefactoronsun = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagefactoronph = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+
+    # TODO nopay to be deprecated
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
+
+    nohoursonweekday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
     nohoursonsaturday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
     nohoursonsunday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
     nohoursonpublicholiday = BooleanField(default=False)
     nohoursoncompanyholiday = BooleanField(default=False)
+
+    hasnote = BooleanField(default=False)  # hasnotes will show a note icon on the roster page
 
     class Meta:
         ordering = [Lower('code')]
@@ -324,6 +544,25 @@ class Orderlog(TsaBaseModel):
         ordering = ['-modifiedat']
 
 
+class Ordernote(TsaBaseModel):
+    objects = TsaManager()
+
+    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+    note = CharField(max_length=2048, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-modifiedat']
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
+
+
+#NOT IN USE PR2021-01-29
+"""
 class Object(TsaBaseModel):
     objects = TsaManager()
 
@@ -353,7 +592,7 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
 
     locked = None
     inactive = None
-
+"""
 
 class Published(TsaBaseModel):
     objects = TsaManager()
@@ -376,162 +615,6 @@ class Published(TsaBaseModel):
     inactive = None
 
 
-class Paydatecode(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    locked = None
-
-    code = CharField(db_index=True, max_length=c.USERNAME_MAX_LENGTH)
-    recurrence = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    dayofmonth = SmallIntegerField(null=True)
-    referencedate = DateField(null=True) # this field contains the closingdate for weekly and biweekly periods
-    isdefault = BooleanField(default=False)
-
-    afascode = PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        ordering = ['code']
-
-    def has_lockedpaydate_emplhours(self):  # PR2020-06-26
-        # function checks if this paydatcode has emplhours with lockedpaydate=True
-        has_locked_emplhours = False
-        if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(paydatecode_id=self.pk, lockedpaydate=True).exists()
-        return has_locked_emplhours
-
-
-class Paydateitem(TsaBaseModel):
-    objects = TsaManager()
-    paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=CASCADE)
-
-    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
-    code = None
-    name = None
-    inactive = None
-    locked = None
-
-    year = PositiveSmallIntegerField(default=0)
-    period = PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        ordering = ['datelast']
-
-
-class Wagecode(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='wagecodes', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-    name = None
-
-    # PR20202-07-18 removed:  sequence, rate. Rename iswage to iswagecode. leave 'name' for notes??
-    # wagerate    /100 unit currency   wagerate 10.000 = 100 US$
-    # wagefactor  /1.000.000 unitless, wagefactor 100%  = 1.000.000
-    wagerate = IntegerField(default=0)
-    #sequence = PositiveSmallIntegerField(default=0)
-    #rate = JSONField(null=True)  # stores price plus startdate
-    iswagecode = BooleanField(default=False)
-    iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
-    isfunctioncode = BooleanField(default=False)
-    isdefault = BooleanField(default=False)
-
-    class Meta:
-        ordering = ['code']
-
-    def __str__(self):
-        return self.code
-
-    def has_lockedwagecode_emplhours(self):  # PR2020-07-14
-        # function checks if this wagecode has emplhours with lockedpaydate=True
-        has_locked_emplhours = False
-        if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
-        return has_locked_emplhours
-
-    def has_lockedfunctioncode_emplhours(self):  # PR2020-07-18
-        # function checks if this functioncode has emplhours with lockedpaydate=True
-        has_locked_emplhours = False
-        if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
-        return has_locked_emplhours
-
-class Wagecodeitem(TsaBaseModel):
-    objects = TsaManager()
-    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=CASCADE)
-
-    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
-    code = None
-    name = None
-    locked = None
-
-    wagerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
-
-    class Meta:
-        ordering = ['-datefirst']
-
-
-class Timecode(TsaBaseModel): # Workingday, Saturday, SUnday, Public Holiday, general holiday, + wagefactor
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='timecodes', on_delete=CASCADE)
-    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    datefirst = None
-    datelast = None
-    locked = None
-
-    sequence = PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        ordering = ['sequence']
-
-    def __str__(self):
-        return self.code
-
-
-class Calendar(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='calendars', on_delete=CASCADE)
-
-    rosterdate = DateField(db_index=True)
-    year = PositiveSmallIntegerField(default=0)
-
-    iscompanyholiday = BooleanField(default=False)
-    ispublicholiday = BooleanField(default=False)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    datefirst = None
-    datelast = None
-    inactive = None
-    locked = None
-
-    class Meta:
-        ordering = ['rosterdate']
-
-
-class CalendarTimecode(TsaBaseModel): # List of dates with timecodes, to be generated each year
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='CalendarTimecodes', on_delete=CASCADE)
-    timecode = ForeignKey(Timecode, related_name='CalendarTimecodes', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    locked = None
-
-    class Meta:
-        ordering = ['datefirst']
-
-    def __str__(self):
-        return self.code
-
-
 class Scheme(TsaBaseModel):
     objects = TsaManager()
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
@@ -544,6 +627,7 @@ class Scheme(TsaBaseModel):
     excludecompanyholiday = BooleanField(default=False)
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
+
     # nopay and nosat etc in scheme are not in use (yet) PR2020-09-17
     nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
     nohoursonsaturday = BooleanField(default=False)
@@ -590,14 +674,31 @@ class Shift(TsaBaseModel):
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
-    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactoronsat = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactoronsun = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactoronph = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
     def __str__(self):
         return self.code
+
+
+class Shiftallowance(TsaBaseModel):
+    objects = TsaManager()
+
+    shift = ForeignKey(Shift, related_name='+', on_delete=CASCADE)
+    allowancecode = ForeignKey(Wagecode, related_name='+', on_delete=PROTECT)
+
+    key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
+    quantity = IntegerField(default=0)  # quantity = /10.000 unitless (10.000 = 100%)
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
 
 
 class Team(TsaBaseModel):
@@ -652,6 +753,8 @@ class Employee(TsaBaseModel):
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     # PR2020-11-23 removed: additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
+    hasnote = BooleanField(default=False)  # hasnotes will show a note icon on the roster page
+
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
 
@@ -680,12 +783,11 @@ class Employeelog(TsaBaseModel):
         ordering = ['-modifiedat']
 
 
-class Empoloyeenotes(TsaBaseModel):
+class Employeenote(TsaBaseModel):
     objects = TsaManager()
 
     employee = ForeignKey(Employee, related_name='+', on_delete=CASCADE)
     note = CharField(max_length=2048, null=True, blank=True)
-    isadminnote = BooleanField(default=False)
 
     class Meta:
         ordering = ['-modifiedat']
@@ -919,6 +1021,7 @@ class Emplhour(TsaBaseModel):
     excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactor = IntegerField(default=0)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wagefactorcaption = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -945,6 +1048,7 @@ class Emplhour(TsaBaseModel):
 
     haschanged  = BooleanField(default=False)  # haschanged will show an orange diamond on the roster page
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
+
     hasnote = BooleanField(default=False)  # hasnotes will show a note icon on the roster page
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
@@ -969,7 +1073,9 @@ class Emplhour(TsaBaseModel):
         has_status_created = False
         field_value = getattr(self, 'status', 0)
         status_int = int(field_value)
-        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_001_CREATED
+        # PR2021-01-014 from https://stackoverflow.com/questions/509211/understanding-slice-notation
+        # list[start:stop:step] # start through not past stop, by step
+        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_00_CREATED
         if status_str[:1] == '1':
             has_status_created = True
         return has_status_created
@@ -993,8 +1099,12 @@ class Emplhourlog(TsaBaseModel):
     employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
 
     shift = ForeignKey(Shift, related_name='+', on_delete=SET_NULL, null=True)
+    # TODO remove schemeitem, teammember,
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
     teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True)
+
+    schemeitemid = IntegerField(null=True)
+    teammemberid = IntegerField(null=True)
 
     customercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     ordercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -1016,6 +1126,9 @@ class Emplhourlog(TsaBaseModel):
     isreplacement = BooleanField(default=False)
 
     status = PositiveSmallIntegerField(default=0)
+
+    hasnote = BooleanField(default=False)
+
     isdeleted = BooleanField(default=False)  # for updatng roster page
 
     modifiedbyusername = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -1029,7 +1142,6 @@ class Emplhourlog(TsaBaseModel):
     datelast = None
     locked = None
     inactive = None
-
 
 
 class Emplhournote(TsaBaseModel):
@@ -1050,16 +1162,15 @@ class Emplhournote(TsaBaseModel):
     inactive = None
 
 
-
-class Orderhournotes(TsaBaseModel):
+class Emplhourallowance(TsaBaseModel):
     objects = TsaManager()
 
-    orderhour = ForeignKey(Orderhour, related_name='+', on_delete=CASCADE)
-    note = CharField(max_length=2048, null=True, blank=True)
-    isadminnote = BooleanField(default=False)
+    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=CASCADE)
+    allowancecode = ForeignKey(Wagecode, related_name='+', on_delete=PROTECT)
 
-    class Meta:
-        ordering = ['-modifiedat']
+    rate = IntegerField(default=0)      # rate  =  /100 unit currency   wagerate 10.000 = 100 US$
+    quantity = IntegerField(default=0)  # quantity = /10.000 unitless (10.000 = 100%)
+    amount = IntegerField(default=0)    # amount = /100 unit is currency (US$, EUR, ANG)
 
     code = None
     name = None
@@ -1069,17 +1180,40 @@ class Orderhournotes(TsaBaseModel):
     inactive = None
 
 
-class Companylist(TsaBaseModel):  # PR2020-02-28
+class Emplhourallowancelog(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
 
-    key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
-    list = JSONField(null=True)  # stores invoice dates, payroll dates
+    emplhourallowance_id = IntegerField(db_index=True)
 
+    emplhourid = IntegerField(null=True)
+    allowancecodeid = IntegerField(null=True)
+
+    rate = IntegerField(default=0)      # rate  =  /100 unit currency   wagerate 10.000 = 100 US$
+    quantity = IntegerField(null=True)  # quantity = /10.000 unitless (10.000 = 100%)
+    amount = IntegerField(null=True)    #   amount = /100 unit is currency (US$, EUR, ANG)
+
+    code = None
     name = None
     datefirst = None
     datelast = None
     locked = None
+    inactive = None
+
+
+class Emplhourstatus(TsaBaseModel):
+    objects = TsaManager()
+
+    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=CASCADE)
+
+    status = PositiveSmallIntegerField(default=0)
+    isremoved = BooleanField(default=False)
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
 
 
 class Companyinvoice(TsaBaseModel):  # PR2019-04-06
@@ -1119,75 +1253,6 @@ class Companysetting(Model):  # PR2019-03-09
     datetimesetting2 = DateTimeField(null=True)  #  for last_emplhour_deleted PR2020-08-23
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
-
-#===========  Classmethod
-    @classmethod
-    def get_jsonsetting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
-        # function returns value of jsonsetting row that match the filter
-        #logger.debug(' ')
-        #logger.debug('---  get jsonsetting  ------- ')
-        #logger.debug('company: ' + company.code)
-        #logger.debug('key_str: ' + key_str)
-        setting = None
-        if company and key_str:
-            row = cls.objects.get_or_none(company=company, key=key_str)
-            if row:
-                if row.jsonsetting:
-                    setting = row.jsonsetting
-        if setting is None:
-            if default_setting:
-                setting = default_setting
-        #logger.debug('setting: ' + str(setting))
-        return setting
-
-    @classmethod
-    def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
-        #logger.debug('---  set_jsonsettingg  ------- ')
-        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
-
-        if company and key_str:
-            # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
-            row = cls.objects.filter(company=company, key=key_str).first()
-            if row:
-                row.jsonsetting = jsonsetting
-            else:
-                if jsonsetting:
-                    row = cls(company=company, key=key_str, jsonsetting=jsonsetting)
-            row.save()
-            # test
-            row = None
-            saved_row = cls.objects.filter(company=company, key=key_str).first()
-            #logger.debug('saved_row.jsonsetting: ' + str(saved_row.jsonsetting))
-
-    @classmethod
-    def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
-        # function returns value of setting row that match the filter
-        #logger.debug('---  get_setting  ------- ')
-        setting = None
-        if company and key_str:
-            row = cls.objects.get_or_none(company=company, key=key_str)
-            if row:
-                if row.setting:
-                    setting = row.setting
-        if setting is None:
-            if default_setting:
-                setting = default_setting
-        return setting
-
-    @classmethod
-    def set_setting(cls, key_str, setting, company): #PR2019-03-09
-        #logger.debug('---  set_setting  ------- ')
-        #logger.debug('key_str: ' + str(key_str) + ' setting: ' + str(setting))
-        # get
-        if company and key_str:
-            # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
-            row = cls.objects.filter(company=company, key=key_str).first()
-            if row:
-                row.setting = setting
-            else:
-                if setting:
-                    row = cls(company=company, key=key_str, setting=setting)
-            row.save()
 
     @classmethod
     def get_datetimesetting(cls, key_str, company):  # PR2020-08-23
@@ -1275,63 +1340,59 @@ def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
 
 def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None):
     # PR2020-07-26 PR2020-08-22
-   #.debug('  ----- save_to_emplhourlog -----')
+    #logger.debug('  ----- save_to_emplhourlog -----')
     #logger.debug('is_deleted: ' + str(is_deleted))
     #logger.debug('request.user: ' + str(request.user))
 
     # when is_delete: set modified_date to now, use emplhour modified_date
+    sql = ''
+    try:
+        sql_list = [
+            "INSERT INTO companies_emplhourlog (id,",
+                "emplhour_id, rosterdate, order_id, employee_id, shift_id, schemeitemid, teammemberidXXX,",
+                "customercode, ordercode, shiftcode, employeecode,",
+                "timestart, timeend, breakduration, timeduration,",
+                "plannedduration, billingduration, offsetstart, offsetend,",
+                "isabsence,  isrestshift,  issplitshift, isreplacement, status,",
+                "isdeleted, modifiedby_id, modifiedat, modifiedbyusername)",
+            "SELECT nextval('companies_emplhourlog_id_seq'),",
+                "eh.id, eh.rosterdate, oh.order_id, eh.employee_id, oh.shift_id, eh.schemeitemid, eh.teammemberid,",
+                "oh.customercode, oh.ordercode, oh.shiftcode, eh.employeecode,",
+                "eh.timestart, eh.timeend, eh.breakduration, eh.timeduration,",
+                "eh.plannedduration, eh.billingduration, eh.offsetstart, eh.offsetend,",
+                "oh.isabsence, oh.isrestshift, oh.issplitshift, eh.isreplacement, eh.status,",]
 
-    sql_list = []
-    sql_list.append("""
-        INSERT INTO companies_emplhourlog (
-                id, emplhour_id, rosterdate,
-                order_id, employee_id, shift_id, schemeitem_id, teammember_id, 
-                customercode, ordercode, shiftcode, employeecode,
-                timestart, timeend, breakduration, timeduration,
-                plannedduration, billingduration,
-                offsetstart, offsetend,
-                isabsence,  isrestshift,  issplitshift, isreplacement,
-                status,
-                isdeleted, 
-                modifiedby_id, modifiedat, modifiedbyusername
-                )
-        SELECT nextval('companies_emplhourlog_id_seq'),
-                eh.id, eh.rosterdate, oh.order_id, eh.employee_id, 
-                oh.shift_id, eh.schemeitemid, eh.teammemberid,
-                oh.customercode, oh.ordercode, oh.shiftcode, eh.employeecode,
-                eh.timestart, eh.timeend, eh.breakduration, eh.timeduration,
-                eh.plannedduration, eh.billingduration,
-                eh.offsetstart, eh.offsetend,
-                oh.isabsence, oh.isrestshift, oh.issplitshift, eh.isreplacement,
-                eh.status,
-    """)
+        if is_deleted:
+            # - set request user in modified_by of deleted emplhour record
+            sql_list.append("""TRUE,  
+                CAST(%(modifiedby_id)s AS INTEGER), CAST(%(modifiedat)s AS DATE), %(username)s""")
+            modifiedby_id = request.user.pk
+            username = request.user.username_sliced
+            sql_keys = {'ehid': emplhour_pk,
+                        'modifiedby_id': modifiedby_id,
+                        'modifiedat': modified_at,
+                        'username': username}
+        else:
+            sql_list.append("""FALSE, eh.modifiedby_id, eh.modifiedat, eh.modifiedbyusername""")
+            sql_keys = {'ehid': emplhour_pk}
 
-    if is_deleted:
-        # - set request user in modified_by of deleted emplhour record
-        sql_list.append("""TRUE,  
-            CAST(%(modifiedby_id)s AS INTEGER), CAST(%(modifiedat)s AS DATE), %(username)s""")
-        modifiedby_id = request.user.pk
-        username = request.user.username_sliced
-        sql_keys = {'ehid': emplhour_pk,
-                    'modifiedby_id': modifiedby_id,
-                    'modifiedat': modified_at,
-                    'username': username}
-    else:
-        sql_list.append("""FALSE, eh.modifiedby_id, eh.modifiedat, eh.modifiedbyusername""")
-        sql_keys = {'ehid': emplhour_pk}
+        sql_list.append("""
+            FROM companies_emplhour AS eh 
+            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
+            WHERE ( eh.id = %(ehid)s) 
+            """)
 
-    sql_list.append("""
-        FROM companies_emplhour AS eh 
-        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
-        WHERE ( eh.id = %(ehid)s) 
-        """)
+        sql = ' '.join(sql_list)
+        #logger.debug('sql: ' + str(sql))
+        #logger.debug('sql_keys: ' + str(sql_keys))
 
-    sql = ' '.join(sql_list)
-    #logger.debug('sql: ' + str(sql))
-    #logger.debug('sql_keys: ' + str(sql_keys))
-    newcursor = connection.cursor()
-    newcursor.execute(sql, sql_keys)
-    #logger.debug('  ----- save_to_emplhourlog done ')
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        #logger.debug('  ----- save_to_emplhourlog done ')
+
+    except Exception as e:
+        logger.error(e)
+        logger.error('sql: ' + str(sql))
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

@@ -44,7 +44,7 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
     elif (tblName == 'paydatecode'):
         settings_key = c.KEY_PAYDATECODE_COLDEFS
 
-    stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
+    stored_json = request.user.company.get_companysetting(settings_key)
     if stored_json:
         stored_setting = json.loads(stored_json)
         #logger.debug('stored_setting: ' + str(stored_setting))

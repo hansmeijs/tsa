@@ -71,7 +71,7 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
             arr = get_datetimearray_from_dateISO(date_ISOstring)
             dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
         except:
-            logger.debug('ERROR: get_dateobj_from_dateISOstring: date_ISOstring: ' +
+            logger.error('ERROR: get_dateobj_from_dateISOstring: date_ISOstring: ' +
                          str(date_ISOstring) + ' type: ' + str(type(date_ISOstring)))
     return dte
 
@@ -87,7 +87,7 @@ def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
             date_iso = '-'.join([year_str, month_str, date_str])
             # today_iso: 2019-11-17 <class 'str'>
         except:
-            logger.debug('ERROR: get_dateISO_from_dateOBJ: date_obj' +
+            logger.error('ERROR: get_dateISO_from_dateOBJ: date_obj' +
                          str(date_obj) + ' ' + str(type(date_obj)))
     return date_iso
 
@@ -100,7 +100,7 @@ def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
             if date_obj:
                 datetime_naive = get_datetime_naive_from_dateobject(date_obj)
         except:
-            logger.debug('ERROR: get_datetime_naive_from_ISOstring: date_ISOstring' +
+            logger.error('ERROR: get_datetime_naive_from_ISOstring: date_ISOstring' +
                          str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return datetime_naive
 
@@ -118,7 +118,7 @@ def get_datetime_naive_from_dateobject(date_obj):
             #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
             # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
         except:
-            logger.debug('ERROR: get_datetime_naive_from_dateobject: date_ISOstring' +
+            logger.error('ERROR: get_datetime_naive_from_dateobject: date_ISOstring' +
                          str(date_obj) + ' ' + str(type(date_obj)))
     return datetime_naive
 
@@ -159,7 +159,7 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
                 #logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
                 # datetime_naive: 2019-03-30 12:00:00 <class 'datetime.datetime'>
         except:
-            logger.debug('ERROR: get_datetime_naive_from_offset:' +
+            logger.error('ERROR: get_datetime_naive_from_offset:' +
                             ' rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)) +
                             ' offset_int' + str(offset_int) + ' ' + str(type(offset_int)))
 
@@ -659,6 +659,13 @@ def get_lastof_month(date_obj):
     return lastof_thismonth_dte
 
 
+def get_firstof_thisyear(year_int): # PR2021-02-12
+    firstof_thisyear_dte = None
+    if(year_int):
+        firstof_thisyear_dte = date(year_int, 1, 1)
+    return firstof_thisyear_dte
+
+
 def add_days_to_date(date_obj, days_add_int):
     new_date = None
     if(date_obj):
@@ -781,7 +788,6 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
 
 # ################### DATE STRING  FUNCTIONS ###################
 
-
 def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
     #logger.debug('... get_dateISO_from_string ...')
     #logger.debug('date_string: ' + str(date_string), ' format: ' + str(format))
@@ -836,7 +842,7 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
 
                     new_dat_str = '-'.join([year_str, month_str, day_str])
         except:
-            logger.debug('ERROR: get_dateISO_from_string: ' + str(date_string) + ' new_dat_str: ' + str(new_dat_str))
+            logger.error('ERROR: get_dateISO_from_string: ' + str(date_string) + ' new_dat_str: ' + str(new_dat_str))
     return new_dat_str
 
 
@@ -1077,7 +1083,7 @@ def format_period_from_date(datefirst_dte, datelast_dte, short_names, user_lang)
             display_text = ' - '.join([start_fulldate_str, end_fulldate_str])
 
     except:
-        logger.debug('ERROR: datefirst_dte' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)) +
+        logger.error('ERROR: datefirst_dte' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)) +
                         ' datelast_dte' + str(datelast_dte) + ' ' + str(type(datelast_dte)))
 
     return display_text
@@ -1423,20 +1429,66 @@ def get_float_from_string(value_str):  # PR2019-09-01
         msg_err = str(_("'%(value)s' is not a valid number.") % { 'value': value_str})
     return number, msg_err
 
-def get_status_value(status_sum, index):
+
+def set_status_bool_at_index(status_array, index, value_bool):
+    # PR2021-02-10 functions cahnges value at index of status_array
+    array_length = len(status_array)
+    # extend list if length <= index
+    if index >= array_length:
+        for i in range(array_length, index + 1):
+            status_array.append(0)
+    # change value at index
+    status_array[index] = 1 if  value_bool else 0
+
+
+def set_status_sum_from_array(status_array):
+    #logger.debug(' ----- set_status_sum_from_array -----')
+    # PR2021-02-10 functions calculates status_sum from status_array
+    status_sum = 0
+
+    array_length = len(status_array)
+    if array_length:
+        reversed_string_array = []
+        for i in range(array_length -1, -1, -1):
+            value = '1' if status_array[i] else '0'
+            reversed_string_array.append(value)
+
+        reversed_string = ''.join(reversed_string_array)
+        status_sum = int(reversed_string, 2)
+    return status_sum
+
+
+def get_status_bool_at_index(status_sum, index):
     # PR2019-11-14 functions checks if index is in binary status_sum
-    has_status_value = False
+    # PR2021-02-09 functions return value at index as boolean
+    status_bool_at_index = False
+    if status_sum:
+        status_array = get_status_array(status_sum)
+        if index < len(status_array):
+            # value of status_array[index] is integer: 1 or 0
+            if status_array[index]:
+                status_bool_at_index = True
+
+    return status_bool_at_index
+
+
+def get_status_array(status_sum):
+    # PR2021-02-09 functions converts status_sum in array with integers
+    # from https://stackoverflow.com/questions/1386811/convert-binary-string-to-list-of-integers-using-python
+    status_array = []
+    binary_str = None
     if status_sum:
         # bin(512) = 0b1000000000
         # str(bin(512))[2:] = '1000000000'
         # ''.join(reversed(str(bin(512))[2:])) = '0000000001'
         try:
             binary_str = ''.join(reversed(str(bin(status_sum))[2:]))
-            value_str = binary_str[index]
-            has_status_value = (value_str == '1')
-        except:
-            pass
-    return has_status_value
+            status_array = [int(binary_str[i:i + 1], 2) for i in range(0, len(binary_str))]
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            logger.error('binary_str: ', str(binary_str))
+
+    return status_array
 
 
 def get_cat_value(cat_sum, cat_index):
@@ -1460,7 +1512,7 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
 # 1. validate if timeend before timestart
         if b < a or y < x:
             has_overlap = True
-            #logger.debug('ERROR: timeend before timestart ')
+            logger.error('ERROR: timeend before timestart ')
         else:
     # 2. check overlap
             # has overlap                x|______________|y
@@ -1469,7 +1521,6 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
             if b > x and a < y:
                 has_overlap = True
     return has_overlap
-
 
 
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
@@ -1504,7 +1555,7 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
 
 # validate if timeend before timestart
         if b < a or y < x:
-            logger.debug('ERROR: timeend before timestart ')
+            logger.error('ERROR: timeend before timestart ')
         else:
 # check if has_overlap
 
@@ -1553,7 +1604,7 @@ def check_shift_overlap_with_startend(a, b, x, y):  # PR2020-05-12
     # function returns:
     # - None if no overlap, or if not all parameters have value
     # - 'error' if offsetend before offsetstart
-
+    #logger.debug('     a: ' + str(a) + ' b: ' + str(b) + ' x: ' + str(x) +' y: ' + str(y))
     # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
 
     overlap_start = False
@@ -1566,23 +1617,31 @@ def check_shift_overlap_with_startend(a, b, x, y):  # PR2020-05-12
 
 # validate if timeend before timestart
         if b < a or y < x:
+            #logger.debug('     b < a or y < x pass')
             pass
             # error if timeend before timestart: skip, no overlap. validation happens outside this function
         elif a == b or x == y:
+            #logger.debug('     a == b or x == y')
             pass
             # no overlap when start and end time are the same
 # shifts have overlap
         elif a < y and b > x:
             has_overlap = True
+            #logger.debug('     a < y and b > x has_overlap = True')
             if a < x:
                 overlap_end = True
+                #logger.debug('    a < x overlap_end = True')
             if b > y:
                 overlap_start = True
+                #logger.debug('     b > y overlap_start = True')
             if a >= x and b <= y:
                 # a-b is fully within x-y : set overlap_start and overlap_end True
                 overlap_start = True
                 overlap_end = True
-
+                #logger.debug('     a >= x and b <= y overlap_start = True overlap_end = True')
+    else:
+        #logger.debug('     has blanks overlap_start = False overlap_end = False')
+        pass
     return overlap_start, overlap_end
 
 def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
@@ -1605,7 +1664,7 @@ def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
 
     # check if timeend before timestart
         if b < a or y < x:
-            logger.debug('ERROR: timeend before timestart ')
+            logger.error('ERROR: timeend before timestart ')
         else:
     # check if has overlap
             if b > x and a < y:
@@ -2181,7 +2240,7 @@ def get_rate_from_value(value):
     return rate, msg_err
 
 def get_shiftpricecode_from_orderhour(orderhour):  # PR2020-11-28
-    logger.debug(' --------- get_shiftpricecode_from_orderhour -------------')
+   #logger.debug(' --------- get_shiftpricecode_from_orderhour -------------')
     sh_prc_id = None
     prc_override = False
     if orderhour:
@@ -2208,7 +2267,7 @@ def get_shiftpricecode_from_orderhour(orderhour):  # PR2020-11-28
 
 
 def calc_pricerate_from_emplhour(emplhour):  # PR2020-11-24  PR2020-11-27
-    logger.debug(' --------- calc_pricerate_from_emplhour -------------')
+   #logger.debug(' --------- calc_pricerate_from_emplhour -------------')
     price_rate = 0
     if emplhour:
         orderhour = emplhour.orderhour
@@ -2223,42 +2282,42 @@ def calc_pricerate_from_emplhour(emplhour):  # PR2020-11-24  PR2020-11-27
                 prc_override = order.pricecodeoverride
                 if not prc_override:
                     prc_override = order.customer.company.pricecodeoverride
-            logger.debug('prc_override: ' + str(prc_override))
+           #logger.debug('prc_override: ' + str(prc_override))
 
             sh_prc_id = None
             if shift and shift.pricecode:
                 sh_prc_id = shift.pricecode.pk
-            logger.debug('shift prc_id: ' + str(sh_prc_id))
+           #logger.debug('shift prc_id: ' + str(sh_prc_id))
             if sh_prc_id is None:
                 if order.pricecode:
                     sh_prc_id = order.pricecode.pk
-            logger.debug('order shift prc_id: ' + str(sh_prc_id))
+           #logger.debug('order shift prc_id: ' + str(sh_prc_id))
             if sh_prc_id is None:
                 # company.pricecode_id has no foreign key
                 sh_prc_id = order.customer.company.pricecode_id
-            logger.debug('sh_prc_id: ' + str(sh_prc_id))
+           #logger.debug('sh_prc_id: ' + str(sh_prc_id))
 
             e_prc_id = None
             if emplhour.employee and emplhour.employee.pricecode:
                 e_prc_id = emplhour.employee.pricecode.pk
-            logger.debug('e_prc_id: ' + str(e_prc_id))
+           #logger.debug('e_prc_id: ' + str(e_prc_id))
 
             rosterdate_dte = orderhour.rosterdate
 
-            logger.debug('price_rate: ' + str(price_rate))
+           #logger.debug('price_rate: ' + str(price_rate))
 
             price_rate = calc_pricerate_from_values(sh_prc_id, prc_override, e_prc_id, rosterdate_dte)
 
-    logger.debug('price_rate: ' + str(price_rate))
+   #logger.debug('price_rate: ' + str(price_rate))
     return price_rate
 
 
 
 
 def calc_pricerate_from_values(sh_prc_id, sh_prc_override, e_prc_id, rosterdate_dte ):  # PR2020-11-24
-    logger.debug(' --------- calc_pricerate_from_values -------------')
-    logger.debug('sh_prc_id: ' + str(sh_prc_id) + ' sh_prc_override: ' + str(sh_prc_override))
-    logger.debug('e_prc_id: ' + str(e_prc_id) + ' rosterdate_dte: ' + str(rosterdate_dte))
+   #logger.debug(' --------- calc_pricerate_from_values -------------')
+   #logger.debug('sh_prc_id: ' + str(sh_prc_id) + ' sh_prc_override: ' + str(sh_prc_override))
+   #logger.debug('e_prc_id: ' + str(e_prc_id) + ' rosterdate_dte: ' + str(rosterdate_dte))
 
     price_rate = 0
     if rosterdate_dte:
@@ -2268,9 +2327,9 @@ def calc_pricerate_from_values(sh_prc_id, sh_prc_override, e_prc_id, rosterdate_
         elif sh_prc_id:
             pricecode_pk = sh_prc_id
 
-        logger.debug('pricecode_pk: ' + str(pricecode_pk) + ' rosterdate_dte: ' + str(rosterdate_dte))
+       #logger.debug('pricecode_pk: ' + str(pricecode_pk) + ' rosterdate_dte: ' + str(rosterdate_dte))
         price_rate = get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, rosterdate_dte)
-        logger.debug(' price_rate: ' + str(price_rate))
+       #logger.debug(' price_rate: ' + str(price_rate))
 
     return price_rate
 
@@ -2584,8 +2643,21 @@ def system_updates():
     # update_customercode_ordercode_in_orderhours() PR2020-07-25
     # update_employeecode_in_orderhours() PR2020-07-25
     # update_sysadmin_in_user()  # PR2020-07-30
-    pass
+    update_key_in_wagecode()  # PR2021-01-29
 
+def update_key_in_wagecode():
+    # Once-only function to put value in 'key' in wagecode table, to replace 'iswagefactor etc PR2021-01-29
+    #logger.debug('........update_sysadmin_in_user..........')
+
+    with connection.cursor() as cursor:
+        sql = "UPDATE companies_wagecode AS w SET key = 'wfc' WHERE w.iswagefactor AND key IS NULL"
+        cursor.execute(sql)
+        sql = "UPDATE companies_wagecode AS w SET key = 'fnc' WHERE w.isfunctioncode AND key IS NULL"
+        cursor.execute(sql)
+        sql = "UPDATE companies_wagecode AS w SET key = 'slc' WHERE w.iswagecode AND key IS NULL"
+        cursor.execute(sql)
+        sql = "UPDATE companies_wagecode AS w SET key = 'alw' WHERE w.isallowance AND key IS NULL"
+        cursor.execute(sql)
 
 def update_sysadmin_in_user():
     # Once-only function to add sysadmin permit to admin users PR2020-07-30
@@ -2937,6 +3009,8 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         row_offsetstart, row_offsetend, row_breakduration, row_timeduration, row_plannedduration, update_plandur,
         row_nosat, row_nosun, row_noph, row_noch, row_employee_pk, row_employee_wmpd, comp_timezone):
     # called by:
+    # note: billing_duration can get value of planned_duration,
+    #       therefore it is possible that update_plandur = True, while returnvalue planned_duration is not used
     # - add_row_to_planning,        returnvalue planned_duration will be used, update_plandur = True
     # - add_orderhour_emplhour,     returnvalue planned_duration will be used, update_plandur = True
     # - make_absence_shift,         returnvalue planned_duration will NOT be used, update_plandur = True
@@ -2947,19 +3021,23 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - calculates timestart, timeend from shift offset and shift rosterdate
     # - calculates timeduration, only when both start- and endtime have value.
     # - and takes in account daylight saving time
-    # - otherwise value of row_timeduration is used (shift '6:00 hours')
+    # - value of row_timeduration is used when offset_start or offset_end is null (shift '6:00 hours')
+    logging_on = True
+    if logging_on:
+        logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
+        logger.debug('is_absence: ' + str(is_absence))
+        logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
+        logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
+        logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend))
+        logger.debug(' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
+        logger.debug(' row_plannedduration: ' + str(row_plannedduration) + ' update_plandur: ' + str(update_plandur))
 
-    logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
-    logger.debug('is_absence: ' + str(is_absence))
-    #logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
-    #logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
-    #logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend))
-    #logger.debug(' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
-    #logger.debug(' row_plannedduration: ' + str(row_plannedduration) + ' update_plandur: ' + str(update_plandur))
+        logger.debug('row_employee_pk: ' + str(row_employee_pk))
+        logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
 
-    logger.debug('row_employee_pk: ' + str(row_employee_pk))
-    logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
-
+    # function 'calc_timestart_time_end_from_offset' calculates fields 'timestart' 'timeend' and 'new_timeduration', based on rosterdate and offset
+    # set duration 0 when restshift or no_hours_on saturday etc is done outside this function
+    # takes daylight saving time in account
     timestart, timeend, new_timeduration = calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         offsetstart=row_offsetstart,
@@ -2968,14 +3046,15 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         timeduration=row_timeduration,
         comp_timezone=comp_timezone
     )
-    logger.debug('new_timeduration: ' + str(new_timeduration))
+    if logging_on:
+        logger.debug('new_timeduration: ' + str(new_timeduration))
     # Note: when is_publicholiday or is_companyholiday rows with 'excl_ph' or 'excl_ch' are filtered out.
     #    Maybe these rows are still necessary TODO PR2020-08-14
 
     # PR2020-08-14 planned_duration are hours that are requested by clients
     # therefore:
     #  - planned_duration = 0 when absence or rest shift
-    #  - planned_duration = 0 when is_saturday and nohoursonsaturday etc. (for now nohours only apply on absence)
+    #  - planned_duration = 0 when is_saturday and nohoursonsaturday etc. (for now: nohours only apply on absence)
     # PR2020-08-06 debug:
     #  - planned_duration is NOT set to 0 when employee = None
     # PR2020-11-23 debug:
@@ -2995,14 +3074,15 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             planned_duration = new_timeduration
         else:
             planned_duration = row_plannedduration
+    if logging_on:
+        logger.debug('planned_duration: ' + str(planned_duration))
 
-
-    #logger.debug('planned_duration: ' + str(planned_duration))
     # timeduration are the real hours made by employee, including absence hours, but no rest hours
     # therefore:
     #  -  time_duration gets also value when absence
-    #       - when no time_duration given in absence shift, use workminutes from employee
-    #           - when employee has no workminutes: sql takes company workminutes or default 480
+    #       - when no time_duration given in absence shift, use workminutes per day from employee
+    #       - when employee has no workminutes_per_day: sql takes company workminutes_per_day or default 480
+    #       - workminutes_per_day (e_wmpd) is calculated in the employee_dict sql
     #  -  time_duration gets no value when rest shift
     # PR2020-07-24 request Guido:
     #  -  time_duration = 0 when employee is None. time_duration must be filled in when employee is filled in later
@@ -3018,15 +3098,21 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             (is_ph and row_noph) or \
             (is_ch and row_noch):
         time_duration = 0
-        logger.debug('time_duration: ' + str(time_duration))
-    elif is_absence:
+
+    if is_absence:
+        logger.debug('is_absence: ' + str(is_absence))
+        logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
         if new_timeduration:
             time_duration = new_timeduration
         elif row_employee_wmpd:
             time_duration = row_employee_wmpd
     else:
         time_duration = new_timeduration
-    logger.debug('new_timeduration: ' + str(new_timeduration))
+
+    if logging_on:
+        logger.debug('time_duration: ' + str(time_duration))
+        logger.debug('new_timeduration: ' + str(new_timeduration))
+
     # billingduration
     # - when 'is_billable': billingduration = timeduration (actual worked hours):
     #   - the billingduration must be set to 0 when employee is removed
@@ -3042,19 +3128,20 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         else:
             billing_duration = planned_duration
 
-    #logger.debug('update_plandur: ' + str(update_plandur))
-    #logger.debug('is_billable: ' + str(is_billable))
-    #logger.debug('planned_duration: ' + str(planned_duration))
-    #logger.debug('time_duration: ' + str(time_duration))
-    #logger.debug('billing_duration: ' + str(billing_duration))
-
 # - calculate excel_date, excel_start, excel_end
     row_offsetstart_nonull = row_offsetstart if row_offsetstart else 0
     row_offsetend_nonull = row_offsetend if row_offsetend else 0
     excel_date = get_Exceldate_from_datetime(rosterdate_dte)
     excel_start = excel_date * 1440 + row_offsetstart_nonull
     excel_end = excel_date * 1440 + row_offsetend_nonull
-    logger.debug('time_duration: ' + str(time_duration))
+
+    if logging_on:
+        logger.debug('update_plandur: ' + str(update_plandur))
+        logger.debug('is_billable: ' + str(is_billable))
+        logger.debug('planned_duration: ' + str(planned_duration))
+        logger.debug('time_duration: ' + str(time_duration))
+        logger.debug('billing_duration: ' + str(billing_duration))
+
     return timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end
 
 
@@ -3474,7 +3561,9 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
 
 
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
-    #logger.debug(' =============== check_emplhour_overlap ============= ')
+    logging_on = False
+    if logging_on:
+        logger.debug(' =============== check_emplhour_overlap ============= ')
 
     overlap_dict = {}
     if datefirst_iso and datelast_iso:
@@ -3501,19 +3590,15 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
             'rdl': datelast_plus_one_iso
         }
 
-        sql_list = []
-        sql_list.append(""" 
-            SELECT eh.id, e.id, eh.excelstart, eh.excelend, 
-            oh.isabsence OR oh.isrestshift
-            FROM companies_emplhour AS eh 
-            INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)
-            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id) 
-            INNER JOIN companies_order AS o ON (o.id = oh.order_id) 
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id)   
-            WHERE c.company_id = %(compid)s::INT
-            AND eh.rosterdate IS NOT NULL
-            AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE
-        """)
+        sql_list = ["SELECT eh.id, e.id, eh.excelstart, eh.excelend, oh.isabsence OR oh.isrestshift",
+            "FROM companies_emplhour AS eh",
+            "INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)",
+            "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+            "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+            "WHERE c.company_id = %(compid)s::INT",
+            "AND eh.rosterdate IS NOT NULL",
+            "AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE"]
 
         if employee_pk_list:
             sql_list.append('AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )')
@@ -3530,31 +3615,31 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
         previous_eid = -1
         base_idx = -1
         for idx, row in enumerate(rows):
-            #logger.debug( str(idx) + ' ...................................')
-            #logger.debug('dictrow: ' + str(row))
-            # get row info
+    # - get row info
             row_eh_id = row[0]
             row_e_id = row[1]
             row_excstart = row[2]
             row_excend = row[3]
             row_absence_or_rest = row[4]
-            # reset base_idx when row_e_id changes
+    # - reset base_idx when row_e_id changes
             if row_e_id != previous_eid:
                 base_idx = idx
             # e_idx is index of list of emplhours of this employee
             # e_idx starts with 0, idx = base_idx + e_idx
             e_idx = idx - base_idx
 
-            #logger.debug('row_e_id: ' + str(row_e_id) + ' previous_eid: ' + str(previous_eid))
-            #logger.debug('idx: ' + str(idx) + ' e_idx: ' + str(e_idx) + ' base_idx: ' + str(base_idx))
-            # start lookup backward from second row
+            if logging_on:
+                logger.debug( str(idx) + ' ...................................')
+                logger.debug('dictrow: ' + str(row))
+                logger.debug('row_e_id: ' + str(row_e_id) + ' previous_eid: ' + str(previous_eid))
+                logger.debug('idx: ' + str(idx) + ' e_idx: ' + str(e_idx) + ' base_idx: ' + str(base_idx))
+    # - start lookup backward from second row
             if e_idx > 0:
                 # Point i to the previous row
                 i = base_idx + e_idx - 1 # i.e. i = idx - 1
                 # Iterate till 1st element and keep on decrementing i
 
                 while i >= 0:
-
                     #logger.debug('while value of i: ' + str(i))
             # reset when row_e_id changes
                     lookup = rows[i]
@@ -3568,20 +3653,25 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
                         lookup_excstart, lookup_row_excend,
                         row_excstart, row_excend)
 
-                    #logger.debug('overlap_start: ' + str(overlap_start) + ' overlap_end: ' + str(overlap_end))
+                    if logging_on:
+                        logger.debug('overlap_start: ' + str(overlap_start) + ' overlap_end: ' + str(overlap_end))
+
                     if overlap_start or overlap_end:
 
 # check if row emplhour id already in overlap_dict, create if not found
                         if row_eh_id not in overlap_dict:
                             overlap_dict[row_eh_id] = {}
                         row_dict = overlap_dict[row_eh_id]
-                        #logger.debug('row_dict: ' + str(row_dict))
 
 # check if lookup emplhour id already in overlap_dict, create if not found
                         if lookup_eh_id not in overlap_dict:
                             overlap_dict[lookup_eh_id] = {}
                         lookup_dict = overlap_dict[lookup_eh_id]
-                        #logger.debug('lookup_dict: ' + str(lookup_dict))
+
+                        if logging_on:
+                            logger.debug('row_dict: ' + str(row_dict))
+                            logger.debug('lookup_dict: ' + str(lookup_dict))
+
 # put lookup_eh_id in 'overlapstart' list of lookup_dict, not when absence or restshift
                         if overlap_start:
                             # if not lookup_absence_or_rest:
@@ -3604,10 +3694,12 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
                             row_dict['start'].append(lookup_eh_id)
 
 # check condition to end loop:
-                    #logger.debug('while value of base_idx: ' + str(base_idx))
+                    if logging_on:
+                        logger.debug('while value of base_idx: ' + str(base_idx))
         # - end at first row of this employee
                     if i <= base_idx:
-                        #logger.debug('i == base_idx: ' + str(i))
+                        if logging_on:
+                            logger.debug('i == base_idx: ' + str(i))
                         break
         # - end when excelstart at least 2880 less than excelstart of row
         # explanation: lookup emplhours with excelend before excelstart of row do't have te be checked
@@ -3616,22 +3708,28 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
 
                     # PR2020-05-14 debug: error when row_excend = None. Added: if row_excend, also lookup_excstart
                     elif row_excend and lookup_excstart and lookup_excstart + 2880 < row_excend:
-                        #logger.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
+                        if logging_on:
+                            logger.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
                         break
                     else:
         # goto next lookup
                         i -= 1
-                        #logger.debug('i -= 1: ' + str(i))
-                    #logger.debug('end value of i: ' + str(i))
+                        if logging_on:
+                            logger.debug('i -= 1: ' + str(i))
 
-                #logger.debug('exit value of i: ' + str(i))
+                    if logging_on:
+                        logger.debug('end value of i: ' + str(i))
+
+                if logging_on:
+                    logger.debug('exit value of i: ' + str(i))
             # goto next row
             previous_eid = row_e_id
     # overlap_dict{
     # 9057: {'end': [9059], 'start': [9058]},
     # 9058: {'end': [9057, 9059]}}
     # 9059: {'start': [9057, 9058]},
-    #logger.debug('overlap_dict' + str(overlap_dict))
+    if logging_on:
+        logger.debug('overlap_dict' + str(overlap_dict))
     return overlap_dict
 
 

@@ -9,7 +9,8 @@
 {% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/schemes201123.js' %}"></script>
+    <script src="{% static 'js/modalforms210108.js' %}"></script>
+    <script src="{% static 'js/schemes210202.js' %}"></script>
     <script src="{% static 'js/calendar201123.js' %}"></script>
 {% endblock %}
 
@@ -162,10 +163,8 @@
                 <h5 id="id_hdr_text"></h5>
             </div>
  <!-- loader -->
-            <div class="content_header_middle mb-2">
-                <div id="id_loader" class="image_container">
-                    <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                </div>
+            <div class="content_header_middle pb-3">
+                {% include 'includes/loader.html' %}
             </div>
 <!-- right header_text -->
             <div class="content_subheader_right tsa_flex_4">
@@ -226,7 +225,7 @@
                         </div>
                         <div  class=" content_subheader_right">
 
-                        <div id="id_btns_grid" class="btn-group btn-group-sm mt-2 mr-2 display_hide" role="group" aria-label="Go back and forward">
+                        <div id="id_btns_grid" class="btn-group btn-group-sm mt-2 mr-2 display_hideXX" role="group" aria-label="Go back and forward">
                             <button data-index="1" title="{% trans 'Go one month back.' %}" class="btn btn-add ml-2"><<</button>
                             <button data-index="2" title="{% trans 'Go one week back.' %}" class="btn btn-add"><</button>
                             <button data-index="3" title="{% trans 'Go to today.' %}" class="btn btn-add">o</button>

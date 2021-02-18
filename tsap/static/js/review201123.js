@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
     const url_prices_upload = get_attr_from_el(el_data, "data-datalist_prices_upload_url");
     // TODO rename : const url_period_upload = get_attr_from_el(el_data, "data-period_upload_url");
+    const url_afas_invoice_xlsx = get_attr_from_el(el_data, "data-afas_invoice_xlsx_url");
 
     const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
     const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_inactive");
@@ -370,6 +371,8 @@ document.addEventListener('DOMContentLoaded', function() {
             //AddSubmenuButton(el_submenu, loc.Show_report, function() {PrintReport("preview")}, ["mx-2"]);
             //AddSubmenuButton(el_submenu, loc.Download_report, function() {PrintReport("download")}, ["mx-2"]);
             AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"], "id_submenu_export_to_excel");
+            AddSubmenuButton(el_submenu, loc.Export_invoices_toAFAS, null, ["mx-2"], "id_submenu_afas_invoice", url_afas_invoice_xlsx );
+
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 
