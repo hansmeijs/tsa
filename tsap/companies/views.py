@@ -41,14 +41,16 @@ class LazyEncoder(DjangoJSONEncoder):
 # === Home ===================================== PR2021-02-17
 def home(request):
 
-    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-    activate(user_lang)
 
     param = {'headerbar_class': settings.HEADER_CLASS}
     # PR2019-02-15 go to login form if user is not authenticated
     if request.user.is_authenticated:
+        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        activate(user_lang)
         return render(request, 'home.html', param)
     else:
+        user_lang = c.LANG_DEFAULT
+        activate(user_lang)
         # return redirect('login')
         return render(request, 'home.html', param)
 

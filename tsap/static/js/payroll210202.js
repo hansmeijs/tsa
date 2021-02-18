@@ -697,8 +697,10 @@ document.addEventListener('DOMContentLoaded', function() {
         selected.abscat_pk = null;
         selected.abscat_code = null;
 
-        is_payroll_detail_mode = false;
+        is_payroll_detail_mode = (selected_btn === "btn_payroll_detail");
         is_payroll_detail_modal_mode = false;
+
+        console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
 
 // ---  fill datatable
         if(["btn_payroll_agg", "btn_payroll_detail"].indexOf(selected_btn) > -1){
@@ -719,6 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
             FillAbscatTableRows(selected_btn)
         }
 
+        console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
 // --- update header text
         UpdateHeaderText();
     }  // HandleBtnSelect
@@ -808,9 +811,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected.detail_employee_pk)
             selected.detail_employee_code = get_dict_value (map_dict, ["code"], "---");
-            is_payroll_detail_mode = true;
-            UpdateHeaderText();
 
+            is_payroll_detail_mode = true;
+
+            UpdateHeaderText();
             CreatePayrollTblHeader();
             CreateHTML_list()
             FillPayrollRows();
@@ -1760,7 +1764,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillPayrollRows  ====================================
     function FillPayrollRows() {
-        //console.log( "====== FillPayrollRows  === ", tblName);
+        console.log( "====== FillPayrollRows  === ");
         //console.log( "mod_MSEF_dict.sel_btn", mod_MSEF_dict.sel_btn);
         //console.log( "mod_MSEF_dict.sel_pk", mod_MSEF_dict.sel_pk);
         // called by: HandleBtnSelect, HandleAggRowClicked, HandleAggrowReturn
@@ -1768,6 +1772,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = "payroll_" + ((is_period_allowance) ? "alw_" : "hours_" ) + ((is_payroll_detail_mode) ? "detail" : "agg");
 
+        console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
+        console.log( "tblName", tblName);
 // --- reset table, except for header
         tblBody_datatable.innerText = null
         tblFoot_datatable.innerText = null
@@ -1778,11 +1784,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // detail_row = [ 0: show_row, 1: employee_pk, 2: filter_data, 3: excel_data, 4: row_html,
         //                5: emplhour_id, 6: fnc_id, 7: o_id, 8: isabsence];
         const detail_rows = (is_payroll_detail_mode) ? payroll_hours_detail_rows : payroll_hours_agg_rows;
+        console.log( "detail_rows", detail_rows);
         if (detail_rows) {
             for (let i = 0, item, tblRow, excel_data, filter_row, show_row; item = detail_rows[i]; i++) {
         //console.log( "...............item", item);
 // ---  filter selected.detail_employee_pk when is_payroll_detail_mode   // item[1] = employee_pk
-                show_row = (!is_payroll_detail_mode || item[1] === selected.detail_employee_pk)
+                show_row = (selected_btn === "btn_payroll_detail" || !is_payroll_detail_mode || item[1] === selected.detail_employee_pk)
+        console.log( "selected.detail_employee_pk", selected.detail_employee_pk);
+        console.log( "........show_row", show_row);
 // ---  filter mod_MSEF_dict.sel_pk (set in SBR)
                 if(show_row && mod_MSEF_dict.sel_btn && mod_MSEF_dict.sel_pk > -1) {
                     if (mod_MSEF_dict.sel_btn === "employee"){
