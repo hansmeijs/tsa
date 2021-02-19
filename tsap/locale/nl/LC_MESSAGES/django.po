@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-18 10:54-0400\n"
+"POT-Creation-Date: 2021-02-18 21:08-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -73,7 +73,7 @@ msgstr ""
 "Selecteer een of meer permissies in de lijst. Houd de Ctrl knop ingedrukt om "
 "meerdere permissies te selecteren"
 
-#: .\accounts\forms.py:215 .\employees\views.py:2853
+#: .\accounts\forms.py:215 .\employees\views.py:2751
 #: .\templates\accounts\moduser.html:43
 #: .\templates\customers\modcustomer.html:91
 #: .\templates\includes\modemployee.html:51
@@ -249,7 +249,7 @@ msgstr "Systeembeheerders kunnen hun eigen account niet niet-actief maken."
 msgid "The changes have been saved successfully."
 msgstr "De wijzigingen zijn met success opgeslagen."
 
-#: .\accounts\views.py:1217 .\employees\views.py:3153 .\employees\views.py:3817
+#: .\accounts\views.py:1217 .\employees\views.py:3051 .\employees\views.py:3672
 msgid "An error occurred. The changes have not been saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
@@ -372,58 +372,44 @@ msgstr "Rooster aangemaakt van %(fld)s"
 msgid "Spare"
 msgstr "Reserve"
 
-#: .\customers\views.py:123
+#: .\customers\views.py:108
 #, python-format
 msgid "Customer '%(tbl)s'"
 msgstr "Klant '%(tbl)s'"
 
-#: .\customers\views.py:192
+#: .\customers\views.py:177
 #, python-format
 msgid "Order '%(tbl)s'"
 msgstr "Locatie '%(tbl)s'"
 
-#: .\customers\views.py:423
+#: .\customers\views.py:408
 msgid "This customer could not be created."
 msgstr "Deze klant kon niet worden aangemaakt."
 
-#: .\customers\views.py:503
+#: .\customers\views.py:488
 msgid "This customer could not be updated."
 msgstr "Deze klant kon niet worden bijgewerkt."
 
-#: .\customers\views.py:505
+#: .\customers\views.py:490
 msgid "This order could not be updated."
 msgstr "Deze locatie kon niet worden bijgewerkt."
 
-#: .\customers\views.py:507 .\planning\views.py:4484
+#: .\customers\views.py:492 .\planning\views.py:4410
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
-#: .\customers\views.py:567
+#: .\customers\views.py:552
 msgid "This order could not be created."
 msgstr "Deze locatie kon niet worden aangemaakt."
 
-#: .\customers\views.py:707 .\planning\views.py:4452
+#: .\customers\views.py:692 .\planning\views.py:4378
 msgid "This field could not be updated."
 msgstr "Dit veld kon niet worden bijgewerkt."
 
-#: .\customers\views.py:738 .\employees\views.py:4442
+#: .\customers\views.py:723 .\employees\views.py:4297
 #, python-format
 msgid "This %(tbl)s could not be updated."
 msgstr "Dit %(tbl)s kon niet worden gewist."
-
-#: .\customers\views.py:757 .\templates\accounts\users.html:78
-#: .\templates\companies\company.html:138
-#: .\templates\customers\customers.html:125
-#: .\templates\employees\employee.html:203
-#: .\templates\employees\employee_import.html:258
-#: .\templates\employees\employees.html:183
-#: .\templates\employees\payroll.html:188
-#: .\templates\employees\payroll_import.html:232
-#: .\templates\planning\prices.html:145 .\templates\planning\review.html:132
-#: .\templates\planning\roster.html:156 .\templates\planning\schemes.html:297
-#: .\tsap\authentication.py:14
-msgid "You don't have permission to view this page."
-msgstr "Je hebt geen permissie om deze pagina te bekijken."
 
 #: .\employees\dicts.py:795
 msgid "This employee already exists."
@@ -447,7 +433,7 @@ msgstr "Uren"
 
 #: .\employees\dicts.py:2039 .\employees\dicts.py:2083
 #: .\employees\dicts.py:2219 .\employees\dicts.py:2262
-#: .\employees\dicts.py:2431 .\employees\views.py:2885
+#: .\employees\dicts.py:2431 .\employees\views.py:2783
 #: .\templates\includes\modemplhourpayroll.html:75
 #: .\templates\includes\modemployee.html:114
 #: .\templates\includes\modselectpaydate.html:18
@@ -579,7 +565,7 @@ msgstr "Rekeningen"
 msgid "Invoice period"
 msgstr "Factuur datums"
 
-#: .\employees\forms.py:16 .\employees\views.py:2849
+#: .\employees\forms.py:16 .\employees\views.py:2747
 #: .\templates\includes\modemployee.html:23 .\tsap\constants.py:273
 #: .\tsap\locale.py:1298
 msgid "Last name"
@@ -589,12 +575,12 @@ msgstr "Achternaam"
 msgid "last date"
 msgstr "Einddatum"
 
-#: .\employees\views.py:157
+#: .\employees\views.py:117
 #, python-format
 msgid "Employee '%(tbl)s'"
 msgstr "Medewerker '%(tbl)s'"
 
-#: .\employees\views.py:1230 .\templates\includes\modemplhourpayroll.html:35
+#: .\employees\views.py:1190 .\templates\includes\modemplhourpayroll.html:35
 #: .\templates\includes\modgridshift.html:10
 #: .\templates\includes\modrosterorder.html:67
 #: .\templates\includes\modselectshift.html:57
@@ -602,76 +588,76 @@ msgstr "Medewerker '%(tbl)s'"
 msgid "Shift"
 msgstr "Dienst"
 
-#: .\employees\views.py:1234 .\tsap\locale.py:72
+#: .\employees\views.py:1194 .\tsap\locale.py:72
 msgid "Team"
 msgstr "Ploeg"
 
-#: .\employees\views.py:1496
+#: .\employees\views.py:1456
 #, python-format
 msgid "Absence '%(tbl)s'"
 msgstr "Afwezigheid '%(tbl)s'"
 
-#: .\employees\views.py:1629
+#: .\employees\views.py:1589
 msgid "Absence scheme"
 msgstr "Schema afwezigheid"
 
-#: .\employees\views.py:1659
+#: .\employees\views.py:1619
 msgid "Absence team"
 msgstr "Ploeg afwezigheid"
 
-#: .\employees\views.py:1847
+#: .\employees\views.py:1807
 msgid "Employee cannot be blank."
 msgstr "Medewerker moet ingevuld worden."
 
-#: .\employees\views.py:1859
+#: .\employees\views.py:1819
 msgid "This teammember could not be created."
 msgstr "Dit ploeglid kon niet worden aangemaakt."
 
-#: .\employees\views.py:1944
+#: .\employees\views.py:1904
 msgid "This teammember could not be updated."
 msgstr "Dit ploeglid kon niet worden bijgewerkt."
 
-#: .\employees\views.py:2161
+#: .\employees\views.py:2059
 msgid "Import employees"
 msgstr "Importeer medewerkers"
 
-#: .\employees\views.py:2161 .\employees\views.py:2240
+#: .\employees\views.py:2059 .\employees\views.py:2138
 msgid "date"
 msgstr "datum"
 
-#: .\employees\views.py:2165
+#: .\employees\views.py:2063
 msgid ""
 "There is no field given to lookup employees. Employees cannot be imported."
 msgstr ""
 "Er is geen veld opgegeven om medewerkers op te zoeken. Medewerkers kunnen "
 "niet geïmporteerd worden."
 
-#: .\employees\views.py:2169
+#: .\employees\views.py:2067
 msgid "This is a test. Employee data are not saved."
 msgstr "Dit is een test. De medewerker gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:2171
+#: .\employees\views.py:2069
 msgid "Employee data are saved."
 msgstr "De medewerker gegevens zijn opgeslagen."
 
-#: .\employees\views.py:2174
+#: .\employees\views.py:2072
 #, python-format
 msgid "Employees are looked up by the field: '%(fld)s'."
 msgstr "Medewerkers worden opgezocht met het veld: '%(fld)s'."
 
-#: .\employees\views.py:2177 .\employees\views.py:2257
+#: .\employees\views.py:2075 .\employees\views.py:2155
 #, python-format
 msgid "The date format is: '%(fld)s'."
 msgstr "Het datum formaat is: '%(fld)s'."
 
-#: .\employees\views.py:2240 .\templates\employees\payroll_import.html:23
+#: .\employees\views.py:2138 .\templates\employees\payroll_import.html:23
 #: .\templates\employees\payroll_import.html:45
 #: .\templates\employees\payroll_import.html:166 .\tsap\locale.py:196
 #: .\tsap\locale.py:331
 msgid "Upload payroll periods"
 msgstr "Loonperiodes uploaden"
 
-#: .\employees\views.py:2245
+#: .\employees\views.py:2143
 msgid ""
 "There is no field given to lookup payroll periods. Payroll periods cannot be "
 "uploaded."
@@ -679,177 +665,177 @@ msgstr ""
 "Er is geen veld opgegeven om loonperiodes op te zoeken. De loonperiodes "
 "kunnen niet geïmporteerd worden."
 
-#: .\employees\views.py:2249
+#: .\employees\views.py:2147
 msgid "This is a test. The payroll periods are not saved."
 msgstr "Dit is een test. De loonperiode gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:2251
+#: .\employees\views.py:2149
 msgid "The payroll periods are saved."
 msgstr "De loonperiodes zijn opgeslagen."
 
-#: .\employees\views.py:2254
+#: .\employees\views.py:2152
 #, python-format
 msgid "Payroll periods are looked up by the field: '%(fld)s'."
 msgstr "Loonperiodes worden opgezocht met het veld: '%(fld)s'."
 
-#: .\employees\views.py:2304 .\employees\views.py:2310
-#: .\employees\views.py:2733
+#: .\employees\views.py:2202 .\employees\views.py:2208
+#: .\employees\views.py:2631
 #, python-format
 msgid "'%(val)s' is not a valid date."
 msgstr "'%(val)s' is geen geldige datum."
 
-#: .\employees\views.py:2528
+#: .\employees\views.py:2426
 msgid "is skipped."
 msgstr "is overgeslagen."
 
-#: .\employees\views.py:2529
+#: .\employees\views.py:2427
 msgid "Skipped."
 msgstr "Overgeslagen."
 
-#: .\employees\views.py:2534
+#: .\employees\views.py:2432
 #, python-format
 msgid "%(fld)s '%(val)s' is not unique in Excel file."
 msgstr "%(fld)s '%(val)s' is niet uniek in Excel bestand."
 
-#: .\employees\views.py:2538 .\employees\views.py:2542
+#: .\employees\views.py:2436 .\employees\views.py:2440
 #, python-format
 msgid "No value for required field: '%(fld)s'."
 msgstr "Het verplichte veld: '%(fld)s' is niet ingevuld."
 
-#: .\employees\views.py:2545
+#: .\employees\views.py:2443
 #, python-format
 msgid "No value for lookup field: '%(fld)s'."
 msgstr "Het opzoek veld: '%(fld)s' is niet ingevuld."
 
-#: .\employees\views.py:2548
+#: .\employees\views.py:2446
 #, python-format
 msgid "Value '%(fld)s' is too long."
 msgstr "Waarde '%(fld)s' is te lang."
 
-#: .\employees\views.py:2549
+#: .\employees\views.py:2447
 #, python-format
 msgid "Max %(fld)s characters."
 msgstr "Maximaal %(fld)s tekens."
 
-#: .\employees\views.py:2553
+#: .\employees\views.py:2451
 #, python-format
 msgid "Value '%(fld)s' is found multiple times."
 msgstr "Waarde '%(fld)s' komt meer dan 1 keer voor."
 
-#: .\employees\views.py:2575
+#: .\employees\views.py:2473
 msgid "is added."
 msgstr "is toegevoegd."
 
-#: .\employees\views.py:2578
+#: .\employees\views.py:2476
 msgid "An error occurred. The employee is not added."
 msgstr "Er is een fout opgetreden. De medewerker is niet toegevoegd."
 
-#: .\employees\views.py:2583
+#: .\employees\views.py:2481
 msgid "already exists."
 msgstr "komt al voor."
 
-#: .\employees\views.py:2597
+#: .\employees\views.py:2495
 msgid "blank"
 msgstr "blanco"
 
-#: .\employees\views.py:2598
+#: .\employees\views.py:2496
 msgid "was"
 msgstr ""
 
-#: .\employees\views.py:2620 .\employees\views.py:2655
+#: .\employees\views.py:2518 .\employees\views.py:2553
 #, python-format
 msgid "'%(val)s' is too long. Maximum is %(max)s characters'."
 msgstr "'%(val)s' is te lang, maximaal %(max)s tekens."
 
-#: .\employees\views.py:2692
+#: .\employees\views.py:2590
 msgid " is added to the list."
 msgstr " is aan de lijst toegevoegd."
 
-#: .\employees\views.py:2797
+#: .\employees\views.py:2695
 msgid "Last date in service is in the past."
 msgstr "Laatste datum in dienst is in het verleden."
 
-#: .\employees\views.py:2798
+#: .\employees\views.py:2696
 msgid "Employee is made inactive."
 msgstr "Deze medewerker is niet-actief gemaakt."
 
-#: .\employees\views.py:2821
+#: .\employees\views.py:2719
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:2847 .\templates\customers\modcustomer.html:18
+#: .\employees\views.py:2745 .\templates\customers\modcustomer.html:18
 #: .\templates\customers\modorder.html:45
 #: .\templates\includes\modemployee.html:18 .\tsap\constants.py:272
 #: .\tsap\locale.py:1296 .\tsap\validators.py:281
 msgid "Short name"
 msgstr "Korte naam"
 
-#: .\employees\views.py:2851 .\templates\includes\modemployee.html:28
+#: .\employees\views.py:2749 .\templates\includes\modemployee.html:28
 #: .\tsap\constants.py:274 .\tsap\locale.py:1297
 msgid "First name"
 msgstr "Voornaam"
 
-#: .\employees\views.py:2855 .\templates\customers\modcustomer.html:85
+#: .\employees\views.py:2753 .\templates\customers\modcustomer.html:85
 #: .\templates\includes\modemployee.html:56 .\tsap\constants.py:277
 #: .\tsap\locale.py:1458
 msgid "Telephone"
 msgstr "Telefoon"
 
-#: .\employees\views.py:2857 .\templates\includes\modemployee.html:46
+#: .\employees\views.py:2755 .\templates\includes\modemployee.html:46
 #: .\tsap\constants.py:275
 msgid "ID-number"
 msgstr "Identiteitsnummer"
 
-#: .\employees\views.py:2859 .\templates\includes\modabscat.html:28
+#: .\employees\views.py:2757 .\templates\includes\modabscat.html:28
 #: .\templates\includes\modemployee.html:74 .\tsap\constants.py:284
 #: .\tsap\locale.py:1349
 msgid "Payroll code"
 msgstr "Code loonadministratie"
 
-#: .\employees\views.py:2861 .\templates\customers\modcustomer.html:55
+#: .\employees\views.py:2759 .\templates\customers\modcustomer.html:55
 msgid "Address"
 msgstr "Adres"
 
-#: .\employees\views.py:2863 .\templates\customers\modcustomer.html:71
+#: .\employees\views.py:2761 .\templates\customers\modcustomer.html:71
 msgid "Zip code"
 msgstr "Postcode"
 
-#: .\employees\views.py:2865 .\templates\customers\modcustomer.html:65
+#: .\employees\views.py:2763 .\templates\customers\modcustomer.html:65
 msgid "City"
 msgstr "Plaats"
 
-#: .\employees\views.py:2867 .\templates\customers\modcustomer.html:77
+#: .\employees\views.py:2765 .\templates\customers\modcustomer.html:77
 msgid "Country"
 msgstr "Land"
 
-#: .\employees\views.py:2869 .\templates\includes\modemployee.html:79
+#: .\employees\views.py:2767 .\templates\includes\modemployee.html:79
 #: .\tsap\constants.py:278 .\tsap\locale.py:1751
 msgid "First date in service"
 msgstr "Begindatum in dienst"
 
-#: .\employees\views.py:2871 .\templates\includes\modemployee.html:84
+#: .\employees\views.py:2769 .\templates\includes\modemployee.html:84
 #: .\tsap\constants.py:279 .\tsap\locale.py:1752
 msgid "Last date in service"
 msgstr "Laatste datum in dienst"
 
-#: .\employees\views.py:2873 .\templates\includes\modemployee.html:123
+#: .\employees\views.py:2771 .\templates\includes\modemployee.html:123
 #: .\tsap\constants.py:280
 msgid "Working hours per week"
 msgstr "Werkuren per week"
 
-#: .\employees\views.py:2875 .\templates\includes\modemployee.html:131
+#: .\employees\views.py:2773 .\templates\includes\modemployee.html:131
 msgid "Working hours per day"
 msgstr "Werkuren per dag"
 
-#: .\employees\views.py:2877 .\tsap\constants.py:281
+#: .\employees\views.py:2775 .\tsap\constants.py:281
 msgid "Working days per week"
 msgstr "Werkdagen per week"
 
-#: .\employees\views.py:2879 .\templates\includes\modemployee.html:139
+#: .\employees\views.py:2777 .\templates\includes\modemployee.html:139
 msgid "Leave days per year"
 msgstr "Vakantiedagen per jaar"
 
-#: .\employees\views.py:2881 .\templates\employees\employees.html:40
+#: .\employees\views.py:2779 .\templates\employees\employees.html:40
 #: .\templates\employees\payroll.html:37
 #: .\templates\includes\modemplhourpayroll.html:64
 #: .\templates\includes\modemployee.html:102
@@ -859,101 +845,101 @@ msgstr "Vakantiedagen per jaar"
 msgid "Function"
 msgstr "Functie"
 
-#: .\employees\views.py:2883 .\tsap\locale.py:1569
+#: .\employees\views.py:2781 .\tsap\locale.py:1569
 msgid "Wage code"
 msgstr "Looncode"
 
-#: .\employees\views.py:2889 .\tsap\constants.py:335
+#: .\employees\views.py:2787 .\tsap\constants.py:335
 msgid "Code period table"
 msgstr "Code periodetabel"
 
-#: .\employees\views.py:2891 .\tsap\constants.py:336
+#: .\employees\views.py:2789 .\tsap\constants.py:336
 msgid "Name period table"
 msgstr "Naam periodetabel"
 
-#: .\employees\views.py:2893 .\tsap\constants.py:337
+#: .\employees\views.py:2791 .\tsap\constants.py:337
 msgid "Bookyear"
 msgstr "Boekjaar"
 
-#: .\employees\views.py:2895 .\tsap\constants.py:338
+#: .\employees\views.py:2793 .\tsap\constants.py:338
 msgid "Period index"
 msgstr "Periode-index"
 
-#: .\employees\views.py:2897 .\tsap\constants.py:339
+#: .\employees\views.py:2795 .\tsap\constants.py:339
 msgid "Startdate"
 msgstr "Begindatum"
 
-#: .\employees\views.py:2899 .\tsap\constants.py:340
+#: .\employees\views.py:2797 .\tsap\constants.py:340
 msgid "Enddate"
 msgstr "Einddatum"
 
-#: .\employees\views.py:2976
+#: .\employees\views.py:2874
 #, python-format
 msgid "An error occurred. Employee '%(val)s' could not be added."
 msgstr ""
 "Er is een fout opgetreden. Medewerker '%(val)s' kon niet worden toegevoegd."
 
-#: .\employees\views.py:3082
+#: .\employees\views.py:2980
 msgid "Working hours per week must be a number between 0 and 168"
 msgstr "Werkuren per week moet een getal zijn tussen"
 
-#: .\employees\views.py:3085
+#: .\employees\views.py:2983
 msgid "Working hours per day must be a number between 0 and 24"
 msgstr "Werkuren per dag moet een getal zijn tussen"
 
-#: .\employees\views.py:3088
+#: .\employees\views.py:2986
 msgid "Leave days per year must be a number between 0 and 365"
 msgstr "vakantiedagen per jaar moet een getal zijn tussen"
 
-#: .\employees\views.py:3405
+#: .\employees\views.py:3260
 #, python-format
 msgid "Absence category '%(tbl)s'"
 msgstr "Afwezigheidscategorie '%(tbl)s'"
 
-#: .\employees\views.py:3478
+#: .\employees\views.py:3333
 #, python-format
 msgid "Function '%(tbl)s'"
 msgstr "Functie '%(tbl)s'"
 
-#: .\employees\views.py:3482
+#: .\employees\views.py:3337
 #, python-format
 msgid "%(this)s has locked roster shifts. It cannot be deleted."
 msgstr "%(this)s heeft vergrendelde diensten en kan niet worden gewist."
 
-#: .\employees\views.py:3549 .\employees\views.py:3616 .\tsap\locale.py:1555
+#: .\employees\views.py:3404 .\employees\views.py:3471 .\tsap\locale.py:1555
 msgid "This function"
 msgstr "Deze functie"
 
-#: .\employees\views.py:3550 .\employees\views.py:3945
+#: .\employees\views.py:3405 .\employees\views.py:3800
 #, python-format
 msgid "An error occurred. %(tbl)s could not be created."
 msgstr "Er is een fout opgetreden. %(tbl)s kon niet worden aangemaakt."
 
-#: .\employees\views.py:3617 .\employees\views.py:4025
+#: .\employees\views.py:3472 .\employees\views.py:3880
 #, python-format
 msgid "An error occurred. %(tbl)s could not be updated."
 msgstr "Er is een fout opgetreden. %(tbl)s kon niet worden bijgewerkt."
 
-#: .\employees\views.py:3679
+#: .\employees\views.py:3534
 #, python-format
 msgid "Wage code '%(tbl)s'"
 msgstr "Looncode '%(tbl)s'"
 
-#: .\employees\views.py:3683 .\employees\views.py:3862
+#: .\employees\views.py:3538 .\employees\views.py:3717
 #, python-format
 msgid "%(tbl)s has locked roster shifts. It cannot be deleted."
 msgstr "%(tbl)s heeft vergrendelde diensten en kan niet worden gewist."
 
-#: .\employees\views.py:3738
+#: .\employees\views.py:3593
 msgid "This wage code could not be created."
 msgstr "Deze looncode kon niet worden aangemaakt."
 
-#: .\employees\views.py:3859
+#: .\employees\views.py:3714
 #, python-format
 msgid "Payroll period '%(tbl)s'"
 msgstr "Loonperiode '%(tbl)s'"
 
-#: .\employees\views.py:3944 .\employees\views.py:4024 .\tsap\locale.py:1546
+#: .\employees\views.py:3799 .\employees\views.py:3879 .\tsap\locale.py:1546
 msgid "This payroll period"
 msgstr "Deze loonperiode"
 
@@ -966,11 +952,11 @@ msgid "Daylight saving time has changed. This has been taken into account."
 msgstr "Er is rekening gehouden met de wijziging van zomer / wintertijd."
 
 #: .\planning\employeeplanning.py:391 .\planning\rosterfill.py:1519
-#: .\planning\views.py:3166
+#: .\planning\views.py:3092
 msgid " is absent"
 msgstr " is afwezig"
 
-#: .\planning\employeeplanning.py:912 .\planning\views.py:3157
+#: .\planning\employeeplanning.py:912 .\planning\views.py:3083
 msgid "Absent from "
 msgstr "Afwezig van "
 
@@ -1030,72 +1016,72 @@ msgstr "%(count)s diensten zijn bevestigd. Ze zijn niet gewist."
 msgid "(absent)"
 msgstr "(afwezig)"
 
-#: .\planning\views.py:1637
+#: .\planning\views.py:1599
 #, python-format
 msgid "Scheme '%(suffix)s'"
 msgstr "Schema '%(suffix)s'"
 
-#: .\planning\views.py:1724
+#: .\planning\views.py:1686
 #, python-format
 msgid "Shift '%(suffix)s'"
 msgstr "Dienst '%(suffix)s'"
 
-#: .\planning\views.py:1726 .\planning\views.py:2321 .\tsap\locale.py:1435
+#: .\planning\views.py:1688 .\planning\views.py:2283 .\tsap\locale.py:1435
 msgid "This shift"
 msgstr "Deze dienst"
 
-#: .\planning\views.py:1803
+#: .\planning\views.py:1765
 #, python-format
 msgid "Team %(suffix)s"
 msgstr "Ploeg %(suffix)s"
 
-#: .\planning\views.py:1975
+#: .\planning\views.py:1937
 msgid "This team could not be updated."
 msgstr "Deze ploeg kon niet worden bijgewerkt."
 
-#: .\planning\views.py:2882 .\planning\views.py:2904
+#: .\planning\views.py:2808 .\planning\views.py:2830
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
-#: .\planning\views.py:3528
+#: .\planning\views.py:3454
 msgid "Shift is split"
 msgstr "Dienst is gesplitst"
 
-#: .\planning\views.py:3986
+#: .\planning\views.py:3912
 msgid "An error occurred. The note of this shift could not be created."
 msgstr ""
 "Er is een fout opgetreden. De opmerking bij deze dienst kon niet worden "
 "aangemaakt."
 
-#: .\planning\views.py:4011
+#: .\planning\views.py:3937
 msgid "An error occurred. This shift could not be updated."
 msgstr "Er is een fout opgetreden. Deze dienst kon niet worden bijgewerkt."
 
-#: .\planning\views.py:4338
+#: .\planning\views.py:4264
 msgid "This scheme could not be updated."
 msgstr "Dit schema kon niet worden bijgewerkt."
 
-#: .\planning\views.py:4414 .\planning\views.py:4423
+#: .\planning\views.py:4340 .\planning\views.py:4349
 msgid "Shift cannot be blank."
 msgstr "De dienst moet ingevuld worden."
 
-#: .\planning\views.py:4632
+#: .\planning\views.py:4558
 msgid "Shift is blank. Time cannot be calculated."
 msgstr "De dienst is niet ingevuld. De tijd kan niet worden berekend."
 
-#: .\planning\views.py:4730 .\planning\views.py:4944
+#: .\planning\views.py:4656 .\planning\views.py:4870
 msgid "This shift could not be created."
 msgstr "Deze dienst kon niet worden aangemaakt."
 
-#: .\planning\views.py:4864
+#: .\planning\views.py:4790
 msgid "This shift could not be updated."
 msgstr "Deze dienst kon niet worden bijgewerkt."
 
-#: .\planning\views.py:4901
+#: .\planning\views.py:4827
 msgid "This scheme could not be created."
 msgstr "Dit schema kon niet worden aangemaakt."
 
-#: .\planning\views.py:5238
+#: .\planning\views.py:5164
 #, python-format
 msgid "Allowance '%(code)s'"
 msgstr "Vergoeding '%(code)s'"
@@ -1612,6 +1598,19 @@ msgstr "Permissies"
 msgid "Allowed customers and orders"
 msgstr "Toegestane klanten en locaties"
 
+#: .\templates\accounts\users.html:78 .\templates\companies\company.html:138
+#: .\templates\customers\customers.html:125
+#: .\templates\employees\employee.html:203
+#: .\templates\employees\employee_import.html:258
+#: .\templates\employees\employees.html:183
+#: .\templates\employees\payroll.html:188
+#: .\templates\employees\payroll_import.html:232
+#: .\templates\planning\prices.html:145 .\templates\planning\review.html:132
+#: .\templates\planning\roster.html:156 .\templates\planning\schemes.html:297
+#: .\tsap\authentication.py:14
+msgid "You don't have permission to view this page."
+msgstr "Je hebt geen permissie om deze pagina te bekijken."
+
 #: .\templates\companies\company.html:49
 msgid "Company data"
 msgstr "Bedrijfsgegevens"
@@ -1774,16 +1773,16 @@ msgid "Delete order"
 msgstr "Locatie wissen"
 
 #: .\templates\customers\order_import.html:23
-#: .\templates\customers\order_import.html:134 .\tsap\locale.py:1367
+#: .\templates\customers\order_import.html:133 .\tsap\locale.py:1367
 msgid "Upload customers and orders"
 msgstr "Klanten en locaties uploaden"
 
 #: .\templates\customers\order_import.html:27
 #: .\templates\customers\order_import.html:28
 #: .\templates\customers\order_import.html:29
+#: .\templates\customers\order_import.html:44
 #: .\templates\customers\order_import.html:45
 #: .\templates\customers\order_import.html:46
-#: .\templates\customers\order_import.html:47
 #: .\templates\employees\employee_import.html:26
 #: .\templates\employees\employee_import.html:27
 #: .\templates\employees\employee_import.html:28
@@ -1802,7 +1801,7 @@ msgid "Step"
 msgstr "Stap"
 
 #: .\templates\customers\order_import.html:27
-#: .\templates\customers\order_import.html:45
+#: .\templates\customers\order_import.html:44
 #: .\templates\employees\employee_import.html:26
 #: .\templates\employees\employee_import.html:49
 #: .\templates\employees\payroll_import.html:26
@@ -1811,7 +1810,7 @@ msgid "Select file"
 msgstr "Selecteer bestand"
 
 #: .\templates\customers\order_import.html:28
-#: .\templates\customers\order_import.html:46
+#: .\templates\customers\order_import.html:45
 #: .\templates\employees\employee_import.html:27
 #: .\templates\employees\employee_import.html:50
 #: .\templates\employees\payroll_import.html:27
@@ -1820,7 +1819,7 @@ msgid "Link colums"
 msgstr "Kolommen koppelen"
 
 #: .\templates\customers\order_import.html:29
-#: .\templates\customers\order_import.html:47
+#: .\templates\customers\order_import.html:46
 #: .\templates\employees\employee_import.html:29
 #: .\templates\employees\employee_import.html:52
 #: .\templates\employees\payroll_import.html:28
@@ -1828,29 +1827,29 @@ msgstr "Kolommen koppelen"
 msgid "Upload data"
 msgstr "Gegevens uploaden"
 
-#: .\templates\customers\order_import.html:51
+#: .\templates\customers\order_import.html:50
 msgid "Select an Excel file with customers and orders"
 msgstr "Selecteer een Excel bestand met klanten en locaties"
 
-#: .\templates\customers\order_import.html:57
+#: .\templates\customers\order_import.html:56
 #: .\templates\employees\employee_import.html:62
 #: .\templates\employees\payroll_import.html:60
 msgid "Select a worksheet"
 msgstr "Selecteer een werkblad"
 
-#: .\templates\customers\order_import.html:73
+#: .\templates\customers\order_import.html:72
 #: .\templates\employees\employee_import.html:78
 #: .\templates\employees\payroll_import.html:76
 msgid "Select if the worksheet has a header row:"
 msgstr "Kies of de eerste regel van het werkblad kolom-namen bevat:"
 
-#: .\templates\customers\order_import.html:77
+#: .\templates\customers\order_import.html:76
 #: .\templates\employees\employee_import.html:82
 #: .\templates\employees\payroll_import.html:80
 msgid "Worksheet has a header row"
 msgstr "De eerste regel van het werkblad bevat kolom-namen"
 
-#: .\templates\customers\order_import.html:84
+#: .\templates\customers\order_import.html:83
 #: .\templates\employees\employee_import.html:90
 #: .\templates\employees\payroll_import.html:88
 msgid ""
@@ -1860,14 +1859,14 @@ msgstr ""
 "Klik op overeenkomende namen in de linker- en rechter lijst om een Excel "
 "kolom aan een TSA-kolom te koppelen."
 
-#: .\templates\customers\order_import.html:85
+#: .\templates\customers\order_import.html:84
 #: .\templates\employees\employee_import.html:91
 #: .\templates\employees\payroll_import.html:89
 msgid "Click linked names in the lower list to unlink these columns."
 msgstr "Klik op gekoppelde namen in de onderste lijst om ze te ontkoppelen."
 
-#: .\templates\customers\order_import.html:86
-#: .\templates\customers\order_import.html:128
+#: .\templates\customers\order_import.html:85
+#: .\templates\customers\order_import.html:127
 msgid ""
 "One of the fields 'Identifier' or 'Short name' must be linked and contain "
 "unique values."
@@ -1875,9 +1874,9 @@ msgstr ""
 "Eén van de velden 'Identiteitscode' of 'Korte naam' moet gekoppeld zijn en "
 "unieke waarden hebben."
 
-#: .\templates\customers\order_import.html:93
-#: .\templates\customers\order_import.html:96
-#: .\templates\customers\order_import.html:119
+#: .\templates\customers\order_import.html:92
+#: .\templates\customers\order_import.html:95
+#: .\templates\customers\order_import.html:118
 #: .\templates\employees\employee_import.html:99
 #: .\templates\employees\employee_import.html:102
 #: .\templates\employees\employee_import.html:125
@@ -1887,9 +1886,9 @@ msgstr ""
 msgid "TSA columns"
 msgstr "TSA-kolommen"
 
-#: .\templates\customers\order_import.html:103
-#: .\templates\customers\order_import.html:106
-#: .\templates\customers\order_import.html:120
+#: .\templates\customers\order_import.html:102
+#: .\templates\customers\order_import.html:105
+#: .\templates\customers\order_import.html:119
 #: .\templates\employees\employee_import.html:109
 #: .\templates\employees\employee_import.html:112
 #: .\templates\employees\employee_import.html:126
@@ -1899,44 +1898,44 @@ msgstr "TSA-kolommen"
 msgid "Excel columns"
 msgstr "Excel-kolommen"
 
-#: .\templates\customers\order_import.html:115
+#: .\templates\customers\order_import.html:114
 #: .\templates\employees\employee_import.html:121
 #: .\templates\employees\payroll_import.html:119 .\tsap\constants.py:293
 msgid "Linked columns"
 msgstr "Gekoppelde kolommen"
 
-#: .\templates\customers\order_import.html:136
+#: .\templates\customers\order_import.html:135
 #: .\templates\employees\employee_import.html:196
 #: .\templates\employees\payroll_import.html:169
 msgid "Upload"
 msgstr "Uploaden"
 
-#: .\templates\customers\order_import.html:146
+#: .\templates\customers\order_import.html:145
 #: .\templates\employees\employee_import.html:212
 #: .\templates\employees\payroll_import.html:185
 msgid "Previous step"
 msgstr "Vorige stap"
 
-#: .\templates\customers\order_import.html:147
+#: .\templates\customers\order_import.html:146
 #: .\templates\employees\employee_import.html:213
 #: .\templates\employees\payroll_import.html:186
 msgid "Next step"
 msgstr "Volgende stap"
 
-#: .\templates\customers\order_import.html:151
+#: .\templates\customers\order_import.html:150
 #: .\templates\employees\employee_import.html:217
 #: .\templates\employees\payroll_import.html:190
 msgid "You must select a valid Excel file before you can proceed."
 msgstr ""
 "Je moet eerst een geldig Excel bestand selecteren om verder te kunnen gaan."
 
-#: .\templates\customers\order_import.html:161
+#: .\templates\customers\order_import.html:160
 #: .\templates\employees\employee_import.html:227
 #: .\templates\employees\payroll_import.html:200
 msgid "Excel file data"
 msgstr "Excel-bestand gegevens"
 
-#: .\templates\customers\order_import.html:165
+#: .\templates\customers\order_import.html:164
 #: .\templates\employees\employee_import.html:231
 #: .\templates\employees\payroll_import.html:204
 msgid "The columns with a red header will be uploaded."
@@ -3228,11 +3227,11 @@ msgstr "Pinksteren"
 msgid "2nd Pentecost Day"
 msgstr "Tweede Pinksterdag"
 
-#: .\tsap\headerbar.py:71
+#: .\tsap\headerbar.py:64
 msgid "<No company found>"
 msgstr "<Geen bedrijven gevonden>"
 
-#: .\tsap\headerbar.py:74
+#: .\tsap\headerbar.py:67
 msgid "<Select company>"
 msgstr "<Select bedrijf>"
 

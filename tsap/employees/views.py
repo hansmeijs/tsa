@@ -17,8 +17,6 @@ from django.utils.functional import Promise
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
-from tsap.settings import TIME_ZONE
-
 from tsap import settings
 from tsap import constants as c
 from tsap import functions as f
@@ -57,45 +55,7 @@ class LazyEncoder(DjangoJSONEncoder):
 class EmployeeListView(View):
 
     def get(self, request):
-        param = {}
-
-        if request.user.company is not None:
-
-# - Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
-
-# b. get comp_timezone and timeformat
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-
-# ---  get interval
-            interval = 15
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-     # get weekdays translated
-            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
-
-    # get months translated
-            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[lang])
-
-            param = get_headerbar_param(request, {
-                'lang': user_lang,
-                'timezone': comp_timezone,
-                'timeformat': timeformat,
-                'interval': interval,
-                'weekdays': weekdays_json,
-                'months': months_json,
-            })
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        #return render(request, 'employees.html', param)
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'employees.html', param)
 
 
@@ -275,7 +235,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06 PR2021-01-03
         activate(user_lang)
 
 # - get comp_timezone and timeformat and interval
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
         timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
         interval = request.user.company.interval if request.user.company.interval else 15
 
@@ -1954,69 +1914,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
 class EmployeeImportView(View):
 
     def get(self, request):
-        param = {}
-        has_permit = False
-        if request.user is not None and request.user.company is not None:
-            has_permit = (request.user.is_perm_hrman)
-        if has_permit:
-            # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
-            #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
-            #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
-            #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
-
-    # get coldef_list  and caption
-            coldef_list = c.COLDEF_EMPLOYEE
-            captions_dict = c.CAPTION_IMPORT
-
-            # get mapped coldefs from table Companysetting
-            # get stored setting from Companysetting
-            stored_setting = {}
-            settings_json = request.user.company.get_companysetting(c.KEY_EMPLOYEE_COLDEFS)
-            if settings_json:
-                stored_setting = json.loads(request.user.company.get_companysetting(c.KEY_EMPLOYEE_COLDEFS))
-
-            # don't replace keyvalue when new_setting[key] = ''
-            self.has_header = True
-            self.worksheetname = ''
-            self.codecalc = 'linked'
-            if 'has_header' in stored_setting:
-                self.has_header = False if Lower(stored_setting['has_header']) == 'false' else True
-            if 'worksheetname' in stored_setting:
-                self.worksheetname = stored_setting['worksheetname']
-            if 'codecalc' in stored_setting:
-                self.codecalc = stored_setting['codecalc']
-
-            if 'coldefs' in stored_setting:
-                stored_coldefs = stored_setting['coldefs']
-                # skip if stored_coldefs does not exist
-                if stored_coldefs:
-                    # loop through coldef_list
-                    for coldef in coldef_list:
-                        # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
-                        # get fieldname from coldef
-                        fieldname = coldef.get('tsaKey')
-                        #logger.debug('fieldname: ' + str(fieldname))
-
-                        if fieldname:  # fieldname should always be present
-                            # check if fieldname exists in stored_coldefs
-                            if fieldname in stored_coldefs:
-                                # if so, add Excel name with key 'excKey' to coldef
-                                coldef['excKey'] = stored_coldefs[fieldname]
-                                #logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
-
-            coldefs_dict = {
-                'worksheetname': self.worksheetname,
-                'has_header': self.has_header,
-                'codecalc': self.codecalc,
-                'coldefs': coldef_list
-            }
-            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
-
-            captions = json.dumps(captions_dict, cls=LazyEncoder)
-
-            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'employee_import.html', param)
 
 
@@ -3218,15 +3116,11 @@ def get_or_create_paydatecode_pk(lookup_value, dont_save, request):
 class PayrollView(View):
 
     def get(self, request):
-        param = {}
-        if request.user is not None and request.user.company is not None:
+        param = get_headerbar_param(request)
+        #if request.user is not None and request.user.company is not None:
     # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
-            #param = get_headerbar_param(request, {'headerbar_class': settings.HEADER_CLASS})
-            #param = get_headerbar_param(request, {})
-
-            param = {'headerbar_class': settings.HEADER_CLASS}
+            #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            #activate(user_lang)
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'payroll.html', param)
 
@@ -3313,46 +3207,7 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
 class PayrollImportView(View):
 
     def get(self, request):
-        param = {}
-        has_permit = False
-        if request.user is not None and request.user.company is not None:
-            has_permit = (request.user.is_perm_hrman)
-        if has_permit:
-            coldef_list = c.COLDEF_PAYDATECODE
-            captions_dict = c.CAPTION_IMPORT
-
-            stored_setting = {}
-            settings_json = request.user.company.get_companysetting(c.KEY_PAYDATECODE_COLDEFS)
-
-            if settings_json:
-                stored_setting = json.loads(request.user.company.get_companysetting(c.KEY_PAYDATECODE_COLDEFS))
-            self.has_header = True
-            self.worksheetname = ''
-            self.codecalc = 'linked'
-            if 'has_header' in stored_setting:
-                self.has_header = False if Lower(stored_setting['has_header']) == 'false' else True
-            if 'worksheetname' in stored_setting:
-                self.worksheetname = stored_setting['worksheetname']
-            if 'coldefs' in stored_setting:
-                stored_coldefs = stored_setting['coldefs']
-                # skip if stored_coldefs does not exist
-                if stored_coldefs:
-                    # loop through coldef_list
-                    for coldef in coldef_list:
-                        fieldname = coldef.get('tsaKey')
-                        if fieldname:
-                            if fieldname in stored_coldefs:
-                                coldef['excKey'] = stored_coldefs[fieldname]
-
-            coldefs_dict = {
-                'worksheetname': self.worksheetname,
-                'has_header': self.has_header,
-                'coldefs': coldef_list
-            }
-            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
-
-            captions = json.dumps(captions_dict, cls=LazyEncoder)
-            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
+        param = get_headerbar_param(request)
         return render(request, 'payroll_import.html', param)
 
 
@@ -4879,7 +4734,7 @@ class PayrollAfasHoursXlsxView(View):
             activate(user_lang)
 
 # - get saved period_dict
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             interval = request.user.company.interval if request.user.company.interval else 15
             period_dict = pld.period_get_and_save('payroll_period', None, comp_timezone, timeformat, interval, user_lang, request)
@@ -4906,7 +4761,7 @@ class PayrollAfasEhalXlsxView(View):
             activate(user_lang)
 
 # - get saved period_dict
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             interval = request.user.company.interval if request.user.company.interval else 15
             period_dict = pld.period_get_and_save('payroll_period', None, comp_timezone, timeformat, interval, user_lang, request)
@@ -4933,7 +4788,7 @@ class ReviewlAfasInvoiceXlsxView(View):
             activate(user_lang)
 
 # - get saved review_period period_dict
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             interval = request.user.company.interval if request.user.company.interval else 15
             period_dict = pld.period_get_and_save('review_period', None, comp_timezone, timeformat, interval, user_lang, request)

@@ -34,22 +34,7 @@ logger = logging.getLogger(__name__)
 class CustomerListView(View):
 
     def get(self, request):
-        param = {}
-
-        if request.user.company is not None:
-
-# - Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
-
-# 9. return datalists
-
-            param = get_headerbar_param(request, {
-                'ppk': request.user.company.pk
-            })
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'customers.html', param)
 
 
@@ -749,25 +734,7 @@ class OrderImportView(View):
     #logger.debug(' ============= OrderImportView ============= ')
 
     def get(self, request):
-        param = {}
-
-        if request.user.company is not None:
-            request.user.has_permission = True
-            if not request.user.has_permission:
-                messages.error(request, _("You don't have permission to view this page."))
-            else:
-        # get user_lang
-                user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-        # get caption list order
-                caption_dict = c.CAPTION_IMPORT
-        # get caption list coldefs_dict
-                tblName = 'order'
-                coldefs_dict = {}  # get_stored_coldefs_dict(tblName, user_lang, request)
-                coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
-                caption = json.dumps(caption_dict, cls=LazyEncoder)
-                param = get_headerbar_param(request, {'caption': caption, 'setting': coldefs_json})
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'order_import.html', param)
 
 

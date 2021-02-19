@@ -8,6 +8,7 @@ from companies.models import Company
 
 from companies.functions import get_company_list
 
+from tsap import settings
 #from awpr.menus import lookup_button_key_with_viewpermit, save_setting, set_menu_items
 
 import logging
@@ -25,7 +26,7 @@ class LazyEncoder(DjangoJSONEncoder):
             return force_text(obj)
         return super(LazyEncoder, self).default(obj)
 
-def get_headerbar_param(request, params):
+def get_headerbar_param(request, params=None):
     # PR2018-05-28 set values for headerbar
     # params.get() returns an element from a dictionary, second argument is default when not found
     # this is used for arguments that are passed to headerbar
@@ -43,17 +44,9 @@ def get_headerbar_param(request, params):
     # params.pop() removes and returns an element from a dictionary, second argument is default when not found
     # this is used for arguments that are not passed to headerbar
 
-    display_dep = params.get('display_dep', False)
-
-    select_dep = False
     # These are arguments that are added to headerbar in this function
     company = ''
     company_list = ''
-    depname = '-'
-    dep_list = ''
-
-    menu_items = {}
-    sub_items = {}
 
     if request.user.is_authenticated:
         # PR2018-05-11 set language
@@ -75,9 +68,6 @@ def get_headerbar_param(request, params):
             else:
                 company = request.user.company
 
-
-
-
 # ------- set menu_items -------- PR2018-12-21
 
         # get selected menu_key and selected_button_key from request.GET, settings or default, check viewpermit
@@ -86,9 +76,7 @@ def get_headerbar_param(request, params):
         # menu_key = return_dict['menu_key']
         # button_key = return_dict['button_key']
 
-
         # menu_items, sub_items = set_menu_items(request, setting, menu_key, button_key)
-
 
     else:
         activate(LANG_NL)
@@ -96,13 +84,14 @@ def get_headerbar_param(request, params):
     headerbar = {
         'request': request,
         'display_company': display_company, 'select_company': select_company, 'company': company, 'company_list': company_list,
-        'display_dep': display_dep, 'select_dep': select_dep, 'departmentname': depname, 'depbase_list': dep_list,
-        'menu_items': menu_items, 'sub_items': sub_items,
+        'headerbar_class': settings.HEADER_CLASS
+        #'display_dep': display_dep, 'select_dep': select_dep, 'departmentname': depname, 'depbase_list': dep_list,
+        #'menu_items': menu_items, 'sub_items': sub_items,
     }
 
     # append the rest of the dict 'params' to the dict 'headerbar'.
     # the rest can be for instance: {'form': form},  {'countries': countries}
-    headerbar.update(params)
+    #headerbar.update(params)
     # logger.debug('get_headerbar_param headerbar: ' + str(headerbar))
 
     return headerbar

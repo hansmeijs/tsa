@@ -39,7 +39,8 @@ urlpatterns = [
              template_name='password_reset.html',
              # 'Reset your password. Enter your email address and we will send you a link'
              email_template_name='password_reset_email.html',  # 'Hi there, Someone asked for a password reset'
-             subject_template_name='password_reset_subject.txt'  # 'Please reset your password
+             subject_template_name='password_reset_subject.txt',  # 'Please reset your password
+             extra_context=param
          ),
          name='password_reset'),
 
@@ -48,35 +49,42 @@ urlpatterns = [
              template_name='password_create.html',
              # 'Create your password. Enter your email address and we will send you a link'
              email_template_name='password_create_email.html',  # 'Hi there, Someone asked for a password reset'
-             subject_template_name='password_create_subject.txt'  # 'Please reset your password
+             subject_template_name='password_create_subject.txt',  # 'Please reset your password
+            extra_context = param
          ),
          name='password_create'),
 
     path('passwordcreate/complete',
-         auth_views.PasswordResetCompleteView.as_view(template_name='password_create_complete.html'),
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='password_create_complete.html', extra_context=param),
          name='password_create_complete'),
 
     path('passwordcreate/done',
-         auth_views.PasswordResetDoneView.as_view(template_name='password_create_done.html'),
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='password_create_done.html', extra_context=param),
          name='passwordcreate_done'),
 
     # PR2019-03-02 from https://github.com/django/django/blob/2.0/django/contrib/auth/urls.py
     path('reset/<uidb64>/<token>/',
-         auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'),
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='password_reset_confirm.html', extra_context=param),
          name='password_reset_confirm'),
     path('reset/complete',
-         auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'),
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='password_reset_complete.html', extra_context=param),
          name='password_reset_complete'),
     path('reset/done',
-         auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'),
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='password_reset_done.html', extra_context=param),
          name='password_reset_done'),
 
     #step 3: user clicked on 'create password' button. Login form opens
     path('settings/password',
-         auth_views.PasswordChangeView.as_view(template_name='password_change.html'),
+         auth_views.PasswordChangeView.as_view(
+             template_name='password_change.html', extra_context=param),
          name='password_change'),
     path('settings/password/done',
-         auth_views.PasswordChangeDoneView.as_view(template_name='password_change_done.html'),
+         auth_views.PasswordChangeDoneView.as_view(template_name='password_change_done.html', extra_context=param),
          name='password_change_done'),
     # PR201903092 from: https://consideratecode.com/2018/05/02/django-2-0-url-to-path-cheatsheet/
     path('users/<int:pk>/language/<slug:lang>', account_views.UserLanguageView.as_view(),name='language_set_url'),

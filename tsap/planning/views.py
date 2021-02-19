@@ -929,11 +929,7 @@ def download_customer_planning(table_dict, planning_period_dict, datalists, save
 class RosterView(View):
 
     def get(self, request):
-        #logger.debug(' ============= RosterView ============= ')
-        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-        activate(user_lang)
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'roster.html', param)
 
 # === SchemesView ===================================== PR2019-03-24
@@ -941,41 +937,7 @@ class RosterView(View):
 class SchemesView(View):
 
     def get(self, request):
-        param = {}
-        #logger.debug(' ============= SchemesView ============= ')
-        if request.user.company is not None:
-
-# --- get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-
-# --- get weekdays translated
-            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
-
-# --- get months translated
-            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[lang])
-
-# --- get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
-
-# ---  get interval
-            interval = 1
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-# get timeformat
-            timeformat = '24h' # or 'AmPm'
-            if request.user.company.timeformat:
-                timeformat = request.user.company.timeformat
-            if not timeformat in c.TIMEFORMATS:
-                timeformat = '24h'
-
-            #param = get_headerbar_param(request, {})
-
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        param = get_headerbar_param(request)
         return render(request, 'schemes.html', param)
 
 
@@ -2368,44 +2330,8 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 class ReviewView(View):
 
     def get(self, request):
-        param = {}
-        #logger.debug(' ============= ReviewView ============= ')
-        if request.user is not None and request.user.company is not None and request.user.is_perm_accman:
-    # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
 
-     # get weekdays translated
-            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
-
-    # get months translated
-            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[lang])
-
-    # get interval
-            interval = 1
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-    # get timeformat
-            timeformat = 'AmPm'
-            if request.user.company.timeformat:
-                timeformat = request.user.company.timeformat
-            if not timeformat in c.TIMEFORMATS:
-                timeformat = '24h'
-
-            param = get_headerbar_param(request, {
-                'lang': lang,
-                'weekdays': weekdays_json,
-                'months': months_json,
-
-                'interval': interval,
-                'timeformat': timeformat
-            })
-            #logger.debug(param)
-
-        param = {'headerbar_class': settings.HEADER_CLASS}
+        param = get_headerbar_param(request)
         return render(request, 'review.html', param)
 
 

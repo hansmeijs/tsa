@@ -721,7 +721,6 @@ document.addEventListener('DOMContentLoaded', function() {
             FillAbscatTableRows(selected_btn)
         }
 
-        console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
 // --- update header text
         UpdateHeaderText();
     }  // HandleBtnSelect
@@ -951,8 +950,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= create_payroll_allowance_agg_list  ============= PR2021-02-02
     function create_payroll_allowance_agg_list() {
-        //console.log("==== create_payroll_allowance_agg_list  ========= ");
-        //console.log("payroll_alw_from_server", payroll_alw_from_server);
+        console.log("==== create_payroll_allowance_agg_list  ========= ");
+        console.log("payroll_alw_from_server", payroll_alw_from_server);
 
         let employees_inuse = {};
         let functions_inuse = {};
@@ -1043,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
-// ---  add functioncode , paydatecode, wagefactorcode
+// ---  add functioncode, paydatecode, wagefactorcode
                 if(row.fnc_id && !(row.fnc_id in employee_dict.functioncode)) {
                     employee_dict.functioncode[row.fnc_id] = {pk: row.fnc_id, code: row.fnc_code }
                 }
@@ -1063,45 +1062,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  convert dictionary to array
         const agg_list = Object.values(agg_dict);
-
 // ---  sort array by e_code with b_comparator_e_code
         payroll_alw_agg_list = agg_list.sort(b_comparator_e_code);
 // ---  convert dictionary 'allowances_inuse' to array 'allowances_inuse_list'
         const allowances_inuse_list = Object.values(allowances_inuse);
 // ---  sort array by b_comparator_code
         allowances_inuse_dictlist = allowances_inuse_list.sort(b_comparator_code);
+
 // ---  convert dictionary 'employees_inuse' to array 'employees_inuse_list'
         const employees_inuse_list = Object.values(employees_inuse);
 // ---  sort array by c_o_code
         employees_inuse_dictlist = employees_inuse_list.sort(b_comparator_c_o_code);
+
 // ---  convert dictionary 'functions_inuse' to array 'functions_inuse_list'
         const functions_inuse_list = Object.values(functions_inuse);
 // ---  sort array by c_o_code
         functions_inuse_dictlist = functions_inuse_list.sort(b_comparator_c_o_code);
-// ---  convert dictionary 'orders_inuse' to array 'orders_inuse_list'
-        const orders_inuse_list = Object.values(orders_inuse);
-// ---  sort array by c_o_code
-        orders_inuse_list_sorted = orders_inuse_list.sort(b_comparator_c_o_code);
-        const orders_len = orders_inuse_list_sorted.length;
-// ---  convert to orders_inuse_dict, add index and len
-        orders_inuse_dict = {len: orders_len};
-        for (let i = 0, dict; i < orders_len; i++) {
-            dict = orders_inuse_list_sorted[i]
-            dict.index = i;
-            orders_inuse_dict[dict.pk] = dict
-        }
-// ---  convert dictionary 'abscats_inuse' to array 'abscats_inuse_list'
-        const abscats_inuse_list = Object.values(abscats_inuse);
-// ---  sort array by c_o_code
-        abscats_inuse_list_sorted = abscats_inuse_list.sort(b_comparator_c_o_code);
-        const abscats_len = abscats_inuse_list_sorted.length;
-// ---  convert to abscats_inuse_dict, add index and abscats_len
-        abscats_inuse_dict = {len: abscats_len};
-        for (let i = 0, dict; i < abscats_len; i++) {
-            dict = abscats_inuse_list_sorted[i]
-            dict.index = i;
-            abscats_inuse_dict[dict.pk] = dict
-        }
     }  // create_payroll_allowance_agg_list
 
 //========= create_payroll_hours_agg_list  ============= PR2020-08-31
@@ -1210,8 +1186,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const rate = (row.nopay) ? 0 : ( row.wfc_rate) ?  row.wfc_rate : 0;
                     employee_dict.wagefactorcode[key] = {pk: key, code: code, rate: rate}
                 }
-            }  //  for (let i = 0, item; item = payroll_hours_from_server[i]; i++)
-        }  // if (payroll_hours_from_server){
+            }
+        }
 
 // ---  convert dictionary to array
         const agg_list = Object.values(agg_dict);
@@ -1484,7 +1460,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_list  ==================================== PR2020-09-01
     function CreateHTML_list() {
-        console.log("==== CreateHTML_list  ========= ");
+        //console.log("==== CreateHTML_list  ========= ");
 
         const tblName = "payroll_" + ((is_period_allowance) ? "alw_" : "hours_" ) + ((is_payroll_detail_mode) ? "detail" : "agg");
 
@@ -1495,6 +1471,7 @@ document.addEventListener('DOMContentLoaded', function() {
                           (tblName === "payroll_hours_detail") ? payroll_hours_from_server :
                           (tblName === "payroll_alw_agg") ? payroll_alw_agg_list :
                           (tblName === "payroll_alw_detail") ? payroll_alw_from_server : null
+
         if (data_list){
 // ++++++++ loop through rows of data_list
             for (let x = 0, len = data_list.length; x < len; x++) {
@@ -1502,17 +1479,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 let col_index = -1, td_html = [], filter_data = [], excel_data = [];
                 let duration_formatted = null;
                 const fnc_id_list= [];
+
 // +++++++  loop through field_names
                 // must use len, otherwise loop will end when payroll_header_row[j] has no value PR2020-07-16
                 for (let i = 0, len = field_settings[tblName].field_names.length; i < len; i++) {
                     const field_name = field_settings[tblName].field_names[i];
                     const class_align = "ta_" + field_settings[tblName].field_align[i];
-// field_names: ["back", "employee_code", "plandur", "totaldur", "timedur", "orderdetail", "absdur", "absdetail", "wagefactor", "functioncode", "paydatecode", "end"],
 
             // ---  skip if field is in list of selected_col_hidden
                     if(!selected_col_hidden.includes(field_name)) {
 
-        //console.log("selected_col_hidden.includes ", field_name);
 // loop through fields of orderdetail / absdetail abscats, field_count = 1 for other fields
                         const inuse_list = (field_name === "orderdetail") ? orders_inuse_list_sorted :
                                             (field_name === "absdetail") ? abscats_inuse_list_sorted :
@@ -1520,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             (field_name === "allowancequantity") ? allowances_inuse_dictlist : null;
                         const field_count = (inuse_list) ? inuse_list.length : 1;
 
-// +++++++loop through orders / abscats / allowances , loop 1 for other columns
+// +++++++loop through inuse_list of orders / abscats / allowances , j = 1 for other columns
                         for (let j = 0; j < field_count; j++) {
                             col_index += 1;
                             let inner_text = "", title = "";
@@ -1530,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             let has_border_left = false, has_border_right = false;
 
                             if(field_name === "status") {
-                                if (item.emplhour_id)  { class_text += " stat_0_4" };
+                                if (item.emplhour_id) { class_text += " stat_0_4" };
                                 if (item.emplhour_id) { title =loc.This_is_rostershift};
 
                             } else if(field_name === "employee_code") {
@@ -1601,36 +1577,37 @@ document.addEventListener('DOMContentLoaded', function() {
                                 inner_text = format_total_duration (duration, loc.user_lang);
                                 filter_value = duration;
                                 excel_value = duration;
-
-                            } else if(["allowanceamount"].indexOf(field_name) > -1) {
+                            } else if(["allowanceamount", "allowancequantity"].indexOf(field_name) > -1) {
                                 // inuse_list contains list with pk and code of used orders / abscats.
                                 // inuse_pk contains order_pk that correspondence with this order-/ abscat-column
                                 const inuse_pk = (inuse_list && inuse_list[j] && inuse_list[j].pk) ? inuse_list[j].pk : null;
-                                // orderdetail = {1521: 900, 1541: 1680}
-                                const alw_amount_dict = item.alw_amount_dict;
-                                let amount = null;
-                                if(!isEmpty(alw_amount_dict)){
-                                    amount = (inuse_pk && alw_amount_dict[inuse_pk]) ? alw_amount_dict[inuse_pk] : null;
+                                let amount_or_quantity = null;
+                                if(is_payroll_detail_mode){
+                                    // lookup inuse_pk in item field 'alw_id_agg' (is a list) =  [6, 16]
+                                    for ( let y = 0, pk_int; pk_int = item.alw_id_agg[y] ; y++) {
+                                        if(pk_int === inuse_pk){
+                                            amount_or_quantity = (field_name === "allowanceamount") ? item.amount_agg[y] : item.quantity_agg[y];
+                                            break;
+                                        }
                                     }
-                                inner_text = format_pricerate (loc.user_lang, amount, false, false) // is_percentage = false, true = show_zero
-
-                                filter_value = amount;
-                                excel_value = amount;
-
-                            } else if(["allowancequantity"].indexOf(field_name) > -1) {
-                                // inuse_list contains list with pk and code of used orders / abscats.
-                                // inuse_pk contains order_pk that correspondence with this order-/ abscat-column
-                                const inuse_pk = (inuse_list && inuse_list[j] && inuse_list[j].pk) ? inuse_list[j].pk : null;
-                                // orderdetail = {1521: 900, 1541: 1680}
-                                let quantity = null;
-                                if(!isEmpty(item.alw_quantity_dict)){
-                                    if (inuse_pk && item.alw_quantity_dict[inuse_pk]){
-                                        quantity = item.alw_quantity_dict[inuse_pk] / 10000
+                                } else {
+                                    // alw_amount_dict is only in agg view, contains total amount of this employee
+                                    const alw_dict = (field_name === "allowanceamount") ? item.alw_amount_dict : item.alw_quantity_dict;
+                                    if(!isEmpty(alw_dict)){
+                                        amount_or_quantity = (inuse_pk && alw_dict[inuse_pk]) ? alw_dict[inuse_pk] : null;
                                     }
                                 }
-                                inner_text =  quantity;
-                                filter_value = quantity;
-                                excel_value = quantity;
+                                if (field_name === "allowanceamount"){
+                                    inner_text = format_pricerate (loc.user_lang, amount_or_quantity, false, false) // is_percentage = false, true = show_zero
+                                    const value = (amount_or_quantity) ? amount_or_quantity / 100 : null;
+                                    filter_value = value;
+                                    excel_value = value;
+                                } else {
+                                    const value = (amount_or_quantity) ? amount_or_quantity / 10000 : null;
+                                    inner_text = value;
+                                    filter_value = value;
+                                    excel_value = value;
+                                }
 
                             } else if(["wagefactorcode", "functioncode", "paydatecode"].indexOf(field_name) > -1) {
                                 // add margin ml-2 , to separate from duration field
@@ -1712,6 +1689,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             td_html[col_index] = "<td" + class_td + "><div class=\"" + class_text + "\"" + title_html + ">" + inner_text +  "</div></td>";
                             if(filter_value) { filter_data[col_index] = filter_value};
                             if(excel_value) { excel_data[col_index] = excel_value};
+
                         }  // for (let j = 0; j < field_count; j++)
                 //...................................
 
@@ -1783,15 +1761,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- loop through payroll_hours_detail_rows / payroll_hours_agg_rows
         // detail_row = [ 0: show_row, 1: employee_pk, 2: filter_data, 3: excel_data, 4: row_html,
         //                5: emplhour_id, 6: fnc_id, 7: o_id, 8: isabsence];
-        const detail_rows = (is_payroll_detail_mode) ? payroll_hours_detail_rows : payroll_hours_agg_rows;
+        const detail_rows = (is_period_allowance) ?
+                                (is_payroll_detail_mode) ? payroll_alw_detail_rows : payroll_alw_agg_rows :
+                                (is_payroll_detail_mode) ? payroll_hours_detail_rows : payroll_hours_agg_rows;
         console.log( "detail_rows", detail_rows);
         if (detail_rows) {
             for (let i = 0, item, tblRow, excel_data, filter_row, show_row; item = detail_rows[i]; i++) {
         //console.log( "...............item", item);
 // ---  filter selected.detail_employee_pk when is_payroll_detail_mode   // item[1] = employee_pk
                 show_row = (selected_btn === "btn_payroll_detail" || !is_payroll_detail_mode || item[1] === selected.detail_employee_pk)
-        console.log( "selected.detail_employee_pk", selected.detail_employee_pk);
-        console.log( "........show_row", show_row);
+
 // ---  filter mod_MSEF_dict.sel_pk (set in SBR)
                 if(show_row && mod_MSEF_dict.sel_btn && mod_MSEF_dict.sel_pk > -1) {
                     if (mod_MSEF_dict.sel_btn === "employee"){
@@ -1892,8 +1871,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UpdatePayrollTotalrow  ================= PR2020-06-16
     function UpdatePayrollTotalrow() {
         console.log("======== UpdatePayrollTotalrow  ========= ");
-        //console.log("is_payroll_detail_mode", is_payroll_detail_mode);
-        //console.log("payroll_total_row", payroll_total_row);
+        console.log("is_payroll_detail_mode", is_payroll_detail_mode);
+        console.log("payroll_total_row", payroll_total_row);
         /// row_data = ["Bakhuis RDJ", "2020-05-12", 0, 540, 0, 0, 0, 0, 540]
         const tblRow = document.getElementById("id_payroll_totalrow");
         if (tblRow){
@@ -3731,12 +3710,15 @@ console.log("item_dict", item_dict);
         DatalistDownload(datalist_request);
 
         payroll_hours_from_server = [];
+        payroll_alw_from_server = [];
         payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
 
         payroll_header_row = []
         payroll_total_row = [];
         payroll_hours_agg_rows = [];
         payroll_hours_detail_rows = [];
+        payroll_alw_agg_rows = [];
+        payroll_alw_detail_rows = [];
 
         is_payroll_detail_mode = false;
 
