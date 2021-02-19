@@ -475,7 +475,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 # get wagefactor from order or shift
         wagefactor_pk = get_wagefactorpk_from_row(
             row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
-
+        wagefactor_code, wagefactor_rate = None, None
         if wagefactor_pk:
             wagecode_dict = wagecode_dictlist.get(wagefactor_pk)
             wagefactor_code = wagecode_dict.get('code')
