@@ -3130,7 +3130,7 @@ class PayrollView(View):
 class PayrollUploadView(UpdateView):  # PR2020-06-10
 
     def post(self, request, *args, **kwargs):
-        logging_on = True
+        logging_on = False
         if logging_on:
             logger.debug(' ============= PayrollUploadView ============= ')
         update_wrap = {}
@@ -3997,7 +3997,7 @@ def update_paydatecodeitem(instance, upload_dict, update_dict, request):
 def upload_pdc_wgc_fnc_in_employee(upload_dict, request):
     # put new paydatecode / wagecode / functioncode in all non-locked employees in employee_list
     # if 'pk' = None the existing value will be removed
-    logging_on = True
+    logging_on = False
     if logging_on:
         logger.debug(' ===== upload_pdc_wgc_fnc_in_employee =====')
         logger.debug('upload_dict' + str(upload_dict))
@@ -4172,8 +4172,8 @@ def upload_emplhour_wagefactorNIU(upload_dict, user_lang, request):
 
 # === get_payroll_emplhour ===================================== PR2020-06-28
 def get_payroll_emplhour(upload_dict, request):
-    #logger.debug(' ===== get_payroll_emplhour =====')
-    #logger.debug('upload_dict' + str(upload_dict))
+    logger.debug(' ===== get_payroll_emplhour =====')
+    logger.debug('upload_dict' + str(upload_dict))
 
     emplhour_dict = {}
     emplhourlog_list = []
@@ -4215,6 +4215,7 @@ def get_payroll_emplhour(upload_dict, request):
         })
         emplhour_dict = f.dictfetchone(newcursor)
 
+        logger.debug('emplhour_dict' + str(emplhour_dict))
         sql_emplhourlog = """
             SELECT ehlog.emplhour_id, ehlog.rosterdate, ehlog.employeecode, ehlog.isreplacement, 
                 ehlog.timestart, ehlog.timeend, ehlog.timeduration, ehlog.breakduration, 
@@ -4232,6 +4233,7 @@ def get_payroll_emplhour(upload_dict, request):
         })
         emplhourlog_list = f.dictfetchall(newcursor)
 
+        logger.debug('emplhourlog_list' + str(emplhourlog_list))
     return emplhour_dict, emplhourlog_list
 
 
@@ -4720,7 +4722,7 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
 # === PayrollAfasHoursXlsxView ===================================== PR2021-02-17
 @method_decorator([login_required], name='dispatch')
 class PayrollAfasHoursXlsxView(View):
-    logger.debug('===== PayrollAfasHoursXlsxView ===== ')
+    #logger.debug('===== PayrollAfasHoursXlsxView ===== ')
 
     def get(self, request):
         param = {}
@@ -4747,7 +4749,7 @@ class PayrollAfasHoursXlsxView(View):
 # === PayrollAfasEhalXlsxView ===================================== PR2021-02-13
 @method_decorator([login_required], name='dispatch')
 class PayrollAfasEhalXlsxView(View):
-    logger.debug('===== PayrollAfasEhalXlsxView ===== ')
+    #logger.debug('===== PayrollAfasEhalXlsxView ===== ')
 
     def get(self, request):
         param = {}
@@ -4774,7 +4776,7 @@ class PayrollAfasEhalXlsxView(View):
 # === ReviewlAfasInvoiceXlsxView ===================================== PR2021-02-13
 @method_decorator([login_required], name='dispatch')
 class ReviewlAfasInvoiceXlsxView(View):
-    logger.debug('===== ReviewlAfasInvoiceXlsxView ===== ')
+    #logger.debug('===== ReviewlAfasInvoiceXlsxView ===== ')
 
     def get(self, request):
         param = {}

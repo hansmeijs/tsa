@@ -970,15 +970,18 @@ class Orderhour(TsaBaseModel):
     status = PositiveSmallIntegerField(db_index=True, default=0)
     hasnote = BooleanField(default=False)
 
-    class Meta:
-        ordering = ['rosterdate']
-
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
     datefirst = None
     datelast = None
     inactive = None
+
+    class Meta:
+        ordering = ['rosterdate']
+
+    def __str__(self):
+        return str(self.rosterdate) + ' ' + str(self.ordercode) + ' ' + str(self.shiftcode)
 
     @property
     def rosterdate_yyyymmdd(self): # PR2019-04-01
@@ -988,7 +991,7 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=CASCADE)
+    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
 
     rosterdate = DateField(db_index=True)
     exceldate = IntegerField(null=True)
@@ -1068,6 +1071,9 @@ class Emplhour(TsaBaseModel):
     datelast = None
     inactive = None
 
+    def __str__(self):
+        return str(self.rosterdate) + ' ' + str(self.employeecode)
+
     @property
     def has_status01_created(self):  # PR2019-10-18
         has_status_created = False
@@ -1075,7 +1081,7 @@ class Emplhour(TsaBaseModel):
         status_int = int(field_value)
         # PR2021-01-014 from https://stackoverflow.com/questions/509211/understanding-slice-notation
         # list[start:stop:step] # start through not past stop, by step
-        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_00_CREATED
+        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_00_PLANNED
         if status_str[:1] == '1':
             has_status_created = True
         return has_status_created
@@ -1339,28 +1345,28 @@ def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
 
 
 def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None):
-    # PR2020-07-26 PR2020-08-22
-    #logger.debug('  ----- save_to_emplhourlog -----')
-    #logger.debug('is_deleted: ' + str(is_deleted))
-    #logger.debug('request.user: ' + str(request.user))
+    # PR2020-07-26 PR2020-08-22 PR2021-02-21
+    logger.debug('  ----- save_to_emplhourlog -----')
+    logger.debug('is_deleted: ' + str(is_deleted))
+    logger.debug('request.user: ' + str(request.user))
 
     # when is_delete: set modified_date to now, use emplhour modified_date
     sql = ''
     try:
         sql_list = [
             "INSERT INTO companies_emplhourlog (id,",
-                "emplhour_id, rosterdate, order_id, employee_id, shift_id, schemeitemid, teammemberidXXX,",
+                "emplhour_id, rosterdate, order_id, employee_id, shift_id, schemeitemid, teammemberid,",
                 "customercode, ordercode, shiftcode, employeecode,",
                 "timestart, timeend, breakduration, timeduration,",
                 "plannedduration, billingduration, offsetstart, offsetend,",
-                "isabsence,  isrestshift,  issplitshift, isreplacement, status,",
+                "isabsence,  isrestshift,  issplitshift, isreplacement, status, hasnote,",
                 "isdeleted, modifiedby_id, modifiedat, modifiedbyusername)",
             "SELECT nextval('companies_emplhourlog_id_seq'),",
                 "eh.id, eh.rosterdate, oh.order_id, eh.employee_id, oh.shift_id, eh.schemeitemid, eh.teammemberid,",
                 "oh.customercode, oh.ordercode, oh.shiftcode, eh.employeecode,",
                 "eh.timestart, eh.timeend, eh.breakduration, eh.timeduration,",
                 "eh.plannedduration, eh.billingduration, eh.offsetstart, eh.offsetend,",
-                "oh.isabsence, oh.isrestshift, oh.issplitshift, eh.isreplacement, eh.status,",]
+                "oh.isabsence, oh.isrestshift, oh.issplitshift, eh.isreplacement, eh.status, eh.hasnote,"]
 
         if is_deleted:
             # - set request user in modified_by of deleted emplhour record
@@ -1388,7 +1394,7 @@ def save_to_emplhourlog(emplhour_pk, request, is_deleted=False, modified_at=None
 
         newcursor = connection.cursor()
         newcursor.execute(sql, sql_keys)
-        #logger.debug('  ----- save_to_emplhourlog done ')
+        logger.debug('  ----- save_to_emplhourlog done ')
 
     except Exception as e:
         logger.error(e)

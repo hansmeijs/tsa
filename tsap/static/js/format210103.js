@@ -1733,10 +1733,10 @@
             let imgsrc = imgsrc_stat00;
             let title = "";
             let icon_class = "stat_0_0"
-            if (!status_sum ) { //STATUS_NONE = 0
+            if (!status_sum ) { //STATUS_NONE_ADDED = 0
                 icon_class = (has_changed) ? "stat_1_0" : "stat_0_0"
                 title = loc.This_isan_added_shift;
-            } else if (status_sum === 1) { //STATUS_00_CREATED = 1
+            } else if (status_sum === 1) { //STATUS_00_PLANNED = 1
                 icon_class = (has_changed) ? "stat_1_1" : "stat_0_1"
                 title = loc.This_isa_planned_shift;
             } else if ([2,3].indexOf(status_sum) > -1) { //STATUS_02_START_CONFIRMED

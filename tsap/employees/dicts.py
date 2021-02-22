@@ -1951,7 +1951,7 @@ def create_wagecode_rows(key_str, request, msg_dict, pk_int=None):
 def create_afas_hours_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = True
+    logging_on = False
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast, paydateitem_year, paydateitem_period = None, None, 0, 0
@@ -2131,7 +2131,7 @@ def create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request):  #
 def create_afas_ehal_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = True
+    logging_on = False
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast, paydateitem_year, paydateitem_period = None, None, 0, 0
@@ -2301,7 +2301,7 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
 def create_afas_invoice_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = True
+    logging_on = False
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast = None, None
@@ -2339,6 +2339,63 @@ def create_afas_invoice_rows(period_dict, user_lang, request):
         #"AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE",
         "ORDER BY LOWER(c.code), LOWER(o.code), eh.rosterdate"
     ]
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+    is_restshift = False  # None = show all, False = no restshifts, True = restshifts only
+    sql_list = ["WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id,",
+                                                "ARRAY_AGG(eh.id) AS eh_id_agg,",
+                                                "ARRAY_AGG(eh.employee_id) AS e_id,",
+                                                "COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,",
+                                                "ARRAY_AGG(DISTINCT e.code) AS e_code_agg,",
+                                                "ARRAY_AGG(eh.timeduration) AS eh_timedur_agg,",
+                                                "ARRAY_AGG(eh.pricerate) AS eh_pricerate_agg,",
+                                                #"ARRAY_AGG(eh.wage) AS eh_wage_agg,",
+                                                #"ARRAY_AGG(eh.wagerate) AS eh_wagerate_agg,",
+                                                #"ARRAY_AGG(eh.wagefactor) AS eh_wagefactor_agg,",
+                                                "SUM(eh.plannedduration) AS eh_plandur_sum,",
+                                                "SUM(eh.timeduration) AS eh_timedur_sum,",
+                                                "SUM(eh.billingduration) AS eh_billdur_sum,",
+                                                "SUM(eh.amount) AS eh_amount_sum,",
+                                                "SUM(eh.addition) AS eh_add_sum,",
+                                                "SUM(eh.tax) AS eh_tax_sum,",
+                                                #"SUM(eh.wage) AS eh_wage_sum",
+                                                "FROM companies_emplhour AS eh",
+                                                "LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id)", 
+                                                "GROUP BY oh_id)", 
+                                       "SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ordr_code,",
+                                       "eh_sub.e_code AS e_code, ",
+                                       "oh.rosterdate AS oh_rd, ",
+                                       "to_json(oh.rosterdate) AS rosterdate,", 
+                                       "oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, c.company_id AS comp_id,",
+                                       "eh_sub.e_code_agg AS e_code_agg,",
+                                       "oh.isbillable AS oh_bill, ",
+                                       "eh_sub.eh_id_agg AS eh_id_agg, ",
+                                       "eh_sub.e_id AS e_id_arr,",
+
+                                       "c.isabsence AS c_isabsence, oh.isrestshift AS oh_isrestshift, oh.shiftcode AS oh_shiftcode,",
+
+                                       "eh_sub.eh_pricerate_agg,",
+                                       "oh.additionrate AS oh_addrate, oh.taxrate AS oh_taxrate,",
+
+                                       "eh_sub.eh_plandur_sum, eh_sub.eh_timedur_sum, eh_sub.eh_billdur_sum,",
+
+                                       "eh_sub.eh_amount_sum, eh_sub.eh_add_sum, eh_sub.eh_tax_sum, eh_sub.eh_timedur_agg",
+                                       #"eh_sub.eh_wage_sum, eh_sub.eh_wage_agg, eh_sub.eh_wagerate_agg, eh_sub.eh_wagefactor_agg",
+
+                                       "FROM companies_orderhour AS oh",
+                                       "INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)",
+                                       "INNER JOIN companies_order AS o ON (oh.order_id=o.id)",
+                                       "INNER JOIN companies_customer AS c ON (o.customer_id=c.id)",
+
+                                       "WHERE (c.company_id = %(compid)s)",
+                                       #"AND (oh.rosterdate >= %(df)s)",
+                                      # "AND (oh.rosterdate <= %(dl)s)",
+                                      # "AND (c.id = %(custid)s OR %(custid)s IS NULL)",
+                                      # "AND (o.id = %(ordid)s OR %(ordid)s IS NULL)",
+                                       "AND NOT o.isabsence AND NOT oh.isrestshift",
+                                       #"AND ( (%(emplid)s = -1) OR ( ARRAY[ %(emplid)s ] <@ e_id ) )",
+
+                                       "ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)",
+                               ]
     sql = ' '.join(sql_list)
 
     newcursor = connection.cursor()
@@ -2545,8 +2602,8 @@ def create_payroll_allowance_rows(period_dict, comp_timezone, timeformat, user_l
 
 
 def create_employeenote_rows(period_dict, request):  # PR2021-02-16
-    logger.debug(' ============= create_employeenote_rows ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+    #logger.debug(' ============= create_employeenote_rows ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
     company_pk = request.user.company.pk
 

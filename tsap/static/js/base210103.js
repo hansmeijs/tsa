@@ -203,8 +203,8 @@
         //console.log("status_sum", status_sum);
 
         /*
-            STATUS_NONE = 0
-            STATUS_00_CREATED = 1
+            STATUS_NONE_ADDED = 0
+            STATUS_00_PLANNED = 1
             STATUS_01_START_PENDING = 2
             STATUS_02_START_CONFIRMED = 4
             STATUS_03_END_PENDING = 8
@@ -224,7 +224,7 @@
 
         //const prefix = (stat_index === 5 && has_changed) ? "stat_1_" : "stat_0_";
         const prefix = (has_changed) ? "stat_1_" : "stat_0_";
-        let icon_index = "0", title = null
+        let icon_index = "0", title = null;
         if(status_array && status_array_length) {
             if (fldName === "stat_start_conf"){
                 if (status_array_length > 2 && status_array[2]) {icon_index = "2"} // STATUS_02_START_CONFIRMED = 4

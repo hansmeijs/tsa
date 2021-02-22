@@ -93,29 +93,27 @@ def remove_status_from_statussum(status, old_status_sum):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def get_rosterdate_check(upload_dict, request):  # PR2019-11-11 PR2020-07-26
-    #logger.debug(' --- get_rosterdate_check --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+def check_rosterdate_emplhours(upload_dict, user_lang, request):  # PR2019-11-11 PR2020-07-26 PR2021-02-20
+    logging_on = False
+    if logging_on:
+        logger.debug(' --- check_rosterdate_emplhours --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
     # function gets rosterdate from upload_dict. If None: lookup last rosterdate in orderhour and add one day to it.
     # Generates a "SELECT MAX..." query, return value is a dict
     # # upload_dict: (input) {rosterdate: "2019-11-14"} or (create) {next: True} or (delete) {last: True}
     # 'rosterdate_check': {'mode': 'delete', 'rosterdate': '2019-12-14'}} <class 'dict'>
 
-    # default value for rosterdate is today
-    rosterdate = date.today()
-    rosterdate_iso = rosterdate.isoformat()
-
     mode = upload_dict.get('mode')
     rosterdate_dict = {'mode': mode}
+    rosterdate_dte, rosterdate_iso = None, None
 
 # if rosterdate in dict: check this rosterdate, otherwise check last rosterdate or next
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
-        rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
+        rosterdate_dte = f.get_dateobj_from_dateISOstring(rosterdate_iso)
 
-    else:
+    if rosterdate_dte is None:
 # get last rosterdate of Emplhour
-        # in SQL:
         sql_keys = {'comp_id': request.user.company_id}
         sql_list =["SELECT MAX(eh.rosterdate) AS max_eh_rd",
                     "FROM companies_emplhour AS eh",
@@ -128,67 +126,178 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11 PR2020-07-26
         newcursor = connection.cursor()
         newcursor.execute(sql, sql_keys)
 
-        max_rosterdate = None
         max_rosterdate_tuple = newcursor.fetchone()
         if max_rosterdate_tuple:
             max_rosterdate = max_rosterdate_tuple[0]
+            if max_rosterdate:
+                rosterdate_dte = max_rosterdate
+                rosterdate_iso = rosterdate_dte.isoformat()
+    # in create mode: get next rosterdate
+                if mode == 'check_create':
+                    # add one day to rosterdate_dte
+                    rosterdate_dte = rosterdate_dte + timedelta(days=1)
+                    rosterdate_iso = rosterdate_dte.isoformat()
 
-        # or in django:
-        # max_rosterdate_dict = m.Emplhour.objects.\
-        #    filter(orderhour__order__customer__company=request.user.company).\
-        #    aggregate(Max('rosterdate'))
-        # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
+    count_emplhour, count_confirmed_or_locked_or_added, count_added, count_may_be_deleted = 0,0,0,0
+    msg_list = []
+    if rosterdate_dte is None:
+        msg_list.append(_('There are no rosters.'))
 
-        if max_rosterdate:
-            # was: rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
-            rosterdate = max_rosterdate
-            if rosterdate:
-                rosterdate_iso = rosterdate.isoformat()
-# in create mode: get next rosterdate
-            if rosterdate and mode == 'check_create':
-                # add one day to change rosterdate
-                rosterdate = rosterdate + timedelta(days=1)
-                rosterdate_iso = rosterdate.isoformat()
+        if mode == 'check_create':
+            rosterdate_dte = date.today()
+            rosterdate_iso = rosterdate_dte.isoformat()
+            rosterdate_dict['rosterdate'] = rosterdate_iso
 
-    if rosterdate is None:
-        rosterdate = date.today()
+            msg_txt = ' '.join( (str(_('Rosterdate')),
+                                f.format_date_short_from_date(rosterdate_dte, False, False, user_lang),
+                                str(_(' will be created.'))))
+            msg_list.append(msg_txt)
 
-    rosterdate_count = 0
-    if 'rosterdate':
-        rosterdate_count, rosterdate_confirmed = check_rosterdate_confirmed(rosterdate, request.user.company)
+    else:
+        # count Emplhour records of this date
+        count_emplhour = check_rosterdate_count(rosterdate_iso, request)
+        count_confirmed_or_locked_or_added = count_rosterdate_confirmed_or_lockewd_or_added(rosterdate_iso, request)
+        count_may_be_deleted= count_rosterdate_may_be_deleted(rosterdate_iso, request)
+
         rosterdate_dict['rosterdate'] = rosterdate_iso
-        rosterdate_dict['count'] = rosterdate_count
-        rosterdate_dict['confirmed'] = rosterdate_confirmed
+        rosterdate_dict['count'] = count_emplhour
+        rosterdate_dict['confirmed'] = count_confirmed_or_locked_or_added
+        rosterdate_dict['may_be_deleted'] = count_may_be_deleted
 
-    if rosterdate_count == 0:
-        emplhours_exist = m.Emplhour.objects.filter(orderhour__order__customer__company=request.user.company).exists()
-        if not emplhours_exist:
-            rosterdate_dict['no_emplhours'] = True
+        msg_txt = ' '.join((str(_('Rosterdate')), f.format_date_short_from_date(rosterdate_dte, False, False, user_lang)))
+        if not count_emplhour:
+            msg_txt += str(_(' has no shifts.'))
+        elif count_emplhour == 1:
+            msg_txt += str(_(' has one shift.'))
+        else:
+            msg_txt += ' '.join((str(_(' has')), str(count_emplhour), str(_('shifts.'))))
+        msg_list.append(msg_txt)
 
+        if count_emplhour:
+            added_or_deleted_txt = str(_(' be deleted.')) if mode == 'check_delete' else str(_(' be replaced.'))
+            if count_confirmed_or_locked_or_added or count_added:
+                msg_txt = ''
+                if count_confirmed_or_locked_or_added:
+                    if count_confirmed_or_locked_or_added == count_emplhour:
+                        if count_confirmed_or_locked_or_added == 1:
+                            msg_txt = _('It is a confirmed, locked or added shift.')
+                        else:
+                            msg_txt = _('They are confirmed, locked or added shifts.')
+                    else:
+                        if count_confirmed_or_locked_or_added == 1:
+                            msg_txt = _('One is a confirmed, locked or added shift.')
+                        else:
+                            msg_txt = ' '.join( (str(count_confirmed_or_locked_or_added), str(_('are confirmed, locked or added shifts.'))))
+                if count_confirmed_or_locked_or_added == 1:
+                    msg_txt += ' ' + str(_('This shift will not'))
+                else:
+                    msg_txt += ' ' + str(_('These shifts will not'))
+                msg_txt += added_or_deleted_txt
+                msg_list.append(msg_txt)
+
+            if count_may_be_deleted:
+                msg_txt = ''
+                if count_may_be_deleted == count_emplhour:
+                    if count_may_be_deleted == 1:
+                        msg_txt = str(_('This shift will'))
+                    else:
+                        msg_txt = str(_('These shifts will'))
+                else:
+                    if count_may_be_deleted == 1:
+                        msg_txt = str(_('The other shift will'))
+                    else:
+                        msg_txt = str(_('The other shifts will'))
+                msg_txt += added_or_deleted_txt
+                msg_list.append(msg_txt)
+
+    rosterdate_dict['msg_list'] = msg_list
+    if logging_on:
+        logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
     return rosterdate_dict
 
 
-def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
-    #logger.debug(' ============= check_rosterdate_confirmed ============= ')
+def check_rosterdate_count(rosterdate_iso, request):  # PR2021-02-20
+    # logger.debug(' ============= check_rosterdate_count ============= ')
+    # if any: count emplhour records that are confirmed or locked
+    sql_keys = {'compid': request.user.company.pk, 'rd': rosterdate_iso}
+    sql_list = ["SELECT COUNT(eh.id) AS row_count",
+                "FROM companies_emplhour AS eh",
+                "INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id)",
+                "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                "WHERE c.company_id = %(compid)s::INT",
+                "AND (eh.rosterdate = %(rd)s::DATE)"
+                ]
+    sql = ' '.join(sql_list)
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    row_count_tuple = newcursor.fetchone()
+
+    emplhour_count = 0
+    if row_count_tuple:
+        emplhour_count = row_count_tuple[0]
+    return emplhour_count
+
+
+def count_rosterdate_may_be_deleted(rosterdate_iso, request):  # PR2021-02-20
+    # logger.debug(' ============= count_rosterdate_may_be_deleted ============= ')
+    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    # check if rosterdate is not locked, not confirmed and not added row
+    # added row has status = even number, confirmed / locked row has status >= 4 (c.STATUS_02_START_CONFIRMED)
+    # if any: count emplhour records that are confirmed or locked
+    sql_keys = {'compid': request.user.company.pk, 'rd': rosterdate_iso}
+    sql_list = ["SELECT COUNT(eh.id)",
+                "FROM companies_emplhour AS eh",
+                "INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id)",
+                "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                "WHERE c.company_id = %(compid)s::INT",
+                "AND (eh.rosterdate = %(rd)s::DATE)",
+                "AND MOD(eh.status, 2) = 1"
+                "AND eh.status < " + str(c.STATUS_02_START_CONFIRMED),
+                "AND eh.payrollpublished_id IS NULL AND eh.invoicepublished_id IS NULL"
+                ]
+    sql = ' '.join(sql_list)
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    row_count_tuple = newcursor.fetchone()
+
+    count_may_be_deleted = 0
+    if row_count_tuple:
+        count_may_be_deleted = row_count_tuple[0]
+    return count_may_be_deleted
+
+
+def count_rosterdate_confirmed_or_lockewd_or_added(rosterdate_iso, request):  # PR2021-02-20
+    #logger.debug(' ============= count_rosterdate_confirmed_or_lockewd_or_added ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-    # check if rosterdate has orderhours / emplhours. If so, check if there are lockes  /confirmed shifts
+    # check if rosterdate has orderhours / emplhours. If so, check if there are locked  /confirmed shifts
 
-# count Emplhour records of this date
-    emplhour_count = m.Emplhour.objects.filter(
-        orderhour__order__customer__company=company,
-        rosterdate=rosterdate_dte).count()
-    #logger.debug('emplhour_count: ' + str(emplhour_count))
+# if any: count emplhour records that are confirmed or locked
+    sql_keys = {'compid': request.user.company.pk, 'rd': rosterdate_iso}
+    sql_list = ["SELECT COUNT(eh.id)",
+                "FROM companies_emplhour AS eh",
+                "INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id)",
+                "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                "WHERE c.company_id = %(compid)s::INT",
+                "AND (eh.rosterdate = %(rd)s::DATE)",
+                "AND ( (eh.status >= " + str(c.STATUS_02_START_CONFIRMED) + ") OR (MOD(eh.status, 2) = 0)",
+                        "OR (eh.payrollpublished_id IS NOT NULL) OR (eh.invoicepublished_id IS NOT NULL) )"
+]
+    sql = ' '.join(sql_list)
 
-    emplhour_count_confirmed_or_locked = 0
-    if(emplhour_count):
-    # if any: count emplhour records that are confirmed
-        emplhour_count_confirmed_or_locked = m.Emplhour.objects.filter(
-            orderhour__order__customer__company=company,
-            rosterdate=rosterdate_dte,
-            status__gte=c.STATUS_02_START_CONFIRMED).count()
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    row_count_tuple = newcursor.fetchone()
 
-    return emplhour_count, emplhour_count_confirmed_or_locked
+    count_confirmed_or_locked_or_added = 0
+    if row_count_tuple:
+        count_confirmed_or_locked_or_added = row_count_tuple[0]
 
+    return count_confirmed_or_locked_or_added
 
 def get_period_dict_and_save(request, get_current):  # PR2019-07-13
     #logger.debug(' --- get_period_dict_and_save --- ')
@@ -2311,6 +2420,8 @@ def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR20
         rosterdatelast = period_dict.get('period_datelast')
         emplhour_pk_list = period_dict.get('eplh_update_list')
 
+    #logger.debug('emplhour_pk_list: ' + str(emplhour_pk_list))
+
     emplhournote_rows = {}
     sql_list = []
     sql_keys = {'comp_id': company_pk}
@@ -2360,6 +2471,7 @@ def create_emplhournote_rows(period_dict, last_emplhour_check, request):  # PR20
         newcursor.execute(sql, sql_keys)
         emplhournote_rows = f.dictfetchrows(newcursor)
 
+    #logger.debug('emplhournote_rows: ' + str(emplhournote_rows))
     return emplhournote_rows
 
 # - end of create_emplhournote_rows

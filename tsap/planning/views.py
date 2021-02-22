@@ -503,7 +503,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if request_item:
                         # rosterdate_check: {rosterdate: "2019-11-14"}
                         # rosterdate_check: {mode: "delete"}
-                        datalists['rosterdate_check'] = d.get_rosterdate_check(request_item, request)
+                        datalists['rosterdate_check'] = d.check_rosterdate_emplhours(request_item, user_lang, request)
 
 # - user_list
                     request_item = datalist_request.get('user_list')
@@ -2581,11 +2581,10 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 
 
 @method_decorator([login_required], name='dispatch')
-class \
-        EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
+class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
 
     def post(self, request, *args, **kwargs):
-        logging_on = True
+        logging_on = False
         if logging_on:
             logger.debug(' ')
             logger.debug(' ============= EmplhourUploadView ============= ')
@@ -2636,7 +2635,7 @@ class \
     # - Create new orderhour / emplhour if is_create:
                     # update_emplhour is also called when emplhour is_created, save_to_log is called in update_emplhour
                     if is_create:
-                        emplhour, orderhour = create_orderhour_emplhour(upload_dict, error_list, request)
+                        emplhour, orderhour = create_orderhour_emplhour(upload_dict, error_list, logging_on, request)
                     else:
     # - else: get orderhour and emplhour (orderhour is orderhour of emplhour)
                         orderhour = m.Orderhour.objects.get_or_none(
@@ -2675,7 +2674,7 @@ class \
                             if shift_option == 'make_absent_and_split':
                                 # make_absence_shift creates a new absence emplhour, current one will be updated in update_emplhour
                                 make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list, comp_timezone, request)
-                                # make_absence_shift creates a new split emplhour, current one will be updated in update_emplhour
+                                # make_split_shift creates a new split emplhour, current one will be updated in update_emplhour
                                 # leave_cur_employee_blank is to prevent current employee from being added to split shift:
                                 leave_cur_employee_blank = True
                                 make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request)
@@ -2683,7 +2682,7 @@ class \
                             elif shift_option == 'change_absence':
                                 # change_absence_shift changes order in orderhour
                                 if 'abscat' in upload_dict:
-                                    change_absence_shift(emplhour, upload_dict, eplh_update_list, request)
+                                    change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone, request)
 
                             if shift_option == 'moveto_shift':
                                 # moveto_shift removes the current employee from the current emplhour record
@@ -2710,13 +2709,29 @@ class \
                     if emplhour_rows:
                         update_wrap['emplhour_updates'] = emplhour_rows
 
-                    # - also get emplhournote (roster page)
+                    # - also get emplhourstatus rows (roster page)
+                    emplhourstatus_rows = d.create_emplhourstatus_rows(
+                        period_dict=filter_dict,
+                        last_emplhour_check=None,
+                        request=request)
+                    if emplhourstatus_rows:
+                        update_wrap['emplhourstatus_updates'] = emplhourstatus_rows
+
+                    # - also get emplhournote rows (roster page)
                     emplhournote_rows = d.create_emplhournote_rows(
                         period_dict=filter_dict,
                         last_emplhour_check=None,
                         request=request)
                     if emplhournote_rows:
                         update_wrap['emplhournote_updates'] = emplhournote_rows
+
+                    # - also get emplhourallowance rows (roster page)
+                    emplhourallowance_rows = d.create_emplhourallowance_rows(
+                        period_dict=filter_dict,
+                        last_emplhour_check=None,
+                        request=request)
+                    if emplhourallowance_rows:
+                        update_wrap['emplhourallowance_updates'] = emplhourallowance_rows
 
     # - check for overlap - check_overlap_list contains employee_pk's that must be checked
                     # PR2020-05-13 debug: when removing employee the emplhour overlap must be deleted
@@ -2749,11 +2764,12 @@ class \
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
-def create_orderhour_emplhour(upload_dict, error_list, request):
-   #logger.debug(' --- create_orderhour_emplhour --- ')
-   #logger.debug('upload_dict: ' + str(upload_dict))
+def create_orderhour_emplhour(upload_dict, error_list, logging_on, request):
+    if logging_on:
+        logger.debug(' --- create_orderhour_emplhour --- ')
 
     rosterdate_dte, order, orderhour, emplhour, schemeitem_pk, teammember_pk = None, None, None, None, None, None
+    wagefactorcode, wagefactor_caption, wagefactor_rate = None, None, 0
 
 # - get rosterdate
     field = 'rosterdate'
@@ -2785,7 +2801,37 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
                     is_restshift = shift.isrestshift
         is_billable = f.get_billable_from_order_shift(order, shift)
 
-# try to get schemeitem_pk, teammember_pk PR2020-07-05
+# ---  get is_saturday, is_sunday, is_publicholiday, is_companyholiday of this rosterdate
+        is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+            f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
+
+# - get wagefactor from shift when normal shift
+        wagefactor_pk = None
+        if shift:
+            if is_publicholiday:
+                if shift.wagefactoronph:
+                    wagefactor_pk = shift.wagefactoronph.pk
+            elif is_sunday:
+                if shift.wagefactoronsun:
+                    wagefactor_pk = shift.wagefactoronsun.pk
+            elif is_saturday:
+                if shift.wagefactoronsat:
+                    wagefactor_pk = shift.wagefactoronsat.pk
+            # get wagefactor of weekday wagefactor if no value found
+            if wagefactor_pk is None:
+                if shift.wagefactorcode:
+                    wagefactor_pk = shift.wagefactorcode.pk
+
+        if wagefactor_pk is None:
+            wagefactor_pk = emplan.get_default_wagefactor_pk(request)
+        if wagefactor_pk:
+            wagefactorcode = m.Wagecode.objects.get_or_none(pk=wagefactor_pk)
+            if wagefactorcode:
+                wagefactor_caption = wagefactorcode.code
+                if wagefactorcode.wagerate:
+                    wagefactor_rate = wagefactorcode.wagerate
+
+        # try to get schemeitem_pk, teammember_pk PR2020-07-05
         # don't.'schemeitem_pk / teammember_pk / rosterdate combination is used to skip planned records when
         # rostedate is made for a second time or more.
         # a planned shift might be skipped because of an added shift
@@ -2812,7 +2858,7 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
     #  > individual entries will be calculated at the beginning of each month
 
 # - emplhour has no employee yet: set paydayecode = None and paydate = last date of month
-    paydate = f.get_lastof_month(orderhour.rosterdate)
+    # paydate = f.get_lastof_month(orderhour.rosterdate)
 
 # +++ create emplhour
     if orderhour:
@@ -2822,6 +2868,9 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
             orderhour=orderhour,
             rosterdate=orderhour.rosterdate,
             exceldate=exceldate,
+            wagefactorcode=wagefactorcode,
+            wagefactor=wagefactor_rate,
+            wagefactorcaption=wagefactor_caption,
             haschanged=True
         )
         emplhour.save(request=request, last_emplhour_updated=True)
@@ -2835,6 +2884,7 @@ def create_orderhour_emplhour(upload_dict, error_list, request):
 
 def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list,
                        comp_timezone, request, logging_on=False):
+    logging_on = False
     if logging_on:
         logger.debug(' --- make_absence_shift --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -2911,34 +2961,39 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
 
 # - get nopay. These fields are in order and scheme. For absence: use table 'order'
+            # TODO deprecated
             abscat_nopay = abscat_order.nopay
 
-# - get nohours  These fields are in order and scheme. For absence: use table 'order'
-            nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
-                get_nosat_sun_ph_ch_from_emplhour(emplhour)
-            abscat_nohours = (is_saturday and nohours_onsaturday) or \
-                                        (is_sunday and nohours_onsunday) or \
-                                        (is_publicholiday and nohours_onpublicholiday)
+# - get nohours These fields are in order and scheme. For absence: use table 'order'
+            nohours_onsat = abscat_order.nohoursonsaturday
+            nohours_onsun = abscat_order.nohoursonsunday
+            nohours_onph = abscat_order.nohoursonpublicholiday
+            nohours_onch = abscat_order.nohoursoncompanyholiday
+
+            abscat_nohours = (is_saturday and nohours_onsat) or \
+                            (is_sunday and nohours_onsun) or \
+                            (is_publicholiday and nohours_onph) or \
+                            (is_companyholiday and nohours_onch)
             if logging_on:
                 logger.debug('abscat_nohours: ' + str(abscat_nohours))
 
-
 # - get wagefactor from abscat order
+            wfc_onwd = abscat_order.wagefactorcode_id
+            wfc_onsat = abscat_order.wagefactoronsat_id
+            wfc_onsun = abscat_order.wagefactoronsun_id
+            wfc_onph = abscat_order.wagefactoronph_id
+            default_wagefactor_pk = request.user.company.wagefactorcode_id
+
+            row = {'o_wfc_onwd_id': wfc_onwd, 'o_wfc_onsat_id': wfc_onsat, 'o_wfc_onsun_id': wfc_onsun, 'o_wfc_onph_id': wfc_onph}
             is_absence, is_restshift = True, False
-            default_wagefactor_pk = None
-            if request.user.company.wagefactorcode_id:
-                default_wagefactor_pk = request.user.company.wagefactorcode_id
-            row = {'o_wfc_onwd_id': abscat_order.wagefactorcode_id,
-                   'o_wfc_onsat_id': abscat_order.wagefactoronsat_id,
-                   'o_wfc_onsun_id': abscat_order.wagefactoronsun_id,
-                   'o_wfc_onph_id': abscat_order.wagefactoronph_id}
             wagefactor_pk = emplan.get_wagefactorpk_from_row(
                 row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
-            wagefactor, wagefactor_code, wagefactor_rate = None, None, None
+
+            wagefactor_instance, wagefactor_code, wagefactor_rate = None, None, 0
             if wagefactor_pk:
-                wagefactor = m.Wagecode.objects.get_or_none(pk=wagefactor_pk)
-                wagefactor_code = wagefactor.code
-                wagefactor_rate = wagefactor.wagerate
+                wagefactor_instance = m.Wagecode.objects.get_or_none(pk=wagefactor_pk)
+                wagefactor_code = wagefactor_instance.code
+                wagefactor_rate = wagefactor_instance.wagerate
 
 # - calculate time_duration et cetera
             offset_start, offset_end, excel_start, excel_end = None, None, None, None
@@ -2967,12 +3022,16 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     offset_start = f.get_dict_value(upload_dict, ('offsetend', 'value'))
                     offset_end = emplhour.offsetend
                 else:
-                    pass
-        # TODO fill in offset_start and offset_end when not a split shift. Is more consequent
-                    #offset_start = emplhour.offsetstart
-                    #offset_end = emplhour.offsetend
-                    #break_duration = emplhour.breakduration
-                    #time_duration = emplhour.timeduration
+                    # fill in offset_start and offset_end when not a split shift. Is more consequent
+                    offset_start = emplhour.offsetstart
+                    offset_end = emplhour.offsetend
+                    break_duration = emplhour.breakduration
+                    time_duration = emplhour.timeduration
+            if logging_on:
+                logger.debug('offset_start: ' + str(offset_start))
+                logger.debug('offset_end: ' + str(offset_end))
+                logger.debug('break_duration: ' + str(break_duration))
+                logger.debug('time_duration: ' + str(time_duration))
 
     # - calculate time_start, time_end, time_duration, excel_start, excel_end
         # - when employee_pk is None time_duration will be set to None
@@ -2980,9 +3039,11 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
 
         # - when time_duration is None: time_duration will get value of employee_wmpd (workminutes per day)
                 # - not when absence_shift is a split absence_shift
-                # TODO never use wmpd when absence made from roster
+                #  - never use wmpd when absence made from roster
+                #       why???. Because absence must have the same duration as the shift, not a whole day)
+                #       when time_duration has value this will be used instead of wmpd
                 employee_wmpd = None
-                if absent_employee and split not in ('split_before', 'split_after'):
+                if absent_employee and 'split' not in ('split_before', 'split_after'):
                     if absent_employee.workminutesperday:
                         employee_wmpd = absent_employee.workminutesperday
                     elif absent_employee.company.workminutesperday:
@@ -2996,8 +3057,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                         row_offsetstart=offset_start, row_offsetend=offset_end,
                         row_breakduration=break_duration, row_timeduration=0,
                         row_plannedduration = 0, update_plandur = True,
-                        row_nosat=nohours_onsaturday, row_nosun=nohours_onsunday,
-                        row_noph=nohours_onpublicholiday, row_noch=nohours_oncompanyholiday,
+                        row_nosat=nohours_onsat, row_nosun=nohours_onsun,
+                        row_noph=nohours_onph, row_noch=nohours_onch,
                         row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
                         comp_timezone=comp_timezone)
                 if logging_on:
@@ -3023,7 +3084,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 isabsence=True,
                 isrestshift=False,
 
-                status=c.STATUS_NONE
+                status=c.STATUS_NONE_ADDED
             )
             new_orderhour.save(request=request)
 
@@ -3055,17 +3116,17 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     excelstart=excel_start,
                     excelend=excel_end,
 
-                    functioncode=absent_employee.functioncode,
-                    wagefactorcode=wagefactor,
-                    wagefactor=wagefactor_rate,
-                    wagefactorcaption=wagefactor_code,
+                    functioncode=absent_employee.functioncode, # functioncode is a wagecode instance, can be None
+                    wagefactorcode=wagefactor_instance,  # wagefactorcode is a wagecode instance, can be None
+                    wagefactor=wagefactor_rate,  # wagefactorcode is integer, no None, default 0
+                    wagefactorcaption=wagefactor_code,  # wagefactorcaption can be None
 
                     # TODO
                     # wagecode=absent_employee.wagecode,
                     # wagerate=wagerate,
                     #wage=wage,
 
-                    status=c.STATUS_NONE,
+                    status=c.STATUS_NONE_ADDED,
                     haschanged=True,
                     hasnote=True
                 )
@@ -3108,20 +3169,20 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 if new_emplhour:
                     if new_emplhour.pk not in eplh_update_list:
                         eplh_update_list.append(new_emplhour.pk)
-
 # --- end of make_absence_shift
 
 
-def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # PR2020-04-13
+def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone, request):  # PR2020-04-13 PR2021-02-18
     #logger.debug(' --- change_absence_shift --- ')
     #logger.debug('upload_dict: ' + str(upload_dict))
     # this function changes the absence order in the orderhour.
+    # it also chenges the wagefactor and 'nohours' in emplhour
 
 # - get parent (orderhour is parent of emplhour)
     orderhour = emplhour.orderhour
     cur_order = orderhour.order
 
-# - lookup abscat_order_pk in abscat_dict
+# - lookup new abscat_order_pk in abscat_dict
     abscat_order_pk = None
     abscat_dict = upload_dict.get('abscat')
     if abscat_dict:
@@ -3140,45 +3201,101 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, request):  # P
             new_customer_code = abscat_order.customer.code.replace('~', '') if abscat_order.customer.code else None
             new_order_code = abscat_order.code.replace('~', '') if abscat_order.code else None
 
-# - when abscat changes 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
+# update values in orderhour instanbce, save at end of this function
+            orderhour.order = abscat_order
+            orderhour.customercode = new_customer_code
+            orderhour.ordercode = new_order_code
+
+# - when abscat changes ,wagefactor and 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
             # get is_publicholiday, is_companyholiday of this rosterdate from Calendar
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
                 f.get_issat_issun_isph_isch_from_calendar(orderhour.rosterdate, request)
 
             # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
+            # TODO deprecated
             abscat_nopay = abscat_order.nopay
-            abscat_nohours = (is_saturday and abscat_order.nohoursonsaturday) or \
-                          (is_sunday and abscat_order.nohoursonsunday) or \
-                          (is_publicholiday and abscat_order.nohoursonpublicholiday)
+
+# - get wagefactor from abscat order
+            wfc_onwd = abscat_order.wagefactorcode_id
+            wfc_onsat = abscat_order.wagefactoronsat_id
+            wfc_onsun = abscat_order.wagefactoronsun_id
+            wfc_onph = abscat_order.wagefactoronph_id
+            default_wagefactor_pk = request.user.company.wagefactorcode_id
+
+            row = {'o_wfc_onwd_id': wfc_onwd, 'o_wfc_onsat_id': wfc_onsat, 'o_wfc_onsun_id': wfc_onsun,
+                   'o_wfc_onph_id': wfc_onph}
+            is_absence, is_restshift = True, False
+            wagefactor_pk = emplan.get_wagefactorpk_from_row(
+                row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
+
+            wagefactor_instance, wagefactor_code, wagefactor_rate = None, None, 0
+            if wagefactor_pk:
+                wagefactor_instance = m.Wagecode.objects.get_or_none(pk=wagefactor_pk)
+                wagefactor_code = wagefactor_instance.code
+                wagefactor_rate = wagefactor_instance.wagerate
 
             # split shifts can have multiple emplhour records in one orderhour
             # absence records cannot be split, because modal woindow with that option not enabled when absence record
 
-            # TODO: payroll manager must be able to split absence records for rcorrection purposes PR2020-09-22
-            emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
-            duration_changed_in_one_row = False
-            # when abscat is changed to a 'no_hours' abscat: set duration = 0.
-            # leave duration otherwise
-            for emplhour in emplhours:
-                save_emplhour = False
-                if abscat_nopay != emplhour.nopay:
-                    emplhour.nopay = abscat_nopay
-                    save_emplhour = True
-                if abscat_nohours and emplhour.timeduration:
-                    emplhour.timeduration = 0
-                    save_emplhour = True
-                if save_emplhour:
-                    emplhour.haschanged = True
-                    emplhour.save(request=request, last_emplhour_updated=True)
-    # - save to log
-                    m.save_to_emplhourlog(emplhour.pk, request, False)  # is_deleted=False
+            # TODO: payroll manager must be able to split absence records for correction purposes PR2020-09-22
 
-                    if emplhour.pk not in eplh_update_list:
-                        eplh_update_list.append(emplhour.pk)
+            # - when time_duration is None: time_duration will get value of employee_wmpd (workminutes per day)
+            # - not when absence_shift is a split absence_shift
+            # TODO never use wmpd when absence made from roster (why???)
+            employee_wmpd = None
+            if emplhour.employee:  #should always be the case
+                if emplhour.employee.workminutesperday:
+                    employee_wmpd = emplhour.employee.workminutesperday
+                elif emplhour.employee.company.workminutesperday:
+                    employee_wmpd = emplhour.employee.company.workminutesperday
 
-            orderhour.order=abscat_order
-            orderhour.customercode = new_customer_code
-            orderhour.ordercode = new_order_code
+            time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
+                f.calc_timedur_plandur_from_offset(
+                    rosterdate_dte=emplhour.rosterdate,
+                    is_absence=True, is_restshift=False, is_billable=False,
+                    is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
+                    row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
+                    row_breakduration=emplhour.breakduration, row_timeduration=0,
+                    row_plannedduration=0, update_plandur=True,
+                    row_nosat=abscat_order.nohoursonsaturday,
+                    row_nosun=abscat_order.nohoursonsunday,
+                    row_noph=abscat_order.nohoursonpublicholiday,
+                    row_noch=abscat_order.nohoursoncompanyholiday,
+                    row_employee_pk=emplhour.employee_id,
+                    row_employee_wmpd=employee_wmpd,
+                    comp_timezone=comp_timezone)
+
+# update values in orderhour instanbce, save at end of this function
+            emplhour.nopay = abscat_nopay
+            # dont copy shift, is confusing. Was: shift=orderhour.shift,
+            # plannedduration = 0, billingduration = 0 , breakduration = 0
+            emplhour.timeduration = time_duration
+
+            emplhour.wagefactorcode = wagefactor_instance  # wagefactorcode is a wagecode instance, can be None
+            emplhour.wagefactor = wagefactor_rate  # wagefactorcode is integer, no None, default 0
+            emplhour.wagefactorcaption = wagefactor_code  # wagefactorcaption can be None
+
+            emplhour.save(request=request, last_emplhour_updated=True)
+
+# - create notes  "Absence changed from.. to'
+            #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-31
+            cur_order_code = cur_order.code.replace('~', '') if cur_order.code else ''
+            note = str(_("Absence changed from '")) + cur_order_code + str(_("' to '")) + new_order_code + "'"
+            emplhournote = m.Emplhournote(
+                emplhour=emplhour,
+                note=note,
+                isusernote=False
+            )
+            emplhournote.save(request=request)
+
+# - save to log
+            m.save_to_emplhourlog(emplhour.pk, request, False)  # is_deleted=False
+
+            if emplhour.pk not in eplh_update_list:
+                eplh_update_list.append(emplhour.pk)
+
+# save new abscat_order in orderhour
+
             orderhour.save(request=request, last_emplhour_updated=True)
 
 # --- end of change_absence_shift
@@ -3259,8 +3376,10 @@ def moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, co
 # --- end of moveto_shift
 
 def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request):
-    logger.debug(' ------------- make_split_shift ------------- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    logging_on = False
+    if logging_on:
+        logger.debug(' ------------- make_split_shift ------------- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
     # first create new emplhour record (named: 'split shift') with upload_dict.employee (replacement), if blank: with current employee
     #  - the split_time is put in offsetend when split_after, in offsetstart when split_before
     # - the timestart/-end of the current emplhour will will be replaced in update_emplhour
@@ -3291,14 +3410,18 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
 # - use current employee when no new employee is found
     if new_employee is None and not leave_cur_employee_blank:
         new_employee = emplhour.employee
-    logger.debug('new_employee: ' + str(new_employee))
+    if logging_on:
+        logger.debug('new_employee: ' + str(new_employee))
 
 # - add employee and new_employee to check_overlap_list
     if emplhour.employee and emplhour.employee.pk not in check_overlap_list:
         check_overlap_list.append(emplhour.employee.pk)
     if new_employee and new_employee.pk not in check_overlap_list:
         check_overlap_list.append(new_employee.pk)
-    #logger.debug('check_overlap_list: ' + str(check_overlap_list))
+    if logging_on:
+        logger.debug('check_overlap_list: ' + str(check_overlap_list))
+
+# ++++++ this is the split part of the shift (with the replacement employee taking over from absent employee)
 
 # - calculate time_duration et cetera
     offset_start, offset_end, excel_start, excel_end = None, None, None, None
@@ -3317,19 +3440,20 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
         # This is the start time of the absence shift
         offset_start = f.get_dict_value(upload_dict, ('offsetend', 'value'))
         offset_end = emplhour.offsetend
-    logger.debug('split: ' + str(split))
-    logger.debug('offset_start: ' + str(offset_start))
-    logger.debug('offset_end: ' + str(offset_end))
+    if logging_on:
+        logger.debug('split: ' + str(split))
+        logger.debug('offset_start: ' + str(offset_start))
+        logger.debug('offset_end: ' + str(offset_end))
 
 # - calculate date_part
     date_part = f.calc_datepart(offset_start, offset_end)
 
-    # - calculate timestart, timeend, time_duration, excel_start, excel_end
+# - calculate timestart, timeend, time_duration, excel_start, excel_end
     # set absence to zero on public holidays and weekends when 'nohoursonsaturday' etc
     is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
         f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
 
-    nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
+    nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = \
         get_nosat_sun_ph_ch_from_emplhour(emplhour)
 
     # when employee_pk is None time_duration will be set to None
@@ -3341,7 +3465,10 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
         new_employee_paydatecode = new_employee.paydatecode
         new_employee_functioncode = new_employee.functioncode
         new_employee_wagecode = new_employee.wagecode
+
+# - calculate time_duration
     # when time_duration is None: time_duration will get value of employee_wmpd
+    # should not happen when absence record created in roster, because shift has always a timeduration
     # not when absence_shift is a split absence_shift
     employee_wmpd = None
     if new_employee and split not in ('split_before', 'split_after'):
@@ -3349,7 +3476,6 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
             employee_wmpd = new_employee.workminutesperday
         elif new_employee.company.workminutesperday:
             employee_wmpd = new_employee.company.workminutesperday
-    logger.debug('employee_wmpd: ' + str(employee_wmpd))
 
     time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
         f.calc_timedur_plandur_from_offset(
@@ -3359,18 +3485,19 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
             row_offsetstart=offset_start, row_offsetend=offset_end,
             row_breakduration=break_duration, row_timeduration=0,
             row_plannedduration=0, update_plandur=True,
-            row_nosat=nohours_onsaturday, row_nosun=nohours_onsunday,
-            row_noph=nohours_onpublicholiday, row_noch=nohours_oncompanyholiday,
+            row_nosat=nohours_onsat, row_nosun=nohours_onsun,
+            row_noph=nohours_onph, row_noch=nohours_onch,
             row_employee_pk=new_employee_pk, row_employee_wmpd=employee_wmpd,
             comp_timezone=comp_timezone)
-    logger.debug('planned_durationNIU: ' + str(planned_durationNIU))
-    logger.debug('time_duration: ' + str(time_duration))
-    logger.debug('billing_durationNIU: ' + str(billing_durationNIU))
+    if logging_on:
+        logger.debug('employee_wmpd: ' + str(employee_wmpd))
+        logger.debug('planned_durationNIU: ' + str(planned_durationNIU))
+        logger.debug('time_duration: ' + str(time_duration))
+        logger.debug('billing_durationNIU: ' + str(billing_durationNIU))
 
 # - calculate planned_duration
-    # - planneduration of current record will not exceed the new timeduration of current record, cut id necessary
+    # - planneduration of current record will not exceed the new timeduration of current record, cut if necessary
     # - planneduration of split record will be the remainder of planneduration of current record
-
 
 # - calculate billing_duration
     # when shift is not billable: billing_duration stays 0, all planned hours are billed in current emplhour
@@ -3396,6 +3523,13 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
                 tax_rate=orderhour.taxrate)
     new_wage = 0
     new_overlap = 0
+
+# - get status added / planned shift from emplhour
+    if emplhour.status % 2 != 0:
+        # odd status is planned shift
+        status = c.STATUS_00_PLANNED
+    else:
+        status = c.STATUS_NONE_ADDED
 
 # - create new emplhour record
     new_emplhour = m.Emplhour(
@@ -3437,7 +3571,7 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
         addition=addition,
         tax=tax,
 
-        status=c.STATUS_NONE,
+        status=status,
         haschanged=True,
         overlap=new_overlap,
         hasnote=True,
@@ -3583,6 +3717,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                 emplhour.functioncode = None
                                 emplhour.wagecode = None
                                 emplhour.paydatecode = None
+
+                # - wagefactorcode, wagefactor and wagefactorcaption are set in create emplhour, htey will not change
 
                 # - add emplhour_pk to clear_overlap_list, to remove overlap from this emplhour
                             # clear_overlap_list contains emplhour_pk's that must be cleared
@@ -3801,7 +3937,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             employee_wmpd = emplhour.employee.workminutesperday if emplhour.employee else None
 
             # 'nohours' is only used in absence
-            nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday = \
+            nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = \
                 get_nosat_sun_ph_ch_from_emplhour(emplhour)
 
             # dont change planned_duration, except when is_extra_order = true
@@ -3816,8 +3952,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
                     row_breakduration=emplhour.breakduration, row_timeduration=emplhour.timeduration,
                     row_plannedduration=emplhour.plannedduration, update_plandur=is_extra_order,
-                    row_nosat=nohours_onsaturday, row_nosun=nohours_onsunday,
-                    row_noph=nohours_onpublicholiday, row_noch=nohours_oncompanyholiday,
+                    row_nosat=nohours_onsat, row_nosun=nohours_onsun,
+                    row_noph=nohours_onph, row_noch=nohours_onch,
                     row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
                     comp_timezone=comp_timezone)
 
@@ -3908,7 +4044,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     emplhournote.save(request=request)
                     emplhour.hasnote = True
                     logger.debug('emplhournote: ' + str(emplhournote) + ' ' + str(type(emplhournote)))
-            except:
+            except Exception as e:
+                logger.error(getattr(e, 'message', str(e)))
                 msg_err = _('An error occurred. The note of this shift could not be created.')
                 error_list.append(msg_err)
 
@@ -3929,11 +4066,12 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 
                 if logging_on:
                     logger.debug('emplhour.save timeduration: ' + str(emplhour.timeduration))
-                    logger.debug('emplhour.paydate: ' + str(emplhour.paydate))
 
 # - save to log after saving emplhour and orderhour, also when emplhour is_created
                 m.save_to_emplhourlog(emplhour.pk, request, False) # is_deleted=False
-            except:
+
+            except Exception as e:
+                logger.error(getattr(e, 'message', str(e)))
                 msg_err = _('An error occurred. This shift could not be updated.')
                 error_list.append(msg_err)
 
@@ -4028,18 +4166,15 @@ def create_emplhourstatus_row(emplhour_pk, status_value, isremoved, request, mod
 
 def get_nosat_sun_ph_ch_from_emplhour(emplhour): # PR20120-09-09
     #logger.debug(' --- get_nosat_sun_ph_ch_from_emplhour ---')
-    # function gets nohours_onsaturday etc from order and scheme of this emplhour
-    # absence nohours_onsaturday etc are stored in order, not in scheme
+    # function gets nohours_onsat etc from order and scheme of this emplhour
+    # absence nohours_onsat etc are stored in order, not in scheme
     # 'nohours' ae only used in absence and set in absence category (i.e. order of absence)
-    nohours_onsaturday = False
-    nohours_onsunday = False
-    nohours_onpublicholiday = False
-    nohours_oncompanyholiday = False
+    nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = False, False, False, False
     if emplhour:
-        nohours_onsaturday = emplhour.orderhour.order.nohoursonsaturday
-        nohours_onsunday = emplhour.orderhour.order.nohoursonsunday
-        nohours_onpublicholiday = emplhour.orderhour.order.nohoursonpublicholiday
-        nohours_oncompanyholiday = emplhour.orderhour.order.nohoursoncompanyholiday
+        nohours_onsat = emplhour.orderhour.order.nohoursonsaturday
+        nohours_onsun = emplhour.orderhour.order.nohoursonsunday
+        nohours_onph = emplhour.orderhour.order.nohoursonpublicholiday
+        nohours_onch = emplhour.orderhour.order.nohoursoncompanyholiday
 
         """
         # nopay and nosat etc in scheme are not in use (yet) PR2020-10-09
@@ -4052,15 +4187,15 @@ def get_nosat_sun_ph_ch_from_emplhour(emplhour): # PR20120-09-09
                 # or do we want to let override order_nosat by scheme.nosat when false?
                 # in that case it needs a null value and boolean cannot do.
                 if scheme.nohoursonsaturday:
-                    nohours_onsaturday = True
+                    nohours_onsat = True
                 if scheme.nohoursonsunday:
-                    nohours_onsunday = True
+                    nohours_onsun = True
                 if scheme.nohoursonpublicholiday:
-                    nohours_onpublicholiday = True
+                    nohours_onph = True
                 if scheme.nohoursoncompanyholiday:
-                    nohours_oncompanyholiday = True
+                    nohours_onch = True
         """
-    return nohours_onsaturday, nohours_onsunday, nohours_onpublicholiday, nohours_oncompanyholiday
+    return nohours_onsat, nohours_onsun, nohours_onph, nohours_onch
 
 def recalc_orderhourXXX(orderhour): # PR2019-10-11
     #logger.debug(' --- recalc_orderhour ---')

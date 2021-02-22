@@ -960,23 +960,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['rosterdate_checked_one'] = _('one shift')
         dict['rosterdate_checked_multiple'] = _(' shifts')
 
-        dict['No_rosters'] = _('There are no rosters.')
-        dict['rosterdate_count_none'] = _('This rosterdate has no shifts.')
-        dict['rosterdate_count'] = _('This rosterdate has ')
         dict['confirmed'] = TXT_confirmed
         dict['one'] = TXT_one
-        dict['These_confirmed_shifts_willbe_skipped'] = _('These confirmed shifts will be skipped.')
-        dict['This_confirmed_shift_willbe_skipped'] = _('This confirmed shift will be skipped.')
 
-        dict['rosterdate_confirmed_one'] = _('1 of them is a confirmed shift.')
-        dict['rosterdate_confirmed_multiple'] = _(' of them are confirmed shifts.')
-        dict['rosterdate_confirmed_all'] = _(', all of them are confirmed shifts.')
-        dict['it_is_confirmed_shift'] = _(', it is a confirmed shift.')
-
-        dict['rosterdate_shift_willbe'] = _('This shift will be ')
-        dict['rosterdate_shifts_willbe'] = _('These shifts will be ')
-        dict['rosterdate_skip01'] = _('Shifts that are not confirmed will be ')
-        dict['rosterdate_skip02'] = _(', confirmed shifts will be skipped.')
         dict['rosterdate_finished'] = _('The shifts of this rosterdate have been ')
         dict['They_cannot_be_deleted'] = _('They cannot be deleted.')
         dict['It_cannot_be_deleted'] = _('It cannot be deleted.')
@@ -992,13 +978,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
 
         dict['Confirm'] = TXT_Confirm
-        dict['Start_and_endtime_confirmed'] = TXT_Start_and_endtime_confirmed
-        dict['Starttime_confirmed'] = TXT_Starttime_confirmed
-        dict['Endtime_confirmed'] = TXT_Endtime_confirmed
-        dict['This_shift_is_locked'] = TXT_This_shift_is_locked
-        dict['This_isa_planned_shift'] = TXT_This_isa_planned_shift
-        dict['This_isan_added_shift'] = TXT_This_isan_added_shift
-        dict['This_isa_restshift'] = TXT_This_isa_restshift
+        dict['Start_and_endtime_confirmed'] = _('Start- and endtime confirmed')
+        dict['Starttime_confirmed'] = _('Starttime confirmed')
+        dict['Endtime_confirmed'] = _('Endtime confirmed')
+
+        dict['This_shift_is_locked'] = _('This shift is locked.')
+        dict['This_shift_is_closed'] = _('This shift is closed.')
+        dict['This_isa_planned_shift'] =  _('This is a planned shift.')
+        dict['This_isan_added_shift'] = _('This is an added shift.')
+        dict['This_isa_restshift'] = _('This is a rest shift.')
         dict['Unlock_all_shifts_of'] = _('Unlock all shifts of ')
         dict['Lock_all_shifts_of'] = _('Lock all shifts of ')
 
@@ -1053,13 +1041,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['dst_warning'] = _('Daylight saving time has changed. This has been taken into account.')
 
-        dict['a_starttime'] = TXT_a_starttime
-        dict['an_endtime'] = TXT_an_endtime
+        dict['a_starttime'] = _('a start time')
+        dict['an_endtime'] = _('an end time')
 
         dict['Confirm'] = TXT_Confirm
-        dict['Undo_confirmation'] = TXT_Undo_confirmation
-        dict['Confirm_start_of_shift'] = TXT_Confirm_start_of_shift
-        dict['Confirm_end_of_shift'] = TXT_Confirm_end_of_shift
+        dict['Undo_confirmation'] = _('Undo confirmation')
+        dict['Confirm_start_of_shift'] = _('Confirm start of shift')
+        dict['Confirm_end_of_shift'] = _('Confirm end of shift')
 
         # ModRosterEmployee
         dict['Delete_employee'] = TXT_Delete_employee
@@ -1679,21 +1667,9 @@ TXT_err_open_planning_preview_02 = _(', before you can print a planning.')
 TXT_err_first_select_team = _('You must first select a team, before you can add a teammember.')
 TXT_err_cannot_enter_teammember_in_template = _('You cannot enter a teammember in a template.')
 
-TXT_a_starttime = _('a start time')
-TXT_an_endtime = _('an end time')
+
 
 TXT_Confirm = _('Confirm')
-TXT_Undo_confirmation = _('Undo confirmation')
-TXT_Confirm_start_of_shift = _('Confirm start of shift')
-TXT_Confirm_end_of_shift = _('Confirm end of shift')
-
-TXT_Start_and_endtime_confirmed = _('Start- and endtime confirmed')
-TXT_Starttime_confirmed = _('Starttime confirmed')
-TXT_Endtime_confirmed = _('Endtime confirmed')
-TXT_This_shift_is_locked = _('This shift is locked.')
-TXT_This_isa_planned_shift = _('This is a planned shift.')
-TXT_This_isan_added_shift = _('This is an added shift.')
-TXT_This_isa_restshift = _('This is a rest shift.')
 
 # get weekdays translated
 TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))

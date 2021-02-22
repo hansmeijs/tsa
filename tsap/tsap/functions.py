@@ -1019,6 +1019,45 @@ def calc_workingdays_in_period(period_datefirst_dte, period_datelast_dte, reques
     return period_workingdays, period_workingdays_incl_ph
 
 # ################### FORMAT FUNCTIONS ###################
+
+def format_date_short_from_date(datelast_dte, short_names, show_weekdays, user_lang):
+    #logger.debug(' --- format_date_short_from_date --- ') # PR2021-02-21
+
+    display_text = ''
+    try:
+        if short_names:
+            months_arr = c.MONTHS_ABBREV[user_lang]
+            weekday_arr = c.WEEKDAYS_ABBREV[user_lang]
+        else:
+            months_arr = c.MONTHS_LONG[user_lang]
+            weekday_arr = c.WEEKDAYS_LONG[user_lang]
+
+        year_str = str(datelast_dte.year)
+        month_str = months_arr[datelast_dte.month]
+        isoweekday = datelast_dte.isoweekday()
+        day_str = str(datelast_dte.day)
+
+        weekday_str = ''
+        if show_weekdays:
+            weekday_str = weekday_arr[isoweekday]
+            if user_lang != 'nl':
+                weekday_str += ','
+            weekday_str += ' '
+        if user_lang == 'nl':
+            display_text = ''.join([weekday_str, day_str, ' ', month_str, ' ', year_str])
+        else:
+            display_text = ''.join([weekday_str, month_str, ' ', day_str, ', ', year_str])
+
+    except Exception as e:
+        logger.error(getattr(e, 'message', str(e)))
+        logger.error('datelast_dte: '+ str(datelast_dte) + ' ' + str(type(datelast_dte)))
+
+
+    return display_text
+# - end of format_date_short_from_date
+
+
+# +++++++++++++++++++++++++++++++++
 def format_period_from_date(datefirst_dte, datelast_dte, short_names, user_lang):
     #logger.debug(' --- format_period_from_date --- ')
     #logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal))
@@ -3022,7 +3061,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - calculates timeduration, only when both start- and endtime have value.
     # - and takes in account daylight saving time
     # - value of row_timeduration is used when offset_start or offset_end is null (shift '6:00 hours')
-    logging_on = True
+    logging_on = False
     if logging_on:
         logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
         logger.debug('is_absence: ' + str(is_absence))
@@ -3098,10 +3137,8 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
             (is_ph and row_noph) or \
             (is_ch and row_noch):
         time_duration = 0
-
+    # ony use employee_wmpd when absence, no time duration value and  row_employee_wmpd has value
     if is_absence:
-        logger.debug('is_absence: ' + str(is_absence))
-        logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
         if new_timeduration:
             time_duration = new_timeduration
         elif row_employee_wmpd:
@@ -3110,6 +3147,8 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         time_duration = new_timeduration
 
     if logging_on:
+        logger.debug('is_absence: ' + str(is_absence))
+        logger.debug('row_employee_wmpd: ' + str(row_employee_wmpd))
         logger.debug('time_duration: ' + str(time_duration))
         logger.debug('new_timeduration: ' + str(new_timeduration))
 
@@ -3130,7 +3169,10 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
 
 # - calculate excel_date, excel_start, excel_end
     row_offsetstart_nonull = row_offsetstart if row_offsetstart else 0
-    row_offsetend_nonull = row_offsetend if row_offsetend else 0
+    # PR2021-02-21 debug. When offset_end is None: Gave excel_end same as excel_start, overlap didn't work,
+    # value when None must be 1440 instead of 0
+    # was: row_offsetend_nonull = row_offsetend if row_offsetend else 0
+    row_offsetend_nonull = row_offsetend if row_offsetend else 1440
     excel_date = get_Exceldate_from_datetime(rosterdate_dte)
     excel_start = excel_date * 1440 + row_offsetstart_nonull
     excel_end = excel_date * 1440 + row_offsetend_nonull
@@ -3590,7 +3632,7 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
             'rdl': datelast_plus_one_iso
         }
 
-        sql_list = ["SELECT eh.id, e.id, eh.excelstart, eh.excelend, oh.isabsence OR oh.isrestshift",
+        sql_list = ["SELECT eh.id, e.id, eh.excelstart, eh.excelend, c.isabsence, oh.isrestshift",
             "FROM companies_emplhour AS eh",
             "INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)",
             "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
@@ -3620,7 +3662,9 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
             row_e_id = row[1]
             row_excstart = row[2]
             row_excend = row[3]
-            row_absence_or_rest = row[4]
+            row_isabsence = row[4]
+            row_isrestshift = row[5]
+
     # - reset base_idx when row_e_id changes
             if row_e_id != previous_eid:
                 base_idx = idx
@@ -3630,7 +3674,7 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
 
             if logging_on:
                 logger.debug( str(idx) + ' ...................................')
-                logger.debug('dictrow: ' + str(row))
+                logger.debug('dictrow: ' + str(row)  + '(eh.id, e.id, eh.excelstart, eh.excelend, c.isabsence, oh.isrestshift)' )
                 logger.debug('row_e_id: ' + str(row_e_id) + ' previous_eid: ' + str(previous_eid))
                 logger.debug('idx: ' + str(idx) + ' e_idx: ' + str(e_idx) + ' base_idx: ' + str(base_idx))
     # - start lookup backward from second row
@@ -3646,7 +3690,8 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
                     lookup_eh_id = lookup[0]
                     lookup_excstart = lookup[2]
                     lookup_row_excend = lookup[3]
-                    lookup_absence_or_rest = lookup[4]
+                    lookup_isabsence = lookup[4]
+                    lookup_isrestshift = lookup[5]
 
                     # check for overlap
                     overlap_start, overlap_end = check_shift_overlap_with_startend(

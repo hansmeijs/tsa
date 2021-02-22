@@ -1,7 +1,7 @@
 # PR2019-07-31
 from django.contrib.auth.decorators import login_required
 from django.db import connection
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db.models.functions import Lower
 from django.http import HttpResponse
 
@@ -898,11 +898,12 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26 revised PR2020-11-08
                 # function checks if rosterdate has emplhours and confirmed emplhours
                 # upload_dict: {'rosterdate_check': {'mode': 'check_create'}}
                 if mode in ['check_create', 'check_delete']:
-                    update_dict['rosterdate_check'] = pld.get_rosterdate_check(upload_dict, request)
-                    #logger.debug('update_dict[rosterdate_check]: ' + str(update_dict['rosterdate_check']))
+                    update_dict['rosterdate_check'] = pld.check_rosterdate_emplhours(upload_dict, user_lang, request)
 
                 elif mode == 'create':
-
+# ----- rosterdate delete
+                    # RemoveRosterdate
+                    RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request)
 # ----- rosterdate create
                     # add new emplhours, confirmed existing emplhours will be skipped
                     return_dict = FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, request)
@@ -912,9 +913,6 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26 revised PR2020-11-08
 # ----- rosterdate delete
                     # RemoveRosterdate
                     return_dict = RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request)
-
-                # Remove EMplhour records without rosterdate
-                DeleteRecordsWithoutRosterdateOrWithoutChild(request)
 
                 if return_dict:
                     update_dict['rosterdate'] = return_dict
@@ -975,10 +973,11 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         #plv.update_paydates_in_paydatecode(rosterdate_dte, None, request)
 
 # - delete existing emplhour
+        # replaced by RemoveRosterdate outside this function
         # TODO replace by skipping , because of keeping track of entries
         # delete existing emplhour records of this rosterdate if they are not confirmed or locked,
         # also delete if rosterdate is null (should not be possible)
-        deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
+        # deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
 
         entries_count = 0
         entry_balance = subscr.get_entry_balance(request, comp_timezone)
@@ -1157,7 +1156,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
                         request=request)
 
                 if emplhour_is_added:
-                    mode = row.get('mode', '')
+                    mode = row.get('si_mod')
                     is_absence_or_restshift = mode in ('a', 'r')
                     if is_absence_or_restshift:
                         count_absent_rest = count_absent_rest + 1
@@ -1165,40 +1164,38 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
                         count_normal = count_normal + 1
                         duration_sum += count_duration
 
-                #logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
-                #logger.debug('-------- count_normal: ' + str(count_normal))
-
         # - add duration_sum to Companyinvoice
         subscr.add_duration_to_companyinvoice(
             rosterdate_dte, duration_sum, False, request, comp_timezone,
                                          user_lang)  # PR2020-04-07
-        if count_normal:
-            if count_normal == 1:
-                msg_created = _('One shift has been created.')
-            else:
-                msg_created = _('%(count)s shifts have been created.') % {'count': count_normal}
+        msg_list = []
+        if not count_normal and not count_absent_rest:
+            msg_list.append(_('No shifts have been created.'))
         else:
-            msg_created = _('No shifts were created.')
-        if msg_created:
-            return_dict['msg_02'] = msg_created
-
-        msg_skipped = None
-        if count_absent_rest:
-            if count_absent_rest == 1:
-                msg_skipped = _('One absence- or restshift has been created.')
-            else:
-                msg_skipped = _('%(count)s absence- or restshifts have been created.') % {'count': count_absent_rest}
-        if msg_skipped:
-            return_dict['msg_03'] = msg_skipped
+            if count_normal:
+                if count_normal == 1:
+                    msg_txt = _('One normal shift has been created.')
+                else:
+                    msg_txt = _('%(count)s normal shifts have been created.') % {'count': count_normal}
+                msg_list.append(msg_txt)
+            if count_absent_rest:
+                if count_absent_rest == 1:
+                    msg_txt = _('One absence- or restshift has been created.')
+                else:
+                    msg_txt = _('%(count)s absence- or restshifts have been created.') % {'count': count_absent_rest}
+                msg_list.append(msg_txt)
+        return_dict['msg_list'] = msg_list
 
     return return_dict
 
 
 def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                            employee_dictlist, wagecode_dictlist, default_wagefactor_pk, tm_si_id_info,
-                           comp_timezone, request):  # PR2020-01-5 PR2020-08-14
-    logger.debug(' ============= add_orderhour_emplhour ============= ')
-    logger.debug('row ' + str(row) + ' type: ' + str(type(row)))
+                           comp_timezone, request):  # PR2020-01-5 PR2020-08-14 PR2021-02-21
+    logging_on = False
+    if logging_on:
+        logger.debug(' ============= add_orderhour_emplhour ============= ')
+        #logger.debug('row ' + str(row) + ' type: ' + str(type(row)))
 
     mode = row.get('si_mod')
     is_absence = (mode == 'a')
@@ -1214,11 +1211,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     # (happens when FillRosterdate for this rosterdate is previously used)
 
     # emplhour is linked with schemeitem by rosterdate / schemeitemid / teammmeberid, not by Foreignkey
-    # when creating roster only one emplhour is created per orderhour. It contains status STATUS_00_CREATED = True.
+    # when creating roster only one emplhour is created per orderhour. It contains status STATUS_00_PLANNED = True.
     # only one emplhour is created per (rosterdate / schemeitemid / teammmeber) combination
     # orderhour_id of emplhour never changes
     # one orderhour can have multiple emplhours when split function is used
-    # split emplhour records or absence emplhour records have STATUS_00_CREATED = False.
+    # split emplhour records or absence emplhour records have STATUS_00_PLANNED = False.
     # emplhour records that are not confirmed are already deleted in delete_emplhours_orderhours,
     # therefore you only heve to check for existing emplhour records
 
@@ -1245,7 +1242,6 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             END AS sh_isbill
         """
         is_billable = row.get('sh_isbill', False)
-        logger.debug('is_billable' + str(is_billable))
 
         sh_os = row.get('sh_os')
         sh_oe = row.get('sh_oe')
@@ -1276,8 +1272,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
                 row_employee_pk=employee_pk, row_employee_wmpd=e_wmpd,
                 comp_timezone=comp_timezone)
 
-        #logger.debug('plandur: ' + str(planned_duration) + ' timedur: ' + str(time_duration)+ ' billdur: ' + str(billing_duration) )
-        #logger.debug('excel_date: ' + str(excel_date) + ' excel_start: ' + str(excel_start) + ' excel_end: ' + str(excel_end))
+        if logging_on:
+            logger.debug('is_absence: ' + str(is_absence) + ' is_restshift: ' + str(is_restshift) + ' is_billable: ' + str(is_billable))
+            logger.debug('plandur: ' + str(planned_duration) + ' timedur: ' + str(time_duration)+ ' billdur: ' + str(billing_duration) )
+            logger.debug('excel_date: ' + str(excel_date) + ' excel_start: ' + str(excel_start) + ' excel_end: ' + str(excel_end))
 
         # calculate datepart
         date_part = 0
@@ -1293,50 +1291,20 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 # get wagefactor from order or shift
         wagefactor_pk = emplan.get_wagefactorpk_from_row(
             row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
-        is_absence = (mode == 'a')
-        if is_restshift:
-            # no wagefactor when restshift
-            pass
-        elif is_absence:
-            # get wagefactor from order (= abscat) when absence
-            if is_publicholiday:
-                wagefactor_pk = row.get('o_wfc_onph_id')
-            elif is_sunday:
-                wagefactor_pk = row.get('o_wfc_onsun_id')
-            elif is_saturday:
-                wagefactor_pk = row.get('o_wfc_onsat_id')
-            # get wagefactor of weekday wagefactor if no value found
-            if wagefactor_pk is None:
-                wagefactor_pk = row.get('o_wfc_onwd_id')
-            if wagefactor_pk is None:
-                wagefactor_pk = default_wagefactor_pk
-        else:
-            # get wagefactor from shift when normal shift
-            if is_publicholiday:
-                wagefactor_pk = row.get('wfc_onph_id')
-            elif is_sunday:
-                wagefactor_pk = row.get('wfc_onsun_id')
-            elif is_saturday:
-                wagefactor_pk = row.get('wfc_onsat_id')
-            # get wagefactor of weekday wagefactor if no value found
-            if wagefactor_pk is None:
-                wagefactor_pk = row.get('wfc_onwd_id')
-            if wagefactor_pk is None:
-                wagefactor_pk = default_wagefactor_pk
 
-        wagefactor_code, wagefactor_rate = None, 0
+        wagefactor_caption, wagefactor_rate = None, 0
         if wagefactor_pk:
             wagecode_dict = wagecode_dictlist.get(wagefactor_pk)
-            wagefactor_code = wagecode_dict.get('code')
+            wagefactor_caption = wagecode_dict.get('code')
             wagefactor_rate = wagecode_dict.get('wagerate', 0)
 
-        logger.debug('------------------------------')
-        logger.debug('row: ' + str(row))
-        logger.debug('is_publicholiday: ' + str(is_publicholiday) + ' is_sunday: ' + str(is_sunday) + ' is_saturday: ' + str(is_saturday))
-        logger.debug('default_wagefactor_pk: ' + str(default_wagefactor_pk))
-        logger.debug('wfc_onwd_id: ' + str(row.get('wfc_onwd_id')) + ' wfc_onsat_id: ' + str(row.get('wfc_onsat_id'))+ ' wfc_onsun_id: ' + str(row.get('wfc_onsun_id'))+ ' wfc_onph_id: ' + str(row.get('wfc_onph_id'))  )
-        logger.debug('wagefactor_pk: ' + str(wagefactor_pk) + ' wagefactor_code: ' + str(wagefactor_code) + ' wagefactor_rate: ' + str(wagefactor_rate))
-        logger.debug('------------------------------')
+        if logging_on:
+            logger.debug('------------------------------')
+            logger.debug('is_publicholiday: ' + str(is_publicholiday) + ' is_sunday: ' + str(is_sunday) + ' is_saturday: ' + str(is_saturday))
+            logger.debug('default_wagefactor_pk: ' + str(default_wagefactor_pk))
+            logger.debug('wfc_onwd_id: ' + str(row.get('wfc_onwd_id')) + ' wfc_onsat_id: ' + str(row.get('wfc_onsat_id'))+ ' wfc_onsun_id: ' + str(row.get('wfc_onsun_id'))+ ' wfc_onph_id: ' + str(row.get('wfc_onph_id'))  )
+            logger.debug('wagefactor_pk: ' + str(wagefactor_pk) + ' wagefactor_caption: ' + str(wagefactor_caption) + ' wagefactor_rate: ' + str(wagefactor_rate))
+            logger.debug('------------------------------')
 
 # get pricecode
         sh_prc_id = row.get('sh_prc_id')
@@ -1344,14 +1312,16 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 
         additioncode_pk = row.get('sh_adc_id')
         addition_rate = f.get_pricerate_from_pricecodeitem('additioncode', additioncode_pk, rosterdate_dte)
-        logger.debug('additioncode_pk: ' + str(additioncode_pk) + ' addition_rate: ' + str(addition_rate))
 
         # search of first available taxrate is part of query
         taxcode_pk = row.get('sh_txc_id')
         tax_rate = f.get_pricerate_from_pricecodeitem('taxcode', taxcode_pk, rosterdate_dte)
-        logger.debug('taxrate_index: ' + str(taxcode_pk) + ' tax_rate: ' + str(tax_rate))
 
         o_inv_id = row.get('o_inv_id')
+
+        if logging_on:
+            logger.debug('additioncode_pk: ' + str(additioncode_pk) + ' addition_rate: ' + str(addition_rate))
+            logger.debug('taxrate_index: ' + str(taxcode_pk) + ' tax_rate: ' + str(tax_rate))
 
 # 3. create new orderhour
         orderhour = m.Orderhour(
@@ -1372,7 +1342,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             additionrate=addition_rate,
             taxrate=tax_rate,
             invoicecode=o_inv_id,
-            status=c.STATUS_00_CREATED
+            status=c.STATUS_00_PLANNED
         )
         orderhour.save(request=request)
 
@@ -1399,13 +1369,14 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             date_part=date_part,
 
             wagefactor_pk=wagefactor_pk,
-            wagefactor_code=wagefactor_code,
+            wagefactor_caption=wagefactor_caption,
             wagefactor_rate=wagefactor_rate,
 
             sh_prc_id=sh_prc_id,
             sh_prc_override=sh_prc_override,
             addition_rate=addition_rate,
             tax_rate=tax_rate,
+            logging_on=logging_on,
             request=request)
 
     # - count_duration counts only duration of normal and single shifts, for invoicing
@@ -1422,9 +1393,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_info, is_absence, is_replacement,
                  timestart, timeend, planned_duration, time_duration, billing_duration, break_duration,
                  offset_start, offset_end, excel_date, excel_start, excel_end, date_part,
-                wagefactor_pk, wagefactor_code, wagefactor_rate,
-                 sh_prc_id, sh_prc_override, addition_rate, tax_rate, request):
-    logger.debug(' ============= add_emplhour ============= ')
+                wagefactor_pk, wagefactor_caption, wagefactor_rate,
+                 sh_prc_id, sh_prc_override, addition_rate, tax_rate, logging_on, request):
+    if logging_on:
+        logger.debug(' ============= add_emplhour ============= ')
 
     """
     row = 
@@ -1528,17 +1500,20 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
         # threfore absence rows must come last in sorted rows (sort on o_seq, normal shifts have o_seq=-1
             if is_absence:
                 tm_si_id = str(tm_id) + '_' + str(si_id)
-                #logger.debug('>>>>>>>>>>>>>>>>>>>>> tm_si_id: ' + str(tm_si_id))
-                #logger.debug('>>>>>>>>>>>>>>>>>>>>> tm_si_id: ' + str(tm_si_id_info.get(tm_si_id)))
                 note_absent_from = f.get_dict_value(tm_si_id_info, (tm_si_id,'note_absent_from'))
-                #logger.debug('>>>>>>>>>>>>>>>>>>>>> note_absent_from: ' + str(note_absent_from))
+
+                if logging_on:
+                    logger.debug('.....note_absent_from: ' + str(note_absent_from))
+                    logger.debug('.....tm_si_id: ' + str(tm_si_id))
+                    logger.debug('.....tm_si_id: ' + str(tm_si_id_info.get(tm_si_id)))
                 if note_absent_from:
                     has_note = True
                     note = note_absent_from
 
-            logger.debug('sh_prc_override: ' + str(sh_prc_override))
-            logger.debug('sh_prc_id: ' + str(sh_prc_id))
-            logger.debug('e_prc_id: ' + str(e_prc_id))
+            if logging_on:
+                logger.debug('sh_prc_override: ' + str(sh_prc_override))
+                logger.debug('sh_prc_id: ' + str(sh_prc_id))
+                logger.debug('e_prc_id: ' + str(e_prc_id))
 
             # use employee pricecode if it has value and not override bij shift pricecode
             pricecode_pk = None
@@ -1547,7 +1522,7 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
             elif sh_prc_id:
                 pricecode_pk = sh_prc_id
             price_rate = f.get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, orderhour.rosterdate)
-            logger.debug('pricecode_pk: ' + str(pricecode_pk) + ' price_rate: ' + str(price_rate))
+
 
             # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
             if orderhour.isabsence or orderhour.isrestshift:
@@ -1561,7 +1536,10 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
 # - calculate amount, addition and tax
             amount, addition, tax = f.calc_amount_addition_tax_rounded(billing_duration, orderhour.isabsence, orderhour.isrestshift,
                                                                        price_rate, addition_rate, tax_rate)
-            logger.debug('amount: ' + str(amount) + ' addition: ' + str(addition) + ' tax: ' + str(tax))
+
+            if logging_on:
+                logger.debug('pricecode_pk: ' + str(pricecode_pk) + ' price_rate: ' + str(price_rate))
+                logger.debug('amount: ' + str(amount) + ' addition: ' + str(addition) + ' tax: ' + str(tax))
             # PR2020-11-09 Not in use any more
                 # add pay_date PR2020-06-18
                 # note: pay_date must be updated in table Paydatecode before filling rosterdate
@@ -1600,7 +1578,7 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
                 wagerate=wagerate,
                 wagefactorcode_id=wagefactor_pk,
                 wagefactor=wagefactor_rate,
-                wagefactorcaption=wagefactor_code,
+                wagefactorcaption=wagefactor_caption,
                 wage=wage,
 
                 pricecode_id=pricecode_pk,
@@ -1609,7 +1587,7 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
                 addition=addition,
                 tax=tax,
 
-                status=c.STATUS_00_CREATED,
+                status=c.STATUS_00_PLANNED,
                 haschanged=False,
                 overlap=overlap,
                 hasnote=has_note,
@@ -1772,7 +1750,7 @@ def get_schemeitem_rosterdate_within_cycle(schemeitem, new_rosterdate):
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
-def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR2019-06-17 PR2020-01-16
+def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR2019-06-17 PR2020-01-16 PR2021-02-20
     logger.debug(' ============= RemoveRosterdate ============= ')
     logger.debug(' rosterdate_iso:' + str(rosterdate_iso) + ' ' + str(type(rosterdate_iso)))
     count_deleted = 0
@@ -1780,75 +1758,59 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
     duration_sum = 0
     has_error = False
     return_dict = {'mode': 'delete'}
+    orderhour_pk__list = []
     if rosterdate_iso:
         # - create recordset of orderhour records with rosterdate = rosterdate_current
         #   Don't filter on schemeitem Is Not Null (schemeitem Is Not Null when generated by Scheme, schemeitem Is Null when manually added)
         try:
             # get orderhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
-            crit = Q(order__customer__company=request.user.company) & \
-                   (Q(rosterdate=rosterdate_iso) | Q(rosterdate__isnull=True))
-            orderhours = m.Orderhour.objects.filter(crit)
-            for orderhour in orderhours:
-                logger.debug(' orderhour:' + str(orderhour) + ' ' + str(type(orderhour)))
-                orderhour_confirmed = False
-                if not orderhour.rosterdate:
-                    delete_orderhour = True
-                else:
-                    orderhour_confirmed = orderhour.status >= c.STATUS_02_START_CONFIRMED
-                    delete_orderhour = not orderhour_confirmed
-                logger.debug(' delete_orderhour:' + str(delete_orderhour) + ' ' + str(type(delete_orderhour)))
+            # only delete records:
+            # - of this rosterdate ans this company
+            # - that are not payrollpublished and not invoicepublished: payrollpublished_id IS NULL AND eh.invoicepublished_id IS NULL
+            # - that are planned, not added, i.e. that have odd status: MOD(eh.status, 2) = 1
+            # - that are not confirmed and not locked, i.e. status < 4: eh.status < " + str(c.STATUS_02_START_CONFIRMED),
+            emplhours=m.Emplhour.objects.annotate(status_odd=F('status') % 2).filter(
+                orderhour__order__customer__company=request.user.company,
+                rosterdate=rosterdate_iso,
+                payrollpublished__isnull=True,
+                invoicepublished__isnull=True,
+                status_odd=True,
+                status__lt=c.STATUS_02_START_CONFIRMED
+            )
+            if emplhours:
+                for emplhour in emplhours:
+                    # doublecheck
+                    # - payrollpublished and invoicepublished may not have value
+                    # - status must be odd number (not an added record, even number meand an added record)
+                    # - statsu must be less than 4 (not confirmed or locked)
+                    if emplhour.payrollpublished is None and \
+                            emplhour.invoicepublished is None and \
+                            emplhour.status % 2 != 0 and \
+                            emplhour.status < c.STATUS_02_START_CONFIRMED:
 
-                # get emplhours of this orderhour
-                emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
-                if emplhours:
-                    for emplhour in emplhours:
-                        logger.debug(' emplhour:' + str(delete_orderhour) + ' ' + str(type(delete_orderhour)))
-                        emplhour_pk = emplhour.pk
-                        delete_emplhour = False
-                        # also delete emplhour when emplhour or orderhour has no rosterdate
-                        if not emplhour.rosterdate or not orderhour.rosterdate:
-                            delete_emplhour = True
-                        else:
-                            if orderhour_confirmed:
-                                # dont delete emplhour when orderhour_confirmed
-                                count_confirmed += 1
+                        logger.debug(' emplhour.employeecode:' + str(emplhour.employeecode))
+                        logger.debug(' emplhour.status:' + str(emplhour.status))
+
+                        orderhour_pk = emplhour.orderhour_id
+                        # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
+                        # - count_duration
+                        # counts only duration of normal and single shifts, for invoicing
+                        # when no time provided: fill in 8 hours = 480 minutes
+                        if not emplhour.orderhour.isrestshift \
+                                and not emplhour.orderhour.order.customer.isabsence:
+                            if emplhour.plannedduration:
+                                duration_sum += emplhour.plannedduration
                             else:
-                                if emplhour.status >= c.STATUS_02_START_CONFIRMED:
-                                    # dont delete orderhour when one or more emplhours are confirmed
-                                    orderhour_confirmed = True
-                                    delete_orderhour = False
-                                    count_confirmed += 1
-                                else:
-                                    delete_emplhour = True
+                                duration_sum += 480
+                        m.delete_emplhour_instance(emplhour, request)
+                        count_deleted += 1
+                        orderhour_pk__list.append(orderhour_pk)
+                        logger.debug(' count_deleted:' + str(count_deleted) + ' ' + str(type(count_deleted)))
 
-                        logger.debug(' delete_emplhour:' + str(delete_emplhour) + ' ' + str(type(delete_emplhour)))
-                        # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
-                        if delete_emplhour:
-                            # delete_emplhour first saves to log and updates date_deleted in Companysetting.datetimesetting2
-                            # the deletes emplhour and - if orderhour has no more emplhours - also deletes orderhour
-                            m.delete_emplhour_instance(emplhour, request)
-                            count_deleted += 1
-
-                            logger.debug(' count_deleted:' + str(count_deleted) + ' ' + str(type(count_deleted)))
-                            # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
-                            # - count_duration counts only duration of normal and single shifts, for invoicing
-                            # when no time provided: fill in 8 hours = 480 minutes
-                            if not orderhour.isabsence and not orderhour.isrestshift and emplhour.status == c.STATUS_00_CREATED:
-                                if emplhour.plannedduration:
-                                    duration_sum += emplhour.plannedduration
-                                else:
-                                    duration_sum += 480
-                        else:
-                            delete_orderhour = False
-                else:
-                    # delete orderhour if it has no emplhours
-                    delete_orderhour = True
-
-                # delete orderhour
-                if delete_orderhour:
-                    orderhour.delete(request=request)
+# delete_orderhours_without_emplhours
+            delete_orderhours_without_emplhours(rosterdate_iso, request)
         except Exception as e:
-            logger.error(e)
+            logger.error(getattr(e, 'message', str(e)))
             has_error = True
 
         if has_error:
@@ -1882,34 +1844,36 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
     return return_dict
 
 
-def DeleteRecordsWithoutRosterdateOrWithoutChild(request):  # PR2020-02-15
-    #logger.debug(' ============= DeleteRecordsWithoutRosterdateOrWithoutChild ============= ')
-    #logger.debug(' rosterdate_current:' + str(rosterdate_current))
-    # function checks if there are orderhour records without rosterdate or without emplhour and deletes them
-    # also deletes emplhour records without rosterdate
-    # reords without rosterdate or emplhour should not be possible
+def delete_orderhours_without_emplhours(rosterdate_iso, request):
+    # PR2021-02-20
+    #logger.debug(' ============= delete_orderhours_without_emplhours ============= ')
 
-    # delete emplhour records without rosterdate
-    emplhours = m.Emplhour.objects.filter(
-        orderhour__order__customer__company=request.user.company,
-        rosterdate__isnull=True)
-    if emplhours:
-        for emplhour in emplhours:
-            #logger.debug(' this emplhour will be deleted:' + str(emplhour))
-            emplhour.delete(request=request)
+    try:
+        # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+        # get ist of orderhour_pk's of orderhours without emplhours, filter rosterdate, company
+        sql_keys = {'compid': request.user.company.pk, 'rd': rosterdate_iso}
+        sql_list = ["SELECT oh.id",
+                    "FROM companies_orderhour AS oh",
+                    "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                    "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                    "WHERE c.company_id = %(compid)s::INT",
+                    "AND oh.rosterdate = %(rd)s::DATE",
+                    "AND oh.id NOT IN (SELECT eh.orderhour_id FROM companies_emplhour AS eh)"]
+        sql = ' '.join(sql_list)
 
-    # delete orderhour records without rosterdate
-    orderhours = m.Orderhour.objects.filter(
-        order__customer__company=request.user.company,
-        rosterdate__isnull=True)
-    if orderhours:
-        for orderhour in orderhours:
-            #logger.debug(' this orderhour will be deleted:' + str(orderhour))
-            orderhour.delete(request=request)
+        newcursor = connection.cursor()
+        newcursor.execute(sql, sql_keys)
+        row_tuple = newcursor.fetchall()
+        # row_tuple: [(329,), (330,), (331,), (332,)]
+        if row_tuple:
+            for row in row_tuple:
+                orderhour_pk = row[0]
+                orderhour = m.Orderhour.objects.get_or_none(pk=orderhour_pk)
+                if orderhour:
+                    orderhour.delete()
 
-
-# delete orderhour records without emplhour record
-# TODO create query
+    except Exception as e:
+        logger.error(getattr(e, 'message', str(e)))
 
 
 def get_range_text(datefirst, datelast, parenthesis=False):

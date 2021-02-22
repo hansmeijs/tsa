@@ -68,7 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
         let selected_btn = null;
-        let selected_view = null;  //selected views are 'calendar_period' and 'payroll_period', gets value in DatalistDownload response
+        let selected_key = null;  // selected_key = btn "functioncode" > "fnc"  btn "wagefactor" > "wfc" : btn "wagecode" > "wgc" : btn "allowance" > "alw", btn "paydatecode" > "",  btn "abscat" > ""
+        let selected_view = null; //selected views are 'calendar_period' and 'payroll_period', gets value in DatalistDownload response
 
         let is_quicksave = false
         let is_payroll_detail_mode = false;
@@ -632,6 +633,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!selected_btn){selected_btn = "btn_payroll_agg"};
         console.log( "selected_btn", selected_btn);
 
+        selected_key = (selected_btn === "functioncode") ? "fnc" :
+                        (selected_btn === "wagefactor") ? "wfc" :
+                        (selected_btn === "wagecode") ? "wgc" :
+                        (selected_btn === "allowance") ? "alw" : null;
+                        //(selected_btn === "paydatecode") ? "" :
+                        // (selected_btn === "abscat") ? "" : null
+
 // ---  upload new selected_btn, not after loading page (then skip_upload = true)
         if(!skip_upload){
             //const upload_dict = {page_payroll: {sel_btn: selected_btn}};
@@ -746,7 +754,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
         // this function is not used in payroll and payroll_detail, those use HandleAggRowClicked instead
         const tblName = get_attr_from_el_str(tr_clicked, "data-table")
-        const key_str = get_attr_from_el_str(tr_clicked, "data-key")
         const data_map = get_data_map(tblName)
 
 // ---  deselect all highlighted rows - also tblFoot , highlight selected row
@@ -768,8 +775,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected.wagecode_description = map_dict.description;
                 }
             // TODO deprecate
-            else if (key_str === "fnc") { selected.functioncode_pk = map_dict.id; selected.functioncode_code = map_dict.code }
-            else if (key_str === "wfc") { selected.wagefactor_pk = map_dict.id; selected.wagefactor_code = map_dict.code }
+            else if (selected_key === "fnc") { selected.functioncode_pk = map_dict.id; selected.functioncode_code = map_dict.code }
+            else if (selected_key === "wfc") { selected.wagefactor_pk = map_dict.id; selected.wagefactor_code = map_dict.code }
 
         }
 
@@ -848,10 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- get tblName and data_key.
         const tblName = "wagecode";
-        const key_str = (selected_btn === "wagefactor") ? "wfc" :
-                         (selected_btn === "wagecode") ? "wgc" :
-                         (selected_btn === "functioncode") ? "fnc" :
-                         (selected_btn === "allowance") ? "alw" : null;
+        const key_str = selected_key; // selected_key gets value in HandleBtnSelect from selected_btn
 
 // ---  reset table
         tblHead_paydatecode.innerText = null;
@@ -2127,7 +2131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //selected_btns are: "btn_payroll_agg", "btn_payroll_detail", "paydatecode", "abscat",
         //                      "wagecode", "wagefactor", "allowance", "functioncode"
         // tblNames are: "abscat", "paydatecode", "wagecode", "closingdate" "employee"
-        // key_str has only value when tblName =  "wagecode" :  "wfc", "wgc", "fnc", "alw"
+        // key_str has only value when tblName = "wagecode" :  "wfc", "wgc", "fnc", "alw"
 
         let tblRow = null;
 
@@ -2148,17 +2152,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if(row_index >= row_count ) {row_index = -1}
             tblRow = tblBody.insertRow(row_index);
 
-            const key_str = (selected_btn === "wagecode") ? "wgc" :
-                            (selected_btn === "wagefactor") ? "wfc" :
-                            (selected_btn === "allowance") ? "alw" :
-                            (selected_btn === "functioncode") ? "fnc" : null;
+            const key_str = selected_key; // selected_key gets value in HandleBtnSelect from selected_btn
 
 // --- add data attributes to tblRow
             if(map_id){tblRow.setAttribute("id", map_id)};
             if(pk_str){tblRow.setAttribute("data-pk", pk_str)};
             if(ppk_str){tblRow.setAttribute("data-ppk", ppk_str)};
             if(tblName){tblRow.setAttribute("data-table", tblName)};
-            if(tblName){tblRow.setAttribute("data-key", key_str)};
             if(order_by){tblRow.setAttribute("data-orderby", order_by)};
 
 // --- add EventListener to tblRow, not in functioncode, paydatecode,  employee, closingdate,
@@ -2190,7 +2190,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (["o_nowd", "o_nosat", "o_nosun", "o_noph"].indexOf( fldName ) > -1){
                         const img_class = "tick_0_0";
                 // --- add EventListener
-                        //el_div.addEventListener("click", function() {UploadToggle(el_div)}, false )
                         el_div.addEventListener("click", function() {MAC_Open(j, el_div)}, false)
                 // --- add div with image inactive
                         let el_img = document.createElement("div");
@@ -2344,25 +2343,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //  if (field_settings[tblName])
     }  // CreateTblFoot
 
-//=========  CreateBtnDeleteInactive  ================ PR2020-06-09
-    function CreateBtnDeleteInactive(mode, sel_btn, el_input){
-        //console.log("========= CreateBtnDeleteInactive  ========= ", mode);
-// --- add EventListener
-        el_input.addEventListener("click", function() {UploadToggle(el_input)}, false )
-// --- add title
-        const title = (mode ==="delete" && sel_btn === "abscat") ? loc.Delete_abscat : null;
-        if(title){el_input.setAttribute("title", title)};
-// --- add image
-        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_lightgrey;
-        AppendChildIcon(el_input, img_src)
-// --- add class
-        el_input.classList.add("ml-4", "border_none", "pointer_show");
-// --- add hover
-        if(mode ==="delete"){ add_hover_image(el_input, imgsrc_deletered, imgsrc_delete)
-        } else if(mode ==="inactive"){ add_hover(el_input)}
-    }  // CreateBtnDeleteInactive
-
-
 //###########################################################################
 // +++++++++++++++++ UPLOAD CHANGES +++++++++++++++++ PR2020-06-10
     function UploadChanges(upload_dict, url_str) {
@@ -2396,12 +2376,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         refresh_datamap(response["employee_list"], employee_map)
                     }
                     // used in MODAL EMPLHOUR PAYROLL
-                    if ("emplhour_dict" in response){
-                        const emplhour_dict = response.emplhour_dict;
-                        const emplhourlog_list = ("emplhourlog_list" in response) ? response.emplhourlog_list : null;
-                        MEP_FillLogTable(emplhourlog_list);
-                        MEP_SetInputElements(emplhour_dict);
-                    }
+                    if ("emplhourlog_list" in response){ MEP_FillLogTable(response.emplhourlog_list)};
+                    if ("emplhour_dict" in response){ MEP_SetInputElements(response.emplhour_dict)};
+
                     if("updated_abscat_rows" in response){
                         refresh_data_mapNEW("abscat", abscat_map, response.updated_abscat_rows, false); // skip_show_ok = false
                     }
@@ -2429,7 +2406,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UploadToggle  ============= PR2020-06-10
     function UploadToggle(el_input) {
         console.log( " ==== UploadToggle ====");
-        // called by fields "o_nopay", "o_nosat", "o_nosun", "o_noph", "o_inactive", "delete"
+        // called by fields "o_inactive", "delete"
         // also by functioncode
 
         const tblRow = get_tablerow_selected(el_input)
@@ -2441,6 +2418,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data_map = get_data_map(tblName);
             const map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
 
+        console.log( "map_dict", map_dict);
             const is_make_inactive = (tblName === "abscat" && fldName === "o_inactive" && !map_dict.o_inactive) ||
                                      (tblName === "functioncode" && fldName === "inactive" && !map_dict.inactive) ||
                                      (tblName === "wagecode" && fldName === "inactive" && !map_dict.inactive);
@@ -2604,7 +2582,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateField  ============= PR2019-10-05
     function UpdateField(el_input, item_dict, show_ok){
-        console.log("========= UpdateField  =========");
+        //console.log("========= UpdateField  =========");
         //console.log("item_dict", item_dict);
         const fldName = get_attr_from_el(el_input, "data-field");
         const field_value = item_dict[fldName];
@@ -2643,9 +2621,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (["wfc_onwd", "wfc_onsat", "wfc_onsun", "wfc_onph"].indexOf( fldName ) > -1){
             const code = item_dict[fldName + "_code"]
             const wagerate = item_dict[fldName + "_rate"]
-console.log("item_dict", item_dict);
-        console.log("fldName", fldName);
-        console.log("code", code);
+
             el_input.innerText = (code) ? code : "\n";
             el_input.setAttribute("data-filter", (code) ? code.toLowerCase() : null )
 
@@ -3060,7 +3036,8 @@ console.log("item_dict", item_dict);
             let row_index = t_get_rowindex_by_orderby(tblBody, order_by)
             //console.log("row_index: " , row_index);
 // add new tablerow if it does not exist
-            const employee_pk = null, is_disabled = false;
+            const key_str = null, employee_pk = null, is_disabled = false;
+            // key_str has only value when tblName = "wagecode" :  "wfc", "wgc", "fnc", "alw"
             tblRow = CreateTblRow(tblBody, tblName, key_str, map_id, update_dict.id, update_dict.c_id, order_by, employee_pk, row_index, is_disabled)
 
         console.log("tblRow: " , tblRow);
@@ -5855,10 +5832,11 @@ console.log("item_dict", item_dict);
 
 //=========  MEP_FillLogTable  ================ PR2020-09-04
     function MEP_FillLogTable(emplhourlog_list) {
-        //console.log( "===== MEP_FillLogTable ========= ");
+        console.log( "===== MEP_FillLogTable ========= ");
         const tblBody_select = document.getElementById("id_MEP_tblbody");
         tblBody_select.innerText = null;
 
+        console.log( "emplhourlog_list", emplhourlog_list);
 // --- create header row
         if(emplhourlog_list && emplhourlog_list.length){
 
@@ -6055,12 +6033,14 @@ console.log( "new_offset: ", new_offset);
 
         const field_names = field_settings.abscat.field_names;
 
+        console.log("field_names", field_names);
 // ---  get info from tblRow - tblRow does not exist when clicked on menu add_new btn
         let fldName = get_attr_from_el(el_clicked, "data-field")
         const tblRow = get_tablerow_selected(el_clicked);
         const is_addnew = (!tblRow);
         let abscat_dict = {};
 
+        console.log("fldName", fldName);
 // ---  get abscat_dict from abscat_map
         mod_MAC_dict = {};
         if(is_addnew) {
@@ -6071,6 +6051,7 @@ console.log( "new_offset: ", new_offset);
         } else {
             const map_id = tblRow.id;
             abscat_dict = get_mapdict_from_datamap_by_id(abscat_map, map_id)
+        console.log("abscat_dict", abscat_dict);
     // ---  create mod_MAC_dict
             // abscatdict contains saved values
             mod_MAC_dict = {
@@ -6088,11 +6069,12 @@ console.log( "new_offset: ", new_offset);
         const header_text = (mod_MAC_dict.o_code) ? loc.Absence_category + ": " + mod_MAC_dict.o_code : loc.Absence_category;
         document.getElementById("id_MAC_hdr_abscat").innerText = header_text;
 
+        console.log("mod_MAC_dict.abscatdict ", mod_MAC_dict.abscatdict);
 // ---  fill input textboxes
         let el_focus = null;
         for (let i = 0, el; el = el_MAC_input_els[i]; i++) {
             const field = get_attr_from_el(el, "data-field");
-            el.value = mod_MAC_dict.abscatdict[field];
+            el.value = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : null;
             if (fldName && field === fldName){ el_focus = el};
         };
 
@@ -6100,14 +6082,15 @@ console.log( "new_offset: ", new_offset);
         for (let i = 0, el; el = wfc_input_select_els[i]; i++) {
             const field = get_attr_from_el(el, "data-field");
             // function FillOptions filters wagecode_map rows by key='wfc'
-            t_FillOptionsAbscatFunction(loc, "wagefactor", el, wagecode_map, mod_MAC_dict.abscatdict[field]);
+            const selected_pk = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : null;
+            t_FillOptionsAbscatFunction(loc, "wagefactor", el, wagecode_map, selected_pk);
             if (fldName && field === fldName){ el_focus = el};
         }
 // ---  fill wagefactor select options. t_FillOptionsAbscatFunction is also used for functioncodes
         let has_wfc_value = false, has_wfc_satsunph = false;
         for (let i = 0, el; el = wfc_input_select_els[i]; i++) {
             const field = get_attr_from_el(el, "data-field");
-            const wfc_value = mod_MAC_dict.abscatdict[field];
+            const wfc_value = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : null;
             if(wfc_value) {
                 has_wfc_value = true;
                 if(["wfc_onsat","wfc_onsun", "wfc_onph"].indexOf(field) > -1) { has_wfc_satsunph = true};
@@ -6164,16 +6147,13 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
         for (const [fldName, dbField] of Object.entries(mapped_abscat_fields)) {
         console.log(fldName, dbField)
             if (fldName in mod_MAC_dict){
-        console.log("fldName) in mod_MAC_dict")
-        console.log("mod_MAC_dict[fldName]", mod_MAC_dict[fldName])
-        console.log("mod_MAC_dict.abscatdict[fldName]", mod_MAC_dict.abscatdict[fldName])
-                if (mod_MAC_dict[fldName] !== mod_MAC_dict.abscatdict[fldName]){
+                // save when no old value or new value different from old value
+                if (!mod_MAC_dict.abscatdict || mod_MAC_dict[fldName] !== mod_MAC_dict.abscatdict[fldName]){
                     upload_dict[dbField] = {value: mod_MAC_dict[fldName], update: true}
                 }
             }
         };
         console.log("upload_dict]",upload_dict)
-
 
         if(is_delete){
 // ---  make row red when delete, before uploading
@@ -6408,7 +6388,7 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
         console.log("crud_mode", crud_mode)
         console.log("el_input", el_input)
         console.log("selected_btn", selected_btn)
-
+        // called by menubutton 'delete or tblRow btn inactive
         // used in submenu_delete (el_input = undefined) and abscat UploadToggle
         const is_delete = (crud_mode === "delete");
         const is_set_inactive = (crud_mode === "inactive");
@@ -6419,17 +6399,7 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
        // const tblName = selected_btn;
         let tblRow = get_tablerow_selected(el_input);
         const tblName = get_attr_from_el(tblRow, "data-table")
-        let key_str = null;
-        if (tblRow){
-            key_str = get_attr_from_el(tblRow, "data-key")
-        } else {
-            key_str = (selected_btn === "functioncode") ? "fnc" :
-                    //(selected_btn === "paydatecode") ? "" :
-                    (selected_btn === "wagefactor") ? "wfc" :
-                    (selected_btn === "wagecode") ? "wgc" :
-                    (selected_btn === "allowance") ? "alw" : null;
-                   // (selected_btn === "abscat") ? "" : null
-        }
+        const key_str = selected_key; // selected_key gets value in HandleBtnSelect from selected_btn
         const selected_pk = get_selected_pk();
         const map_id = (tblRow) ? tblRow.id : get_map_id(tblName, selected_pk);
 

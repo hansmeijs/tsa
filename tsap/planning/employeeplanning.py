@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
-    logging_on = True
+    logging_on = False
     if logging_on:
         logger.debug('   ')
         logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
@@ -824,13 +824,6 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
     si_id = row.get('si_id')
     tm_si_id = '_'.join((str(tm_id), str(si_id))) if tm_id and si_id else None
 
-    #c_code_FOR_TESTING = row.get('c_code', '-')
-    #o_code_FOR_TESTING = row.get('o_code', '-')
-    #e_code_FOR_TESTING = f.get_dict_value(employee_dictlist, (e_id, 'code'), '--')
-    #sh_code_FOR_TESTING = row.get('sh_code', '-')
-    #logger.debug( '--- ' + str(e_id) + ' ' + str(e_code_FOR_TESTING) + ' - ' + str(c_code_FOR_TESTING) + ' - ' + str(o_code_FOR_TESTING) + ' - ' +
-    #              str(sh_code_FOR_TESTING) + ' si_mod: ' + str(si_mod))
-
 # >>>>> SHIFT IS INACTIVE
     # inactive shifts are filtered out in get_sql_schemeitem
 
@@ -920,6 +913,7 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
 
     # -  employee does not exist, is not in service or is inactive:
             #logger.debug('teammember has no employee')
+
 # - if no employee: check if teammember has replacement employee
             rpl_id = row.get('rpl_id')
         # remove e_id from row when e_id not in service or has overlap
@@ -1214,8 +1208,12 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
     if tm_si_info :
 
         lookup_isabs = tm_si_info.get('isabs', False)
+        #####################################################################################
+        # PR2021-02-21 request from Guido: don't skip shifts when employee has restshift    #
+        # was: lookup_isrest = tm_si_info.get('isrest', False)                              #
+        #####################################################################################
         lookup_isrest = tm_si_info.get('isrest', False)
-# - skip check normal shifts, except when employee is replacement.
+        # - skip check normal shifts, except when employee is replacement.
         if check_replacement_employee or lookup_isabs or lookup_isrest:
             lookup_tm_id = tm_si_info.get('tm_id')
             lookup_si_id = tm_si_info.get('si_id')
