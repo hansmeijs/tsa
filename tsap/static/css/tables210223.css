@@ -353,9 +353,8 @@
     cursor: pointer;
 }
 
-.btn_note_1 { background-position: -28px -0px;}
-.btn_note_2 { background-position: -56px -0px;}
-
+.btn_del_0_1 { background-position: -28px -0px;}
+.btn_del_0_2 { background-position: -56px -0px;}
 
 .flag_0_0, .flag_0_1, .flag_0_2,
 .flag_1_0, .flag_1_1, .flag_1_2 {

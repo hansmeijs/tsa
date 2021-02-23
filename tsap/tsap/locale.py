@@ -1032,6 +1032,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['select_before_confirm_shift'] = pgettext_lazy('You must first select', ', before you can confirm a shift.')
         dict['enter_before_confirm_shift'] = pgettext_lazy('You must first enter', ', before you can confirm a shift.')
 
+        dict['Cannot_confirm_rest_shift'] = _('You cannot confirm a rest shift.')
         dict['Cannot_confirm_shift_without_employee'] = _('You cannot confirm a shift that has no employee.')
         dict['Cannot_confirm_shift_without_order'] = _('You cannot confirm a shift that has no order.')
 

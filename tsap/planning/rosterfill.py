@@ -1113,7 +1113,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         # caused bij idx_e_code = None. Coalesce added in query. PR2021-02-16 also on 'o_seq', coalesce added.
         #  Idem with idx_sh_os_nonull. idx_sh_os must stay, may have null value for updating
         # PR2020-11-09 must put absence last, otherwise note 'Absnet from' will not be added to absence row
-        logger.debug('teammember_list: ' + str(teammember_list))
+        #logger.debug('teammember_list: ' + str(teammember_list))
         sorted_rows = sorted(teammember_list, key=itemgetter('o_seq', 'sh_os_nonull', 'c_code', 'o_code'))
 
         # PR2020-09-28 debug Pycharm gives warning:
@@ -1261,6 +1261,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         employee_pk = row.get('e_id')
         is_replacement = row.get('isreplacement')
 
+        default_wmpd = request.user.company.workminutesperday
         timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
             f.calc_timedur_plandur_from_offset(
                 rosterdate_dte=rosterdate_dte,
@@ -1268,8 +1269,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
                 is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
                 row_offsetstart=sh_os, row_offsetend=sh_oe, row_breakduration=sh_bd, row_timeduration=sh_td,
                 row_plannedduration=0, update_plandur=True,
-                row_nosat=o_s_nosat, row_nosun=o_s_nosun, row_noph=o_s_noph, row_noch=o_s_noch,
+                row_nohours_onsat=o_s_nosat, row_nohours_onsun=o_s_nosun,
+                row_nohours_onph=o_s_noph, row_nohours_onch=o_s_noch,
                 row_employee_pk=employee_pk, row_employee_wmpd=e_wmpd,
+                default_wmpd=default_wmpd,
                 comp_timezone=comp_timezone)
 
         if logging_on:

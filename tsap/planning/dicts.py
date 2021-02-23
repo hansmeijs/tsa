@@ -2073,9 +2073,9 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         "eh.haschanged, eh.status,",
         # PR2021-02-03 calulate status on client side
         # PR2021-02-10 keep stat_start_conf and stat_end_conf, to update fields in table
-        #"(MOD(eh.status, 2) = 1) AS stat_planned, (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending,",
+        "(MOD(eh.status, 2) = 1) AS stat_planned,",  # (TRUNC( MOD(eh.status, 4) / 2) = 1) AS stat_start_pending,",
         "(TRUNC( MOD(eh.status, 8) / 4) = 1) AS stat_start_conf,", #"(TRUNC( MOD(eh.status, 16) / 8) = 1) AS stat_end_pending,",
-        "(TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf,", # "(TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,",
+        "(TRUNC( MOD(eh.status, 32) / 16) = 1) AS stat_end_conf, (TRUNC( MOD(eh.status, 64) / 32) = 1) AS stat_locked,",
         "eh.lockedpaydate AS stat_pay_locked, oh.lockedinvoice AS stat_inv_locked,",
         "c.isabsence AS c_isabsence, oh.isrestshift AS oh_isrestshift, oh.issplitshift AS oh_issplitshift, eh.isreplacement AS eh_isrpl,",
         "eh.overlap AS eh_ov, eh.modifiedat AS eh_modat, COALESCE(SUBSTRING (u.username, 7), '') AS u_usr, eh.hasnote",

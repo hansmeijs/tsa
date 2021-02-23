@@ -2737,8 +2737,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
                     # PR2020-05-13 debug: when removing employee the emplhour overlap must be deleted
                     # - check_overlap_list contains employee_pk's that must be checked
                     # - clear_overlap_list contains emplhour_pk's that must be cleared
-                    #logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
-                    #logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
+                    logger.debug('check_overlap_list' + str(check_overlap_list) + ' ' + str(type(check_overlap_list)))
+                    logger.debug('clear_overlap_list' + str(clear_overlap_list) + ' ' + str(type(clear_overlap_list)))
                     overlap_dict = {}
                     if check_overlap_list:
                         # this is only for testing:
@@ -2751,7 +2751,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
                         if datefirst_iso and datelast_iso:
                             overlap_dict = f.check_emplhour_overlap(datefirst_iso, datelast_iso, check_overlap_list, request)
 
-                        # add emplhour_pk of removed employees to overlap_dict - to remove overlap from these emplhours
+                    # add emplhour_pk of removed employees to overlap_dict - to remove overlap from these emplhours
                     if clear_overlap_list:
                         for emplhour_pk in clear_overlap_list:
                             if emplhour_pk not in overlap_dict:
@@ -3046,9 +3046,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 if absent_employee and 'split' not in ('split_before', 'split_after'):
                     if absent_employee.workminutesperday:
                         employee_wmpd = absent_employee.workminutesperday
-                    elif absent_employee.company.workminutesperday:
-                        employee_wmpd = absent_employee.company.workminutesperday
 
+                default_wmpd = absent_employee.company.workminutesperday
                 time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
                     f.calc_timedur_plandur_from_offset(
                         rosterdate_dte=emplhour.rosterdate,
@@ -3057,9 +3056,11 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                         row_offsetstart=offset_start, row_offsetend=offset_end,
                         row_breakduration=break_duration, row_timeduration=0,
                         row_plannedduration = 0, update_plandur = True,
-                        row_nosat=nohours_onsat, row_nosun=nohours_onsun,
-                        row_noph=nohours_onph, row_noch=nohours_onch,
-                        row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
+                        row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
+                        row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
+                        row_employee_pk=employee_pk,
+                        row_employee_wmpd=employee_wmpd,
+                        default_wmpd=default_wmpd,
                         comp_timezone=comp_timezone)
                 if logging_on:
                     logger.debug('-------- split: ' + str(split))
@@ -3246,9 +3247,8 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
             if emplhour.employee:  #should always be the case
                 if emplhour.employee.workminutesperday:
                     employee_wmpd = emplhour.employee.workminutesperday
-                elif emplhour.employee.company.workminutesperday:
-                    employee_wmpd = emplhour.employee.company.workminutesperday
 
+            default_wmpd = emplhour.employee.company.workminutesperday
             time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
                 f.calc_timedur_plandur_from_offset(
                     rosterdate_dte=emplhour.rosterdate,
@@ -3257,12 +3257,13 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
                     row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
                     row_breakduration=emplhour.breakduration, row_timeduration=0,
                     row_plannedduration=0, update_plandur=True,
-                    row_nosat=abscat_order.nohoursonsaturday,
-                    row_nosun=abscat_order.nohoursonsunday,
-                    row_noph=abscat_order.nohoursonpublicholiday,
-                    row_noch=abscat_order.nohoursoncompanyholiday,
+                    row_nohours_onsat=abscat_order.nohoursonsaturday,
+                    row_nohours_onsun=abscat_order.nohoursonsunday,
+                    row_nohours_onph=abscat_order.nohoursonpublicholiday,
+                    row_nohours_onch=abscat_order.nohoursoncompanyholiday,
                     row_employee_pk=emplhour.employee_id,
                     row_employee_wmpd=employee_wmpd,
+                    default_wmpd=default_wmpd,
                     comp_timezone=comp_timezone)
 
 # update values in orderhour instanbce, save at end of this function
@@ -3474,9 +3475,8 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
     if new_employee and split not in ('split_before', 'split_after'):
         if new_employee.workminutesperday:
             employee_wmpd = new_employee.workminutesperday
-        elif new_employee.company.workminutesperday:
-            employee_wmpd = new_employee.company.workminutesperday
 
+    default_wmpd = new_employee.company.workminutesperday
     time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
         f.calc_timedur_plandur_from_offset(
             rosterdate_dte=emplhour.rosterdate,
@@ -3485,9 +3485,10 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
             row_offsetstart=offset_start, row_offsetend=offset_end,
             row_breakduration=break_duration, row_timeduration=0,
             row_plannedduration=0, update_plandur=True,
-            row_nosat=nohours_onsat, row_nosun=nohours_onsun,
-            row_noph=nohours_onph, row_noch=nohours_onch,
+            row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
+            row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
             row_employee_pk=new_employee_pk, row_employee_wmpd=employee_wmpd,
+            default_wmpd=default_wmpd,
             comp_timezone=comp_timezone)
     if logging_on:
         logger.debug('employee_wmpd: ' + str(employee_wmpd))
@@ -3620,6 +3621,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
+    logging_on = False
     if logging_on:
         logger.debug(' --------- update_emplhour -------------')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -3660,7 +3662,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
         'note': {'value': 'lock all', 'create': True}, 
         'lockunlockall': {'value': True, 'update': True}}
         """
-
         for field, field_dict in upload_dict.items():
             if logging_on:
                 logger.debug('field: ' + str(field))
@@ -3943,7 +3944,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             # dont change planned_duration, except when is_extra_order = true
             # is_extra_order is true when adding emplhour in modal MRO 'This is an extra order' is checked PR2020-11-27
             is_extra_order = f.get_dict_value(upload_dict, ('id', 'extraorder'))
-
+            default_wmpd = request.user.company.workminutesperday
             timestart, timeend, planned_duration, time_duration, billing_duration, excel_dateNIU, excel_start, excel_end = \
                 f.calc_timedur_plandur_from_offset(
                     rosterdate_dte=emplhour.rosterdate,
@@ -3952,9 +3953,10 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
                     row_breakduration=emplhour.breakduration, row_timeduration=emplhour.timeduration,
                     row_plannedduration=emplhour.plannedduration, update_plandur=is_extra_order,
-                    row_nosat=nohours_onsat, row_nosun=nohours_onsun,
-                    row_noph=nohours_onph, row_noch=nohours_onch,
+                    row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
+                    row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
                     row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
+                    default_wmpd=default_wmpd,
                     comp_timezone=comp_timezone)
 
             emplhour.timestart = timestart

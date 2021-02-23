@@ -3046,7 +3046,7 @@ def calc_timeduration_from_shift(shift):
 # <<<<<<<<<< calc_timedur_plandur_from_offset >>>>>>>>>>>>>>>>>>> PR2020-08-29
 def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, is_billable, is_sat, is_sun, is_ph, is_ch,
         row_offsetstart, row_offsetend, row_breakduration, row_timeduration, row_plannedduration, update_plandur,
-        row_nosat, row_nosun, row_noph, row_noch, row_employee_pk, row_employee_wmpd, comp_timezone):
+        row_nohours_onsat, row_nohours_onsun, row_nohours_onph, row_nohours_onch, row_employee_pk, row_employee_wmpd, default_wmpd, comp_timezone):
     # called by:
     # note: billing_duration can get value of planned_duration,
     #       therefore it is possible that update_plandur = True, while returnvalue planned_duration is not used
@@ -3066,7 +3066,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
         logger.debug('is_absence: ' + str(is_absence))
         logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
-        logger.debug('row_nosat: ' + str(row_nosat) + ' row_nosun: ' + str(row_nosun) + ' row_noph: ' + str(row_noph) + ' row_noch: ' + str(row_noch))
+        logger.debug('row_nohours_onsat: ' + str(row_nohours_onsat) + ' row_nohours_onsun: ' + str(row_nohours_onsun) + ' row_nohours_onph: ' + str(row_nohours_onph) + ' row_nohours_onch: ' + str(row_nohours_onch))
         logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend))
         logger.debug(' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
         logger.debug(' row_plannedduration: ' + str(row_plannedduration) + ' update_plandur: ' + str(update_plandur))
@@ -3103,10 +3103,10 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     #  -   in these cases the returnvalue 'planned_duration' is not used
 
     if (is_absence) or (is_restshift) or \
-            (is_sat and row_nosat) or \
-            (is_sun and row_nosun) or \
-            (is_ph and row_noph) or \
-            (is_ch and row_noch):
+            (is_sat and row_nohours_onsat) or \
+            (is_sun and row_nohours_onsun) or \
+            (is_ph and row_nohours_onph) or \
+            (is_ch and row_nohours_onch):
         planned_duration = 0
     else:
         if update_plandur:
@@ -3128,21 +3128,24 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     #  -  nohoursonsaturday etc not (yet) in use for non-absence rows,
     #       but probably it will be necessary for employees that have paid shifts without worked time
     #       (i.e when they dont have to work on public holiday but still get paid)
-    
+
+
+# ony use employee_wmpd when absence, no time duration value
     time_duration = 0
     if (is_restshift) or \
             (row_employee_pk is None) or \
-            (is_sat and row_nosat) or \
-            (is_sun and row_nosun) or \
-            (is_ph and row_noph) or \
-            (is_ch and row_noch):
-        time_duration = 0
-    # ony use employee_wmpd when absence, no time duration value and  row_employee_wmpd has value
-    if is_absence:
+            (is_sat and row_nohours_onsat) or \
+            (is_sun and row_nohours_onsun) or \
+            (is_ph and row_nohours_onph) or \
+            (is_ch and row_nohours_onch):
+        pass
+    elif is_absence:
         if new_timeduration:
             time_duration = new_timeduration
         elif row_employee_wmpd:
             time_duration = row_employee_wmpd
+        elif default_wmpd:
+            time_duration = default_wmpd
     else:
         time_duration = new_timeduration
 
@@ -3622,17 +3625,13 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
         #logger.debug('datelast_plus_one_iso: ' + str(datelast_plus_one_iso) + ' ' + str(type(datelast_plus_one_iso)))
         #logger.debug('employee_pk: ' + str(employee_pk) + ' ' + str(type(employee_pk)))
 
-        """
-        AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
-        """
-
-        sql_keys =  {
+        sql_keys = {
             'compid': request.user.company_id,
             'rdf': datefirst_minus_one_iso,
             'rdl': datelast_plus_one_iso
         }
 
-        sql_list = ["SELECT eh.id, e.id, eh.excelstart, eh.excelend, c.isabsence, oh.isrestshift",
+        sql_list = ["SELECT eh.id AS eh_id, e.id AS e_id, eh.excelstart, eh.excelend, c.isabsence, oh.isrestshift",
             "FROM companies_emplhour AS eh",
             "INNER JOIN companies_employee AS e ON (eh.employee_id = e.id)",
             "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
@@ -3651,128 +3650,142 @@ def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, reques
 
         newcursor = connection.cursor()
         newcursor.execute(sql, sql_keys)
+        rows = dictfetchall(newcursor)
+# - group emplhour rows per employee
+        list_dict = {}
+        for row in rows:
+            e_id = row.get('e_id')
+            if e_id and e_id not in list_dict:
+                list_dict[e_id] = []
+            list_dict[e_id].append(row)
+            """
+            list_dict: {1: [{'eh_id': 503, 'e_id': 1, 'excelstart': 63719100, 'excelend': 63719220, 'isabsence': False, 'isrestshift': False}], 
+                        8: [{'eh_id': 502, 'e_id': 8, 'excelstart': 63718560, 'excelend': 63720000, 'isabsence': False, 'isrestshift': True}, 
+                            {'eh_id': 504, 'e_id': 8, 'excelstart': 63719400, 'excelend': 63719520, 'isabsence': False, 'isrestshift': False}]}
+            """
 
-        # dictrow: {'eh.id': 29055, 'e.id': 2623, excelstart': 63306720, 'excelend': 63307260, absence_or_restshift: false}
-        rows = newcursor.fetchall()
-        previous_eid = -1
-        base_idx = -1
-        for idx, row in enumerate(rows):
-    # - get row info
-            row_eh_id = row[0]
-            row_e_id = row[1]
-            row_excstart = row[2]
-            row_excend = row[3]
-            row_isabsence = row[4]
-            row_isrestshift = row[5]
+        if logging_on:
+            logger.debug('===================================== ')
+            logger.debug('list_dict: ' + str(list_dict))
+        if list_dict:
 
-    # - reset base_idx when row_e_id changes
-            if row_e_id != previous_eid:
-                base_idx = idx
-            # e_idx is index of list of emplhours of this employee
-            # e_idx starts with 0, idx = base_idx + e_idx
-            e_idx = idx - base_idx
-
-            if logging_on:
-                logger.debug( str(idx) + ' ...................................')
-                logger.debug('dictrow: ' + str(row)  + '(eh.id, e.id, eh.excelstart, eh.excelend, c.isabsence, oh.isrestshift)' )
-                logger.debug('row_e_id: ' + str(row_e_id) + ' previous_eid: ' + str(previous_eid))
-                logger.debug('idx: ' + str(idx) + ' e_idx: ' + str(e_idx) + ' base_idx: ' + str(base_idx))
-    # - start lookup backward from second row
-            if e_idx > 0:
-                # Point i to the previous row
-                i = base_idx + e_idx - 1 # i.e. i = idx - 1
-                # Iterate till 1st element and keep on decrementing i
-
-                while i >= 0:
-                    #logger.debug('while value of i: ' + str(i))
-            # reset when row_e_id changes
-                    lookup = rows[i]
-                    lookup_eh_id = lookup[0]
-                    lookup_excstart = lookup[2]
-                    lookup_row_excend = lookup[3]
-                    lookup_isabsence = lookup[4]
-                    lookup_isrestshift = lookup[5]
-
-                    # check for overlap
-                    overlap_start, overlap_end = check_shift_overlap_with_startend(
-                        lookup_excstart, lookup_row_excend,
-                        row_excstart, row_excend)
-
-                    if logging_on:
-                        logger.debug('overlap_start: ' + str(overlap_start) + ' overlap_end: ' + str(overlap_end))
-
-                    if overlap_start or overlap_end:
-
-# check if row emplhour id already in overlap_dict, create if not found
-                        if row_eh_id not in overlap_dict:
-                            overlap_dict[row_eh_id] = {}
-                        row_dict = overlap_dict[row_eh_id]
-
-# check if lookup emplhour id already in overlap_dict, create if not found
-                        if lookup_eh_id not in overlap_dict:
-                            overlap_dict[lookup_eh_id] = {}
-                        lookup_dict = overlap_dict[lookup_eh_id]
-
-                        if logging_on:
-                            logger.debug('row_dict: ' + str(row_dict))
-                            logger.debug('lookup_dict: ' + str(lookup_dict))
-
-# put lookup_eh_id in 'overlapstart' list of lookup_dict, not when absence or restshift
-                        if overlap_start:
-                            # if not lookup_absence_or_rest:
-                            if 'start' not in lookup_dict:
-                                lookup_dict['start'] = []
-                            lookup_dict['start'].append(row_eh_id)
-                            # if not row_absence_or_rest:
-                            if 'end' not in row_dict:
-                                row_dict['end'] = []
-                            row_dict['end'].append(lookup_eh_id)
-# put lookup_eh_id in 'overlap_end' list of lookup_dict, not when absence or restshift
-                        if overlap_end :
-                            # if not lookup_absence_or_rest:
-                            if 'end' not in lookup_dict:
-                                lookup_dict['end'] = []
-                            lookup_dict['end'].append(row_eh_id)
-                            # if not row_absence_or_rest:
-                            if 'start' not in row_dict:
-                                row_dict['start'] = []
-                            row_dict['start'].append(lookup_eh_id)
-
-# check condition to end loop:
-                    if logging_on:
-                        logger.debug('while value of base_idx: ' + str(base_idx))
-        # - end at first row of this employee
-                    if i <= base_idx:
-                        if logging_on:
-                            logger.debug('i == base_idx: ' + str(i))
-                        break
-        # - end when excelstart at least 2880 less than excelstart of row
-        # explanation: lookup emplhours with excelend before excelstart of row do't have te be checked
-        # because excelend is not in ascending order, lookup_excelend < row_excelstart cannot be used
-        # instead check lookup_excelstart + 2880 < row_excelstart. Exc
-
-                    # PR2020-05-14 debug: error when row_excend = None. Added: if row_excend, also lookup_excstart
-                    elif row_excend and lookup_excstart and lookup_excstart + 2880 < row_excend:
-                        if logging_on:
-                            logger.debug('lookup_excstart + 2880 < row_excend: ' + str(lookup_excstart) + ' + 21880 < ' + str(row_excend))
-                        break
-                    else:
-        # goto next lookup
-                        i -= 1
-                        if logging_on:
-                            logger.debug('i -= 1: ' + str(i))
-
-                    if logging_on:
-                        logger.debug('end value of i: ' + str(i))
+# - loop through employees
+            for e_id, eh_list in list_dict.items():
+                # only check employee overlap when employee has 2 or more emplhour rows
+                list_len = len(eh_list)
 
                 if logging_on:
-                    logger.debug('exit value of i: ' + str(i))
-            # goto next row
-            previous_eid = row_e_id
-    # overlap_dict{
-    # 9057: {'end': [9059], 'start': [9058]},
-    # 9058: {'end': [9057, 9059]}}
-    # 9059: {'start': [9057, 9058]},
+                    logger.debug('--------------------------------------- ')
+                    logger.debug('e_id: ' + str(e_id))
+                    logger.debug('eh_list: ' + str(eh_list))
+
+# - loop through emplhours of this employee
+                # add each emplhour to dict, also the ones without overlap, to reset overlap if necessary
+                for row_idx in range(0, list_len):
+                    row = eh_list[row_idx]
+
+            # - get row info
+                    row_eh_id = row.get('eh_id')
+            # check if row_eh_id already in overlap_dict, create if not found
+                    if row_eh_id not in overlap_dict:
+                        overlap_dict[row_eh_id] = {}
+                    row_dict = overlap_dict[row_eh_id]
+
+            # skip when employee has only 1 emplhour (has never overlap)
+            # loop through emplhours, skip last emplhour of list
+                    if list_len > 1 and row_idx < list_len - 1:
+                        row_excstart = row.get('excelstart')
+                        row_excend =  row.get('excelend')
+                        row_isabsence =  row.get('isabsence')
+                        row_isrestshift =  row.get('isrestshift')
+                        if logging_on:
+                            logger.debug( 'row_idx: ' + str(row_idx) + ' ...................................')
+                            logger.debug('row: ' + str(row))
+
+            # loop through next rows ,including the last one
+                        for lookup_idx in range(row_idx + 1, list_len):
+                            lookup = eh_list[lookup_idx]
+                            lookup_eh_id = lookup.get('eh_id')
+
+                    # check if lookup emplhour id already in overlap_dict, create if not found
+                            if lookup_eh_id not in overlap_dict:
+                                overlap_dict[lookup_eh_id] = {}
+                            lookup_dict = overlap_dict[lookup_eh_id]
+
+                            lookup_excstart = lookup.get('excelstart')
+                            lookup_excend = lookup.get('excelend')
+                            lookup_isabsence = lookup.get('isabsence')
+                            lookup_isrestshift = lookup.get('isrestshift')
+
+                    # check for overlap
+                            # overlap_start means that the start of the lookup emplhour overlaps the end of the row emplhour
+                            # overlap_end means that the end of the lookup emplhour overlaps the start of the row emplhour
+                            overlap_start, overlap_end = check_shift_overlap_with_startend(
+                                lookup_excstart, lookup_excend,
+                                row_excstart, row_excend)
+
+                            if logging_on:
+                                logger.debug( 'lookup_idx: ' + str(lookup_idx) + ' ...................................')
+                                logger.debug('     lookup: ' + str(lookup))
+                                logger.debug('overlap_start: ' + str(overlap_start) + ' overlap_end: ' + str(overlap_end))
+
+                            if overlap_start:
+                                if 'start' not in lookup_dict:
+                                    lookup_dict['start'] = []
+                                lookup_dict['start'].append(row_eh_id)
+
+                                if row_isabsence:
+                                    lookup_dict['start_abs'] = True
+                                elif row_isrestshift:
+                                    lookup_dict['start_rest'] = True
+                                else:
+                                    lookup_dict['start_normal'] = True
+
+                                if 'end' not in row_dict:
+                                    row_dict['end'] = []
+                                row_dict['end'].append(lookup_eh_id)
+
+                                if lookup_isabsence:
+                                    row_dict['end_abs'] = True
+                                elif lookup_isrestshift:
+                                    row_dict['end_rest'] = True
+                                else:
+                                    row_dict['end_normal'] = True
+
+        # put lookup_eh_id in 'overlap_end' list of lookup_dict
+                            if overlap_end :
+                                if 'end' not in lookup_dict:
+                                    lookup_dict['end'] = []
+                                lookup_dict['end'].append(row_eh_id)
+
+                                if row_isabsence:
+                                    lookup_dict['sh_end_abs'] = True
+                                elif row_isrestshift:
+                                    lookup_dict['end_rest'] = True
+                                else:
+                                    lookup_dict['end_normal'] = True
+
+                                if 'start' not in row_dict:
+                                    row_dict['start'] = []
+                                row_dict['start'].append(lookup_eh_id)
+
+                                if lookup_isabsence:
+                                    row_dict['start_abs'] = True
+                                elif lookup_isrestshift:
+                                    row_dict['start_rest'] = True
+                                else:
+                                    row_dict['start_normal'] = True
+
+                            if logging_on:
+                                logger.debug('row_dict: ' + str(row_dict))
+                                logger.debug('lookup_dict: ' + str(lookup_dict))
+
+    """
+    overlap_dict: {502: {'end': [505, 504], 'end_normal': True, 'start': [505, 504], 'start_normal': True}, 
+                   505: {'start': [502], 'start_rest': True, 'end': [502, 504], 'end_rest': True, 'end_normal': True}, 
+                   504: {'start': [502, 505], 'start_rest': True, 'end': [502], 'end_rest': True, 'start_normal': True}}
+    """
+
     if logging_on:
         logger.debug('overlap_dict' + str(overlap_dict))
     return overlap_dict

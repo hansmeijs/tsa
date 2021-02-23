@@ -433,6 +433,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         #  row['isreplacement'] is added in function calculate_add_row_to_dict
         is_replacement = row.get('isreplacement', False)
 
+        default_wmpd = request.user.company.workminutesperday
         timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
             f.calc_timedur_plandur_from_offset(
                 rosterdate_dte=rosterdate_dte,
@@ -440,8 +441,10 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                 is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
                 row_offsetstart=sh_os, row_offsetend=sh_oe, row_breakduration=sh_bd, row_timeduration=sh_td,
                 row_plannedduration=0, update_plandur = True,
-                row_nosat=o_s_nosat, row_nosun=o_s_nosun, row_noph=o_s_noph, row_noch=o_s_noch,
+                row_nohours_onsat=o_s_nosat, row_nohours_onsun=o_s_nosun,
+                row_nohours_onph=o_s_noph, row_nohours_onch=o_s_noch,
                 row_employee_pk=employee_pk, row_employee_wmpd=e_wmpd,
+                default_wmpd=default_wmpd,
                 comp_timezone=comp_timezone)
 
         absdur = time_duration if is_absence else 0
@@ -803,9 +806,11 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
 
 #######################################################
 def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte):
-    #logger.debug('  ')
-    #logger.debug('------------ calculate_add_row_to_dictNEW ------------------------------ ')
-    #logger.debug('row: ' + str(row))
+    logging_on = False
+    if logging_on:
+        logger.debug('  ')
+        logger.debug('------------ calculate_add_row_to_dictNEW ------------------------------ ')
+        #logger.debug('row: ' + str(row))
 
     # filter_employee_is_replacement is only used in create_employee_planning
     # filter_employee_is_replacement is only true when employee and replacement are not the same
@@ -829,7 +834,9 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
 
 # >>>>> SHIFT IS ABSENCE OR REST SHIFT
     if si_mod in ('a', 'r'):
-        #logger.debug('SHIFT IS ABSENCE OR REST SHIFT')
+
+        if logging_on:
+            logger.debug('SHIFT IS ABSENCE OR REST SHIFT')
 
         if filter_employee_is_replacement:
             # no #logfile made when called by create_employee_planning
@@ -837,16 +844,20 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
         elif e_id:
 # - don't add absence or rest shift when employee is None
 # - check if tm_si_id in tm_si_id_info. if not: the absence / restshift is removed because it is a double
-            #logger.debug('tm_si_id: ' + str(tm_si_id))
+            if logging_on:
+                logger.debug('tm_si_id: ' + str(tm_si_id))
             if tm_si_id in tm_si_id_info:
                 add_row_to_dict = True
-                #logger.debug('tm_si_id in tm_si_id_info ---> add_row_to_dict')
-            #else:
-                #logger.debug('tm_si_id not in tm_si_id_info')
+                if logging_on:
+                    logger.debug('tm_si_id in tm_si_id_info ---> add_row_to_dict')
+            else:
+                if logging_on:
+                    logger.debug('tm_si_id not in tm_si_id_info')
 
 # >>>>> SHIFT IS NORMAL SHIFT
     else:
-        #logger.debug('SHIFT IS NORMAL SHIFT')
+        if logging_on:
+            logger.debug('SHIFT IS NORMAL SHIFT')
         """       
         employee_dictlist: { 2608: {'id': 2608, 'comp_id': 3, 'code': 'Colpa de, William', 
                                     'datefirst': datetime.date(1991, 11, 25), 'datelast': None, 'namelast': 'Colpa de', 
@@ -869,7 +880,8 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
 
 # - normal shift is always added (inactive and range are already filtered out)
         add_row_to_dict = True
-        #logger.debug('normal shift is always added ---> add_row_to_dict')
+        if logging_on:
+            logger.debug('normal shift is always added ---> add_row_to_dict')
 
 # ---  check if employee exists, is in service and active ( employee_dictlist is made once for the whole planning period PR2020-10-30)
         employee_exists_inservice_active = check_employee_exists_inservice_active(e_id, employee_dictlist, rosterdate_dte)
@@ -883,14 +895,17 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
                     e_id=e_id,
                     eid_tmsid_arr=eid_tmsid_arr,
                     tm_si_id_info=tm_si_id_info,
-                    is_replacement=False)
+                    is_replacement=False,
+                    logging_on=logging_on)
             if has_overlap:
                 rpl_id = lookup_rpl_id
                 row['note_absent_eid'] = e_id
                 row['note_absence_tm_si_id'] = absence_tm_si_id
                 # TODO note_absence_o_code is not working yet
                 # row['note_absence_o_code'] = absence_o_code
-                #logger.debug('employee has overlap: rpl_id: ' + str(lookup_rpl_id) + ' absence_tm_si_id: ' + str(absence_tm_si_id))
+
+                if logging_on:
+                    logger.debug('employee has overlap: rpl_id: ' + str(lookup_rpl_id) + ' absence_tm_si_id: ' + str(absence_tm_si_id))
 
                 absence_tm_si_id_dict = tm_si_id_info.get(absence_tm_si_id)
                 if absence_tm_si_id_dict:
@@ -904,15 +919,19 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
                         c_o_code += ', ' + row_sh_code
                     note = str(_('Absent from ')) + c_o_code
                     absence_tm_si_id_dict['note_absent_from'] = note
-                    #logger.debug('note_absent_from: ' + str(note))
+
+                    if logging_on:
+                        logger.debug('note_absent_from: ' + str(note))
                 e_id = None
-            #else:
-                #logger.debug('employee has no overlap, no rpl_id added')
+            else:
+                if logging_on:
+                    logger.debug('employee has no overlap, no rpl_id added')
         else:
             e_id = None
 
     # -  employee does not exist, is not in service or is inactive:
-            #logger.debug('teammember has no employee')
+            if logging_on:
+                logger.debug('teammember has no employee')
 
 # - if no employee: check if teammember has replacement employee
             rpl_id = row.get('rpl_id')
@@ -920,14 +939,17 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
         if e_id is None:
             row['e_id'] = None
 
-        #logger.debug('employee: ' + str(e_id) + ' replacement employee: ' + str(rpl_id))
+        if logging_on:
+            logger.debug('employee: ' + str(e_id) + ' replacement employee: ' + str(rpl_id))
         if rpl_id:
-            #logger.debug('------- check if replacement employee exists, is in service and isactive: ')
+            if logging_on:
+                logger.debug('------- check if replacement employee exists, is in service and isactive: ')
 
 # ---  check if replacement employee exists, is in service and active ( employee_dictlist is made once for the whole planning period PR2020-10-30)
             replacement_exists_inservice_active = check_employee_exists_inservice_active(rpl_id, employee_dictlist, rosterdate_dte)
             if replacement_exists_inservice_active:
-                #logger.debug('replacement exists, is in service and is active')
+                if logging_on:
+                    logger.debug('replacement exists, is in service and is active')
     # - check if replacement employee is absent or has rest shift or has overlap with other shift:
                 replacement_has_overlap, rpl_idNIU, absence_tm_si_idNIU, absence_o_codeNIU = \
                     check_employee_for_absence_or_overlap(
@@ -935,8 +957,12 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
                         e_id=rpl_id,
                         eid_tmsid_arr=eid_tmsid_arr,
                         tm_si_id_info=tm_si_id_info,
-                        is_replacement=True)
-                #logger.debug('replacement has overlap: ' + str(replacement_has_overlap))
+                        is_replacement=True,
+                        logging_on=logging_on
+                    )
+
+                if logging_on:
+                    logger.debug('replacement has overlap: ' + str(replacement_has_overlap))
 
                 if replacement_has_overlap:
                     rpl_id = None
@@ -944,14 +970,16 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
                     is_replacement = True
             else:
                 rpl_id = None
-                #logger.debug('replacement does not exist, is not in service or is inactive  ---> add shift without employee')
+                if logging_on:
+                    logger.debug('replacement does not exist, is not in service or is inactive  ---> add shift without employee')
             if rpl_id:
                 row['e_id'] = rpl_id
     row['isreplacement'] = is_replacement
 # - check if employee has the right funtioncode_pk / paydatecode_pk when filter is on. PR2020-09-28
 
-    #logger.debug('add_row_to_dict: ' + str(add_row_to_dict) + ' row[e_id]: ' + str(row['e_id']) + ' row[isreplacement]: ' + str(row['isreplacement']))
-    #logger.debug('row: ' + str(row))
+    if logging_on:
+        logger.debug('add_row_to_dict: ' + str(add_row_to_dict) + ' row[e_id]: ' + str(row['e_id']) + ' row[isreplacement]: ' + str(row['isreplacement']))
+
     return add_row_to_dict
 #  ----- end of calculate_add_row_to_dictNEW
 
@@ -1087,8 +1115,10 @@ def check_employee_exists_inservice_active(e_id, employee_dictlist, rosterdate_d
     return employee_exists_inservice_active
 
 
-def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_info, is_replacement):  # PR2020-10-31
-    #logger.debug('------------ check_employee_for_absence_or_overlap ------------------------------ ')
+def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_info, is_replacement, logging_on=False):  # PR2020-10-31 PR2021-02-22
+    if logging_on:
+        logger.debug('----- check_employee_for_absence_or_overlap ----- ')
+        logger.debug('     e_id: ' + str(e_id))
 
     has_overlap = False
     rpl_id = None
@@ -1099,7 +1129,9 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
 # - get list of teammembers (shifts) of employee
         # eid_tmsid_arr:  {2608: ['2084_4170', '2058_3826']}
         tm_si_id_arr = eid_tmsid_arr.get(e_id)
-        #logger.debug('     tm_si_id_arr: ' + str(tm_si_id_arr))
+        if logging_on:
+            logger.debug('     tm_si_id_arr: ' + str(tm_si_id_arr))
+
         if tm_si_id_arr is not None:
             # tm_si_id_arr: ['2084_4170', '2058_3826']
 
@@ -1123,12 +1155,14 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
                 tm_si_info = tm_si_id_info.get(tm_si_id)
         # - skip when tm_si_info is None: tm_si_info might be removed because it is a double
                 if tm_si_info is not None:
-                    #logger.debug('     tm_si_info: ' + str(tm_si_id) +
-                    #             ' e_id: ' + str(f.get_dict_value(tm_si_info, ('e_id',))) +
-                    #             ' rpl_id: ' + str(f.get_dict_value(tm_si_info, ('rpl_id',))) +
-                    #             ' isabs: ' + str(f.get_dict_value(tm_si_info, ('isabs',))) +
-                    #             ' isrest: ' + str(f.get_dict_value(tm_si_info, ('isrest',))) +
-                    #             ' order: ' + str(f.get_dict_value(tm_si_info, ('c_code',))) + ' ' + str(f.get_dict_value(tm_si_info, ('o_code',))) )
+                    if logging_on:
+                        logger.debug('     tm_si_info: ' + str(tm_si_id) +
+                                     ' e_id: ' + str(f.get_dict_value(tm_si_info, ('e_id',))) +
+                                     ' rpl_id: ' + str(f.get_dict_value(tm_si_info, ('rpl_id',))) +
+                                     ' isabs: ' + str(f.get_dict_value(tm_si_info, ('isabs',))) +
+                                     ' isrest: ' + str(f.get_dict_value(tm_si_info, ('isrest',))) +
+                                     ' order: ' + str(f.get_dict_value(tm_si_info, ('c_code',))) + ' ' +
+                                     str(f.get_dict_value(tm_si_info, ('o_code',))) )
 
         # ---  check if employee is absent or has rest shift:
                     # - when full day absence or rest shift:
@@ -1145,7 +1179,8 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
                             row_os_nonull=row_os_nonull,
                             row_oe_nonull=row_oe_nonull,
                             tm_si_info=tm_si_info,
-                            check_replacement_employee=is_replacement)
+                            check_replacement_employee=is_replacement,
+                            logging_on=logging_on)
 
                     if this_tm_has_overlap:
                         has_overlap = True
@@ -1161,27 +1196,33 @@ def check_employee_for_absence_or_overlap(row, e_id, eid_tmsid_arr, tm_si_id_inf
 # ---  if not check if absence has replacement employee:
             rpl_id = row.get('rpl_id')
             if rpl_id is None:
-                #logger.debug('     teammember has no replacement')
+                if logging_on:
+                    logger.debug('     teammember has no replacement')
                 if absence_rpl_id is None:
-                    #logger.debug('     absence has no replacement')
+                    if logging_on:
+                        logger.debug('     absence has no replacement')
                     pass
                 else:
                     rpl_id = absence_rpl_id
-                    #logger.debug('     absence has replacement: ' + str(absence_rpl_id))
-            #else:
-                #logger.debug('     teammember has replacement: ' + str(rpl_id))
+                    if logging_on:
+                        logger.debug('     absence has replacement: ' + str(absence_rpl_id))
+            else:
+                if logging_on:
+                    logger.debug('     teammember has replacement: ' + str(rpl_id))
 # - TODO check if employee has the right funtioncode_pk / paydatecode_pk when filter is on. PR2020-09-28
 
-    #logger.debug('     has_overlap: ' + str(has_overlap) + ' replacement employee: ' + str(rpl_id))
-    #logger.debug('------------ end of check_employee_for_absence_or_overlap ----------------------- ')
+    if logging_on:
+        logger.debug('     has_overlap: ' + str(has_overlap) + ' replacement employee: ' + str(rpl_id))
+        logger.debug('----- end of check_employee_for_absence_or_overlap ----- ')
 
     return has_overlap, rpl_id, absence_tm_si_id, absence_o_code
 #  ----- end of check_employee_for_absence_or_overlap
 
 
 def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_nonull,
-                                  tm_si_info, check_replacement_employee):
-    #logger.debug('--- has_overlap_with_other_shift ---  ')
+                                  tm_si_info, check_replacement_employee, logging_on=False):
+    if logging_on:
+        logger.debug('--- has_overlap_with_other_shift ---  ')
     # This function checks for overlap with absence PR2020-10-13
     # it checks if range 'offset_start - offset_end' of row are partly within range of lookup absence / rest shift
     # when offset_start is None it will be replaced by 0, when offset_end is None it will be replaced by 1440
@@ -1208,11 +1249,16 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
     if tm_si_info :
 
         lookup_isabs = tm_si_info.get('isabs', False)
+        lookup_isrest = tm_si_info.get('isrest', False)
+        if logging_on:
+            logger.debug('     lookup_isabs: ' + str(lookup_isabs) + ' lookup_isrest: ' + str(lookup_isrest) + ' check_replacement_employee: ' + str(check_replacement_employee))
+
         #####################################################################################
         # PR2021-02-21 request from Guido: don't skip shifts when employee has restshift    #
-        # was: lookup_isrest = tm_si_info.get('isrest', False)                              #
         #####################################################################################
-        lookup_isrest = tm_si_info.get('isrest', False)
+        skip_check_restshift_overlap = True
+        if skip_check_restshift_overlap:
+            lookup_isrest = False
         # - skip check normal shifts, except when employee is replacement.
         if check_replacement_employee or lookup_isabs or lookup_isrest:
             lookup_tm_id = tm_si_info.get('tm_id')
@@ -1223,15 +1269,25 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
             #  - employee has full day shift, employee is absent in the morning with replacement)
             #  - create absence emplhour for employee in the morning
             #  - split shift, with replacement employee in the morning and employee in the afternoon
+
+            if logging_on:
+                logger.debug('     lookup_tm_si_id: ' + str(lookup_tm_si_id) + ' lookup_o_code: ' + str(lookup_o_code))
+
 # - skip if row and lookup are the same
             if row_tm_id != lookup_tm_id or row_si_id != lookup_si_id:
                 lookup_os_nonull = tm_si_info.get('sh_os_nonull')
                 lookup_oe_nonull = tm_si_info.get('sh_oe_nonull')
                 lookup_rpl_id = tm_si_info.get('rpl_id')
+                if logging_on:
+                    logger.debug('        row_os_nonull: ' + str(row_os_nonull) + '    row_oe_nonull: ' + str(row_oe_nonull))
+                    logger.debug('     lookup_os_nonull: ' + str(lookup_os_nonull) + ' lookup_oe_nonull: ' + str(lookup_oe_nonull))
+
 # when row is full day absence or rest row (or normal shift is full day ore more)
 #   - always skip row (also if shift starts previous day or ends next day)
                 if lookup_os_nonull <= 0 and lookup_oe_nonull >= 1440:
                     has_overlap = True
+                    if logging_on:
+                        logger.debug('     always skip row when row is full day absence or rest row  --> has_overlap = True')
                 else:
                     if check_replacement_employee:
 # when replacement employee:
@@ -1239,22 +1295,29 @@ def has_overlap_with_other_shift(row_tm_id, row_si_id, row_os_nonull, row_oe_non
 #   - skip shift when shift is partly within range of absence / rest shift / normal shift
                         if row_os_nonull < lookup_oe_nonull and row_oe_nonull > lookup_os_nonull:
                             has_overlap = True
+                            if logging_on:
+                                logger.debug('     skip shift when shift is partly within range of absence / rest shift / normal shift --> has_overlap = True')
                     else:
 # when normal employee:
 #   - skip shift only when shift is completely within range of absence / rest shift
                         if row_os_nonull >= lookup_os_nonull and row_oe_nonull <= lookup_oe_nonull:
                             has_overlap = True
+                            if logging_on:
+                                logger.debug('     skip shift only when shift is completely within range of absence / rest shift --> has_overlap = True')
 
 # only return replacement employee from absence when checking normal employee,
                 # when multiple absence rows: get the first replacement employee that is found
                 if has_overlap and not check_replacement_employee and absence_rpl_id is None:
                     absence_rpl_id = lookup_rpl_id
+                    if logging_on:
+                        logger.debug('     absence_rpl_id: ' + str(absence_rpl_id))
 # lookup_tm_si_id is used to put note 'absent from' in absent row
     if not has_overlap:
         lookup_tm_si_id = None
         lookup_o_code = None
-    #logger.debug('     has_overlap: ' + str(has_overlap) + ' absence_rpl_id: ' + str(absence_rpl_id) + ' lookup_tm_si_id: ' + str(lookup_tm_si_id) )
-    #logger.debug('---')
+    if logging_on:
+        logger.debug('     has_overlap: ' + str(has_overlap) + ' absence_rpl_id: ' + str(absence_rpl_id) + ' lookup_tm_si_id: ' + str(lookup_tm_si_id) )
+        logger.debug('---')
     return has_overlap, absence_rpl_id, lookup_tm_si_id, lookup_o_code
 # --- end of has_overlap_with_other_shift
 
