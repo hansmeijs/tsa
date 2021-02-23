@@ -950,6 +950,8 @@ class Orderhour(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
 
+    # TODO add excelstart for sorting PR2021-02-23
+
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     issplitshift = BooleanField(default=False)
