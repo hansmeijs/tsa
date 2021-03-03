@@ -2,7 +2,7 @@
 {% load i18n %}{% load static %}
 
 {% block stylesheet %}
-    <link rel="stylesheet" href="{% static 'css/tableimport210217.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tableimport210302.css' %}">
 {% endblock %}
 
 {% block script %}
@@ -14,7 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xls/0.7.4-a/xls.core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.11.8/xlsx.core.min.js"></script>
 
-    <script src="{% static 'js/employeeimport201030.js' %}"></script>
+    <script src="{% static 'js/employeeimport210302.js' %}"></script>
 {% endblock %}
 
 {% block sidebar %}
@@ -39,7 +39,6 @@
 <!-- =================== MODAL CONFIRM  =================== -->
 {% include 'includes/confirm.html' %}
 
-<div class="containerXX">
 <div class="ta_l tsa_margin_top48_left24">
   {% if user.is_authenticated %}
      {% if user.is_perm_hrman %}
@@ -58,11 +57,13 @@
                     <input id="id_filedialog" type="file"  name="file" class="mb-0" accept=".xlsx, .xls, csv">
                 </div>
                 <div class="mx-2 my-0"><small id="id_msg_filedialog" class="text-danger display_hide"></small></div>
-
+                <div id="id_msg_err01" class="m-0 px-2 py-0" >
+                    <small class="text-danger">{% trans "You must select a valid Excel file before you can proceed." %}</small>
+                </div>
                 <h6 class="mx-2 mt-4 mb-2">{% trans 'Select a worksheet' %}:</h6>
                 <div class="content_header">
                     <div class="content_subheader_left mx-1">
-                            <select id="id_worksheet_list" type="text"
+                            <select id="id_worksheet_list"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
                             class="form-control mb-0"></select>
                     </div>
@@ -85,55 +86,59 @@
             </div>
 
 <!-- STEP 2 -->
-            <div class="m-4 btn_show btn_step2 display_hide">
-                <div class="mt-4">
-                    <div><small>{% trans "Click corresponding names in the left and right list to link an Excel column to a TSA-column." %}</small></div>
-                    <div><small >{% trans "Click linked names in the lower list to unlink these columns." %}</small></div>
-                    <div><small>{% trans "One of the fields 'Payroll code', 'ID-number' or 'Short name' must be linked and contain unique values." %}</small></div>
-
-                    <div class="mt-2">
-                        <div class="content_header tsa_bc_lightlightgrey">
-                            <div class="content_subheader_left ea_flex">
-                                <table class="tsa_tbl_unlinked" width="100%">
-                                    <thead class="tsa_tbl_hdr_unlinked">
-                                        <tr><th class="ta_c">{% trans 'TSA columns' %}</th></tr>
-                                    </thead>
-                                    <tbody id="id_tbody_tsa" data-tbody="tsa">
-                                        <tr><td class="px-2">{% trans 'TSA columns' %}</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="content_subheader_left excel-columns ">
-                                <table class="tsa_tbl_unlinked" width="100%">
-                                    <thead class="tsa_tbl_hdr_unlinked">
-                                        <tr><th class="ta_c">{% trans 'Excel columns' %}</th></tr>
-                                    </thead>
-                                    <tbody id="id_tbody_exc" data-tbody="exc">
-                                        <tr><td class="px-2">{% trans 'Excel columns' %}</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+            <div class="mx-4 my-2 btn_show btn_step2 display_hide">
+                <div class="mx-2"><small>{% trans "Click corresponding names in the left and right list to link an Excel column to a TSA-column." %}</small></div>
+                <div class="mx-2"><small >{% trans "Click linked names in the lower list to unlink these columns." %}</small></div>
+                <h6 class="mx-2 mt-2">{% trans "Select the field that TSA must use to lookup existing employees:" %}</h6>
+                <select id="id_select_unique" autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                    class="form-control">
+                    <option value="payrollcode">{% trans "Payroll code" %}</option>
+                    <option value="identifier">{% trans "ID-number" %}</option>
+                    <option value="code">{% trans "Short name" %}</option>
+                </select>
+                <div class="m-0 px-2 py-0" >
+                    <small id="id_msg_err_select_unique" class="text-danger"></small>
+                </div>
+                <div class="mt-2">
+                    <div class="content_header tsa_bc_lightlightgrey">
+                        <div class="content_subheader_left ea_flex">
+                            <table class="tsa_tbl_unlinked" width="100%">
+                                <thead class="tsa_tbl_hdr_unlinked">
+                                    <tr><th class="ta_c">{% trans 'TSA columns' %}</th></tr>
+                                </thead>
+                                <tbody id="id_tbody_tsa" data-tbody="tsa">
+                                    <tr><td class="px-2">{% trans 'TSA columns' %}</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="content_header">
-                            <div class="content_subheader_left linked-columns">
-                                 <table class="tsa_tbl_linked" width="100%">
-                                    <thead class="tsa_tbl_hdr_linked">
-                                        <tr><th class="ta_c" colspan="2">{% trans 'Linked columns' %}</th></tr>
-                                    </thead>
-                                    <tbody id="id_tbody_lnk" data-tbody="lnk">
-                                        <tr>
-                                            <td class="px-2">{% trans 'TSA columns' %}</td>
-                                            <td class="px-2">{% trans 'Excel columns' %}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="content_subheader_left excel-columns ">
+                            <table class="tsa_tbl_unlinked" width="100%">
+                                <thead class="tsa_tbl_hdr_unlinked">
+                                    <tr><th class="ta_c">{% trans 'Excel columns' %}</th></tr>
+                                </thead>
+                                <tbody id="id_tbody_exc" data-tbody="exc">
+                                    <tr><td class="px-2">{% trans 'Excel columns' %}</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div id="id_msg_err_no_identifier_linked" class="m-0 px-2 py-0" >
-                        <small class="text-danger">{% trans "One of the fields 'Payroll code' or 'ID-number' must be linked and contain unique values." %}</small>
+                    <div class="content_header">
+                        <div class="content_subheader_left linked-columns">
+                             <table class="tsa_tbl_linked" width="100%">
+                                <thead class="tsa_tbl_hdr_linked">
+                                    <tr><th class="ta_c" colspan="2">{% trans 'Linked columns' %}</th></tr>
+                                </thead>
+                                <tbody id="id_tbody_lnk" data-tbody="lnk">
+                                    <tr>
+                                        <td class="px-2">{% trans 'TSA columns' %}</td>
+                                        <td class="px-2">{% trans 'Excel columns' %}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
 <!-- STEP 3-->
@@ -149,7 +154,7 @@
                         </small></div>
                         <div class="content_header">
                             <div class="tsa_flex_2  mx-1">
-                                <select id="id_select_code_calc" type="text" size="4"
+                                <select id="id_select_code_calc" size="4"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     class="form-control mt-2">
                                     <option value="linked">{% trans "Don't calculate, but link to an Excel column" %}</option>
@@ -173,7 +178,7 @@
 
                         <div class="content_header">
                             <div class="tsa_flex_2  mx-1">
-                                <select id="id_select_dateformat" type="text" size="3"
+                                <select id="id_select_dateformat" size="3"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     class="form-control mt-2">
                                     <option value="yyyy-mm-dd">yyyy-mm-dd</option>
@@ -212,11 +217,6 @@
                         <button id="id_btn_mod_prev" type="button" class="btn btn-secondary"> &lt;  {% trans 'Previous step' %}</button>
                         <button id="id_btn_mod_next"  type="button" class="btn btn-secondary">{% trans 'Next step' %} &gt; </button>
                     </div>
-                    <div id="id_msg_err01" class="m-0 px-2 py-0" >
-                        <small class="text-danger">
-                            {% trans "You must select a valid Excel file before you can proceed." %}
-                        </small>
-                    </div>
                 </div>
                 <div class="content_subheader_left mx-2 my-0">
                 </div>
@@ -239,20 +239,12 @@
                     </table>
                 </div>
             </div>
-
-
-<!-- DIV ID DATA -->
             <div id="id_data"
                 data-datalist_download_url="{% url 'datalist_download_url' %}"
                 data-settings_upload_url="{% url 'settings_upload_url' %}"
-
                 data-employee_uploadsetting_url= "{% url 'employee_uploadsetting_url' %}"
                 data-employee_uploaddata_url= "{% url 'employee_uploaddata_url' %}"
-
-                 data-captionsXX = "{{ captions }}"
-                data-settingsXX = "{{ setting }}"
             ></div>
-
     {% else %}
         <div class="mx-4">
             <div class="alert alert-danger">{% trans "You don't have permission to view this page." %}</div>
@@ -264,5 +256,5 @@
     </div>
   {% endif %}
 </div>
-</div>
+
 {% endblock %}

@@ -137,7 +137,10 @@
     margin: 0;
     /*background: #f8f8f8; /*licht licht licht grijs 248 248 248 100%; */
     /*background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
-    background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
+    /* background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
+
+      background-color: #ececec; /* a bit bluish darker */
+
     white-space: normal;
     overflow-wrap: break-word; /* TODO not working*/
     word-wrap: break-word;

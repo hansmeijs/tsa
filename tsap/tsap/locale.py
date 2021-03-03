@@ -195,6 +195,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['The_payrollperiod_data_will_be_saved'] = _('The payroll period data will be saved.')
         dict['Upload_payrollperiods'] = _('Upload payroll periods')
 
+        dict['The_field_payrollcode'] = _("The field 'Payroll code'")
+        dict['The_field_idnumber'] = _("The field 'ID number'")
+        dict['The_field_shortname'] = _("The field 'Short name'")
+        dict['mustbe_linked_and_contain_unique_values'] = _(" must be linked and contain unique values")
+
+
 # ====== PAGE COMPANY =========================
     elif page == 'company':
         dict['Description'] = TXT_Description
@@ -897,12 +903,26 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['err_msg_select_shift'] = TXT_err_msg_select_shift
 
         dict['err_msg_select_shift'] = TXT_err_msg_select_shift
-        dict['err_msg_cannot_delete_shift_01'] = TXT_err_msg_cannot_delete_shift_01
-        dict['err_msg_cannot_delete_shift_02'] = TXT_err_msg_cannot_delete_shift_02
-        dict['err_msg_cannot_delete_shift_planned'] = TXT_err_msg_cannot_delete_shift_planned
-        dict['err_msg_cannot_delete_shift_confirmed'] = TXT_err_msg_cannot_delete_shift_confirmed
-        dict['err_msg_cannot_delete_shift_locked'] = TXT_err_msg_cannot_delete_shift_locked
-        dict['err_msg_set_hours_to_0_instead'] = TXT_err_msg_set_hours_to_0_instead
+        dict['err_msg_cannot_delete_shift_01'] = _('This is ')
+        dict['err_msg_cannot_delete_shift_02'] = _(', that cannot be deleted.')
+        dict['err_msg_cannot_delete_shift_planned'] = _('a planned shift')
+        dict['err_msg_cannot_delete_shift_confirmed'] = _('a confirmed shift')
+        dict['err_msg_cannot_delete_shift_locked'] = _('a locked shift')
+
+        dict['err_msg_set_hours_to_0_instead'] = _('You can set the hours to zero instead.')
+
+        dict['err_msg_cannot_set_break'] = _('You cannot set the break of this shift,')
+        dict['err_msg_cannot_set_time'] = _('You cannot set the hours of this shift,')
+        dict['err_msg_because_option_nohours'] = _("because the option 'no hours' of this shift is turned on.")
+
+        dict['err_msg_cannot_set_hours_of_restshift'] = _('You cannot set the hours of a rest shift.')
+        dict['err_msg_cannot_set_break_of_restshift'] = _('You cannot set the break of a rest shift.')
+
+        dict['err_msg_starttime_is_confirmed'] = _('The start time of this shift is confirmed.')
+        dict['err_msg_cannot_change_starttime'] = _('You cannot change the start time.')
+        dict['err_msg_endtime_is_confirmed'] = _('The end time of this shift is confirmed.')
+        dict['err_msg_cannot_change_endtime'] = _('You cannot change the end time.')
+
         dict['Absence'] = TXT_Absence
         dict['This_absence'] = TXT_This_absence
         dict['This_shift'] = TXT_This_shift
@@ -1638,13 +1658,6 @@ TXT_Please_select_order = _('Please select an order first.')
 TXT_err_msg_customer = _('Please select a customer.')
 TXT_err_msg_select_shift = _('Please select a shift.')
 TXT_Please_select_scheme = _('Please select a scheme.')
-
-TXT_err_msg_cannot_delete_shift_01 = _('This is ')
-TXT_err_msg_cannot_delete_shift_02 = _(', that cannot be deleted.')
-TXT_err_msg_cannot_delete_shift_planned = _('a planned shift')
-TXT_err_msg_cannot_delete_shift_confirmed = _('a confirmed shift')
-TXT_err_msg_cannot_delete_shift_locked = _('a locked shift')
-TXT_err_msg_set_hours_to_0_instead = _('You can set the hours to zero instead.')
 
 TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')

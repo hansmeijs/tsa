@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
         const cls_bc_lightgrey = "tsa_bc_lightgrey";
 
+        const cls_cell_unchanged_even = "cell_unchanged_even";
+        const cls_cell_unchanged_odd = "cell_unchanged_odd";
+
         const cls_selected =  "tsa_tr_selected";
         const cls_btn_selected = "tsa_btn_selected";
         const cls_error = "tsa_tr_error";
@@ -518,15 +521,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if ("company_dict" in response) {company_dict = response.company_dict};
-                if ("employee_rows" in response) {refresh_datamap(response.employee_rows, employee_map, "employee")};
-                if ("customer_rows" in response) {refresh_datamap(response.customer_rows, customer_map, "customer")};
-                if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map, "order")};
-                if ("shift_rows" in response) {refresh_datamap(response.shift_rows, shift_map, "shift")};
-                if ("abscat_rows" in response) {refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
-                if ("allowance_rows" in response) {refresh_datamap(response.allowance_rows, allowance_map, "wagecode")}
+                if ("employee_rows" in response) {b_refresh_datamap(response.employee_rows, employee_map, "employee")};
+                if ("customer_rows" in response) {b_refresh_datamap(response.customer_rows, customer_map, "customer")};
+                if ("order_rows" in response) {b_refresh_datamap(response.order_rows, order_map, "order")};
+                if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")};
+                if ("abscat_rows" in response) {b_refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
+                if ("allowance_rows" in response) {b_refresh_datamap(response.allowance_rows, allowance_map, "wagecode")}
 
                 let fill_table = false, check_status = false;
-                // emplhournote_rows must come before RefreshEmplhourMap and fill_table
+                // emplhournote_rows must come before refresh_updated_emplhour_rows and fill_table
                 if ("emplhourallowance_rows" in response) {
                     emplhourallowance_dict = response.emplhourallowance_rows;
                     UpdateAllowance(emplhourallowance_dict);
@@ -559,13 +562,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if ("emplhour_updates" in response) {
-                    RefreshEmplhourMap(response.emplhour_updates, true)
+                    refresh_updated_emplhour_rows(response.emplhour_updates, true)
                 };
                 if ("overlap_dict" in response) {
                     UpdateOverlap(response.overlap_dict, false); // / false  = don't skip_reset_all
                 }
                 if ("replacement_list" in response) {
-                    refresh_datamap(response["replacement_list"], replacement_map)
+                    b_refresh_datamap(response["replacement_list"], replacement_map)
                     ModEmployeeFillOptionDates(replacement_map);
                     fill_table = true;
                     check_status = true;
@@ -767,17 +770,24 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody_datatable.innerText = null;
 // --- loop through emplhour_map
         if(emplhour_map) {
+            let previous_oh_id = null, is_odd_row = false;
             for (const [map_id, map_dict] of emplhour_map.entries()) {
-                const tblRow = CreateTblRow(map_id, map_dict, -1, false)
+                if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
+                previous_oh_id = map_dict.oh_id;
+        console.log("employeecode", map_dict.employeecode);
+        console.log("map_dict.oh_id", map_dict.oh_id);
+        console.log("previous_oh_id", previous_oh_id);
+        console.log("is_odd_row", is_odd_row);
+                const tblRow = CreateTblRow(map_id, map_dict, -1, false, is_odd_row)
                 UpdateTblRow(tblRow, map_dict)
             }
         }
     }  // FillTblRows
 
-//=========  CreateTblRow  ===== PR2020-08-12
-    function CreateTblRow(map_id, map_dict, row_index, is_new_item) {
-        //console.log("=========  CreateTblRow =========");
-       //console.log("map_id", map_id);
+//=========  CreateTblRow  ===== PR2020-08-12 PR2021-03-02
+    function CreateTblRow(map_id, map_dict, row_index, is_new_item, is_odd_row) {
+        console.log("=========  CreateTblRow =========");
+       console.log("map_dict", map_dict);
 
         const tblName = "emplhour";
 
@@ -786,6 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.id = map_id;
         //tblRow.setAttribute("data-table", tblName);
         tblRow.setAttribute("data-pk", map_dict.id);
+        tblRow.setAttribute("data-odd", is_odd_row);
 
 // ---  add data-orderby attribute to tblRow, for ordering new rows
         // happens in UpdateTblRow
@@ -852,6 +863,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }  //if (j === 0)
             td.appendChild(el);
         }  // for (let j = 0; j < 8; j++)
+
+// ---  alternate row background color
+        const class_background = (is_odd_row) ? cls_cell_unchanged_even : cls_cell_unchanged_odd;
+        tblRow.classList.add(class_background);
+
         return tblRow
     };// CreateTblRow
 
@@ -1946,34 +1962,37 @@ rowcount: 11
 // get info from emplhour_map
         let emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
         if(!isEmpty(emplhour_dict)){
+            // locked when stat_locked or stat_pay_locked, not when stat_inv_locked
+            const is_not_locked = (!emplhour_dict.stat_locked && !emplhour_dict.stat_pay_locked)
+            if (is_not_locked){
+    // ---  set header text
+                let header_txt = loc.Allowances + loc.for_txt + emplhour_dict.employeecode + "\n"
+                header_txt += format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
+                if(emplhour_dict.c_o_code) { header_txt += " - " + emplhour_dict.c_o_code };
+                if(emplhour_dict.shiftcode) { header_txt += "  " + emplhour_dict.shiftcode };
+                el_MAL_header.innerText = header_txt;
 
-// ---  set header text
-            let header_txt = loc.Allowances + loc.for_txt + emplhour_dict.employeecode + "\n"
-            header_txt += format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
-            if(emplhour_dict.c_o_code) { header_txt += " - " + emplhour_dict.c_o_code };
-            if(emplhour_dict.shiftcode) { header_txt += "  " + emplhour_dict.shiftcode };
-            el_MAL_header.innerText = header_txt;
+    // ---  put emplhour_pk and mapid in mod_MAL_dict
+                mod_MAL_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid};
 
-// ---  put emplhour_pk and mapid in mod_MAL_dict
-            mod_MAL_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid};
+    // ---  put allowance rows in mod_MAL_dict
+                const empl_alw_dict = get_dict_value(emplhourallowance_dict, [emplhour_dict.id])
+                MAL_fill_MAL_dict(empl_alw_dict)
 
-// ---  put allowance rows in mod_MAL_dict
-            const empl_alw_dict = get_dict_value(emplhourallowance_dict, [emplhour_dict.id])
-            MAL_fill_MAL_dict(empl_alw_dict)
+    // ---  display modified_by
+                // loop through allowances and put last modifiedat and username in
+                const modat = get_dict_value(mod_MAL_dict, ["max_modifiedat"])
+                const modby = get_dict_value(mod_MAL_dict, ["max_modifiedby"])
+                el_MAL_modifiedby.innerText = display_modifiedby(loc, modat, modby);
 
-// ---  display modified_by
-            // loop through allowances and put last modifiedat and username in
-            const modat = get_dict_value(mod_MAL_dict, ["max_modifiedat"])
-            const modby = get_dict_value(mod_MAL_dict, ["max_modifiedby"])
-            el_MAL_modifiedby.innerText = display_modifiedby(loc, modat, modby);
+    // ---  fill table empl_alw
+                MAL_FillTable("alw_listdict");
 
-// ---  fill table empl_alw
-            MAL_FillTable("alw_listdict");
+                //const el_input = document.getElementById("id_MNO_input_note")
+                //if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
 
-            //const el_input = document.getElementById("id_MNO_input_note")
-            //if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
-
-            $("#id_mod_emplhourallowance").modal({backdrop: true});
+                $("#id_mod_emplhourallowance").modal({backdrop: true});
+            }  //  if (is_not_locked)
         }
     }  // MAL_Open
 
@@ -3060,9 +3079,9 @@ rowcount: 11
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //=========  UpdateEmplhourNotes  === PR2021-02-14  PR2021-02-22
     function UpdateEmplhourNotes(response_emplhournote_rows, skip_reset_all) {
-        console.log("===  UpdateEmplhourNotes == ");
-        console.log("emplhournote_rows", emplhournote_rows);
-        console.log("skip_reset_all", !!skip_reset_all);
+        //console.log("===  UpdateEmplhourNotes == ");
+        //console.log("emplhournote_rows", emplhournote_rows);
+        //console.log("skip_reset_all", !!skip_reset_all);
 
         const icon_note = "edit_0_1", icon_usernote = "edit_1_1"
         // refresh emplhournote_rows outside this function, because updating 1 row will erase the rest
@@ -3081,8 +3100,8 @@ rowcount: 11
 // loop through emplhournote_rows
         // emplhournote_rows: {9057: {end: [9059], start: [9058]}, 9058: {end: [9057, 9059]}, 9059: {start: [9057, 9058]}}
         for (const [emplhour_pk, item_dict] of Object.entries(emplhournote_rows)) {
-            console.log ("emplhour_pk", emplhour_pk, typeof emplhour_pk)
-            console.log ("item_dict", item_dict)
+            //console.log ("emplhour_pk", emplhour_pk, typeof emplhour_pk)
+            //console.log ("item_dict", item_dict)
 
             let has_usernote = (!!item_dict.usernote_count)
             const len = item_dict.note_agg.length;
@@ -3538,7 +3557,7 @@ rowcount: 11
                     RefreshEmplhourNoteRows(response.emplhournote_updates)
                 }
                 if ("emplhour_updates" in response) {
-                    RefreshEmplhourMap(response.emplhour_updates, true)
+                    refresh_updated_emplhour_rows(response.emplhour_updates, true)
                 }
                 if ("overlap_dict" in response) {
                     UpdateOverlap(response["overlap_dict"], true); // true = skip_reset_all
@@ -3584,7 +3603,7 @@ rowcount: 11
                     console.log(response);
 
 
-                    // update EmplhourNotes must come before RefreshEmplhourMap
+                    // update EmplhourNotes must come before refresh_updated_emplhour_rows
                     if ("emplhournote_updates" in response) {
                         RefreshEmplhourNoteRows(response.emplhournote_updates)
                     }
@@ -3594,7 +3613,7 @@ rowcount: 11
                     // refresh page on open page or when rosterdate is added or removes
                     if ("emplhour_rows" in response) {
                         FillEmplhourMap(response.emplhour_rows);
-                        //this one gives wrong mapid: refresh_datamap(response.emplhour_rows, emplhour_map)
+                        //this one gives wrong mapid: b_refresh_datamap(response.emplhour_rows, emplhour_map)
                         FillTblRows();
                     };
                     // update changed rows only
@@ -3609,7 +3628,7 @@ rowcount: 11
                         RefreshOrderNoteRows("ordernote", response.ordernote_updates)
                     }
                     if ("emplhour_updates" in response) {
-                        RefreshEmplhourMap (response.emplhour_updates, false)
+                        refresh_updated_emplhour_rows (response.emplhour_updates, false)
                     }
                     if ("rosterdate_check" in response) {
                         MRD_Checked(response.rosterdate_check);
@@ -3666,27 +3685,25 @@ rowcount: 11
     };  // FillEmplhourMap
 
 
-//=========  RefreshEmplhourMap  ================ PR2020-08-14
-    function RefreshEmplhourMap(emplhour_updates, is_update_check) {
-        //console.log(" --- RefreshEmplhourMap  ---");
+//=========  refresh_updated_emplhour_rows  ================ PR2020-08-14
+    function refresh_updated_emplhour_rows(emplhour_updates, is_update_check) {
+        //console.log(" --- refresh_updated_emplhour_rows  ---");
         if (emplhour_updates) {
             for (let i = 0, update_dict; update_dict = emplhour_updates[i]; i++) {
-                RefreshEmplhour_MapItem(update_dict, is_update_check)
+                refresh_updated_emplhour_row(update_dict, is_update_check)
             }
         }
-    } // RefreshEmplhourMap
+    } // refresh_updated_emplhour_rows
 
-//=========  RefreshEmplhour_MapItem  ================ PR2020-08-14
-    function RefreshEmplhour_MapItem(update_dict, is_update_check) {
-        console.log(" --- RefreshEmplhour_MapItem  ---");
+//=========  refresh_updated_emplhour_row  ================ PR2020-08-14
+    function refresh_updated_emplhour_row(update_dict, is_update_check) {
+        console.log(" --- refresh_updated_emplhour_row  ---");
         console.log("is_update_check", is_update_check);
         console.log("update_dict", deepcopy_dict(update_dict));
 
 // ---  update or add emplhour_dict in emplhour_map
         const map_id = update_dict.mapid;
         const old_map_dict = emplhour_map.get(map_id);
-        console.log("old_map_dict", deepcopy_dict(old_map_dict));
-
         const is_deleted = update_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
@@ -3706,10 +3723,12 @@ rowcount: 11
             //}
             emplhour_map.set(map_id, update_dict)
             updated_columns.push("created")
+
 // ---  delete deleted item
         } else if(is_deleted){
             emplhour_map.delete(map_id);
         } else {
+
 // ---  check which fields are updated, add to list 'updated_columns'
             // new emplhour has no old_map_dict PR2020-08-19
             // skip first column (is margin)
@@ -3787,7 +3806,7 @@ rowcount: 11
                 }
             }
         }
-    }  // RefreshEmplhour_MapItem
+    }  // refresh_updated_emplhour_row
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -4873,7 +4892,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         // minoffset = offsetstart + breakduration
         let rosterdate = null, offset = null;
         let fldName = null;
-        let offset_value = null, offset_start = null, offset_end = null, break_duration = 0, time_duration = 0;
+        let offset_value = null, offset_start = null, offset_end = null, break_duration = 0, time_duration = 0, no_hours = false;
         let show_btn_delete = true;  // offsetsplit is required
         let map_id = null, pk_int = null, ppk_int = null, tblName = "emplhour";
         let is_not_locked = false, is_not_start_conf = false, is_not_end_conf = false, is_not_restshift = false;
@@ -4916,7 +4935,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             offset_end = map_dict.offsetend;
             break_duration = map_dict.breakduration;
             time_duration = map_dict.timeduration;
-
+            no_hours = map_dict.nohours;
         } else {
             rosterdate = mod_dict.rosterdate;
             offset_start = mod_dict.offsetstart;
@@ -4984,6 +5003,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
                         show_btn_delete: show_btn_delete};
 
+        console.log("no_hours", no_hours)
         //console.log("fldName", fldName)
         //console.log("txt_dateheader", txt_dateheader)
         //console.log("st_dict", st_dict)
@@ -4994,19 +5014,51 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ---  open ModTimepicker
         if (calledby === "tblRow") {
             let may_open_timepicker = false;
+            const msg_list = [];
             if (is_not_locked){
                 if (fldName === "offsetstart") {
-                    may_open_timepicker = is_not_start_conf;
+                    if (!is_not_start_conf){
+                        msg_list.push(loc.err_msg_starttime_is_confirmed);
+                        msg_list.push(loc.err_msg_cannot_change_starttime);
+                    } else {
+                        may_open_timepicker = is_not_start_conf;
+                    }
                 } else  if (fldName === "offsetend") {
-                    may_open_timepicker = is_not_end_conf;
+                    if (!is_not_end_conf){
+                        msg_list.push(loc.err_msg_starttime_is_confirmed);
+                        msg_list.push(loc.err_msg_cannot_change_starttime);
+                    } else {
+                        may_open_timepicker = is_not_end_conf;
+                    }
                 } else  if (fldName === "breakduration") {
-                    may_open_timepicker = (is_not_restshift);
+                    if (no_hours){
+                        msg_list.push(loc.err_msg_cannot_set_break);
+                        msg_list.push(loc.err_msg_because_option_nohours);
+                    } else if (!is_not_restshift){
+                        msg_list.push(loc.err_msg_cannot_set_break_of_restshift);
+                    } else {
+                        may_open_timepicker = (is_not_restshift);
+                    }
                 } else  if (fldName === "timeduration") {
-                    may_open_timepicker = (is_not_restshift && is_not_end_conf && is_not_end_conf);
+                    if (no_hours){
+                        msg_list.push(loc.err_msg_cannot_set_time);
+                        msg_list.push(loc.err_msg_because_option_nohours);
+                    } else if (!is_not_restshift){
+                        msg_list.push(loc.err_msg_cannot_set_hours_of_restshift);
+                    } else {
+                        may_open_timepicker = (is_not_end_conf && is_not_end_conf);
+                    }
                 }
             };
             if (may_open_timepicker) {
                 mtp_TimepickerOpen(loc, el_input, UploadTblrowTimepickerResponse, tp_dict, st_dict);
+            } else if (msg_list && msg_list.length) {
+                let html_text = "";
+                for (let i = 0, msg_text; msg_text = msg_list[i]; i++) {
+                    html_text += "<div>" + msg_text + "</div>"
+                }
+                document.getElementById("id_mod_message_container").innerHTML = html_text
+                $("#id_mod_message").modal({backdrop: true});
             };
         } else {
         //console.log("pgeName", pgeName)

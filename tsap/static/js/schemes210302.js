@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 'order' must come before 'customer'
         if ("order_list" in response) {
-            refresh_datamap(response["order_list"], order_map)
+            b_refresh_datamap(response["order_list"], order_map)
             // check if selected_order exists in order_map
             if(!selected_item_exists_in_map(order_map, "order", selected.order_pk)){
                 selected.customer_pk = 0;
@@ -533,18 +533,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
         //console.log("response[copied_from_template: ", response["copied_from_template"]);
 
-        if ("order_list" in response) {refresh_datamap(response["order_list"], order_map)}
-        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
-        // PR2021-01-03 use shift_rows instead of shift_list. Was: if ("shift_list" in response) {refresh_datamap(response.shift_list, shift_map)}
-        if ("shift_rows" in response) {refresh_datamap(response.shift_rows, shift_map, "shift")}
-        if ("team_rows" in response) {refresh_datamap(response.team_rows, team_map, "team")}
-       // if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)};
-        // if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)};
-        if ("teammember_rows" in response) {refresh_datamap(response["teammember_rows"], teammember_map, "teammember") };
-        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)};
-        if ("employee_rows" in response) { refresh_datamap(response.employee_rows, employee_map, "employee") };
-        if ("abscat_rows" in response) { refresh_datamap(response.abscat_rows, abscat_map, "abscat") };
-        if ("absence_rows" in response) { refresh_datamap(response.absence_rows, absence_map, "absence") };
+        if ("order_list" in response) {b_refresh_datamap(response["order_list"], order_map)}
+        if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
+        // PR2021-01-03 use shift_rows instead of shift_list. Was: if ("shift_list" in response) {b_refresh_datamap(response.shift_list, shift_map)}
+        if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")}
+        if ("team_rows" in response) {b_refresh_datamap(response.team_rows, team_map, "team")}
+       // if ("team_list" in response) {b_refresh_datamap(response["team_list"], team_map)};
+        // if ("teammember_list" in response) {b_refresh_datamap(response["teammember_list"], teammember_map)};
+        if ("teammember_rows" in response) {b_refresh_datamap(response["teammember_rows"], teammember_map, "teammember") };
+        if ("schemeitem_list" in response) {b_refresh_datamap(response["schemeitem_list"], schemeitem_map)};
+        if ("employee_rows" in response) { b_refresh_datamap(response.employee_rows, employee_map, "employee") };
+        if ("abscat_rows" in response) { b_refresh_datamap(response.abscat_rows, abscat_map, "abscat") };
+        if ("absence_rows" in response) { b_refresh_datamap(response.absence_rows, absence_map, "absence") };
 
         if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
 
@@ -1017,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // hide loader
                         el_loader.classList.add(cls_visible_hide)
                         if ("schemeitem_list" in response) {
-                            refresh_datamap(response["schemeitem_list"], schemeitem_map)
+                            b_refresh_datamap(response["schemeitem_list"], schemeitem_map)
                             FillTableRows("schemeitem")
                         }
                     },
@@ -2189,7 +2189,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     console.log (response);
 
                     if ("schemeitem_list" in response) {
-                        refresh_datamap(response["schemeitem_list"], schemeitem_map)
+                        b_refresh_datamap(response["schemeitem_list"], schemeitem_map)
                     }
 
                 },
@@ -2273,15 +2273,15 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                     console.log (response);
 
                     if ("scheme_list" in response) {
-                        refresh_datamap(response["scheme_list"], scheme_map)
+                        b_refresh_datamap(response["scheme_list"], scheme_map)
                         // >>>> SBR_FillSelectTable("UploadSchemeOrShiftOrTeam scheme_list");
                     }
                     // PR2021-01-03 use shift_rows instead of shift_list.
-                    // Was: if ("shift_list" in response) {refresh_datamap(response.shift_list, shift_map)}
-                    if ("shift_rows" in response) {refresh_datamap(response.shift_rows, shift_map, "shift")}
+                    // Was: if ("shift_list" in response) {b_refresh_datamap(response.shift_list, shift_map)}
+                    if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")}
 
-                    if ("team_list" in response) {refresh_datamap(response["team_list"], team_map) }
-                    if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map) }
+                    if ("team_list" in response) {b_refresh_datamap(response["team_list"], team_map) }
+                    if ("schemeitem_list" in response) {b_refresh_datamap(response["schemeitem_list"], schemeitem_map) }
 
                     if ("scheme_update" in response){UpdateFromResponse(response["scheme_update"]);};
                     if ("shift_update" in response){UpdateFromResponse(response["shift_update"]);};
@@ -2365,7 +2365,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         }
                     }
                     if ("schemeitem_list" in response) {
-                        refresh_datamap(response["schemeitem_list"], schemeitem_map)
+                        b_refresh_datamap(response["schemeitem_list"], schemeitem_map)
                      }
                     if ("shift_update" in response){
                         UpdateFromResponse(response["shift_update"]);
@@ -2483,7 +2483,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 success: function (response) {
                     console.log( "response", response);
                     //if ("schemeitem_list" in response) {
-                    //    refresh_datamap(response["schemeitem_list"], schemeitem_map)
+                    //    b_refresh_datamap(response["schemeitem_list"], schemeitem_map)
                     //    FillTableRows("schemeitem")
                     //}
                     // don't use schemeitem_list and schemeitem_update, new entry will be shown twice
@@ -2515,14 +2515,14 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                         const scheme_update = response["scheme_update"];
                         if(!isEmpty(scheme_update)){
                             const scheme_list = [scheme_update];
-                            refresh_datamap(scheme_list, scheme_map)
+                            b_refresh_datamap(scheme_list, scheme_map)
                             UpdateFromResponse(scheme_update);
                         }
                     }
                     if ("scheme_list" in response) {
                         const scheme_list = response["scheme_list"];
                         if(scheme_list.length){
-                            refresh_datamap(scheme_list, scheme_map)
+                            b_refresh_datamap(scheme_list, scheme_map)
                         }
                         SBR_FillSelectTable("MSCH_Save scheme_list");
                     }
@@ -6819,7 +6819,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     //console.log( "response");
                     //console.log( response);
                     if ("scheme_list" in response) {
-                        refresh_datamap(response["scheme_list"], scheme_map)
+                        b_refresh_datamap(response["scheme_list"], scheme_map)
                         is_template_mode = false;
                         HandleBtnSelect();
                     }
@@ -8253,7 +8253,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 // ---  if cell_date is holiday or is_col_ph:  set title
                 if (grid_dict.nocycle && col_index && is_publicholiday){
-                    th_date.title = get_dict_value(holiday_dict, [date_iso, "display"])
+                    const title = get_dict_value(holiday_dict, [date_iso, "display"])
+                    th_weekday.title = title;
+                    th_date.title = title;
                 }
                 tblRow_weekday.appendChild(th_weekday);
                 tblRow_date.appendChild(th_date);

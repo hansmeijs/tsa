@@ -1,10 +1,10 @@
 # PR2019-03-24
 from django.contrib.auth.decorators import login_required
 from django.db import connection
-from django.db.models import Q, Value
-from django.db.models.functions import Lower, Coalesce
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http import HttpResponse
-from django.shortcuts import render, redirect #, get_object_or_404
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
@@ -13,12 +13,10 @@ from django.views.generic import UpdateView, View
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
-from accounts.models import Usersetting
 from accounts import dicts as ad
 from companies.views import LazyEncoder
 from customers import dicts as cust_dicts
 
-from tsap import settings
 from tsap import constants as c
 from tsap import functions as f
 from tsap import locale as loc
@@ -429,9 +427,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # - ehal_afas_rows
                     if datalist_request.get('ehal_afas_rows'):
                         payroll_period = datalists.get('payroll_period')
-                        datalists['ehal_afas_rows'] = ed.create_afas_ehal_rows(payroll_period, request)
+                        datalists['ehal_afas_rows'] = ed.create_afas_ehal_rows(payroll_period, user_lang, request)
 
-# - functioncode_rows
+# - functioncode_rows are stored in wagecode_rows, key 'fnc' PR2021-03-01
+                    # TODO replace functioncode_rows in employee page
                     if datalist_request.get('functioncode_rows'):
                         datalists['functioncode_rows'] = ed.create_wagecode_rows('fnc', request, {})
 
@@ -1711,7 +1710,7 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
             update_shift_instance(instance, parent, upload_dict, update_dict, user_lang, request)
 
 # 8. put updated saved values in update_dict, skip dict when deleted_ok, dict is needed when delete fails
-            d.create_shift_dict(instance, update_dict, user_lang)
+            d.create_shift_dict(instance, update_dict)
 
             #logger.debug('.......update_dict' + str(update_dict))
 # 9. remove empty attributes from update_dict
@@ -2959,21 +2958,22 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
             # set absence to zero on public holidays and weekends when 'nohoursonsaturday' etc
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
                 f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
+            is_weekday = not is_saturday and not is_sunday and not is_publicholiday and not is_companyholiday
 
 # - get nopay. These fields are in order and scheme. For absence: use table 'order'
             # TODO deprecated
-            abscat_nopay = abscat_order.nopay
+            # abscat_nopay = abscat_order.nopay
 
-# - get nohours These fields are in order and scheme. For absence: use table 'order'
+# - get nohours These fields are in order and scheme. For absence only fields in table 'order' are used
+            nohours_onwd = abscat_order.nohoursonweekday
             nohours_onsat = abscat_order.nohoursonsaturday
             nohours_onsun = abscat_order.nohoursonsunday
             nohours_onph = abscat_order.nohoursonpublicholiday
-            nohours_onch = abscat_order.nohoursoncompanyholiday
 
-            abscat_nohours = (is_saturday and nohours_onsat) or \
+            abscat_nohours = (is_weekday and nohours_onwd) or \
+                             (is_saturday and nohours_onsat) or \
                             (is_sunday and nohours_onsun) or \
-                            (is_publicholiday and nohours_onph) or \
-                            (is_companyholiday and nohours_onch)
+                            (is_publicholiday and nohours_onph)
             if logging_on:
                 logger.debug('abscat_nohours: ' + str(abscat_nohours))
 
@@ -3027,11 +3027,13 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     offset_end = emplhour.offsetend
                     break_duration = emplhour.breakduration
                     time_duration = emplhour.timeduration
-            if logging_on:
-                logger.debug('offset_start: ' + str(offset_start))
-                logger.debug('offset_end: ' + str(offset_end))
-                logger.debug('break_duration: ' + str(break_duration))
-                logger.debug('time_duration: ' + str(time_duration))
+
+                if logging_on:
+                    logger.debug('split: ' + str(split))
+                    logger.debug('offset_start: ' + str(offset_start))
+                    logger.debug('offset_end: ' + str(offset_end))
+                    logger.debug('break_duration: ' + str(break_duration))
+                    logger.debug('time_duration: ' + str(time_duration))
 
     # - calculate time_start, time_end, time_duration, excel_start, excel_end
         # - when employee_pk is None time_duration will be set to None
@@ -3048,22 +3050,21 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                         employee_wmpd = absent_employee.workminutesperday
 
                 default_wmpd = absent_employee.company.workminutesperday
-                time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
+                time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, no_hours, excel_dateNIU, excel_start, excel_end = \
                     f.calc_timedur_plandur_from_offset(
                         rosterdate_dte=emplhour.rosterdate,
                         is_absence=True, is_restshift=False, is_billable=False,
                         is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
                         row_offsetstart=offset_start, row_offsetend=offset_end,
                         row_breakduration=break_duration, row_timeduration=0,
-                        row_plannedduration = 0, update_plandur = True,
-                        row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
-                        row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
+                        row_plannedduration=0, update_plandur=True,
+                        row_nohours_onwd=nohours_onwd, row_nohours_onsat=nohours_onsat,
+                        row_nohours_onsun=nohours_onsun, row_nohours_onph=nohours_onph,
                         row_employee_pk=employee_pk,
                         row_employee_wmpd=employee_wmpd,
                         default_wmpd=default_wmpd,
                         comp_timezone=comp_timezone)
                 if logging_on:
-                    logger.debug('-------- split: ' + str(split))
                     logger.debug('-------- employee_wmpd: ' + str(employee_wmpd))
 
                     logger.debug('     planned_durationNIU: ' + str(planned_durationNIU))
@@ -3104,7 +3105,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                     employeecode=absent_employee.code,
 
                     paydatecode=absent_employee.paydatecode,
-                    nopay=abscat_nopay,
+
+                    nohours=abscat_nohours,
                     # dont copy shift, is confusing. Was: shift=orderhour.shift,
                     # plannedduration = 0, billingduration = 0 , breakduration = 0
                     timeduration=time_duration,
@@ -3212,6 +3214,12 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
                 f.get_issat_issun_isph_isch_from_calendar(orderhour.rosterdate, request)
 
+# - get nohours These fields are in order and scheme. For absence only fields in table 'order' are used
+            nohours_onwd = abscat_order.nohoursonweekday
+            nohours_onsat = abscat_order.nohoursonsaturday
+            nohours_onsun = abscat_order.nohoursonsunday
+            nohours_onph = abscat_order.nohoursonpublicholiday
+
             # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
             # TODO deprecated
             abscat_nopay = abscat_order.nopay
@@ -3249,7 +3257,7 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
                     employee_wmpd = emplhour.employee.workminutesperday
 
             default_wmpd = emplhour.employee.company.workminutesperday
-            time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
+            time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, no_hours, excel_dateNIU, excel_start, excel_end = \
                 f.calc_timedur_plandur_from_offset(
                     rosterdate_dte=emplhour.rosterdate,
                     is_absence=True, is_restshift=False, is_billable=False,
@@ -3257,13 +3265,9 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
                     row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
                     row_breakduration=emplhour.breakduration, row_timeduration=0,
                     row_plannedduration=0, update_plandur=True,
-                    row_nohours_onsat=abscat_order.nohoursonsaturday,
-                    row_nohours_onsun=abscat_order.nohoursonsunday,
-                    row_nohours_onph=abscat_order.nohoursonpublicholiday,
-                    row_nohours_onch=abscat_order.nohoursoncompanyholiday,
-                    row_employee_pk=emplhour.employee_id,
-                    row_employee_wmpd=employee_wmpd,
-                    default_wmpd=default_wmpd,
+                    row_nohours_onwd=nohours_onwd, row_nohours_onsat=nohours_onsat,
+                    row_nohours_onsun=nohours_onsun, row_nohours_onph=nohours_onph,
+                    row_employee_pk=emplhour.employee_id, row_employee_wmpd=employee_wmpd, default_wmpd=default_wmpd,
                     comp_timezone=comp_timezone)
 
 # update values in orderhour instanbce, save at end of this function
@@ -3453,9 +3457,9 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
     # set absence to zero on public holidays and weekends when 'nohoursonsaturday' etc
     is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
         f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
-
-    nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = \
-        get_nosat_sun_ph_ch_from_emplhour(emplhour)
+#
+    nohours_onwd, nohours_onsat, nohours_onsun, nohours_onph = \
+        get_nosat_sun_ph_ch_from_emplhour_order_and_shift(emplhour)
 
     # when employee_pk is None time_duration will be set to None
     new_employee_pk, new_employee_code, new_employee_paydatecode, new_employee_functioncode, new_employee_wagecode = \
@@ -3477,7 +3481,7 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
             employee_wmpd = new_employee.workminutesperday
 
     default_wmpd = new_employee.company.workminutesperday
-    time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, excel_dateNIU, excel_start, excel_end = \
+    time_start, time_end, planned_durationNIU, time_duration, billing_durationNIU, no_hours, excel_dateNIU, excel_start, excel_end = \
         f.calc_timedur_plandur_from_offset(
             rosterdate_dte=emplhour.rosterdate,
             is_absence=True, is_restshift=False, is_billable=False,
@@ -3485,8 +3489,8 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
             row_offsetstart=offset_start, row_offsetend=offset_end,
             row_breakduration=break_duration, row_timeduration=0,
             row_plannedduration=0, update_plandur=True,
-            row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
-            row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
+            row_nohours_onwd=nohours_onwd, row_nohours_onsat=nohours_onsat,
+            row_nohours_onsun=nohours_onsun, row_nohours_onph=nohours_onph,
             row_employee_pk=new_employee_pk, row_employee_wmpd=employee_wmpd,
             default_wmpd=default_wmpd,
             comp_timezone=comp_timezone)
@@ -3546,7 +3550,6 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
 
         paydatecode=new_employee_paydatecode,
         lockedpaydate=emplhour.lockedpaydate,
-        nopay=emplhour.nopay,
 
         timestart=time_start,
         timeend=time_end,
@@ -3559,6 +3562,8 @@ def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list
         offsetend=offset_end,
         excelstart=excel_start,
         excelend=excel_end,
+
+        nohours=no_hours,
 
         functioncode=new_employee_functioncode,
         wagecode=new_employee_wagecode,
@@ -3621,7 +3626,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
     # --- saves updates in existing and new emplhour PR2-019-06-23
     # only called by EmplhourUploadView
     # also update orderhour when time has changed
-    logging_on = False
+
     if logging_on:
         logger.debug(' --------- update_emplhour -------------')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -3744,8 +3749,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     elif field in ('offsetstart', 'offsetend'):
                         # 'offsetstart': {'value': -560, 'update': True}}
                         # use saved_rosterdate to calculate time from offset
-                        #logger.debug('field: ' + str(field))
-                        #logger.debug('emplhour.rosterdate: ' + str(emplhour.rosterdate))
+
                         if emplhour.rosterdate:
                     # - get new offset of this emplhour
                             # value = 0 means midnight, value = null means blank
@@ -3757,6 +3761,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                     emplhour.timeduration = 0
                     # - save offsetstart, offsetend PR2020-04-09
                             setattr(emplhour, field, new_offset_int)
+
                     # - get timestart/timeend from rosterdate and offsetstart /-end
                             # timestart/timeend will be recalculated in recalc_duration
 
@@ -3767,8 +3772,12 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                             offset_nonull = new_offset_int if new_offset_int else 0
                             excel_value = excel_date * 1440 + offset_nonull
                             setattr(emplhour, excel_field, excel_value)
-                            #logger.debug('excel_field: ' + str(excel_field))
-                            #logger.debug('excel_value: ' + str(excel_value))
+
+                            if logging_on:
+                                logger.debug('field: ' + str(field))
+                                logger.debug('new_offset_int: ' + str(new_offset_int))
+                                logger.debug('excel_value: ' + str(excel_value))
+
                     # - set is_updated and  recalc_duration to True
                             is_updated = True
                             recalc_duration = True
@@ -3777,15 +3786,19 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 # ---   save changes in breakduration and timeduration field
                     elif field in ('breakduration', 'timeduration'):
                         new_minutes = field_dict.get('value', 0)
-                        #logger.debug('field: ' + str(field))
-                        #logger.debug('new_minutes: ' + str(new_minutes))
+
                         # PR2020-02-22 debug. Default '0' not working. breakduration = None gives error, Not null
                         if new_minutes is None:
                             new_minutes = 0
                         # duration unit in database is minutes
                         # value of timeduration will be recalculated if 'timestart' and 'timeend' both are not None
                         old_minutes = getattr(emplhour, field, 0)
-                        #logger.debug('old_minutes: ' + str(old_minutes))
+
+                        if logging_on:
+                            logger.debug('field: ' + str(field))
+                            logger.debug('new_minutes: ' + str(new_minutes))
+                            logger.debug('old_minutes: ' + str(old_minutes))
+
                         if new_minutes != old_minutes:
                             setattr(emplhour, field, new_minutes)
                             is_updated = True
@@ -3938,14 +3951,14 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
             employee_wmpd = emplhour.employee.workminutesperday if emplhour.employee else None
 
             # 'nohours' is only used in absence
-            nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = \
-                get_nosat_sun_ph_ch_from_emplhour(emplhour)
+            nohours_onwd, nohours_onsat,nohours_onsun, nohours_onph = \
+                get_nosat_sun_ph_ch_from_emplhour_order_and_shift(emplhour)
 
             # dont change planned_duration, except when is_extra_order = true
             # is_extra_order is true when adding emplhour in modal MRO 'This is an extra order' is checked PR2020-11-27
             is_extra_order = f.get_dict_value(upload_dict, ('id', 'extraorder'))
             default_wmpd = request.user.company.workminutesperday
-            timestart, timeend, planned_duration, time_duration, billing_duration, excel_dateNIU, excel_start, excel_end = \
+            timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_dateNIU, excel_start, excel_end = \
                 f.calc_timedur_plandur_from_offset(
                     rosterdate_dte=emplhour.rosterdate,
                     is_absence=is_absence, is_restshift=is_restshift, is_billable=is_billable,
@@ -3953,8 +3966,8 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                     row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
                     row_breakduration=emplhour.breakduration, row_timeduration=emplhour.timeduration,
                     row_plannedduration=emplhour.plannedduration, update_plandur=is_extra_order,
-                    row_nohours_onsat=nohours_onsat, row_nohours_onsun=nohours_onsun,
-                    row_nohours_onph=nohours_onph, row_nohours_onch=nohours_onch,
+                    row_nohours_onwd=nohours_onwd, row_nohours_onsat=nohours_onsat,
+                    row_nohours_onsun=nohours_onsun, row_nohours_onph=nohours_onph,
                     row_employee_pk=employee_pk, row_employee_wmpd=employee_wmpd,
                     default_wmpd=default_wmpd,
                     comp_timezone=comp_timezone)
@@ -4166,17 +4179,25 @@ def create_emplhourstatus_row(emplhour_pk, status_value, isremoved, request, mod
     )
 
 
-def get_nosat_sun_ph_ch_from_emplhour(emplhour): # PR20120-09-09
-    #logger.debug(' --- get_nosat_sun_ph_ch_from_emplhour ---')
-    # function gets nohours_onsat etc from order and scheme of this emplhour
-    # absence nohours_onsat etc are stored in order, not in scheme
+def get_nosat_sun_ph_ch_from_emplhour_order_and_shift(emplhour): # PR20120-09-09
+    #logger.debug(' --- get_nosat_sun_ph_ch_from_emplhour_order_and_shift ---')
+    # function gets nohours_onsat etc from order and shift of this emplhour
+    # absence nohours_onsat etc are stored in order, not in shift
     # 'nohours' ae only used in absence and set in absence category (i.e. order of absence)
-    nohours_onsat, nohours_onsun, nohours_onph, nohours_onch = False, False, False, False
+    nohours_onwd, nohours_onsat, nohours_onsun, nohours_onph = False, False, False, False
     if emplhour:
+        nohours_onwd = emplhour.orderhour.order.nohoursonweekday
+        if not nohours_onwd and emplhour.orderhour.shift:
+            nohours_onwd = emplhour.orderhour.shift.nohoursonweekday
         nohours_onsat = emplhour.orderhour.order.nohoursonsaturday
+        if not nohours_onsat and emplhour.orderhour.shift:
+            nohours_onsat = emplhour.orderhour.shift.nohoursonsaturday
         nohours_onsun = emplhour.orderhour.order.nohoursonsunday
+        if not nohours_onsun and emplhour.orderhour.shift:
+            nohours_onsun = emplhour.orderhour.shift.nohoursonsunday
         nohours_onph = emplhour.orderhour.order.nohoursonpublicholiday
-        nohours_onch = emplhour.orderhour.order.nohoursoncompanyholiday
+        if not nohours_onph and emplhour.orderhour.shift:
+            nohours_onph = emplhour.orderhour.shift.nohoursonpublicholiday
 
         """
         # nopay and nosat etc in scheme are not in use (yet) PR2020-10-09
@@ -4194,10 +4215,9 @@ def get_nosat_sun_ph_ch_from_emplhour(emplhour): # PR20120-09-09
                     nohours_onsun = True
                 if scheme.nohoursonpublicholiday:
                     nohours_onph = True
-                if scheme.nohoursoncompanyholiday:
-                    nohours_onch = True
+
         """
-    return nohours_onsat, nohours_onsun, nohours_onph, nohours_onch
+    return nohours_onwd, nohours_onsat, nohours_onsun, nohours_onph
 
 def recalc_orderhourXXX(orderhour): # PR2019-10-11
     #logger.debug(' --- recalc_orderhour ---')
@@ -4549,222 +4569,6 @@ def update_schemeitem_instance(instance, upload_dict, update_dict, request):
                     update_dict['id'] = {}
                 update_dict['id']['error'] = msg_err
 
-# NOT IN USE
-def get_rangemin_rangemaxXXX (upload_dict, request):  # PR2019-08-19
-    rangemin = None
-    rangemax = None
-
-    period_dict = {}
-    if 'period' in upload_dict:  # PR2019-07-09
-        # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
-
-# get saved period_dict
-        period_dict = d.get_period_from_settings(request)
-
-# get today_midnight_local_iso
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
-
-# get today_midnight_local_iso
-        today_utc = d.get_datetime_utc(datetime.utcnow())
-        today_midnight_local = d.get_rosterdate_midnight_local(today_utc, comp_timezone)
-        #logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
-        # today_midnight_local_iso = today_midnight_local.isoformat()
-        #logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
-
-# get now in utc
-        now_dt = datetime.utcnow()
-        #logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
-        # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
-        now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
-        #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
-        # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
-
-# convert now to local
-        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-        timezone = pytz.timezone(comp_timezone)
-        now_local = now_utc.astimezone(timezone)
-        #logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
-        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
-
-# split now_local
-        year_int, month_int, date_int, hour_int, minute_int = d.split_datetime(now_local)
-        #logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
-        # now_local_arr: 2019;7;10;16
-
-# get interval
-        interval = int(period_dict['interval'])
-        interval_index = int(hour_int / interval)
-        #logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
-
-# get local start time of current interval
-        interval_starthour = interval * interval_index
-        #logger.debug('interval_starthour: ' + str(interval_starthour))
-        interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
-        #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
-
-        interval_end_local = interval_start_local + timedelta(hours=interval)
-        #logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
-
-# get local start time of current interval with overlap
-        overlap = int(period_dict['overlap'])
-        overlap_start = -overlap
-        overlap_start_local = interval_start_local + timedelta(hours=overlap_start)
-        #logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
-
-        utc = pytz.UTC
-        overlap_start_utc = overlap_start_local.astimezone(utc)
-        #logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
-
-        # get local end time of current interval with overlap
-        overlap_end_local = interval_end_local + timedelta(hours=overlap)
-        #logger.debug(  'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
-
-        overlap_end_utc = overlap_end_local.astimezone(utc)
-        #logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
-
-# get starthour of current interval
-        # from https://riptutorial.com/python/example/4540/constructing-timezone-aware-datetimes
-
-        # get local end time of current interval with
-        # range = period_dict['range']
-        # year_add, month_add, date_add, hour_add = d.get_range(range)
-        #logger.debug('range: ' + str(range))
-        #logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
-
-# convert now to local
-        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-        timezone = pytz.timezone(comp_timezone)
-        #logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
-
-        # convert starthour to utc
-        # get endhour of current interval with offset
-        range = int(period_dict['range'])
-        year_int, month_int, date_int, hour_int = d.get_range(range)
-        interval_endhour_offset = interval_starthour + range
-
-        rangemin = f.get_datetime_UTC_from_ISOstring(period_dict['datetimestart'])
-
-        # rangemin: 2019-07-09T00:00:00+02:00 type: <class 'str'>
-        # rangemin: 2019-07-09 00:00:00+00:00 type: <class 'datetime.datetime'>
-        #logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
-
-        rangemin_arr = f.get_datetimearray_from_ISOstring(period_dict['datetimestart'])
-        year_int = int(rangemin_arr[0])
-        month_int = int(rangemin_arr[1])
-        date_int = int(rangemin_arr[2])
-        hour_int = int(rangemin_arr[3])
-        #logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
-
-        arr = period_dict['range'].split(';')
-        year_add = int(arr[0])
-        month_add = int(arr[1])
-        date_add = int(arr[2])
-        hour_add = int(arr[3])
-        if year_add:
-            year_int = year_int + year_add
-        if month_add:
-            month_int = month_int + month_add
-        if date_add:
-            date_int = date_int + date_add
-        if hour_add:
-            hour_int = hour_int + hour_add
-        rangemax = datetime(year_int, month_int, date_int, hour_int)
-        #logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
-        # rangemax: 2019-07-16 00:00:00 type: <class 'datetime.datetime'>
-        # rangemax_utc = rangemax.astimezone(pytz.UTC)
-        # #logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
-        # rangemax_utc: 2019-07-16 04:00:00+00:00 type: <class 'datetime.datetime'>
-    return rangemin, rangemax, period_dict
-
-
-# <<<<<<<<<< recalculate timeduration >>>>>>>>>>>>>>>>>>>
-def calc_schemeitem_timedurationXXX(schemeitem, update_dict, comp_timezone):
-    #logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
-    # called by SchemeitemFillView, update_schemeitem_instance and update_shift_instance > recalc_schemeitems
-    offsetstart = 0
-    offsetend = 0
-    breakduration = 0
-    is_restshift = False
-    msg_err = None
-
-# a. check if shift exists
-    shift = schemeitem.shift
-    if shift is None:
-        msg_err = _('Shift is blank. Time cannot be calculated.')
-    else:
-# b. get offsetstart of this shift
-        offsetstart = getattr(shift, 'offsetstart', 0)
-# c. get offsetend of this shift
-        offsetend = getattr(shift, 'offsetend')
-# d. get breakduration of this shift
-        breakduration = getattr(shift, 'breakduration', 0)
-# e. get is_restshift of this shift
-        is_restshift = getattr(shift, 'isrestshift', False)
-
-    #logger.debug('offsetstart :' + str(offsetstart) + ' offsetend :' + str(offsetend))
-
-# f. if error: set 'timestart', 'timeend' to None, 'timeduration' to 0
-    if msg_err:
-        # when called by SchemeitemFillView, update_dict is blank
-        if update_dict:
-            if 'timestart' in update_dict:
-                update_dict['timestart']['error'] = msg_err
-        setattr(schemeitem, 'timeduration', 0)
-        for fld in ('timestart', 'timeend'):
-            setattr(schemeitem, fld, None)
-    else:
-
-# calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
-# TOD replace by calc_timestart_time_end_from_offset
-
-# a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
-        rosterdatetime_naive = f.get_datetime_naive_from_dateobject(schemeitem.rosterdate)
-        # #logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
-            # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
-        # #logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
-            # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
-
-# b. get starttime from rosterdate and offsetstart
-        new_starttime = f.get_datetimelocal_from_offset(
-            rosterdate=rosterdatetime_naive,
-            offset_int=offsetstart,
-            comp_timezone=comp_timezone)
-        # #logger.debug(' new_starttime: ' + str(new_starttime) + ' ' + str(type(new_starttime)))
-        # must be stored als utc??
-        # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
-        setattr(schemeitem, 'timestart', new_starttime)
-        # #logger.debug('saved timestart: ' + str(getattr(schemeitem, 'timestart')))
-
-# c. get endtime from rosterdate and offsetstart
-        # #logger.debug('c. get endtime from rosterdate and offsetstart ')
-        new_endtime = f.get_datetimelocal_from_offset(
-            rosterdate=rosterdatetime_naive,
-            offset_int=offsetend,
-            comp_timezone=comp_timezone)
-        # #logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
-
-        # must be stored als utc??
-        # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
-        setattr(schemeitem, 'timeend', new_endtime)
-        # #logger.debug(' saved timeend: ' + str(getattr(schemeitem, 'timeend')))
-
-# e. recalculate timeduration
-        fieldname = 'timeduration'
-        if schemeitem.timestart and schemeitem.timeend:
-            datediff = schemeitem.timeend - schemeitem.timestart
-            datediff_minutes = int((datediff.total_seconds() / 60))
-            new_value = int(datediff_minutes - breakduration)
-
- # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
-            if is_restshift:
-                new_value = 0
-
-            if fieldname not in update_dict:
-                update_dict[fieldname] = {}
-            setattr(schemeitem, fieldname, new_value)
-            update_dict[fieldname]['updated'] = True
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_shift_instance(parent, upload_dict, update_dict, request):

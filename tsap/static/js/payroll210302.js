@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let abscat_map = new Map(); // list of all absence categories
 
         let wagecode_map = new Map();
-        let functioncode_map = new Map();
+        //let functioncode_map = new Map();
         //let allowance_map = new Map();
 
         let paydatecode_map = new Map();
@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
             order_rows: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
 
             wagecode_rows: {get: true},
-            functioncode_rows: {get: true},
+            //functioncode_rows: {get: true},
             paydatecode_rows: {get: true},
             wagefactor_rows: {get: true},
             //allowance_rows: {get: true},
@@ -575,13 +575,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function refresh_maps(response) {
        //console.log( "=== refresh_maps ")
         if ("company_dict" in response) {company_dict = response["company_dict"]}
-        if ("employee_rows" in response) {refresh_datamap(response.employee_rows, employee_map, "employee")};
-        if ("customer_rows" in response) {refresh_datamap(response.customer_rows, customer_map)};
-        if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map)};
+        if ("employee_rows" in response) {b_refresh_datamap(response.employee_rows, employee_map, "employee")};
+        if ("customer_rows" in response) {b_refresh_datamap(response.customer_rows, customer_map)};
+        if ("order_rows" in response) {b_refresh_datamap(response.order_rows, order_map)};
 
         if ("abscat_rows" in response) {fill_datamap(abscat_map, response.abscat_rows)};
-        if ("functioncode_rows" in response) {fill_datamap(functioncode_map, response.functioncode_rows)};
-        //if ("wagecode_rows" in response)  {refresh_datamap(response.wagecode_rows, wagecode_map, "wagecode")};
+        //if ("functioncode_rows" in response) {fill_datamap(functioncode_map, response.functioncode_rows)};
+        //if ("wagecode_rows" in response)  {b_refresh_datamap(response.wagecode_rows, wagecode_map, "wagecode")};
 
         if ("wagecode_rows" in response) {fill_datamap(wagecode_map, response.wagecode_rows)};
 
@@ -590,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("paydatecode_rows" in response) {fill_datamap(paydatecode_map, response.paydatecode_rows)};
         if ("paydateitem_rows" in response) {fill_datamap(paydateitem_map, response.paydateitem_rows)};
 
-        //if ("paydateitem_list" in response) {refresh_datamap(response.paydateitem_list, paydateitem_map, "paydateitem")}; // tblName not in paydateitem_list
+        //if ("paydateitem_list" in response) {b_refresh_datamap(response.paydateitem_list, paydateitem_map, "paydateitem")}; // tblName not in paydateitem_list
 
 //---------------------
         //if("paydatecodes_inuse_list" in response){paydatecodes_inuse_list = response.paydatecodes_inuse_list};
@@ -637,8 +637,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         (selected_btn === "wagefactor") ? "wfc" :
                         (selected_btn === "wagecode") ? "wgc" :
                         (selected_btn === "allowance") ? "alw" : null;
-                        //(selected_btn === "paydatecode") ? "" :
-                        // (selected_btn === "abscat") ? "" : null
+                        //(selected_btn === "paydatecode") ? null :
+                        // (selected_btn === "abscat") ? null : null
 
 // ---  upload new selected_btn, not after loading page (then skip_upload = true)
         if(!skip_upload){
@@ -708,8 +708,6 @@ document.addEventListener('DOMContentLoaded', function() {
         is_payroll_detail_mode = (selected_btn === "btn_payroll_detail");
         is_payroll_detail_modal_mode = false;
 
-        console.log( "is_payroll_detail_mode", is_payroll_detail_mode);
-
 // ---  fill datatable
         if(["btn_payroll_agg", "btn_payroll_detail"].indexOf(selected_btn) > -1){
             if (payroll_needs_update){
@@ -735,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ShowSubmenubuttonAfas  ================ PR2021-02-17
     function ShowSubmenubuttonAfas() {
-        console.log("=== ShowSubmenubuttonAfas");
+        //console.log("=== ShowSubmenubuttonAfas");
 
     // ---  show submenu button 'Export allowance to Afas only when is_period_allowance and tab payroll_agg or payroll_detail
         const el_afas_hours = document.getElementById("id_submenu_afas_hours");
@@ -868,7 +866,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- create tblHead and tblFoot
         CreateTblHeader(tblName, key_str);
-        CreateTblFoot(tblName);
+        CreateTblFoot(tblName, key_str);
         console.log( "wagecode_map", wagecode_map);
         console.log( "key_str", key_str);
         if (wagecode_map.size){
@@ -894,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ PAYDATECODE  +++++++++++++++++++++++++++++++++++++++++++++++++
 //========= FillFunctioncodeOrPaydatecodeRows  ====================================
     function FillFunctioncodeOrPaydatecodeRows() {
-        console.log( "===== FillFunctioncodeOrPaydatecodeRows  === ");
+        //console.log( "===== FillFunctioncodeOrPaydatecodeRows  === ");
         // only called by HandleBtnSelect when selected_btn = "paydatecode" or "functioncode"
         // tblName = "paydatecode", "functioncode"
         const text_add = (selected_btn === "paydatecode") ? loc.Link_payrollperiod_to_employees :
@@ -922,14 +920,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const tblName = (arr_key === "functioncode") ? "wagecode" : arr_key;
             const key_str = (arr_key === "functioncode") ? 'fnc' : null;
 
+        //console.log( "arr_key", arr_key);
+        //console.log( "tblName", tblName);
+        //console.log( "key_str", key_str);
+
             CreateTblHeader(tblName, key_str);
             if(["paydatecode", "functioncode"].indexOf(arr_key) > -1){
-                CreateTblFoot(tblName);
+                CreateTblFoot(tblName, key_str);
             }
 
     // get data_key. row_employee_pk is stored in id_dict when map = employee, in employee_dict when map = teammember or planning
             const data_map = (arr_key === "paydatecode") ? paydatecode_map :
-                             (arr_key === "functioncode") ? functioncode_map :
+                             (arr_key === "functioncode") ? wagecode_map :
                              (arr_key === "employee") ? employee_map : null;
             if(data_map){
 // --- loop through data_map
@@ -939,9 +941,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const order_by = (arr_key === "functioncode") ? ( (map_dict.code) ? map_dict.code.toLowerCase() : "" ) : "";
                     //not necessary: let row_index = t_get_rowindex_by_orderby(tblBody, search_orderby)
                     const  employee_pk = null, row_index = -1, is_disabled = false;
-                    const tblRow = CreateTblRow(tblBody, tblName, key_str, map_id, pk_int, ppk_int, order_by, employee_pk, row_index, is_disabled)
-
-                    UpdateTblRow(tblRow, map_dict)
+                    // filter wagecode rows on key = 'fnc'
+                    const show_row = (arr_key !== "functioncode" || map_dict.key === "fnc");
+                    if (show_row){
+                        const tblRow = CreateTblRow(tblBody, tblName, key_str, map_id, pk_int, ppk_int, order_by, employee_pk, row_index, is_disabled)
+                        UpdateTblRow(tblName, tblRow, map_dict)
+                    }
                 }  // for (const [map_id, map_dict] of data_map.entries())
             }  // if(!!data_map)
             //console.log("FillAbscatTableRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
@@ -954,8 +959,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= create_payroll_allowance_agg_list  ============= PR2021-02-02
     function create_payroll_allowance_agg_list() {
-        console.log("==== create_payroll_allowance_agg_list  ========= ");
-        console.log("payroll_alw_from_server", payroll_alw_from_server);
+        //console.log("==== create_payroll_allowance_agg_list  ========= ");
+        //console.log("payroll_alw_from_server", payroll_alw_from_server);
 
         let employees_inuse = {};
         let functions_inuse = {};
@@ -1408,25 +1413,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     const filter_th = document.createElement("th");
         // --- add input element
                     const tag_str = (field_name === "status") ? "div" : "input";
-                    const el_input = document.createElement(tag_str);
+                    const el_filter = document.createElement(tag_str);
         // --- add EventListener
                     // PR2020-09-03 debug: col_index as parameter doesn't work, keeps giving highest col_index. Use data-colindex instead
                     if (field_name === "status") {
-                        el_input.addEventListener("click", function(){HandleFilterToggle(el_input)});
-                        el_input.classList.add("stat_0_0")
+                        el_filter.addEventListener("click", function(){HandleFilterToggle(el_filter)});
+                        el_filter.classList.add("stat_0_0")
                     } else {
-                        el_input.addEventListener("keyup", function(event){HandleFilterKeyup(el_input, event)});
+                        el_filter.addEventListener("keyup", function(event){HandleFilterKeyup(el_filter, event)});
                     }
         // --- add attribute data-field
-                    el_input.setAttribute("data-field", field_name);
-                    el_input.setAttribute("data-filtertag", filter_tag);
-                    el_input.setAttribute("data-colindex", col_index);
+                    el_filter.setAttribute("data-table", tblName);
+                    el_filter.setAttribute("data-field", field_name);
+                    el_filter.setAttribute("data-filtertag", filter_tag);
+                    el_filter.setAttribute("data-colindex", col_index);
         // --- add other attributes
-                    el_input.setAttribute("autocomplete", "off");
-                    el_input.setAttribute("ondragstart", "return false;");
-                    el_input.setAttribute("ondrop", "return false;");
+                    el_filter.setAttribute("autocomplete", "off");
+                    el_filter.setAttribute("ondragstart", "return false;");
+                    el_filter.setAttribute("ondrop", "return false;");
         // --- add text_align
-                    el_input.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
+                    el_filter.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
         // --- add margin ml-2 to wagefactor, to separate from duration field
                      if(["wagefactor", "functioncode", "pdc_code"].indexOf(field_name) > -1) {
                         el_div.classList.add("ml-2");
@@ -1434,8 +1440,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add border around columns
                     if(has_border_left) {filter_th.classList.add("td_border_left")};
                     if(has_border_right) {filter_th.classList.add("td_border_right")};
-        // --- add el_input to th, add th to tblRow
-                    filter_th.appendChild(el_input);
+        // --- add el_filter to th, add th to tblRow
+                    filter_th.appendChild(el_filter);
                     filter_row.appendChild(filter_th);
 
 // +++ add th to total_row.
@@ -1942,20 +1948,26 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillAbscatTableRows  ====================================
     function FillAbscatTableRows(tblName) {
         // called by HandleBtnSelect
-        //console.log( "===== FillAbscatTableRows  === );
+        console.log( "===== FillAbscatTableRows  ===" );
+        console.log( "tblName", tblName)
 
-// ---  Get today's date and time - for elapsed time
-        //let startime = new Date().getTime();
+// --- reset filter
+        // PR2021-02-28 debug: gave empty table after returning fron payroll_detail, because filter was set
+        filter_dict = {};
+
 // --- reset table
         tblHead_datatable.innerText = null
         tblBody_datatable.innerText = null
         tblFoot_datatable.innerText = null
+
 // --- create tblHead
         // tblName = "abscat",
-        CreateTblHeader(tblName);
+        CreateTblHeader(tblName, null);
+
 // --- get data_map
         const data_map = abscat_map;
         if(data_map){
+
 // --- loop through data_map
             const key_str = null // abscat (= table 'order') has no field 'key'
             for (const [map_id, map_dict] of data_map.entries()) {
@@ -1963,20 +1975,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ppk_int = map_dict.c_id;
                 const row_index = -1;
 
+        console.log( "map_dict", map_dict)
                 // tblName = "abscat",
                 const order_by = null, employee_pk = null, is_disabled = false;
                 const tblRow = CreateTblRow(tblBody_datatable, tblName, key_str, map_id, pk_int, ppk_int, order_by, employee_pk, row_index, is_disabled)
 
-                UpdateTblRow(tblRow, map_dict)
+                UpdateTblRow(tblName, tblRow, map_dict)
             }  // for (const [map_id, map_dict] of data_map.entries())
         }  // if(!!data_map)
-        //console.log("FillAbscatTableRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
         Filter_TableRows();
     }  // FillAbscatTableRows
 
 //=========  CreateTblHeader  === PR2019-10-25 PR2020-06-18 PR2021-02-12
     function CreateTblHeader(tblName, key_str) {
-        console.log("===  CreateTblHeader == tblName: ", tblName, key_str);
+        //console.log("===  CreateTblHeader == tblName: ", tblName, key_str);
         // tblName = 'abscat', "paydatecode", "wagecode" , "employee"
         // key_str has only value when tblName =  "wagecode" :  "wfc", "wgc", "fnc", "alw"
                 // selected_btns =       payroll_agg, payroll_detail, abscat,
@@ -1992,7 +2004,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                   : tblName;
         const field_setting = field_settings[field_setting_key];
 
-        console.log("field_setting: ", field_setting);
+        //console.log("field_setting: ", field_setting);
         const tblHead = (tblName === "employee") ? tblHead_employee :
                         (tblName === "paydatecode") ? tblHead_paydatecode :
                         (tblName === "wagecode") ? tblHead_paydatecode :
@@ -2062,12 +2074,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_header.classList.add(class_width, class_align);
 
 // --- add td_border_left, td_border_right
-                   if([3, 7].indexOf(j) > -1){
-                        th_header.classList.add("td_border_left");
-                   } else if(j === 10){
-                        th_header.classList.add("td_border_right");
-                   }
-
+                    // TODO in which tables??
+                    if (tblName === "abscat"){
+                        if([3, 7].indexOf(j) > -1){
+                            th_header.classList.add("td_border_left");
+                        } else if(j === 10){
+                            th_header.classList.add("td_border_right");
+                        }
+                    }
         // --- append el_header and th to tblRow
                     th_header.appendChild(el_header)
                     tblRow_header.appendChild(th_header);
@@ -2079,7 +2093,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             el_filter.setAttribute("data-field", field_name);
                             el_filter.setAttribute("data-filtertag", filter_tag);
                             if(field_tag === "input"){
-                                el_filter.addEventListener("keyup", function(event){HandleFilterKeyup(el_filter, j, event)});
+                                el_filter.addEventListener("keyup", function(event){HandleFilterKeyup(el_filter, event)});
                                 el_filter.setAttribute("autocomplete", "off");
                                 el_filter.setAttribute("ondragstart", "return false;");
                                 el_filter.setAttribute("ondrop", "return false;");
@@ -2091,16 +2105,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_filter.classList.add("pointer_show");
                             }
 
+                            el_filter.setAttribute("data-table", tblName);
+                            el_filter.setAttribute("data-key", key_str);
                             el_filter.setAttribute("data-colindex", j);
                            // el_filter.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                             el_filter.classList.add(class_width, class_align, "tsa_transparent");
 
 // --- add td_border_left, td_border_right
-                           if([3, 7].indexOf(j) > -1){
-                                th_filter.classList.add("td_border_left");
-                           } else if(j === 10){
-                                th_filter.classList.add("td_border_right");
-                           }
+
+                    // TODO in which tables??
+                    if (tblName === "abscat"){
+                        if([3, 7].indexOf(j) > -1){
+                            th_filter.classList.add("td_border_left");
+                        } else if(j === 10){
+                            th_filter.classList.add("td_border_right");
+                        }
+                    }
 
 // --- add width, text_align
                         th_filter.appendChild(el_filter);
@@ -2124,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateFromResponse                  NIU ??
             UpdateWagecodeRow                   >> tblName = "wagecode"
             refresh_datamap_item                NIU
-            refresh_datamap_itemNEW           >> tblName = "abscat" "functioncode" "employee"
+            refresh_updated_row           >> tblName = "abscat" "functioncode" "employee"
             MPP_FillClosingdateRows             >> tblName = "closingdate"
             MPP_AddClosingdate                   >> tblName = "closingdate"
         */
@@ -2238,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else if ( j === 0) {
                             //el_div.addEventListener("click", function() {MWF_Select(el_div)}, false);
                         } else if ([1, 2, 3, 4].indexOf(j) > -1){
-                            el_div.addEventListener("click", function() {MWF_Open(tblName, el_div)}, false);
+                            el_div.addEventListener("click", function() {MWF_Open(false, tblName, el_div)}, false);
                             add_hover(el_div);
                         }
 
@@ -2285,10 +2305,14 @@ document.addEventListener('DOMContentLoaded', function() {
                el_div.classList.add("ta_" + field_setting.field_align[j]);
 
 // --- add td_border_left, td_border_right
-               if([3, 7].indexOf(j) > -1){
-                    td.classList.add("td_border_left");
-               } else if(j === 10){
-                    td.classList.add("td_border_right");
+
+               // TODO in which tables??
+               if (tblName === "abscat"){
+                   if([3, 7].indexOf(j) > -1){
+                        td.classList.add("td_border_left");
+                   } else if(j === 10){
+                        td.classList.add("td_border_right");
+                   }
                }
 
 
@@ -2300,17 +2324,19 @@ document.addEventListener('DOMContentLoaded', function() {
     };  // CreateTblRow
 
 //=========  CreateTblFoot  ================ PR2020-06-18
-    function CreateTblFoot(tblName) {
+    function CreateTblFoot(tblName, key_str) {
         //console.log("========= CreateTblFoot  ========= ");
         //console.log("tblName", tblName);
+        //console.log("key_str", key_str);
 
 // --- function adds row 'add new' in tablefoot
         const field_setting = field_settings[selected_btn];
         if (field_setting){
             const column_count = field_setting.field_names.length;
 // --- insert tblRow into tblBody
-            const el_id = (["paydatecode", "functioncode", "wagefactor", "allowance"].indexOf(tblName) > -1) ? "id_tblFoot_paydatecode" : "id_tblFoot_datatable";
+            const el_id = (["paydatecode", "wagecode", "wagefactor", "allowance"].indexOf(tblName) > -1) ? "id_tblFoot_paydatecode" : "id_tblFoot_datatable";
             const tblFoot = document.getElementById(el_id);
+
             tblFoot.innerText = null;
             let tblRow = tblFoot.insertRow(-1);
 //+++ insert td's into tblRow
@@ -2319,24 +2345,26 @@ document.addEventListener('DOMContentLoaded', function() {
             td.setAttribute("colspan",column_count -1)
 // --- create div element with tag from field_tags
             let el_div = document.createElement("div");
-// --- add EventListener
+// --- add EventListener and placeholder
                 if(tblName === "paydatecode"){
-                    el_div.addEventListener("click", function() {MPP_Open()}, false)
-                } else if(tblName === "functioncode"){
-                    el_div.addEventListener("click", function() {MFU_Open()}, false)
+                    el_div.addEventListener("click", function() {MPP_Open()}, false);
+                    el_div.innerText = "< " + loc.Add_payrollperiod + " >";
                 } else if(tblName === "wagecode"){
-                    el_div.addEventListener("click", function() {MWC_Open()}, false)
-                } else if(["wagefactor", "allowance"].indexOf(tblName) > -1){
-                    el_div.addEventListener("click", function() {MWF_Open(tblName, el_div)}, false)
+                    if (key_str === "fnc"){
+                        el_div.addEventListener("click", function() {MFU_Open()}, false)
+                        el_div.innerText = "< " + loc.Add_function + " >";
+
+                    } else if (key_str === "wfc"){
+                        el_div.addEventListener("click", function() {MWF_Open(true, tblName, el_div)}, false)
+                        el_div.innerText = "< " + loc.Add_wage_component + " >";
+
+                    } else if (key_str === "alw"){
+                        el_div.addEventListener("click", function() {MWF_Open(true, tblName, el_div)}, false)
+                        el_div.innerText = "< " + loc.Add_allowance + " >";
+                    }
                 }
                 add_hover(el_div);
-// --- add placeholder
-                const caption = (tblName === "paydatecode") ? loc.Add_payrollperiod :
-                                (tblName === "functioncode") ? loc.Add_function :
-                                (tblName === "wagecode") ? loc.Add_salary_scale :
-                                (tblName === "wagefactor") ? loc.Add_wage_component :
-                                (tblName === "allowance") ? loc.Add_allowance : ""
-                el_div.innerText = "< " + caption + " >"
+
 // --- add class,
                 el_div.classList.add("pointer_show", "tsa_color_darkgrey", "tsa_transparent")
             td.appendChild(el_div);
@@ -2367,29 +2395,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log( response);
                     // TODO NIU, I think PR2021-01-30
                     if ("update_list" in response) {
-                        for (let i = 0, len = response["update_list"].length; i < len; i++) {
-                            const update_dict = response["update_list"][i];
-                            UpdateFromResponse(update_dict);
-                        }
+                        alert("update_list")
+                       // for (let i = 0, len = response["update_list"].length; i < len; i++) {
+                       //     const update_dict = response["update_list"][i];
+                       //     UpdateFromResponse(update_dict);
+                      //  }
                     };
                     if ("employee_list" in response){
-                        refresh_datamap(response["employee_list"], employee_map)
+                        b_refresh_datamap(response["employee_list"], employee_map)
                     }
                     // used in MODAL EMPLHOUR PAYROLL
                     if ("emplhourlog_list" in response){ MEP_FillLogTable(response.emplhourlog_list)};
                     if ("emplhour_dict" in response){ MEP_SetInputElements(response.emplhour_dict)};
 
                     if("updated_abscat_rows" in response){
-                        refresh_data_mapNEW("abscat", abscat_map, response.updated_abscat_rows, false); // skip_show_ok = false
+                        refresh_updated_rows("abscat", abscat_map, response.updated_abscat_rows, false); // skip_show_ok = false
                     }
                     if("updated_functioncode_rows" in response){
-                        refresh_data_mapNEW("functioncode", functioncode_map, response.updated_functioncode_rows, false); // skip_show_ok = false
+                        alert("updated_functioncode_rows")
+                       // refresh_updated_rows("functioncode", functioncode_map, response.updated_functioncode_rows, false); // skip_show_ok = false
                     }
                     if ("updated_wagecode_rows" in response) {
                         UpdateWagecodeRowsFromResponse(response.updated_wagecode_rows)
                     };
                     if("updated_employee_rows" in response){
-                        refresh_data_mapNEW("employee", employee_map, response.updated_employee_rows, false); // skip_show_ok = false
+                        refresh_updated_rows("employee", employee_map, response.updated_employee_rows, false); // skip_show_ok = false
                         payroll_needs_update = true
                     }
                 },  // success: function (response) {
@@ -2504,10 +2534,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // UpdatePayrollTblRow
 
 //========= UpdateTblRow  =============
-    function UpdateTblRow(tblRow, update_dict){
+    function UpdateTblRow(tblName, tblRow, update_dict){
         //console.log("========= UpdateTblRow  =========");
         //console.log("update_dict", update_dict);
-
+        // called by UpdateFromResponse, refresh_updated_row, FillAbscatTableRows, FillFunctioncodeOrPaydatecodeRows
         const field_setting = field_settings[selected_btn];
 
         if (!isEmpty(update_dict) && !!tblRow) {
@@ -2515,8 +2545,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- get info from update_dict
             const map_id = (update_dict.mapid) ? update_dict.mapid : get_dict_value(update_dict, ["mapid"]);
-            const arr = (map_id) ? map_id.split("_") : null;
-            const tblName = (arr) ? arr[0] : get_dict_value(update_dict, ["id","table"]);
+            //const arr = (map_id) ? map_id.split("_") : null;
+            //const tblName = (arr) ? arr[0] : get_dict_value(update_dict, ["id","table"]);
             const pk_int = (update_dict.id) ? update_dict.id : get_dict_value(update_dict, ["id","pk"]);
             const ppk_int = (update_dict.comp_id) ? update_dict.comp_id : get_dict_value(update_dict, ["id","ppk"]);
             const is_created = (update_dict.created != null) ? update_dict.created : get_dict_value(update_dict, ["id","created"], false);
@@ -2569,7 +2599,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = cell.children[0];
                     if(!!el_input){
-                        UpdateField(el_input, update_dict, false ) // false = skip_show_ok
+                        UpdateField(tblName, el_input, update_dict, false ) // false = skip_show_ok
                     } else {
                         // field "delete" has no el_input, td has field name 'delete
                         fieldname = get_attr_from_el(td, "data-field");
@@ -2581,17 +2611,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // function UpdateTblRow
 
 //========= UpdateField  ============= PR2019-10-05
-    function UpdateField(el_input, item_dict, show_ok){
+    function UpdateField(tblName, el_input, item_dict, show_ok){
         //console.log("========= UpdateField  =========");
         //console.log("item_dict", item_dict);
+        // called by UpdateTblRow, refresh_tblRowNEW, refresh_datamap_item
         const fldName = get_attr_from_el(el_input, "data-field");
         const field_value = item_dict[fldName];
         //console.log("fldName", fldName);
         //console.log("field_value", field_value);
 
         const map_id = (item_dict.mapid) ? item_dict.mapid : get_dict_value(item_dict, ["mapid"]);
-        const arr = (map_id) ? map_id.split("_") : null;
-        const tblName = (arr) ? arr[0] : get_dict_value(item_dict, ["id","table"]);
+        //const arr = (map_id) ? map_id.split("_") : null;
+        //const tblName = (arr) ? arr[0] : get_dict_value(item_dict, ["id","table"]);
         const is_absence = (item_dict.isabsence != null) ? item_dict.isabsence : get_dict_value(item_dict, ["id","isabsence"], false);
 
         //console.log("tblName", tblName);
@@ -2627,7 +2658,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const display = format_pricerate (loc.user_lang, wagerate, true, true) // true = is_percentage  true = show_zero
             el_input.title = (display) ? display : "";
-
 
         } else if (["o_nowd", "o_nosat", "o_nosun", "o_noph"].indexOf( fldName ) > -1){
             // extra div necessary to have wide columns and show only 20 pixels for icon - might be solved with mx-4
@@ -2881,7 +2911,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateFromResponse  ================ PR2020-06-10
 //  NIU, I think PR2021-01-30
     function UpdateFromResponse(update_dict) {
-       console.log(" --- UpdateFromResponse  ---");
+       console.log(" ################### --- UpdateFromResponse  ---");
        console.log("update_dict", deepcopy_dict(update_dict));
 
 //--- get info from updated item
@@ -2902,7 +2932,6 @@ document.addEventListener('DOMContentLoaded', function() {
             selected.paydatecode_code = "";
             selected.paydateitem_iso = null;   // used in MSPP_SelectItem
             selected.paydateitem_code = "";
-       //console.log( "UpdateFromResponse selected.paydatecode_pk", selected.paydatecode_pk);
     //--- remove deleted tblRow
             if (!!tblRow){tblRow.parentNode.removeChild(tblRow)};
         } else {
@@ -2924,7 +2953,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     //--- update Table Row
             if(tblRow){
-                UpdateTblRow(tblRow, update_dict)
+                UpdateTblRow(tblName, tblRow, update_dict)
     // ---  scrollIntoView, not in employee table
                 if(tblName !== "employee"){
                     tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
@@ -2965,24 +2994,30 @@ document.addEventListener('DOMContentLoaded', function() {
       */
 //--- refresh header text
         UpdateHeaderText();
-
     }  // UpdateFromResponse(update_list)
 
-//=========  refresh_data_mapNEW ================ PR2020-09-08
-    function refresh_data_mapNEW(tblName, data_map, updated_rows, skip_show_ok) {
-        //console.log(" --- refresh_data_mapNEW  ---");
+//=========  refresh_updated_rows ================ PR2020-09-08
+    function refresh_updated_rows(tblName, data_map, updated_rows, skip_show_ok) {
+        //console.log(" --- refresh_updated_rows  ---");
         if (updated_rows) {
             for (let i = 0, update_dict; update_dict = updated_rows[i]; i++) {
-                refresh_datamap_itemNEW(tblName, data_map, update_dict, skip_show_ok)
+                refresh_updated_row(tblName, data_map, update_dict, skip_show_ok)
             }
         }
-    } // refresh_data_mapNEW
+    } // refresh_updated_rows
 
-//=========  refresh_datamap_itemNEW  ================PR2020-09-08
-    function refresh_datamap_itemNEW(tblName, data_map, update_dict, skip_show_ok) {
-        console.log(" --- refresh_datamap_itemNEW  ---");
-        console.log("update_dict", update_dict);
-        // used by updated_abscat_rows, updated_functioncode_rows, updated_employee_rows (so far)
+//=========  refresh_updated_row  ================ PR2020-09-08 PR2021-02-28
+    function refresh_updated_row(tblName, data_map, update_dict, skip_show_ok) {
+        console.log(" --- refresh_updated_row  ---");
+        //console.log("tblName", tblName);
+        //console.log("update_dict", update_dict);
+        // used by  (so far) :
+        // updated_abscat_rows (tbl 'abscat'), updated_functioncode_rows (tbl "functioncode"), updated_employee_rows (tbl "employee")
+
+        const tblBody = (tblName === "employee") ? tblBody_employee :
+                        (["functioncode", "paydatecode"].indexOf(tblName) > -1) ? tblBody_paydatecode :
+                        (tblName === "abscat") ? tblBody_datatable :
+                        tblBody_datatable;
 
 // ---  update or add update_dict in data_map
         const map_id = update_dict.mapid;
@@ -2990,16 +3025,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const is_deleted = update_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
-        console.log("old_map_dict", old_map_dict);
+        //console.log("map_id", map_id);
         //console.log("is_created", is_created);
+        //console.log("is_deleted", is_deleted);
+        console.log("data_map.size before: " + data_map.size);
 
 // ---  refresh fields in tblRow
-        refresh_tblRowNEW(update_dict, data_map, is_created, is_deleted, skip_show_ok);
+        // ??? refresh_tblRowNEW(tblName, update_dict, data_map, is_created, is_deleted, skip_show_ok);
 
-        console.log("data_map.size before: " + data_map.size);
-        const tblBody = (tblName === "employee") ? tblBody_employee :
-                        (["functioncode", "paydatecode"].indexOf(tblName) > -1) ? tblBody_paydatecode : tblBody_datatable;
-
+        let updated_columns = [];
         if(is_created){
 // ---  insert new item in alphabetical order
             //if (data_map.size){
@@ -3009,14 +3043,29 @@ document.addEventListener('DOMContentLoaded', function() {
             //    data_map.set(map_id, update_dict)
             //}
             data_map.set(map_id, update_dict)
+            updated_columns.push("created")
+
 // ---  delete deleted item
         } else if(is_deleted){
             data_map.delete(map_id);
         } else {
+
+// ---  check which fields are updated, add to list 'updated_columns'
+            // new emplhour has no old_map_dict PR2020-08-19
+            // skip first column (is margin)
+            const field_names = field_settings[tblName].field_names;
+            for (let i = 1, col_field, old_value, new_value; col_field = field_names[i]; i++) {
+                if (col_field in old_map_dict && col_field in update_dict){
+                    if (old_map_dict[col_field] !== update_dict[col_field] ) {
+                        updated_columns.push(col_field)
+                    }
+                }
+            };
 // ---  update item in data_map
             data_map.set(map_id, update_dict)
         }
-        console.log("data_map.size after: " + data_map.size);
+        //console.log("data_map.size after: " + data_map.size);
+        //console.log("updated_columns", updated_columns);
 
 // +++  create tblRow when is_created
         let tblRow = null;
@@ -3026,11 +3075,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const pk_int = update_dict.id;
             const ppk_int = (tblName === "abscat") ? update_dict.c_id :
                             ( ["employee", "functioncode"].indexOf(tblName) > -1 ) ? update_dict.comp_id : null;
-            console.log("pk_int: " , pk_int);
-            console.log("ppk_int: " , ppk_int);
+            //console.log("pk_int: " , pk_int);
+            //console.log("ppk_int: " , ppk_int);
 // get order_by. Will be put in tblRow and also used in t_get_rowindex_by_orderby
             const order_by = (tblName === "abscat") ? ( (update_dict.o_code) ? update_dict.o_code.toLowerCase() : "" ) :
-                         ( ["employee", "functioncode"].indexOf(tblName) > -1 ) ? ( (update_dict.code) ? update_dict.code.toLowerCase() : "" ) : "";
+                             ( ["employee", "functioncode"].indexOf(tblName) > -1 ) ? ( (update_dict.code) ? update_dict.code.toLowerCase() : "" ) : "";
             //console.log("order_by: " , order_by);
 // get row_index
             let row_index = t_get_rowindex_by_orderby(tblBody, order_by)
@@ -3039,9 +3088,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const key_str = null, employee_pk = null, is_disabled = false;
             // key_str has only value when tblName = "wagecode" :  "wfc", "wgc", "fnc", "alw"
             tblRow = CreateTblRow(tblBody, tblName, key_str, map_id, update_dict.id, update_dict.c_id, order_by, employee_pk, row_index, is_disabled)
+            UpdateTblRow(tblName, tblRow, update_dict)
 
-        console.log("tblRow: " , tblRow);
-            UpdateTblRow(tblRow, update_dict)
 // set new selected_emplhour_pk
             //selected_emplhour_pk = pk_int
 // highlight new row, make green for 2 seconds
@@ -3053,35 +3101,70 @@ document.addEventListener('DOMContentLoaded', function() {
             //tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
         } else {
             tblRow = document.getElementById(map_id);
-        console.log("tblRow: " , tblRow);
-            UpdateTblRow(tblRow, update_dict)
+        //console.log("tblRow: " , tblRow);
+            // ???? UpdateTblRow(tblName, tblRow, update_dict)
         }
+        if(tblRow){
+            if(is_deleted){
+//--- remove deleted tblRow
+                tblRow.parentNode.removeChild(tblRow);
+//--- make tblRow green for 2 seconds
+            } else if(is_created){
+                ShowOkElement(tblRow);
+            } else if(updated_columns){
+// ---  make updated fields green for 2 seconds
+                for (let i = 0, fldName; fldName = updated_columns[i]; i++) {
+                    const el_div = tblRow.querySelector("[data-field='" + fldName  + "']");
+                    if(el_div){
+                        UpdateField(tblName, el_div, update_dict, false)  // true = show_ok
+                        ShowOkElement(el_div);
+                    }
+                }
+                /*
+                for (let i = 0, td, el; td = tblRow.cells[i]; i++) {
+                    const el = td.children[0];
+                    if(el){
+                        const el_field = get_attr_from_el(el, "data-field")
+                        if(updated_columns.includes(el_field)){
+                            UpdateField(tblName, el, update_dict, false)  // true = show_ok
+                            ShowOkElement(el);
+                        }
+                    }
+                }
+                */
+            }
+        }
+    }  // refresh_updated_row
 
-    }  // refresh_datamap_itemNEW
-
-//=========  refresh_tblRowNEW  ================ PR2020-09-08 PR2020-09-20
-    function refresh_tblRowNEW(update_dict, data_map, is_created, is_deleted, skip_show_ok) {
-        //console.log(" --- refresh_tblRowNEW  ---");
+//=========  refresh_tblRowNEW  ================ PR2020-09-08 PR2020-09-20 PR2021-02-28
+// TODO to be deprecated??
+    function refresh_tblRowNEW(tblName, update_dict, data_map, is_created, is_deleted, skip_show_ok) {
+        console.log(" --- refresh_tblRowNEW  ---");
+        // used in MAC_Save, refresh_updated_row
         // refresh must come before updating data_map, to check changed values with old_map_dict
         // ShowOk when created tblRow must be dome outsied this function
 
+        //console.log("selected_btn", selected_btn);
+        //console.log("tblName", tblName);
+        //const fieldnames_key =
+
         const tblRow = document.getElementById(update_dict.mapid);
+        //console.log("tblRow", tblRow);
+        //console.log("update_dict.mapid", update_dict.mapid);
         if(tblRow){
-            const arr = (update_dict.mapid) ? update_dict.mapid.split("_") : null;
-            const tblName = (arr) ? arr[0] : null;
             const field_names = field_settings[selected_btn].field_names;
             const old_map_dict = data_map.get(update_dict.mapid);
             const is_deleted = update_dict.deleted;
             const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
-        //console.log("field_names", field_names);
+            console.log("field_names", field_names);
         //console.log("is_created", is_created);
             if(is_deleted && !skip_show_ok){
 //--- remove deleted tblRow
                 tblRow.parentNode.removeChild(tblRow);
 //--- make tblRow green for 2 seconds
             } else if(is_created && !skip_show_ok){
-                // ShowOk when created tblRow must be dome outsied this function
+                // ShowOk when created tblRow must be dome outside this function
                 //ShowOkElement(tblRow);
             } else {
         // ---  check which fields are updated, add to list 'updated_columns'
@@ -3094,6 +3177,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 };
+
+                console.log("updated_columns", updated_columns);
+                console.log("skip_show_ok", skip_show_ok);
                 if(updated_columns){
     // ---  make updated fields green for 2 seconds
                     for (let i = 0, cell, el; cell = tblRow.cells[i]; i++) {
@@ -3101,7 +3187,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if(el){
                             const el_field = get_attr_from_el(el, "data-field")
                             if(updated_columns.includes(el_field)){
-                                UpdateField(el, update_dict, !skip_show_ok)  // show_ok = !skip_show_ok
+                                UpdateField(tblName, el, update_dict, !skip_show_ok)  // show_ok = !skip_show_ok
                             }
                         }
                     }
@@ -3114,9 +3200,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= HandleFilterToggle  =============== PR2020-09-29
     function HandleFilterToggle(el_input) {
-        //console.log( "===== HandleFilterToggle  ========= ");
+        console.log( "===== HandleFilterToggle  ========= ");
         const field_name = get_attr_from_el(el_input, "data-field")
         const filter_tag = get_attr_from_el(el_input, "data-filtertag")
+        // PR2020-09-03 debug: col_index as parameter doesn't work, keeps giving highest col_index. Use data-colindex instead
         const col_index = get_attr_from_el_int(el_input, "data-colindex")
 ;
         if (field_name === "status") {
@@ -3130,22 +3217,34 @@ document.addEventListener('DOMContentLoaded', function() {
     };  // HandleFilterToggle
 
 //========= HandleFilterKeyup  ====================================
-    function HandleFilterKeyup(el, event) {
-        //console.log( "===== HandleFilterKeyup  ========= ");
-        const col_index = get_attr_from_el_int(el, "data-colindex")
-        //console.log("...... .col_index", col_index, ".event.key", event.key);
+    function HandleFilterKeyup(el_filter, event) {
+        console.log( "===== HandleFilterKeyup  ========= ");
+        // PR2020-09-03 debug: col_index as parameter doesn't work, keeps giving highest col_index. Use data-colindex instead
+        const tblName = get_attr_from_el(el_filter, "data-table");
+        const key_str = get_attr_from_el(el_filter, "data-key");
+        const col_index = get_attr_from_el_int(el_filter, "data-colindex");
 
-        const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
-        if ( !skip_filter) {
-            FillPayrollRows();
+        const skip_filter = t_SetExtendedFilterDict(el_filter, col_index, filter_dict, event.key);
+
+        console.log( "skip_filter", skip_filter);
+        if (!skip_filter) {
+            // FillPayrollRows();
+            const tblBody = get_tblBody(tblName, key_str);
+    // ---  loop through tblBody.rows
+            for (let i = 0, tblRow, show_row; tblRow = tblBody.rows[i]; i++) {
+                show_row = ShowTableRow(tblRow)
+    // ---  show / hide row
+                add_or_remove_class(tblRow, cls_hide, !show_row)
+            }
         };
-        //console.log("filter_dict",filter_dict)
     }  // HandleFilterKeyup
 
 //========= HandleFilter_Tickmark  ==================================== PR2020-06-26 PR2020-09-20
     function HandleFilter_Tickmark(el_filter) {
-        //console.log( "===== HandleFilter_Tickmark  ========= ");
+        console.log( "===== HandleFilter_Tickmark  ========= ");
+        // PR2020-09-03 debug: col_index as parameter doesn't work, keeps giving highest col_index. Use data-colindex instead
         const col_index = get_attr_from_el_int(el_filter, "data-colindex")
+        // only called by CreateTblHeader
         //console.log("...... .col_index", col_index);
         const skip_filter = t_SetExtendedFilterDict(el_filter, col_index, filter_dict, event.key);
 
@@ -3156,7 +3255,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if(arr[0] === "triple"){
             el_filter.children[0].className = "tick_0_" + value;;
         }
-        //console.log("...... .filter_dict", filter_dict);
+        console.log("...... .filter_dict", filter_dict);
         const tblBody = (selected_btn === "employee") ? tblBody_employee :
                         (["functioncode", "wagecode", "paydatecode"].indexOf(selected_btn) > -1) ? tblBody_paydatecode : tblBody_datatable;
 
@@ -3186,15 +3285,17 @@ document.addEventListener('DOMContentLoaded', function() {
 */
     }; // HandleFilter_Tickmark
 
-//========= Filter_TableRows  ==================================== PR2020-06-13
-    function Filter_TableRows(tblName) {
-        // caleed by HandleFilterKeyup, FillFunctioncodeOrPaydatecodeRows, FillAbscatTableRows, ResetFilterRows
-        // table payroll has its own filter
-        //console.log( "===== Filter_TableRows  ========= ", tblName);
-        //console.log( "filter_dict ", filter_dict);
-        const tblBody = (tblName === "employee") ? tblBody_employee :
-                        (tblName === "paydatecode") ? tblBody_paydatecode : tblBody_datatable;
 
+//========= Filter_TableRows  ==================================== PR2020-06-13
+    function Filter_TableRows(tblName, key_str) {
+        // called by HandleFilterKeyup, FillFunctioncodeOrPaydatecodeRows, FillAbscatTableRows, ResetFilterRows
+        // table payroll has its own filter
+        console.log( "===== Filter_TableRows  ========= ");
+        console.log( "tblName ", tblName , "key_str ", key_str);
+        console.log( "filter_dict ", filter_dict);
+        let tblBody = get_tblBody(tblName, key_str);
+
+        console.log( "tblBody ", tblBody);
 // ---  loop through tblBody.rows
         for (let i = 0, tblRow, show_row; tblRow = tblBody.rows[i]; i++) {
             show_row = ShowTableRow(tblRow)
@@ -3228,51 +3329,55 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ShowTableRow  ==================================== PR2020-01-17
     function ShowTableRow(tblRow) {
-        // only called by Filter_TableRows
+        // called by HandleFilterKeyup  Filter_TableRows (tobe deprecataed
         // table payroll has its own ShowPayrollRow, called by FillPayrollRows
         //console.log( "===== ShowTableRow  ========= ");
+        //console.log( "filter_dict", filter_dict);
         let hide_row = false;
-        if (!!tblRow){
+        if (tblRow){
 // show all rows if filter_name = ""
             // TODO create separate filter_dict for paydatecode, goes wrong when two tables om one page
             if (!isEmpty(filter_dict)){
-                Object.keys(filter_dict).forEach(function(key) {
-                    const filter_text = filter_dict[key];
-                    const blank_only = (filter_text === "#")
-                    const non_blank_only = (filter_text === "@" || filter_text === "!")
-                    let tbl_cell = tblRow.cells[key];
+                for (const [index_str, filter_arr] of Object.entries(filter_dict)) {
+                    const col_index = Number(index_str);
+                    const filter_tag = filter_arr[0];
+                    const filter_value = filter_arr[1]; // filter_value is already trimmed and lowercase
+                    const filter_mode = filter_arr[2];  // modes are: 'blanks_only', 'no_blanks', 'lte', 'gte', 'lt', 'gt'
+
+                    let tbl_cell = tblRow.cells[col_index];
                     if (tbl_cell){
                         let el = tbl_cell.children[0];
                         if (el) {
-                    // skip if no filter on this colums
-                            if(filter_text){
+
+                            // TODO add other filter_tags
+                            if(filter_tag === "text"){
                     // get value from el.value, innerText or data-value
                                 // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                                 let el_value = el.innerText;
-                                if (blank_only){
+                                if (filter_mode === "blanks_only"){
                                     // empty value gets '\n', therefore filter asc code 10
                                     if(el_value && el_value !== "\n" ){
                                         hide_row = true
                                     };
-                                } else if (non_blank_only){
+                                } else if(filter_mode === "no_blanks"){
                                     // empty value gets '\n', therefore filter asc code 10
                                     if(!el_value || el_value === "\n" ){
                                         hide_row = true
                                     }
                                 } else {
                                     el_value = el_value.toLowerCase();
-                                    // hide row if filter_text not found or el_value is empty
+                                    // hide row if filter_value not found or el_value is empty
                                     // empty value gets '\n', therefore filter asc code 10
                                     if(!el_value || el_value === "\n" ){
                                         hide_row = true;
-                                    } else if(el_value.indexOf(filter_text) === -1){
+                                    } else if(el_value.indexOf(filter_value) === -1){
                                         hide_row = true;
                                     }
                                 }
-                            }  //  if(!!filter_text)c
+                            }  //  if(!!filter_value)c
                         }  // if (!!el) {
                     }  //  if (!!tbl_cell){
-                });  // Object.keys(filter_dict).forEach(function(key) {
+                };  // Object.keys(filter_dict).forEach(function(key) {
             }  // if (!hide_row)
         }  // if (!!tblRow)
         return !hide_row
@@ -3407,10 +3512,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-            //console.log("employee_list", employee_list);
+
 
             const tblName = selected_btn;
             const data_map = get_data_map(tblName)
+            console.log("tblName", tblName);
+            console.log("selected_pk", selected_pk);
+            console.log("data_map", data_map);
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, selected_pk)
             const code = map_dict.code;
             //console.log("map_dict", map_dict);
@@ -3530,7 +3638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if(selected_btn === "paydatecode") {
             MPP_Open()
         } else if(["wagefactor", "allowance"].indexOf(selected_btn) > -1){
-            MWF_Open(selected_btn)
+            MWF_Open(true, selected_btn)
         };
     }
 
@@ -4556,7 +4664,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const is_addnew = (!tblRow);
         const map_id = (tblRow) ? tblRow.id : null;
-        const map_dict = get_mapdict_from_datamap_by_id(functioncode_map, map_id )
+        //const map_dict = get_mapdict_from_datamap_by_id(functioncode_map, map_id )
+        const map_dict = get_mapdict_from_datamap_by_id(wagecode_map, map_id )
         const fldName = get_attr_from_el(el_clicked, "data-field");
         //console.log("map_dict", map_dict);
 
@@ -4643,14 +4752,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 has_value = true;
 // ---  check if function code already exist
+                console.log("wagecode_map", wagecode_map);
                 const new_value_lower = new_value.toLowerCase();
-                for (const [map_id, item_dict] of functioncode_map.entries()) {
-                    const pk_int = get_dict_value(item_dict, ["id", "pk"])
-                    // skip current item
-                    if (!mod_dict.pk || pk_int !== mod_dict.pk){
-                        const item_code = get_dict_value(item_dict, ["code", "value"])
+                //for (const [map_id, item_dict] of functioncode_map.entries()) {
+                for (const [map_id, item_dict] of wagecode_map.entries()) {
+                    const pk_int = item_dict.id;
+                    const key_str = item_dict.key;
+
+                    // skip current item, filter wagecodes with key = 'fnc'
+                    let show_row = ( (key_str === 'fnc') && (!mod_dict.pk || pk_int !== mod_dict.pk) );
+                    if (show_row){
+                        const item_code = item_dict.code;
+
                         if(item_code && item_code.toLowerCase() === new_value_lower){
-                            const is_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
+                            const is_inactive = (item_dict.inactive) ? item_dict.inactive : false
                             const exists_text = (is_inactive) ? loc.already_exists_but_inactive : loc.already_exists
                             msg_err = loc.Function + " '" + item_code + "'" +  exists_text;
                             break;
@@ -4680,7 +4795,8 @@ document.addEventListener('DOMContentLoaded', function() {
             selected.functioncode_pk = (row_pk !== selected.functioncode_pk) ? row_pk : -1
             selected.functioncode_code = null;
             if (selected.functioncode_pk){
-                const data_dict = get_mapdict_from_datamap_by_tblName_pk(functioncode_map, "functioncode", selected.functioncode_pk)
+                //const data_dict = get_mapdict_from_datamap_by_tblName_pk(functioncode_map, "functioncode", selected.functioncode_pk)
+                const data_dict = get_mapdict_from_datamap_by_tblName_pk(wagecode_map, "wagecode", selected.functioncode_pk)
                 selected.functioncode_code = data_dict.code;
             }
 
@@ -4719,7 +4835,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected.functioncode_pk = selected_row_pk;
                 selected.functioncode_code = null;
                 if (selected.functioncode_pk){
-                    const data_dict = get_mapdict_from_datamap_by_tblName_pk(functioncode_map, "functioncode", selected.functioncode_pk)
+                    //const data_dict = get_mapdict_from_datamap_by_tblName_pk(functioncode_map, "functioncode", selected.functioncode_pk)
+                const data_dict = get_mapdict_from_datamap_by_tblName_pk(wagecode_map, "wagecode", selected.functioncode_pk)
                     selected.functioncode_code = data_dict.code;
                 }
             } else if (tblName === "paydatecode") {
@@ -4752,9 +4869,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++++++++++ MODAL WAGEFACTOR ++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  MWF_Open  ================ PR2020-07-13 PR2021-01-29
-    function MWF_Open(tblName, el_clicked, col_index) {
-        //console.log("========= MWF_Open  ========= ");
-        //console.log("el_clicked", el_clicked);
+    function MWF_Open(is_addnew, tblName, el_clicked) {
+        console.log("========= MWF_Open  ========= ");
+        console.log("el_clicked", el_clicked);
 
 // --- get tblName and data_key.
         const key_str = (selected_btn === "wagefactor") ? "wfc" :
@@ -4764,7 +4881,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  get info from tblRow, is addnew when no tblRow
         const tblRow = get_tablerow_selected(el_clicked);
-        const is_addnew = (!tblRow);
+        console.log("tblRow", tblRow);
+        //const is_addnew = (!tblRow);
+
         const map_id = (tblRow) ? tblRow.id : null;
         const data_map = wagecode_map;
         const map_dict = get_mapdict_from_datamap_by_id(data_map, map_id )
@@ -6032,15 +6151,16 @@ console.log( "new_offset: ", new_offset);
         //console.log("el_clicked", el_clicked);
 
         const field_names = field_settings.abscat.field_names;
-
         console.log("field_names", field_names);
-// ---  get info from tblRow - tblRow does not exist when clicked on menu add_new btn
-        let fldName = get_attr_from_el(el_clicked, "data-field")
+
+// ---  get name of selected field - to set focus to input_el
+        let sel_fldName = get_attr_from_el(el_clicked, "data-field")
+        console.log("sel_fldName", sel_fldName);
+
         const tblRow = get_tablerow_selected(el_clicked);
         const is_addnew = (!tblRow);
         let abscat_dict = {};
 
-        console.log("fldName", fldName);
 // ---  get abscat_dict from abscat_map
         mod_MAC_dict = {};
         if(is_addnew) {
@@ -6051,7 +6171,8 @@ console.log( "new_offset: ", new_offset);
         } else {
             const map_id = tblRow.id;
             abscat_dict = get_mapdict_from_datamap_by_id(abscat_map, map_id)
-        console.log("abscat_dict", abscat_dict);
+            console.log("abscat_dict", abscat_dict);
+
     // ---  create mod_MAC_dict
             // abscatdict contains saved values
             mod_MAC_dict = {
@@ -6069,23 +6190,23 @@ console.log( "new_offset: ", new_offset);
         const header_text = (mod_MAC_dict.o_code) ? loc.Absence_category + ": " + mod_MAC_dict.o_code : loc.Absence_category;
         document.getElementById("id_MAC_hdr_abscat").innerText = header_text;
 
-        console.log("mod_MAC_dict.abscatdict ", mod_MAC_dict.abscatdict);
 // ---  fill input textboxes
         let el_focus = null;
         for (let i = 0, el; el = el_MAC_input_els[i]; i++) {
             const field = get_attr_from_el(el, "data-field");
             el.value = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : null;
-            if (fldName && field === fldName){ el_focus = el};
+            if (sel_fldName && field === sel_fldName){ el_focus = el};
         };
 
-// ---  fill no hours checkboxes. t_FillOptionsAbscatFunction is also used for functioncodes
-        for (let i = 0, el; el = wfc_input_select_els[i]; i++) {
+// ---  fill no hours checkboxes.
+        console.log("...........mod_MAC_dict.abscatdict ", mod_MAC_dict.abscatdict);
+        for (let i = 0, el; el = el_MAC_nohours_checked_els[i]; i++) {
             const field = get_attr_from_el(el, "data-field");
             // function FillOptions filters wagecode_map rows by key='wfc'
-            const selected_pk = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : null;
-            t_FillOptionsAbscatFunction(loc, "wagefactor", el, wagecode_map, selected_pk);
-            if (fldName && field === fldName){ el_focus = el};
+            el.checked = (mod_MAC_dict.abscatdict && mod_MAC_dict.abscatdict[field]) ? mod_MAC_dict.abscatdict[field] : false;
+            // dont set focus
         }
+
 // ---  fill wagefactor select options. t_FillOptionsAbscatFunction is also used for functioncodes
         let has_wfc_value = false, has_wfc_satsunph = false;
         for (let i = 0, el; el = wfc_input_select_els[i]; i++) {
@@ -6097,7 +6218,7 @@ console.log( "new_offset: ", new_offset);
             };
             // function FillOptions filters wagecode_map rows by key='wfc'
             t_FillOptionsAbscatFunction(loc, "wagefactor", el, wagecode_map, wfc_value);
-            if (fldName && field === fldName){ el_focus = el};
+            if (sel_fldName && field === sel_fldName){ el_focus = el};
         }
 // set focus on input element that was clicked in tblRow, on input_code when new
         set_focus_on_el_with_timeout(el_focus, 50);
@@ -6121,9 +6242,9 @@ console.log( "new_offset: ", new_offset);
         console.log(" mod_MAC_dict", mod_MAC_dict)
 
         const is_delete = (crud_mode === "delete")
-
+        const tblName = 'abscat';
 // ---  create upload_dict
-        let upload_dict = {isabsence: true, table: 'abscat', rowindex: mod_MAC_dict.rowindex};
+        let upload_dict = {isabsence: true, table: tblName, rowindex: mod_MAC_dict.rowindex};
         if(mod_MAC_dict.create) {
             upload_dict.create = true;
         } else {
@@ -6145,7 +6266,6 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 // ---  put changed values in upload_dict and change them in mod_MAC_dict (to diplay in tblrow before upload)
         // mod_MAC_dict.value is the changed value, mod_MAC_dict.abscatdict.value is the original value
         for (const [fldName, dbField] of Object.entries(mapped_abscat_fields)) {
-        console.log(fldName, dbField)
             if (fldName in mod_MAC_dict){
                 // save when no old value or new value different from old value
                 if (!mod_MAC_dict.abscatdict || mod_MAC_dict[fldName] !== mod_MAC_dict.abscatdict[fldName]){
@@ -6153,15 +6273,13 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
                 }
             }
         };
-        console.log("upload_dict]",upload_dict)
-
         if(is_delete){
 // ---  make row red when delete, before uploading
             let tblRow = document.getElementById(mod_MAC_dict.mapid);
             if(tblRow){ShowClassWithTimeout(tblRow, cls_error)};
         } else {
 // ---  update tblRow before UploadChanges
-            refresh_tblRowNEW(mod_MAC_dict, abscat_map, false, false, true); //  is_created, is_deleted, skip_show_ok
+            refresh_tblRowNEW(tblName, mod_MAC_dict, abscat_map, false, false, true); //  is_created, is_deleted, skip_show_ok
         }
 // ---  UploadChanges
         UploadChanges(upload_dict, url_payroll_upload);
@@ -6169,9 +6287,9 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 
 //=========  MAC_validate_and_disable  ================  PR2020-06-10
     function MAC_validate_and_disable(el_clicked) {
-        console.log(" -----  MAC_validate_and_disable   ----")
+        //console.log(" -----  MAC_validate_and_disable   ----")
         const fldName = get_attr_from_el(el_clicked, "data-field")
-        console.log(" fldName   ----", fldName)
+        //console.log(" fldName   ----", fldName)
 
         let msg_err = null;
         if(fldName === "o_code"){
@@ -6200,7 +6318,6 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 // ---  when opening MAC form, el_header is undefined: show wagefactors when there are non-null wagefactor fields
             show_wfc = !!has_wfc_value;
         }
-        console.log( "show_wfc", show_wfc);
 // ---  if not show_wfc: hide container with wfc input boxes and container with checkbox
         add_or_remove_class(el_wfc_container, "display_hide", !show_wfc)
         add_or_remove_class(el_wfc_checkbox_container, "display_hide", !show_wfc)
@@ -6208,7 +6325,6 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
         const caption =  (show_wfc) ? loc.Wage_component : loc.Wage_component;
         el_wfc_header.innerHTML = caption.bold()
     };  //  MAC_WfcShow
-
 
 //========= MAC_WfcDiffChange  ============= PR2021-01-28
     function MAC_WfcDiffChange(el_clicked, has_wfc_satsunph) {
@@ -6534,11 +6650,29 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 
     }  // ModConfirmSave
 
+
+//========= get_tblBody  ========  PR2021-03-01
+    function get_tblBody(tblName, key_str){
+        let tblBody = null;
+        if (tblName === "employee") {
+            tblBody = tblBody_employee
+        } else if (tblName === "paydatecode") {
+            tblBody = tblBody_paydatecode
+        } else if (tblName === "wagecode") {
+            tblBody = tblBody_paydatecode;
+        } else {
+            tblBody = tblBody_datatable;
+        }
+        return tblBody;
+    }  // get_tblBody
+
+
 //========= get_data_map  ======== PR2020-09-14 PR2021-02-12
     function get_data_map(tblName) {
 
         const data_map = (tblName === "wagecode") ? wagecode_map :
                          (tblName === "wagefactor") ? wagecode_map :
+                         (tblName === "functioncode") ? wagecode_map :
                          (tblName === "paydatecode") ? paydatecode_map :
                          (tblName === "abscat") ? abscat_map :
                          (tblName === "employee") ? employee_map : null;
@@ -6547,7 +6681,7 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 //========= get_selected_pk  ======== PR2020-09-14 PR2021-02-03
     function get_selected_pk() {
         let selected_pk = null;
-        if(["wagecode", "wagefactor", "allowance", "functioncode"].indexOf(selected_btn)){
+        if(["wagecode", "wagefactor", "allowance", "functioncode"].indexOf(selected_btn) > -1){
             selected_pk = selected.wagecode_pk;
         } else if (selected_btn === "paydatecode"){
             selected_pk = selected.paydatecode_pk;
@@ -6616,6 +6750,7 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
 
 //=========  refresh_datamap_item  ================ PR2020-09-06
 // NIU PR2021-01-30
+/*
     function refresh_datamap_itemXXX(data_map, update_dict, skip_show_ok) {
         //console.log(" --- refresh_datamap_item  ---");
         //console.log("update_dict", update_dict);
@@ -6694,14 +6829,14 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
                     if(el){
                         const el_field = get_attr_from_el(el, "data-field")
                         if(updated_columns.includes(el_field)){
-                            UpdateField( el, update_dict, skip_show_ok)
+                            UpdateField(tblName, el, update_dict, skip_show_ok)
                         }
                     }
                 }
             }
         }
     }  // refresh_datamap_item
-
+*/
 //###########################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 

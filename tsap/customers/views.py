@@ -1,7 +1,6 @@
 
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.http import HttpResponse
 
 from django.shortcuts import render
@@ -206,9 +205,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     request=request,
                                     order_pk=instance.pk)
                                 updated_order_rows.extend(order_rows)
-
 # =====  END ORDER  ==========
-
 
 # H. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
@@ -561,6 +558,7 @@ def create_order(parent, upload_dict, update_dict, request):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def update_order(instance, parent, upload_dict, update_dict, logging_on, request):
     # --- update existing and new customer or order PR2019-06-24
+    # called by CustomerUploadView, PricerateUploadView, PayrollUploadView.upload_abscat_order
     # add new values to update_dict (don't reset update_dict, it has values)
     if logging_on:
         logger.debug(' --- update_order --- ')
@@ -570,6 +568,10 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
     if instance:
         table = 'order'
         save_changes = False
+        recalc_nohours = False
+        recalc_wagefactor = False
+
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
         for field, field_dict in upload_dict.items():
             if logging_on:
@@ -622,6 +624,7 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
 
 # - save changes in date fields
                 elif field in ['datefirst', 'datelast']:
+                    # not used in abscat_order
                     new_value = field_dict.get('value')
     # a. get new_date
                     new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
@@ -636,7 +639,8 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
                             setattr(instance, field, new_date)
                             is_updated = True
 
-                elif field in ( 'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+                elif field in ('nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+                    # only used in abscat_order
     # a. get old value
                     new_value = field_dict.get('value', False)
                     saved_value = getattr(instance, field, False)
@@ -644,8 +648,10 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
     # c. save field if changed
                         setattr(instance, field, new_value)
                         is_updated = True
+                        recalc_nohours = True
 
                 elif field in ('wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph'):
+                    # only used in abscat_order, normal orders get wfc values from shift
                     # a. get old value
                     new_pk_int = field_dict.get('value', False)
                     new_wagefactor = m.Wagecode.objects.get_or_none(
@@ -656,6 +662,7 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
                         # c. save field if changed
                         setattr(instance, field, new_wagefactor)
                         is_updated = True
+                        recalc_wagefactor = True
                     if logging_on:
                         logger.debug('new_pk_int: ' + str(new_pk_int))
                         logger.debug('new_wagefactor: ' + str(new_wagefactor))
@@ -722,9 +729,132 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
                 has_error = True
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
                 update_dict['id']['error'] = msg_err
-
+            finally:
+                # TODO recalc emplhour records when necessary
+                if recalc_wagefactor:
+                    update_wagefactor_in_emplhour(instance, request)
+                if recalc_nohours:
+                    update_nohours_in_emplhour(instance, comp_timezone, request)
     return has_error
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def update_nohours_in_emplhour(abscat_order, comp_timezone, request):
+    # logger.debug(' --- update_nohours_in_emplhour --- ')  # PR2021-02-28
+    # - update field billable, amount, addition, tax in all orderhour records that are not locked
+    logging_on = True
+    if logging_on:
+        logger.debug(' --- update_nohours_in_emplhour --- ')  # PR2021-02-28
+
+    if abscat_order:
+
+# - get emplhour records of this abscat_order that are not locked
+        emplhours = m.Emplhour.objects.filter(
+            orderhour__order=abscat_order,
+            lockedpaydate=False
+        )
+        for emplhour in emplhours:
+            rosterdate_dte = emplhour.rosterdate
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+                f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
+
+# - get nohours These fields are in order and scheme. For absence only fields in table 'order' are used
+            nohours_onwd = abscat_order.nohoursonweekday
+            nohours_onsat = abscat_order.nohoursonsaturday
+            nohours_onsun = abscat_order.nohoursonsunday
+            nohours_onph = abscat_order.nohoursonpublicholiday
+
+            if logging_on:
+                logger.debug('is_saturday:       ' + str(is_saturday))
+                logger.debug('is_sunday:         ' + str(is_sunday))
+                logger.debug('is_publicholiday:  ' + str(is_publicholiday))
+                logger.debug('is_companyholiday: ' + str(is_companyholiday))
+                logger.debug('nohours_onwd:      ' + str(nohours_onwd))
+                logger.debug('nohours_onsat:     ' + str(nohours_onsat))
+                logger.debug('nohours_onsun:     ' + str(nohours_onsun))
+                logger.debug('nohours_onph:      ' + str(nohours_onph))
+
+# - calculate timeduration
+            default_wmpd = request.user.company.workminutesperday
+            employee_wmpd = 0
+            if emplhour.employee:
+                employee_wmpd = emplhour.employee.workminutesperday
+            timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_date, excel_start, excel_end = \
+                f.calc_timedur_plandur_from_offset(
+                    rosterdate_dte=rosterdate_dte,
+                    is_absence=True, is_restshift=False, is_billable=False,
+                    is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
+                    row_offsetstart=emplhour.offsetstart, row_offsetend=emplhour.offsetend,
+                    row_breakduration=emplhour.breakduration, row_timeduration=emplhour.timeduration,
+                    row_plannedduration=0, update_plandur=True,
+                    row_nohours_onwd=nohours_onwd,
+                    row_nohours_onsat=nohours_onsat,
+                    row_nohours_onsun=nohours_onsun,
+                    row_nohours_onph=nohours_onph,
+                    row_employee_pk=emplhour.employee_id,
+                    row_employee_wmpd=employee_wmpd,
+                    default_wmpd=default_wmpd,
+                    comp_timezone=comp_timezone)
+
+            if logging_on:
+                logger.debug(
+                    'plandur: ' + str(planned_duration) + ' timedur: ' + str(time_duration) + ' billdur: ' + str(
+                        billing_duration))
+                logger.debug(
+                    'excel_date: ' + str(excel_date) + ' excel_start: ' + str(excel_start) + ' excel_end: ' + str(
+                        excel_end))
+            if time_duration != emplhour.timeduration:
+                emplhour.timeduration = time_duration
+                emplhour.save(request=request)
+# - end of update_nohours_in_emplhour
+
+def update_wagefactor_in_emplhour(abscat_order, request):
+    # logger.debug(' --- update_wagefactor_in_emplhour --- ')  # PR2021-02-28
+    # - update field billable, amount, addition, tax in all orderhour records that are not locked
+
+    # - update wagefactor in emplhour records of this abscat_order that are not locked
+    if abscat_order:
+        default_wagefactor = None
+        if abscat_order.customer.company:
+            wfc_pk = abscat_order.customer.company.wagefactorcode_id
+            if wfc_pk:
+                default_wagefactor = m.Wagecode.objects.get_or_none(pk=wfc_pk, key='wfc')
+
+        wfc_onwd = abscat_order.wagefactorcode
+        wfc_onsat = abscat_order.wagefactoronsat
+        wfc_onsun = abscat_order.wagefactoronsun
+        wfc_onph = abscat_order.wagefactoronph
+
+        emplhours = m.Emplhour.objects.filter(
+            orderhour__order=abscat_order,
+            lockedpaydate=False
+        )
+        for emplhour in emplhours:
+            rosterdate_dte = emplhour.rosterdate
+            is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
+                f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
+        # get wagefactor from order (= abscat) when absence
+            wagefactor = None
+            if is_publicholiday:
+                wagefactor = wfc_onph
+            elif is_sunday:
+                wagefactor = wfc_onsun
+            elif is_saturday:
+                wagefactor = wfc_onsat
+            # get wagefactor of weekday wagefactor if no value found
+            if wagefactor is None:
+                wagefactor = wfc_onwd
+            if wagefactor is None:
+                wagefactor = default_wagefactor
+            if wagefactor != emplhour.wagefactorcode:
+                emplhour.wagefactorcode = wagefactor
+                if wagefactor:
+                    emplhour.wagefactor = wagefactor.wagerate if wagefactor else 0
+                    emplhour.wagefactorcaption = wagefactor.code
+                else:
+                    emplhour.wagefactor = 0
+                    emplhour.wagefactorcaption = None
+                emplhour.save(request=request)
+# - end of update_wagefactor_in_emplhour
 
 # >>>>>>>   ORDER IMPORT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

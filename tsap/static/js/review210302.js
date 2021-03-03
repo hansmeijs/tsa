@@ -294,9 +294,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_sbr_select_period.value = t_Sidebar_DisplayPeriod(loc, selected_period);
                 }
 
-                if ("customer_list" in response) {refresh_datamap(response["customer_list"], customer_map)}
-                if ("order_list" in response) { refresh_datamap(response["order_list"], order_map)}
-                if ("employee_list" in response) { refresh_datamap(response["employee_list"], employee_map)}
+                if ("customer_list" in response) {b_refresh_datamap(response["customer_list"], customer_map)}
+                if ("order_list" in response) { b_refresh_datamap(response["order_list"], order_map)}
+                if ("employee_list" in response) { b_refresh_datamap(response["employee_list"], employee_map)}
 //----------------------------
                 if ("billing_agg_list" in response){  refresh_billing_list(response);};
 //----------------------------

@@ -3,12 +3,13 @@
 
 from django.db import connection
 from datetime import date, time, datetime, timedelta
-from django.db.models.functions import Lower
 from django.utils.translation import ugettext_lazy as _
 
 from tsap.settings import TIME_ZONE
 from companies import models as m
 from tsap import constants as c
+
+import decimal
 
 import math
 import re
@@ -2592,6 +2593,27 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
             # use math.floor instead of int(), to get correct results when amount is negative
             # math.floor() returns the largest integer less than or equal to a given number.
             # math.floor to convert negative numbers correct: -2 + .5 > -1.5 > 2
+            # math.floor(2.5) = 2
+            # math.floor(.5 + 2.49) = 2
+            # math.floor(.5 + 2.5) = 3
+            # math.floor(.5 - 2.5) = -2
+            # math.floor(.5 - 2.49) = -2
+
+            # TODO solve rounding headaches with decimal datatype
+            #  PR2021-02-28 from https://realpython.com/python-rounding/
+            # To change the precision, you call decimal.getcontext() and set the .prec attribute. I
+            decimal.getcontext().prec = 2
+            # Notice that decimal.ROUND_HALF_UP works just like our round_half_away_from_zero()
+            decimal.getcontext().rounding = decimal.ROUND_HALF_UP
+
+            """
+            decimal.getcontext().rounding = decimal.ROUND_CEILING
+            >>> Decimal("1.32").quantize(Decimal("1.0"))
+            Decimal('1.4')
+            
+            >>> Decimal("-1.32").quantize(Decimal("1.0"))
+            Decimal('-1.3')
+            """
             amount = math.floor(0.5 + amount_not_rounded)  # This rounds to an integer
 
             addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
@@ -2683,6 +2705,32 @@ def system_updates():
     # update_employeecode_in_orderhours() PR2020-07-25
     # update_sysadmin_in_user()  # PR2020-07-30
     update_key_in_wagecode()  # PR2021-01-29
+    update_sortby_in_orderhours()  # PR2021-03-02
+
+def update_sortby_in_orderhours():
+    # Once-only function to put emplhour.excelstart of all companies in orderhour.excelstart PR2021-03-02
+    empty_sortby_exist = m.Emplhour.objects.filter(orderhour__sortby__isnull=True).exists()
+    if empty_sortby_exist:
+        emplhours = m.Emplhour.objects.filter(orderhour__sortby__isnull=True)
+        for emplhour in emplhours:
+            orderhour = emplhour.orderhour
+            if(not orderhour.sortby):
+                sort_by = calculate_sortby(emplhour.offsetstart, orderhour.isrestshift, orderhour.pk)
+                orderhour.sortby = sort_by
+                orderhour.save()
+
+
+def calculate_sortby(offset_start, is_restshift, orderhour_pk):  # PR2021-03-02
+    logger.debug(' ----- calculate_sortby -----')
+# - calulate order_by.
+    # orderby is istring with the following format:
+    # exceldate : '0063730980' excel_start with leading zero
+    offset_start_str = ('0000' + str(offset_start))[-4:] if offset_start is not None else '1440'
+    is_restshift_str = '0' if is_restshift else '1'
+    oh_id_str = ('000000' + str(orderhour_pk))[-6:]
+    order_by = '_'.join((is_restshift_str, offset_start_str, oh_id_str))
+    return order_by
+
 
 def update_key_in_wagecode():
     # Once-only function to put value in 'key' in wagecode table, to replace 'iswagefactor etc PR2021-01-29
@@ -3046,7 +3094,8 @@ def calc_timeduration_from_shift(shift):
 # <<<<<<<<<< calc_timedur_plandur_from_offset >>>>>>>>>>>>>>>>>>> PR2020-08-29
 def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, is_billable, is_sat, is_sun, is_ph, is_ch,
         row_offsetstart, row_offsetend, row_breakduration, row_timeduration, row_plannedduration, update_plandur,
-        row_nohours_onsat, row_nohours_onsun, row_nohours_onph, row_nohours_onch, row_employee_pk, row_employee_wmpd, default_wmpd, comp_timezone):
+        row_nohours_onwd, row_nohours_onsat, row_nohours_onsun, row_nohours_onph,
+        row_employee_pk, row_employee_wmpd, default_wmpd, comp_timezone):
     # called by:
     # note: billing_duration can get value of planned_duration,
     #       therefore it is possible that update_plandur = True, while returnvalue planned_duration is not used
@@ -3066,7 +3115,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
         logger.debug('is_absence: ' + str(is_absence))
         logger.debug('is_sat: ' + str(is_sat) + ' is_sun: ' + str(is_sun) + ' is_ph: ' + str(is_ph) + ' is_ch: ' + str(is_ch))
-        logger.debug('row_nohours_onsat: ' + str(row_nohours_onsat) + ' row_nohours_onsun: ' + str(row_nohours_onsun) + ' row_nohours_onph: ' + str(row_nohours_onph) + ' row_nohours_onch: ' + str(row_nohours_onch))
+        logger.debug('row_nohours_onwd: ' + str(row_nohours_onwd) + 'row_nohours_onsat: ' + str(row_nohours_onsat) + ' row_nohours_onsun: ' + str(row_nohours_onsun) + ' row_nohours_onph: ' + str(row_nohours_onph) )
         logger.debug('row_offsetstart: ' + str(row_offsetstart) + ' row_offsetend: ' + str(row_offsetend))
         logger.debug(' row_breakduration: ' + str(row_breakduration) + ' row_timeduration: ' + str(row_timeduration))
         logger.debug(' row_plannedduration: ' + str(row_plannedduration) + ' update_plandur: ' + str(update_plandur))
@@ -3101,12 +3150,13 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     #  - row_plannedduration contains the value of emplhour.planned_duration
     #  - planned_duration is not changed when changing offsetstart / offsetend / breakduration / timedutaion.
     #  -   in these cases the returnvalue 'planned_duration' is not used
+    is_weekday = not is_sat and not is_sun and not is_ph and not is_ch
+    no_hours = (is_weekday and row_nohours_onwd) or \
+               (is_sat and row_nohours_onsat) or \
+               (is_sun and row_nohours_onsun) or \
+               (is_ph and row_nohours_onph)
 
-    if (is_absence) or (is_restshift) or \
-            (is_sat and row_nohours_onsat) or \
-            (is_sun and row_nohours_onsun) or \
-            (is_ph and row_nohours_onph) or \
-            (is_ch and row_nohours_onch):
+    if is_absence or is_restshift or no_hours:
         planned_duration = 0
     else:
         if update_plandur:
@@ -3132,12 +3182,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
 
 # ony use employee_wmpd when absence, no time duration value
     time_duration = 0
-    if (is_restshift) or \
-            (row_employee_pk is None) or \
-            (is_sat and row_nohours_onsat) or \
-            (is_sun and row_nohours_onsun) or \
-            (is_ph and row_nohours_onph) or \
-            (is_ch and row_nohours_onch):
+    if is_restshift or no_hours or row_employee_pk is None :
         pass
     elif is_absence:
         if new_timeduration:
@@ -3187,7 +3232,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         logger.debug('time_duration: ' + str(time_duration))
         logger.debug('billing_duration: ' + str(billing_duration))
 
-    return timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end
+    return timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_date, excel_start, excel_end
 
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10 PR2020-06-01

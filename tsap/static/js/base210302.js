@@ -667,7 +667,7 @@
     };  // fill_datamap
 
 //========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
-    function refresh_datamap(data_list, data_map, tblName) {
+    function b_refresh_datamap(data_list, data_map, tblName) {
         //console.log(" --- refresh_datamap ---")
         data_map.clear();
         const data_list_length = data_list.length
@@ -737,6 +737,7 @@
 //========= b_comparator_e_code  =========  PR2020-09-03
 // PR2020-09-01 from: https://stackoverflow.com/questions/5435228/sort-an-array-with-arrays-in-it-by-string/5435341
 // function used in Array.sort to sort list of dicts by key 'code', null or '---' last
+// explained in https://www.javascripttutorial.net/javascript-array-sort/ PR2021-02-25
     function b_comparator_e_code(a, b) {
         const max_len = 24 // CODE_MAX_LENGTH = 24;
         const z_str = "z".repeat(max_len);

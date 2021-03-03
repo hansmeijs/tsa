@@ -508,14 +508,11 @@ class Order(TsaBaseModel):
     wagefactoronsun = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
     wagefactoronph = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
-    # TODO nopay to be deprecated
-    nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
-
-    nohoursonweekday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
-    nohoursonsaturday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
-    nohoursonsunday = BooleanField(default=False)  # used in absence, to skip hours in emplhour PR2020-06-09
+    # nohoursonweekday etc in table order is only used in absence, to skip hours in emplhour PR2020-06-09
+    nohoursonweekday = BooleanField(default=False)
+    nohoursonsaturday = BooleanField(default=False)
+    nohoursonsunday = BooleanField(default=False)
     nohoursonpublicholiday = BooleanField(default=False)
-    nohoursoncompanyholiday = BooleanField(default=False)
 
     hasnote = BooleanField(default=False)  # hasnotes will show a note icon on the roster page
 
@@ -628,13 +625,6 @@ class Scheme(TsaBaseModel):
     divergentonpublicholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
-    # nopay and nosat etc in scheme are not in use (yet) PR2020-09-17
-    nopay = BooleanField(default=False)  # nopay: only used in absence, to set nopay in emplhour PR2020-06-07
-    nohoursonsaturday = BooleanField(default=False)
-    nohoursonsunday = BooleanField(default=False)
-    nohoursonpublicholiday = BooleanField(default=False)
-    nohoursoncompanyholiday = BooleanField(default=False)
-
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
     name = None
@@ -666,6 +656,12 @@ class Shift(TsaBaseModel):
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     breakduration = IntegerField(default=0) # unit is minute
     timeduration = IntegerField(default=0)  # unit is minute
+
+    # TODO nohoursonweekday etc in table shift is not in use yet, nohour... in table order is only used in absence
+    nohoursonweekday = BooleanField(default=False)
+    nohoursonsaturday = BooleanField(default=False)
+    nohoursonsunday = BooleanField(default=False)
+    nohoursonpublicholiday = BooleanField(default=False)
 
     # when override=False: use employee_pricecode if not None PR2020-11-23
     # when override=True:  use use shift_pricecode (or order_pricecod , company_pricecod) instead of employee_pricecode
@@ -949,14 +945,13 @@ class Orderhour(TsaBaseModel):
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
-
-    # TODO add excelstart for sorting PR2021-02-23
+    sortby = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     issplitshift = BooleanField(default=False)
     isbillable = BooleanField(default=False)  # isbillable: worked hours will be billed when true, planned hours otherwise
-    nobill = BooleanField(default=False)    # nobill: billed hours will be zero
+    nobill = BooleanField(default=False)  # nobill: billed hours will be zero
     # TODO add nobill to pricepage
 
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -1008,7 +1003,6 @@ class Emplhour(TsaBaseModel):
     #paydate = DateField(db_index=True, null=True)
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
     lockedpaydate = BooleanField(default=False)
-    nopay = BooleanField(default=False)    # nopay: wage will be zero
 
     payrollpublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
     invoicepublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
@@ -1024,6 +1018,8 @@ class Emplhour(TsaBaseModel):
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     excelstart = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
     excelend = IntegerField(null=True)  # Excel 'zero' date = 31-12-1899  * 1440 + offset
+
+    nohours = BooleanField(default=False)
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 

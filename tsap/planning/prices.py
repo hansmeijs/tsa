@@ -1049,7 +1049,7 @@ def update_pat_code_and_recalc_baat(table, pat_field, instance_pk, request):  # 
 
 
 def update_billdur_aat_in_emplhour(pricecode_pk, additioncode_pk, taxcode_pk, request):
-    #logger.debug(' --- update_amount_addition_tax_in_emplhour --- ')  # PR2020-07-27
+    #logger.debug(' --- update_billdur_aat_in_emplhour --- ')  # PR2020-07-27
     # - update field billable, amount, addition, tax in all orderhour records that are not locked
 
     # - update field billingduration in emplhour records that are not locked

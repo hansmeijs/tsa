@@ -601,10 +601,7 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
 
         s.excludecompanyholiday,
         s.excludepublicholiday,
-        s.divergentonpublicholiday,
-        s.nohoursonsaturday,
-        s.nohoursonsunday,
-        s.nohoursonpublicholiday
+        s.divergentonpublicholiday
 
         FROM companies_scheme AS s
         INNER JOIN companies_order AS o ON (o.id = s.order_id)
@@ -1213,7 +1210,7 @@ def create_shift_dict_from_sqlXXX(shift, update_dict, user_lang):  # PR2020-05-2
 # ----------- end of create_shift_dict_from_sql -----------
 
 
-def create_shift_dictXXX(shift, update_dict, user_lang):  # PR2021-01-04
+def create_shift_dict(shift, update_dict):  # PR2021-01-04
     logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
@@ -2067,7 +2064,8 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         sql_keys = {'comp_id': company_pk}
         sql_list = ["SELECT eh.id, oh.id AS oh_id, o.id AS o_id, c.id AS c_id, c.company_id AS comp_id,  CONCAT('emplhour_', eh.id::TEXT) AS mapid,",
         "eh.rosterdate, eh.exceldate, oh.customercode, oh.ordercode,CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
-        "oh.shiftcode, eh.employee_id, eh.employeecode, eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend,",
+        "oh.shiftcode, oh.sortby,",
+        "eh.employee_id, eh.employeecode, eh.offsetstart, eh.offsetend, eh.excelstart, eh.excelend, eh.nohours,",
         "eh.breakduration, eh.timeduration, eh.plannedduration, eh.billingduration,",
         "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, eh.wagefactorcode_id AS wfc_id, wfc.code AS wfc_code, eh.wagefactor,",
         "eh.haschanged, eh.status,",
@@ -2187,8 +2185,10 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         #if not show_deleted:
         #    sql_list.append('AND (NOT eh.isdeleted)')
 
-        sql_list.append('ORDER BY eh.rosterdate, c.isabsence, LOWER(o.code), o.id, oh.isrestshift, eh.timestart')
+        #sql_list.append('ORDER BY eh.rosterdate, c.isabsence, LOWER(o.code), o.id, oh.isrestshift, eh.timestart')
+        sql_list.append('ORDER BY eh.rosterdate, c.isabsence, LOWER(o.code), o.id, oh.sortby, eh.excelstart')
         sql_emplhour = ' '.join(sql_list)
+
 
         newcursor = connection.cursor()
         newcursor.execute(sql_emplhour,sql_keys)

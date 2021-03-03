@@ -3,7 +3,7 @@
 
 <!-- =================== MODAL MESSAGE  =================== -->
 <div id="id_mod_message" class="modal z_index_2099XX" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm " role="document">
+    <div class="modal-dialog modal-dialog-centered modal-md " role="document">
         <div class="modal-content">
 
             <div class="modal-header tsa_bc_lightlightgrey">
@@ -14,16 +14,12 @@
             </div>
 
             <div class="modal-body">
-                <div class="modal_container">
-                    <div class="modal_body_left mx-2">
-                        <div id="id_mod_message_msg01" class="modal-title mx-2" ></div><br>
-                        <div id="id_mod_message_msg02" class="modal-title mx-2" ></div><br>
-                        <div id="id_mod_message_msg03" class="modal-title mx-2" ></div>
+                    <div id="id_mod_message_container" class="modal_body_leftXX m-4">
                     </div>
-                </div>
+
             </div>
             <div class="modal-footer">
-                <button id="id_modmessage_btn_save" type="button" class="btn btn-primary">{% trans 'Close' %}</button>
+                <button class="btn btn-outline-secondary" data-dismiss="modal">{% trans 'Close' %}</button>
             </div>
         </div>
     </div>

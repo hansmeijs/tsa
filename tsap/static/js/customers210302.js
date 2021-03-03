@@ -368,14 +368,14 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log ("===== refresh_maps ==== ")
 
         if ("company_dict" in response) {company_dict = response.company_dict};
-        if ("customer_rows" in response) {refresh_datamap(response.customer_rows, customer_map, "customer")};
-        if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map, "order")};
-        if ("employee_rows" in response) {refresh_datamap(response.employee_rows, employee_map, "employee")};
-        if ("abscat_rows" in response) {refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
-        if ("shift_rows" in response) {refresh_datamap(response.shift_rows, shift_map, "shift")};
+        if ("customer_rows" in response) {b_refresh_datamap(response.customer_rows, customer_map, "customer")};
+        if ("order_rows" in response) {b_refresh_datamap(response.order_rows, order_map, "order")};
+        if ("employee_rows" in response) {b_refresh_datamap(response.employee_rows, employee_map, "employee")};
+        if ("abscat_rows" in response) {b_refresh_datamap(response.abscat_rows, abscat_map, "abscat")}
+        if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")};
 
         if ("customer_listXX" in response) {
-            refresh_datamap(response["customer_list"], customer_map)
+            b_refresh_datamap(response["customer_list"], customer_map)
 
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null, row_count = {};
@@ -402,7 +402,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         }
         if ("order_listXX" in response) {
-            refresh_datamap(response["order_list"], order_map);
+            b_refresh_datamap(response["order_list"], order_map);
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
             const filter_show_inactive = true, filter_include_absence = false, filter_istemplate = false;
@@ -432,16 +432,16 @@ let planning_list = [] // for export and printing - can replace map?
             UpdateHeaderText();
         }
 
-        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
 
-        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
-        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
-        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
+        if ("team_list" in response) {b_refresh_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {b_refresh_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {b_refresh_datamap(response["schemeitem_list"], schemeitem_map)}
 
         if ("customer_planning_list" in response) {
             // customer_planning_list is used for PDF planning (teammembers are grouped by team)
 
-            const duration_sum = refresh_datamap(response["customer_planning_list"], planning_customer_map)
+            const duration_sum = b_refresh_datamap(response["customer_planning_list"], planning_customer_map)
             planning_display_duration_total = display_duration (duration_sum, loc.user_lang)
             if(print_planning_after_download){
                 print_planning_after_download = false;
@@ -452,7 +452,7 @@ let planning_list = [] // for export and printing - can replace map?
         if ("employee_planning_list" in response) {
             //console.log ("...................===== employee_planning_list in response ==== ")
             // employee_planning_list is used in table and Excel (each teammember on a separate row)
-            refresh_datamap(response["employee_planning_list"], planning_employee_map)
+            b_refresh_datamap(response["employee_planning_list"], planning_employee_map)
             //FillTblRows();
 
             //t_Filter_TableRows(tblBody_datatable, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
@@ -481,8 +481,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 
         if ("customer_calendar_list" in response) {
-            //console.log ("===== refresh_datamap(response[customer_calendar_list] ==== ")
-            refresh_datamap(response["customer_calendar_list"], calendar_map)
+            //console.log ("===== b_refresh_datamap(response[customer_calendar_list] ==== ")
+            b_refresh_datamap(response["customer_calendar_list"], calendar_map)
             //console.log("calendar_map", calendar_map )
             UpdateHeaderText();
             CreateCalendar("order", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);

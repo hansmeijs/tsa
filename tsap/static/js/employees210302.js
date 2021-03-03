@@ -482,28 +482,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if ("company_dict" in response) {company_dict = response.company_dict}
 
-        if ("employee_rows" in response) { refresh_datamap(response["employee_rows"], employee_map, "employee")}
-        if ("abscat_rows" in response) {refresh_datamap(response["abscat_rows"], abscat_map, "abscat")};
-        if ("absence_rows" in response) {refresh_datamap(response["absence_rows"], absence_map, "absence")};
-        if ("functioncode_rows" in response) {refresh_datamap(response.functioncode_rows, functioncode_map)};
-        if ("paydatecode_rows" in response) {refresh_datamap(response.paydatecode_rows, paydatecode_map)};
-        if ("wagecode_rows" in response) {refresh_datamap(response.wagecode_rows, wagecode_map)};
+        if ("employee_rows" in response) { b_refresh_datamap(response["employee_rows"], employee_map, "employee")}
+        if ("abscat_rows" in response) {b_refresh_datamap(response["abscat_rows"], abscat_map, "abscat")};
+        if ("absence_rows" in response) {b_refresh_datamap(response["absence_rows"], absence_map, "absence")};
+        if ("functioncode_rows" in response) {b_refresh_datamap(response.functioncode_rows, functioncode_map)};
+        if ("paydatecode_rows" in response) {b_refresh_datamap(response.paydatecode_rows, paydatecode_map)};
+        if ("wagecode_rows" in response) {b_refresh_datamap(response.wagecode_rows, wagecode_map)};
 
-        if ("teammember_list" in response) { refresh_datamap(response["teammember_list"], teammember_map) }
+        if ("teammember_list" in response) { b_refresh_datamap(response["teammember_list"], teammember_map) }
 
-        if ("customer_rows" in response) {refresh_datamap(response.customer_rows, customer_map, "customer")};
-        if ("order_rows" in response) {refresh_datamap(response.order_rows, order_map, "order")};
+        if ("customer_rows" in response) {b_refresh_datamap(response.customer_rows, customer_map, "customer")};
+        if ("order_rows" in response) {b_refresh_datamap(response.order_rows, order_map, "order")};
 
-        if ("scheme_list" in response) {refresh_datamap(response["scheme_list"], scheme_map)}
-        if ("shift_list" in response) {refresh_datamap(response["shift_list"], shift_map)}
-        if ("team_list" in response) {refresh_datamap(response["team_list"], team_map)}
-        if ("teammember_list" in response) {refresh_datamap(response["teammember_list"], teammember_map)}
-        if ("schemeitem_list" in response) {refresh_datamap(response["schemeitem_list"], schemeitem_map)}
+        if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("shift_list" in response) {b_refresh_datamap(response["shift_list"], shift_map)}
+        if ("team_list" in response) {b_refresh_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {b_refresh_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {b_refresh_datamap(response["schemeitem_list"], schemeitem_map)}
 
        // if ("employee_planning_list" in response) {
             // TODO duration_sum not in refresh datamap any more
        //     const duration_sum = 0;
-      //      refresh_datamap(response["employee_planning_list"], planning_map)
+      //      b_refresh_datamap(response["employee_planning_list"], planning_map)
       //      planning_display_duration_total = display_duration (duration_sum, loc.user_lang)
             //PrintEmployeePlanning("preview", selected_planning_period, planning_map, company_dict,
             //    label_list, pos_x_list, colhdr_list, loc.timeformat, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang);
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
         HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
         if ("employee_calendar_list" in response) {
-            refresh_datamap(response["employee_calendar_list"], calendar_map)
+            b_refresh_datamap(response["employee_calendar_list"], calendar_map)
             UpdateHeaderText();
             CreateCalendar("employee", selected_calendar_period, calendar_map, MSE_Open, loc, loc.timeformat, loc.user_lang);
         };
@@ -1690,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
 
                     if ("employee_list" in response) {
-                        refresh_datamap(response["employee_list"], employee_map)
+                        b_refresh_datamap(response["employee_list"], employee_map)
 
                         const tblName = "employee";
                         const include_parent_code = null;
@@ -1706,13 +1706,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         FillEmployeeTblRows();
                     };
                     if ("teammember_list" in response) {
-                        refresh_datamap(response["teammember_list"], teammember_map)
+                        b_refresh_datamap(response["teammember_list"], teammember_map)
                     };
                     if ("teammember_update" in response) {
                         UpdateTeammemberFromResponse(response["teammember_update"]);
                     };
                     if ("employee_calendar_list" in response) {
-                        refresh_datamap(response["employee_calendar_list"], calendar_map)
+                        b_refresh_datamap(response["employee_calendar_list"], calendar_map)
                         CreateCalendar("employee", selected_calendar_period, calendar_map, MSE_Open, loc, loc.timeformat, user_lang);
                     }
                 },  // success: function (response) {

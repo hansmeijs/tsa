@@ -229,6 +229,42 @@ h4 h5 {
     user-select: none;
 
 }
+.cell_error_odd {
+    background: #ffcccc;
+}
+.cell_error_even {
+    background: #ffefef;
+}
+.cell_saved_odd {
+    background: #ccffcc; /* light green*/
+}
+.cell_saved_even {
+    background: #deffde;  /* light light green*/
+}
+.cell_unchanged_odd {
+    /*background: #e0e0e0;  /* light grey */
+    /*background: #fafafa;  /* light light grey */
+    background: #f2f5f8;  /* light light bluish grey */
+
+}
+.cell_unchanged_even {
+    /* background: #f8f8f8;  /* light light grey */
+    /* background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
+    /*background-color: #f5f5f5;  /* #f5f5f5 licht licht licht grijs 245 245 245;  this is reddish: background-color: #f8f8f8;*/
+    background: #ffffff;  /* white */
+}
+
+
+
+/*
+.cell_error tr:nth-child(even) td {
+        background-color: #f4fbff; /* RGB(244,251,255) heel licht blauw */
+        /*background-color: #F5FAFF; /* RGB 245, 250, 255 #F5FAFF = licht licht blauw; #B8CCE4 = 'TextboxBackColor Default Schema Blauw lichtblauw */
+    /*background: #ffcccc
+        /*background-color: rgba(0, 169, 230, 0.1)*/
+/*}*/
+
+
 
 /* PR2020-04-07 to get second moadl on top of first one */
 /* from https://stackoverflow.com/questions/32634488/second-modal-doesnt-put-backdrop-on-first-one */

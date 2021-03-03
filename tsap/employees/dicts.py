@@ -15,7 +15,6 @@ from planning import views as plv
 from planning import rosterfill as plrf
 from planning import employeeplanning as emplan
 
-import math
 import xlsxwriter
 import logging
 logger = logging.getLogger(__name__)
@@ -254,7 +253,12 @@ def ed_create_teammember_list(filter_dict, company, user_lang):
             "ARRAY_AGG(sh.offsetstart) AS sh_os_arr,",
             "ARRAY_AGG(sh.offsetend) AS sh_oe_arr,",
             "ARRAY_AGG(sh.breakduration) AS sh_bd_arr,",
-            "ARRAY_AGG(sh.timeduration) AS sh_td_arr",
+            "ARRAY_AGG(sh.timeduration) AS sh_td_arr,",
+
+            "ARRAY_AGG(sh.nohoursonweekday) AS sh_nowd_arr,",
+            "ARRAY_AGG(sh.nohoursonsaturday) AS sh_nosat_arr,",
+            "ARRAY_AGG(sh.nohoursonsunday) AS sh_nosun_arr,",
+            "ARRAY_AGG(sh.nohoursonpublicholiday) AS sh_noph_arr",
 
             "FROM companies_schemeitem AS si",
             "INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id)",
@@ -268,8 +272,11 @@ def ed_create_teammember_list(filter_dict, company, user_lang):
         "tm.modifiedat AS modat, COALESCE(SUBSTRING (au.username, 7), '') AS modby_usr,",
         "COALESCE(t.code, '') AS t_code, COALESCE(s.code, '') AS s_code, COALESCE(o.code, '') AS o_code, ",
         "COALESCE(c.code, '') AS c_code, COALESCE(e.code, '') AS e_code, COALESCE(r.code, '') AS r_code,",
-        "o.nopay AS o_nopay, o.nohoursonsaturday AS o_nosat, o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph,",
-        "s.nopay AS s_nopay, s.nohoursonsaturday AS s_nosat, s.nohoursonsunday AS s_nosun, s.nohoursonpublicholiday AS s_noph,",
+
+        "o.nohoursonweekday AS o_nowd, o.nohoursonsaturday AS o_nosat,",
+        "o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph,",
+        "si_sh_sub.sh_nowd_arr, si_sh_sub.sh_nosat_arr, si_sh_sub.sh_nosun_arr, si_sh_sub.sh_noph_arr,",
+
         "e.inactive AS e_inactive, e.workminutesperday AS e_workminutesperday, ",
         "r.inactive AS r_inactive, r.workhoursperweek AS r_workhoursperweek,",
 
@@ -377,11 +384,6 @@ def create_teammember_dict_from_sql(tm, item_dict, user_lang):
                 field_dict['datefirst'] = tm.get('s_df')
                 field_dict['datelast'] = tm.get('s_dl')
 
-                field_dict['nopay'] = tm.get('s_nopay')
-                field_dict['nohoursonsaturday'] = tm.get('s_nosat')
-                field_dict['nohoursonsunday'] = tm.get('s_nosun')
-                field_dict['nohoursonpublicholiday'] = tm.get('s_noph')
-
             elif field == 'order':
                 field_dict['pk'] = tm.get('o_id')
                 field_dict['ppk'] = tm.get('c_id')
@@ -390,7 +392,7 @@ def create_teammember_dict_from_sql(tm, item_dict, user_lang):
                 field_dict['datefirst'] = tm.get('o_df')
                 field_dict['datelast'] = tm.get('o_dl')
 
-                field_dict['nopay'] = tm.get('o_nopay')
+                field_dict['nohoursonweekday'] = tm.get('o_nowd')
                 field_dict['nohoursonsaturday'] = tm.get('o_nosat')
                 field_dict['nohoursonsunday'] = tm.get('o_nosun')
                 field_dict['nohoursonpublicholiday'] = tm.get('o_noph')
@@ -655,8 +657,8 @@ def create_absence_rows(filter_dict, teammember_pk, msg_dict, request):
         "COALESCE(e.code, '') AS e_code,",
         allowed_str,
         "c.istemplate AS c_istemplate, c.isabsence AS c_isabsence,",
-        "o.nopay AS o_nopay, o.nohoursonsaturday AS o_nosat, o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph,",
-        "s.cycle AS s_cycle, s.nopay AS s_nopay, s.nohoursonsaturday AS s_nosat, s.nohoursonsunday AS s_nosun, s.nohoursonpublicholiday AS s_noph,",
+        "o.nohoursonweekday AS o_nowd, o.nohoursonsaturday AS o_nosat, o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph,",
+        "s.cycle AS s_cycle,",
         "e.inactive AS e_inactive, e.workminutesperday AS e_workminutesperday,",
         "tm.datefirst AS tm_df, tm.datelast AS tm_dl, rpl.id AS rpl_id, rpl.code AS rpl_code,",
         "tm.modifiedat AS modat, COALESCE(SUBSTRING (au.username, 7), '') AS modby_usr,",
@@ -1246,7 +1248,7 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
         "eh.timeduration AS totaldur,",
 
         "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
-        "eh.wagefactorcode_id AS wfc_id, eh.wagefactorcaption AS wfc_code, eh.wagefactor AS wfc_rate, eh.nopay,",
+        "eh.wagefactorcode_id AS wfc_id, eh.wagefactorcaption AS wfc_code, eh.wagefactor AS wfc_rate, eh.nohours,",
         "eh.wagecode_id AS wgc_id, eh.wagerate, eh.wage",
 
         "FROM companies_emplhour AS eh",
@@ -2571,7 +2573,7 @@ def create_payroll_allowance_rows(period_dict, comp_timezone, timeformat, user_l
             "c.code AS c_code, c.isabsence, CONCAT(c.code, ' - ', o.code) AS c_o_code,",
 
             "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
-            "eh.wagefactorcode_id AS wfc_id, eh.wagefactorcaption AS wfc_code, eh.wagefactor AS wfc_rate, eh.nopay,",
+            "eh.wagefactorcode_id AS wfc_id, eh.wagefactorcaption AS wfc_code, eh.wagefactor AS wfc_rate, eh.nohours,",
             "eh.wagecode_id AS wgc_id, eh.wagerate, eh.wage,",
 
             "ehal.ehal_id_agg, ehal.alw_id_agg, ehal.code_agg, ehal.description_agg, ehal.wagerate_agg,",

@@ -724,7 +724,7 @@
                 };
             }
         }
-       console.log( "filter_dict ", filter_dict);
+        //console.log( "filter_dict ", filter_dict);
         return skip_filter;
     }  // t_SetExtendedFilterDict
 

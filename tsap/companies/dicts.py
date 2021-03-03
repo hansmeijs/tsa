@@ -34,6 +34,7 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
 
     has_header = True
     worksheetname = ''
+    unique = ''
     code_calc = ''
     stored_coldefs = {}
     settings_key =None
@@ -51,6 +52,7 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
         if stored_setting:
             has_header = stored_setting.get('has_header', True)
             worksheetname = stored_setting.get('worksheetname', '')
+            unique = stored_setting.get('unique', '')
             code_calc = stored_setting.get('codecalc', '')
             if 'coldefs' in stored_setting:
                 stored_coldefs = stored_setting['coldefs']
@@ -90,6 +92,7 @@ def get_stored_coldefs_dict(tblName, user_lang, request):
     coldefs_dict = {
         'worksheetname': worksheetname,
         'has_header': has_header,
+        'unique': unique,
         'codecalc': code_calc,
         'coldefs': coldef_list
         }

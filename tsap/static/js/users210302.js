@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("locale_dict" in response) { refresh_locale(response.locale_dict);}
                 if ("company_dict" in response) { company_dict = response.company_dict}
                 if ("user_list" in response) { refresh_user_map(response.user_list)}
-                if ("employee_list" in response) { refresh_datamap(response.employee_list, employee_map)}
+                if ("employee_list" in response) { b_refresh_datamap(response.employee_list, employee_map)}
                 if ("customer_rows" in response) { fill_datamap(customer_map, response.customer_rows)}
                 if ("order_rows" in response) { fill_datamap(order_map, response.order_rows)}
 

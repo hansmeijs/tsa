@@ -224,7 +224,8 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             's_id': 8, 's_code': 'Schema 1', 'o_id': 9, 'o_code': 'Mahaai', 'o_identifier': 'O-009', 'c_id': 3, 'c_code': 'Centrum', 'comp_id': 8,
              'si_id': 170, 'sh_id': 69, 'sh_code': '14.00 - 16.00', 'sh_isbill': False, 'si_mod': 'n', 'e_id': 8, 'rpl_id': None, 'switch_id': None, 
              'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2021, 1, 1), 's_dl': None, 's_cycle': 7, 's_exph': False, 's_exch': False, 's_dvgph': True, 
-             'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 'o_seq': 0, 'o_nopay': False, 
+             'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 0, 
+             XXX'o_nopay': False, 
              'wfc_onwd_id': 4, 'wfc_onsat_id': 1, 'wfc_onsun_id': 2, 'wfc_onph_id': 11, 
              'o_wfc_onwd_id': None, 'o_wfc_onsat_id': None, 'o_wfc_onsun_id': None, 'o_wfc_onph_id': None, 
              'sh_os': 840, 'sh_oe': 960, 'sh_os_nonull': 840, 'sh_oe_nonull': 960, 'sh_bd': 0, 'sh_td': 0, 
@@ -234,7 +235,8 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             's_id': 12, 's_code': 'Giterson, Lisette', 'o_id': 14, 'o_code': 'Onbetaaldtest', 'o_identifier': 'test', 'c_id': 4, 'c_code': 'Afwezig', 'comp_id': 8, 
             'si_id': 175, 'sh_id': 71, 'sh_code': '-', 'sh_isbill': False, 'si_mod': 'a', 'e_id': 7, 'rpl_id': None, 'switch_id': None, 
             'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
-            'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 'o_seq': 44, 'o_nopay': False, 
+            'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 44, 
+            XXX'o_nopay': False, 
             'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
             'o_wfc_onwd_id': 1, 'o_wfc_onsat_id': 9, 'o_wfc_onsun_id': 12, 'o_wfc_onph_id': 4, 
             'sh_os': None, 'sh_oe': None, 'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'sh_bd': 0, 'sh_td': 0, 
@@ -334,8 +336,9 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
     'si_id': 4000, 'sh_id': 1517, 'sh_code': '08.30 - 17.00', 'sh_isbill': True, 'o_seq': -1, 'si_mod': 'n',
      'e_id': 2625, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 
      's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
-     'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 
-     'sh_os': 510, 'sh_oe': 1020, 'sh_bd': 90, 'sh_td': 420, 'sh_wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 'o_nopay': False,
+     'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 
+     'sh_os': 510, 'sh_oe': 1020, 'sh_bd': 90, 'sh_td': 420, 'sh_wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
+     XXX'o_nopay': False,
      'isreplacement': False}
     """
 
@@ -418,11 +421,10 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         sh_bd = row.get('sh_bd')
         sh_td = row.get('sh_td')
 
-        o_s_nosat = row.get('o_s_nosat')
-        o_s_nosun = row.get('o_s_nosun')
-        o_s_noph = row.get('o_s_noph')
-        o_s_noch = row.get('o_s_noch')
-
+        o_sh_nowd = row.get('o_sh_nowd')
+        o_sh_nosat = row.get('o_sh_nosat')
+        o_sh_nosun = row.get('o_sh_nosun')
+        o_sh_noph = row.get('o_sh_noph')
 
         # - get employee info from row
         # NOTE: row_employee can be different from teammember.employee (when replacement employee)
@@ -434,15 +436,15 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         is_replacement = row.get('isreplacement', False)
 
         default_wmpd = request.user.company.workminutesperday
-        timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
+        timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_date, excel_start, excel_end = \
             f.calc_timedur_plandur_from_offset(
                 rosterdate_dte=rosterdate_dte,
                 is_absence=is_absence, is_restshift=is_restshift, is_billable=is_billable,
                 is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
                 row_offsetstart=sh_os, row_offsetend=sh_oe, row_breakduration=sh_bd, row_timeduration=sh_td,
                 row_plannedduration=0, update_plandur = True,
-                row_nohours_onsat=o_s_nosat, row_nohours_onsun=o_s_nosun,
-                row_nohours_onph=o_s_noph, row_nohours_onch=o_s_noch,
+                row_nohours_onwd=o_sh_nowd, row_nohours_onsat=o_sh_nosat,
+                row_nohours_onsun=o_sh_nosun, row_nohours_onph=o_sh_noph,
                 row_employee_pk=employee_pk, row_employee_wmpd=e_wmpd,
                 default_wmpd=default_wmpd,
                 comp_timezone=comp_timezone)
@@ -473,7 +475,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         #logger.debug('planned_duration: ' + str(planned_duration))
         #logger.debug('time_duration: ' + str(time_duration))
 
-        o_nopay = row.get('o_nopay', False)
+        o_nopay = False # row.get('o_nopay', False)
 
 # get wagefactor from order or shift
         wagefactor_pk = get_wagefactorpk_from_row(
@@ -528,7 +530,7 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     'wfc_id': wagefactor_pk,
                     'wfc_code': wagefactor_code,
                     'wfc_rate': wagefactor_rate,
-                    'o_nopay': o_nopay,
+                    #'o_nopay': o_nopay,
 
                     'note': note,
                     'note_absent_eid': note_absent_eid,
@@ -741,12 +743,12 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
         "s.datefirst AS s_df, s.datelast AS s_dl, s.cycle AS s_cycle,",
         "s.excludepublicholiday AS s_exph, s.excludecompanyholiday AS s_exch, s.divergentonpublicholiday AS s_dvgph,",
 
-        "CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,",
-        "CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,",
-        "CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,",
-        "CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,",
+        "CASE WHEN o.nohoursonweekday OR si_sub.sh_nowd THEN TRUE ELSE FALSE END AS o_sh_nowd,",
+        "CASE WHEN o.nohoursonsaturday OR si_sub.sh_nosat THEN TRUE ELSE FALSE END AS o_sh_nosat,",
+        "CASE WHEN o.nohoursonsunday OR si_sub.sh_nosun THEN TRUE ELSE FALSE END AS o_sh_nosun,",
+        "CASE WHEN o.nohoursonpublicholiday OR si_sub.sh_noph THEN TRUE ELSE FALSE END AS o_sh_noph,",
 
-        "CASE WHEN c.isabsence THEN COALESCE(o.sequence, 0) ELSE 0 END AS o_seq, o.nopay AS o_nopay,",
+        "CASE WHEN c.isabsence THEN COALESCE(o.sequence, 0) ELSE 0 END AS o_seq, ",
 
         "si_sub.wfc_onwd_id, si_sub.wfc_onsat_id, si_sub.wfc_onsun_id, si_sub.wfc_onph_id,",
 
@@ -872,9 +874,10 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
         row: { 'tm_id': 1803, 'tm_df': None, 'tm_dl': None,  't_id': 2743, 't_code': 'Ploeg B', 'si_id': 3758, 'si_mod': 'n', 
             's_id': 2196, 's_code': 'Dagavondrooster-14daags', 's_df': None, 's_dl': None, 's_cycle': 14, 's_exph': True, 's_exch': False, 's_dvgph': False, 
             'o_id': 1541, 'o_code': 'ZRO', 'o_identifier': '', 'o_seq': -1, 'c_id': 757, 'c_code': 'Zero Securitas', 'comp_id': 3, 
-            'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False,  'o_s_noch': False, 
+            'o_s_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False,  'o_s_noch': False, 
             'sh_id': 1348, 'sh_code': '14.00 - 22.00', 'sh_isbill': False, 'sh_os': 840, 'sh_oe': 1260, 'sh_bd': 0, 'sh_td': 420, 
-            'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 'o_nopay': False
+            'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
+            XXX'o_nopay': False
             'e_id': 2621, 'rpl_id': None, 'switch_id': None} 
         """
 
@@ -1329,8 +1332,7 @@ def get_sql_schemeitem():
             "si.isabsence AS si_abs, CASE WHEN sh.id IS NULL THEN FALSE ELSE sh.isrestshift END AS sh_rest,",
             "si.inactive AS si_inactive, s.datefirst AS s_df, s.datelast AS s_dl, s.cycle AS s_cycle,",
             "s.excludepublicholiday AS s_exph, s.excludecompanyholiday AS s_exch, s.divergentonpublicholiday AS s_dvgph,",
-            "s.nohoursonsaturday AS s_nosat, s.nohoursonsunday AS s_nosun, s.nohoursonpublicholiday AS s_noph, s.nohoursoncompanyholiday AS s_noch,",
-
+            "sh.nohoursonweekday AS sh_nowd, sh.nohoursonsaturday AS sh_nosat, sh.nohoursonsunday AS sh_nosun, sh.nohoursonpublicholiday AS sh_noph,",
             "si.onpublicholiday AS si_onph, CAST(si.rosterdate AS date) AS si_rd,",
             "CASE WHEN c.isabsence THEN 'a' ELSE CASE WHEN si.shift_id IS NULL THEN '-' ELSE CASE WHEN sh.isrestshift THEN 'r' ELSE 'n' END END END AS si_mod,",
             "CASE WHEN sh.isrestshift THEN 0 ELSE sh.billable END AS sh_bill,",

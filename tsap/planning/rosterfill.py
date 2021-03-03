@@ -10,8 +10,6 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView
 
 from datetime import timedelta
-from time import time
-
 from operator import itemgetter
 
 from companies.views import LazyEncoder
@@ -19,7 +17,7 @@ from companies.views import LazyEncoder
 from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as pld
-from planning import views as plv
+
 from planning import employeeplanning as emplan
 from companies import subscriptions as subscr
 
@@ -75,10 +73,10 @@ idx_s_exph = 30
 idx_s_exch = 31
 idx_s_dvgph = 32
 
-idx_o_s_nosat = 33
-idx_o_s_nosun = 34
-idx_o_s_noph = 35
-idx_o_s_noch = 36
+idx_o_sh_nowd = 33
+idx_o_sh_nosat = 34
+idx_o_sh_nosun = 35
+idx_o_sh_noph = 36
 
 idx_sh_os = 37
 idx_sh_oe = 38
@@ -205,10 +203,10 @@ sql_schemeitem_sub00 = """
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
 
-        s.nohoursonsaturday AS s_nosat,
-        s.nohoursonsunday AS s_nosun,
-        s.nohoursonpublicholiday AS s_noph,
-        s.nohoursoncompanyholiday AS s_noch,
+        sh.nohoursonweekday AS sh_nowd,
+        sh.nohoursonsaturday AS sh_nosat,
+        sh.nohoursonsunday AS sh_nosun,
+        sh.nohoursonpublicholiday AS sh_noph,
 
         si.onpublicholiday AS si_onph,
         CAST(si.rosterdate AS date) AS si_rd,
@@ -284,9 +282,11 @@ sql_schemeitem_norest_sub01 = """
         si_sub.s_exph,
         si_sub.s_exch,
         si_sub.s_dvgph,
-        si_sub.s_nosat,
-        si_sub.s_nosun,
-        si_sub.s_noph,
+        
+        si_sub.sh_nowd,
+        si_sub.sh_nosat,
+        si_sub.sh_nosun,
+        si_sub.sh_noph,
 
         si_sub.si_onph,
         si_sub.si_rd, 
@@ -587,10 +587,10 @@ sql_teammember_sub08 = """
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
 
-        CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
-        CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
-        CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
-        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
+        CASE WHEN o.nohoursonweekday OR si_sub.sh_nowd THEN TRUE ELSE FALSE END AS o_sh_nowd,
+        CASE WHEN o.nohoursonsaturday OR si_sub.sh_nosat THEN TRUE ELSE FALSE END AS o_sh_nosat,
+        CASE WHEN o.nohoursonsunday OR si_sub.sh_nosun THEN TRUE ELSE FALSE END AS o_sh_nosun,
+        CASE WHEN o.nohoursonpublicholiday OR si_sub.sh_noph THEN TRUE ELSE FALSE END AS o_sh_noph,
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -669,7 +669,7 @@ sql_teammember_sub08 = """
         CASE WHEN si_sub.sh_wfc_id IS NULL THEN wfc.code ELSE si_sub.sh_wfc_code END AS sh_wfc_code,
         CASE WHEN si_sub.sh_wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.sh_wfc_rate END AS sh_wfc_rate,
 
-        o.nopay AS o_nopay
+        FALSE AS o_nopay
 
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -755,10 +755,10 @@ sql_teammember_sub08_FASTER = """
         s.excludecompanyholiday AS s_exch,
         s.divergentonpublicholiday AS s_dvgph,
 
-        CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
-        CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
-        CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
-        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
+        CASE WHEN o.nohoursonweekday OR si_sub.sh_nowd THEN TRUE ELSE FALSE END AS o_sh_nowd,
+        CASE WHEN o.nohoursonsaturday OR si_sub.sh_nosat THEN TRUE ELSE FALSE END AS o_sh_nosat,
+        CASE WHEN o.nohoursonsunday OR si_sub.sh_nosun THEN TRUE ELSE FALSE END AS o_sh_nosun,
+        CASE WHEN o.nohoursonpublicholiday OR si_sub.sh_noph THEN TRUE ELSE FALSE END AS o_sh_noph,
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -837,7 +837,7 @@ sql_teammember_sub08_FASTER = """
         CASE WHEN si_sub.sh_wfc_id IS NULL THEN wfc.code ELSE si_sub.sh_wfc_code END AS sh_wfc_code,
         CASE WHEN si_sub.sh_wfc_id IS NULL THEN COALESCE(wfc.wagerate, 0) ELSE si_sub.sh_wfc_rate END AS sh_wfc_rate,
 
-        o.nopay AS o_nopay
+        FALSE AS o_nopay
 
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -1082,8 +1082,9 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         's_id': 8, 's_code': 'Schema 1', 'o_id': 9, 'o_code': 'Mahaai', 'o_identifier': 'O-009', 'c_id': 3, 'c_code': 'Centrum', 'comp_id': 8, 
         'si_id': 152, 'sh_id': 69, 'sh_code': '14.00 - 16.00', 'sh_isbill': False, 
         'si_mod': 'n', 'e_id': 4, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2021, 1, 1), 's_dl': None, 's_cycle': 7, 
-        's_exph': False, 's_exch': False, 's_dvgph': True, 'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 
-        'o_seq': -1, 'o_nopay': False, 
+        's_exph': False, 's_exch': False, 's_dvgph': True, 
+        'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': -1, 
+        XXX'o_nopay': False, 
         'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
         'sh_os': 840, 'sh_oe': 960, 'sh_os_nonull': 840, 'sh_oe_nonull': 960, 'sh_bd': 0, 'sh_td': 0, 
         xxx 'wfc_id': 1, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
@@ -1097,7 +1098,8 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         'si_id': 160, 'sh_id': 70, 'sh_code': '-', 'sh_isbill': False, 
         'si_mod': 'a', 'e_id': 8, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 
         's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
-        'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 'o_seq': 0, 'o_nopay': False, 
+        'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 0, 
+        XXX'o_nopay': False, 
         'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
         'o_wfc_onwd_id': 2, 'o_wfc_onsat_id': 11, 'o_wfc_onsun_id': 10, 'o_wfc_onph_id': 3, 
         'sh_os': None, 'sh_oe': None, 
@@ -1207,17 +1209,17 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
     schemeitem_pk = row.get('si_id')
     teammember_pk = row.get('tm_id')
 
-    # 1. check if emplhours from this schemeitem/teammmeber/rosterdate already exist
+# - check if emplhours from this schemeitem/teammmeber/rosterdate already exist
     # (happens when FillRosterdate for this rosterdate is previously used)
 
-    # emplhour is linked with schemeitem by rosterdate / schemeitemid / teammmeberid, not by Foreignkey
+    # emplhour is linked with schemeitem by rosterdate / schemeitemid / teammmemberid, not by Foreignkey
     # when creating roster only one emplhour is created per orderhour. It contains status STATUS_00_PLANNED = True.
-    # only one emplhour is created per (rosterdate / schemeitemid / teammmeber) combination
+    # only one emplhour is created per (rosterdate / schemeitemid / teammmemberid) combination
     # orderhour_id of emplhour never changes
-    # one orderhour can have multiple emplhours when split function is used
+    # one orderhour can have multiple emplhours when split function is used (or correction hours are made
     # split emplhour records or absence emplhour records have STATUS_00_PLANNED = False.
     # emplhour records that are not confirmed are already deleted in delete_emplhours_orderhours,
-    # therefore you only heve to check for existing emplhour records
+    # therefore you only heve to check for existing emplhour records, not for 'to be deleted' records
 
     count_duration = 0
     emplhour_is_added = False
@@ -1248,12 +1250,19 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         sh_bd = row.get('sh_bd', 0)
         sh_td = row.get('sh_td', 0)
 
-        o_s_nosat = row.get('o_s_nosat', False)
-        o_s_nosun = row.get('o_s_nosun', False)
-        o_s_noph = row.get('o_s_noph', False)
-        o_s_noch = row.get('o_s_noch', False)
+        o_sh_nowd = row.get('o_sh_nowd', False)
+        o_sh_nosat = row.get('o_sh_nosat', False)
+        o_sh_nosun = row.get('o_sh_nosun', False)
+        o_sh_noph = row.get('o_sh_noph', False)
+
+        is_weekday = not is_saturday and not is_sunday and not is_publicholiday
+        no_hours = (is_weekday and o_sh_nowd) or \
+                   (is_saturday and o_sh_nosat) or \
+                   (is_sunday and o_sh_nosun) or \
+                   (is_publicholiday and o_sh_noph)
 
         e_wmpd = row.get('e_wmpd')
+
 # - get employee info from row
         # NOTE: row_employee can be different from teammember.employee (when replacement employee)
         #       - employee info in row is replaced by replacement employee info in function calculate_add_row_to_dict
@@ -1262,15 +1271,15 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         is_replacement = row.get('isreplacement')
 
         default_wmpd = request.user.company.workminutesperday
-        timestart, timeend, planned_duration, time_duration, billing_duration, excel_date, excel_start, excel_end = \
+        timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_date, excel_start, excel_end = \
             f.calc_timedur_plandur_from_offset(
                 rosterdate_dte=rosterdate_dte,
                 is_absence=is_absence, is_restshift=is_restshift, is_billable=is_billable,
                 is_sat=is_saturday, is_sun=is_sunday, is_ph=is_publicholiday, is_ch=is_companyholiday,
                 row_offsetstart=sh_os, row_offsetend=sh_oe, row_breakduration=sh_bd, row_timeduration=sh_td,
                 row_plannedduration=0, update_plandur=True,
-                row_nohours_onsat=o_s_nosat, row_nohours_onsun=o_s_nosun,
-                row_nohours_onph=o_s_noph, row_nohours_onch=o_s_noch,
+                row_nohours_onwd=o_sh_nowd, row_nohours_onsat=o_sh_nosat,
+                row_nohours_onsun=o_sh_nosun, row_nohours_onph=o_sh_noph,
                 row_employee_pk=employee_pk, row_employee_wmpd=e_wmpd,
                 default_wmpd=default_wmpd,
                 comp_timezone=comp_timezone)
@@ -1291,7 +1300,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         o_code = row.get('o_code')
         sh_code = row.get('sh_code')
 
-# get wagefactor from order or shift
+# - get wagefactor from order or shift
         wagefactor_pk = emplan.get_wagefactorpk_from_row(
             row, default_wagefactor_pk, is_absence, is_restshift, is_saturday, is_sunday, is_publicholiday)
 
@@ -1326,12 +1335,14 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             logger.debug('additioncode_pk: ' + str(additioncode_pk) + ' addition_rate: ' + str(addition_rate))
             logger.debug('taxrate_index: ' + str(taxcode_pk) + ' tax_rate: ' + str(tax_rate))
 
+
 # 3. create new orderhour
         orderhour = m.Orderhour(
             order_id=order_pk,
             # replaced by shift_id: schemeitem_id=schemeitem_pk,
             shift_id=shift_pk,
             rosterdate=rosterdate_dte,
+
             isbillable=is_billable,
             isabsence=is_absence,
             isrestshift=is_restshift,
@@ -1348,6 +1359,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             status=c.STATUS_00_PLANNED
         )
         orderhour.save(request=request)
+
+# - add sortby after saving - it needs the rderhour.pk
+        sort_by = f.calculate_sortby(sh_os, is_restshift, orderhour.pk)
+        orderhour.sortby = sort_by
+        orderhour.save()
 
 # - create new emplhour
         emplhour_is_added = add_emplhour(
@@ -1369,6 +1385,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
             excel_date=excel_date,
             excel_start=excel_start,
             excel_end=excel_end,
+            no_hours=no_hours,
             date_part=date_part,
 
             wagefactor_pk=wagefactor_pk,
@@ -1395,7 +1412,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
 
 def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_info, is_absence, is_replacement,
                  timestart, timeend, planned_duration, time_duration, billing_duration, break_duration,
-                 offset_start, offset_end, excel_date, excel_start, excel_end, date_part,
+                 offset_start, offset_end, excel_date, excel_start, excel_end, no_hours, date_part,
                 wagefactor_pk, wagefactor_caption, wagefactor_rate,
                  sh_prc_id, sh_prc_override, addition_rate, tax_rate, logging_on, request):
     if logging_on:
@@ -1408,10 +1425,11 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
      'si_id': 4139, 'sh_id': 1598, 'sh_code': '17.00 - 22.00', 'sh_isbill': True, 'o_seq': -1, 'si_mod': 'n', 
      'e_id': 2622, 'rpl_id': 2622, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 
      's_cycle': 7, 's_exph': False, 's_exch': False, 's_dvgph': False, 
-     'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 
+     'o_sh_nowd': False, o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False,
      'sh_os': 1020, 'sh_oe': 1320, 'sh_os_nonull': 1020, 'sh_oe_nonull': 1320, 'sh_bd': 0, 'sh_td': 300, 
      XXX'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
-     'o_nopay': False, 'isreplacement': True}
+     XXX'o_nopay': False, 
+     'isreplacement': True}
     
     employee_dictlist: {2617: {'id': 2617, 'comp_id': 3, 'code': 'Bakhuis RDJ', 
     'datefirst': datetime.date(1993, 11, 4), 'datelast': None, 
@@ -1548,6 +1566,13 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
                 # note: pay_date must be updated in table Paydatecode before filling rosterdate
                 # IMPORTANT: dont forget to change paydate in emplhour when changing employee
 
+# - calulate order_by.
+            # orderby is istring with the following format:
+            # exceldate : '0063730980' excel_start with leading zero
+            offset_start_str = ('0000' + str(offset_start))[-4:] if offset_start is not None else '1440'
+            is_restshift_str = '0' if orderhour.isrestshift else '1'
+            oh_id_str = ('000000' + str(orderhour.pk))[-6:]
+            order_by = '_'.join((is_restshift_str, offset_start_str, oh_id_str))
 
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
@@ -1561,7 +1586,6 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
 
                 paydatecode_id=pdc_id,
                 lockedpaydate=False,
-                nopay=False,
 
                 timestart=timestart,
                 timeend=timeend,
@@ -1576,12 +1600,16 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
                 excelstart=excel_start,
                 excelend=excel_end,
 
+                nohours=no_hours,
+
                 functioncode_id=fnc_id,
                 wagecode_id=wgc_id,
                 wagerate=wagerate,
+
                 wagefactorcode_id=wagefactor_pk,
                 wagefactor=wagefactor_rate,
                 wagefactorcaption=wagefactor_caption,
+
                 wage=wage,
 
                 pricecode_id=pricecode_pk,
@@ -2694,7 +2722,7 @@ def create_planning_dict(row, is_saturday, is_sunday, is_publicholiday, timeform
     'sh_id': 1677, 'sh_code': '-', 'sh_isbill': False, 'o_seq': 8, 
     'si_mod': 'a', 'e_id': 2982, 'rpl_id': 2612, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': None, 
     's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
-    'o_s_nosat': False, 'o_s_nosun': False, 'o_s_noph': False, 'o_s_noch': False, 
+    'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False,
     'sh_os': None, 'sh_oe': None, 'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'sh_bd': 0, 'sh_td': 0, 
     'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 'o_nopay': True, 'isreplacement': False}
     """
@@ -2817,10 +2845,15 @@ def create_planning_dict(row, is_saturday, is_sunday, is_publicholiday, timeform
             time_duration = planning_dict['shift'].update({'timeduration': f.calc_timeduration_from_values(
                 is_restshift, row[idx_sh_os], row[idx_sh_oe], row[idx_sh_bd], row[idx_sh_td])})
 # set time_duration = 0 when restshift or is_saturday and nohoursonsaturday etc
-            if (is_saturday and row[idx_o_s_nosat]) or \
-                        (is_sunday and row[idx_o_s_nosun]) or \
-                        (is_publicholiday and row[idx_o_s_noph]) or \
-                        (is_restshift):
+
+            # TODO add no_wd can be replaced by f.calc_timedur_plandur_from_offset(
+            is_weekday = (not is_saturday and not is_sunday and not is_publicholiday)
+            no_hours = (is_weekday and row[idx_o_sh_nowd]) or \
+                       (is_saturday and row[idx_o_sh_nosat]) or \
+                       (is_sunday and row[idx_o_sh_nosun]) or \
+                       (is_publicholiday and row[idx_o_sh_noph])
+
+            if no_hours or is_restshift:
                 time_duration = 0
             planning_dict['shift'].update({'timeduration': time_duration})
 
@@ -3354,10 +3387,10 @@ sql_customer_calendar_team_sub11 = """
         si_sub.s_exch,
         si_sub.s_dvgph,
 
-        CASE WHEN o.nohoursonsaturday OR s.nohoursonsaturday THEN TRUE ELSE FALSE END AS o_s_nosat,
-        CASE WHEN o.nohoursonsunday OR s.nohoursonsunday THEN TRUE ELSE FALSE END AS o_s_nosun,
-        CASE WHEN o.nohoursonpublicholiday OR s.nohoursonpublicholiday THEN TRUE ELSE FALSE END AS o_s_noph,
-        CASE WHEN o.nohoursoncompanyholiday OR s.nohoursoncompanyholiday THEN TRUE ELSE FALSE END AS o_s_noch,
+        CASE WHEN o.nohoursonweekday OR si_sub.sh_nowd THEN TRUE ELSE FALSE END AS o_sh_nowd,
+        CASE WHEN o.nohoursonsaturday OR si_sub.sh_nosat THEN TRUE ELSE FALSE END AS o_sh_nosat,
+        CASE WHEN o.nohoursonsunday OR si_sub.sh_nosun THEN TRUE ELSE FALSE END AS o_sh_nosun,
+        CASE WHEN o.nohoursonpublicholiday OR si_sub.sh_noph THEN TRUE ELSE FALSE END AS o_sh_noph,
 
         si_sub.sh_os,
         si_sub.sh_oe,

@@ -528,7 +528,7 @@ def create_order_dict(order, item_dict):
                             date_obj=datelast,
                             mindate=datefirst)
 
-            elif field in ('nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+            elif field in ('nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
                 value = getattr(order, field, False)
                 if value:
                     field_dict['value'] = value
@@ -652,7 +652,7 @@ def create_absencecat_dict(order, request):
         item_dict['identifier'] = {'value': getattr(order, 'identifier')}
         item_dict['sequence'] = {'value': getattr(order, 'sequence')}
 
-        item_dict['nopay'] = {'value': getattr(order, 'nopay', False)}
+        item_dict['nohoursonweekday'] = {'value': getattr(order, 'nohoursonweekday', False)}
         item_dict['nohoursonsaturday'] = {'value': getattr(order, 'nohoursonsaturday', False)}
         item_dict['nohoursonsunday'] = {'value': getattr(order, 'nohoursonsunday', False)}
         item_dict['nohoursonpublicholiday'] = {'value': getattr(order, 'nohoursonpublicholiday', False)}

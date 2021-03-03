@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
             company_dict = response["company_dict"];
         }
         if ("companyinvoice_list" in response) {
-            refresh_datamap(response["companyinvoice_list"], companyinvoice_map)
+            b_refresh_datamap(response["companyinvoice_list"], companyinvoice_map)
             console.log ("companyinvoice_map", companyinvoice_map)
             // ---  reset tbody_order
             document.getElementById("id_CIV_tbody").innerText = null;

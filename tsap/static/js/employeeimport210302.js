@@ -4,6 +4,7 @@
 
 // with pure vanilla Javascript. Was jQuery: $(function() {
 document.addEventListener('DOMContentLoaded', function() {
+    "use strict";
 
 // ---  set selected menu button active
     const cls_active = "active";
@@ -69,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let stored_coldefs = {};
     let stored_has_header = true;
     let stored_worksheetname = "";
+    let stored_unique = "";
     let stored_code_calc = "";
     let selected_worksheetname = stored_worksheetname;
     let selected_btn = "btn_step1";
@@ -104,7 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const el_worksheet_list = document.getElementById("id_worksheet_list");
         el_worksheet_list.addEventListener("change", HandleWorksheetList, false);
     const checkbox_hasheader = document.getElementById("checkBoxID");
-        checkbox_hasheader.addEventListener("change", HandleCheckboxHasheaderChanged) //, false);
+        checkbox_hasheader.addEventListener("change", HandleWorksheetList, false);
+    const el_select_unique = document.getElementById("id_select_unique");
+        el_select_unique.addEventListener("change", HandleSelectUnique, false);
     const el_select_code_calc = document.getElementById("id_select_code_calc");
         el_select_code_calc.addEventListener("change", HandleSelectCodeCalc, false);
     const el_select_dateformat = document.getElementById("id_select_dateformat");
@@ -269,6 +273,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (!!worksheet_range) {
 // ---  set checkbox_hasheader checked
                                     checkbox_hasheader.checked = stored_has_header;
+// ---  set el_select_unique
+                                    el_select_unique.value = stored_unique;
 // ---  set el_select_code_calc
                                     el_select_code_calc.value = stored_code_calc;
 // ---  fill worksheet_data with data from worksheet
@@ -323,11 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
         HighlightAndDisableSelectedButton("HandleWorksheetList");
     }  // HandleWorksheetList()
 
-
-
 //=========   HandleCheckboxHasheaderChanged   ======================
     function HandleCheckboxHasheaderChanged() {
-console.log(" ========== HandleCheckboxHasheaderChanged ===========");
+        console.log(" ========== HandleCheckboxHasheaderChanged ===========");
         if(!!worksheet && !!worksheet_range) {
             stored_has_header = checkbox_hasheader.checked;
 // ---  fill worksheet_data with data from worksheet
@@ -343,12 +347,20 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
         }  // if(!!worksheet){
     }; //HandleCheckboxHasheaderChanged
 
+
 //=========   HandleSelectCodeCalc   ======================
     function HandleSelectCodeCalc() {
         console.log("=========   HandleSelectCodeCalc   ======================") ;
         HighlightAndDisableSelectedButton("HandleSelectCodeCalc")
         UploadSettingsImport ("HandleSelectCodeCalc");
     }  // HandleSelectCodeCalc
+
+//=========   HandleSelectUnique   ========== PR2021-03-02
+    function HandleSelectUnique() {
+        console.log("=========   HandleSelectUnique   ======================") ;
+        HighlightAndDisableSelectedButton("HandleSelectUnique")
+        UploadSettingsImport ("HandleSelectUnique");
+    }  // HandleSelectUnique
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                 ExcelFile_Read
@@ -466,7 +478,7 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
                 let tblRow = tblBody.insertRow(-1);
                 tblRow.setAttribute("data-row_index", tblRow.rowIndex );
 // ---  alternate row background color
-                class_background = (i%2 === 0) ? cls_cell_unchanged_even : cls_cell_unchanged_odd;
+                const class_background = (i%2 === 0) ? cls_cell_unchanged_even : cls_cell_unchanged_odd;
                 tblRow.classList.add(class_background);
 // ---  insert cells
                 for (let j = 0 ; j < sheet_range.ColCount; j++) {
@@ -914,15 +926,23 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 
 //========= UPLOAD SETTING COLUMNS =====================================
     function UploadSettingsImport (calledby) {
-        //console.log ("==========  UploadSettingsImport");
-        //console.log ("calledby: ", calledby);
+        console.log ("==========  UploadSettingsImport");
+        console.log ("calledby: ", calledby);
 
         let upload_dict = {importtable: "employee"};
-        if (calledby === "HandleSelectCodeCalc"){
+
+
+        if (calledby === "HandleSelectUnique"){
+// ---  upload code_calc
+            if(el_select_unique.value){
+                upload_dict["unique"] = el_select_unique.value;
+            }
+        } else if (calledby === "HandleSelectCodeCalc"){
 // ---  upload code_calc
             if(el_select_code_calc.value){
                 upload_dict["codecalc"] = el_select_code_calc.value;
             }
+
         } else if (calledby !== "link"){
 // ---  upload worksheetname and has_header when not called by 'link'
             if (!!selected_worksheetname){
@@ -945,11 +965,15 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
             };
             // also upload when linked_coldefs is empty, to delete existing links from database
             upload_dict["coldefs"] = linked_coldefs;
-        }  // if (calledby !== "link"){
+        }  // if (calledby !== "link")
+
+
+        console.log ("upload_dict: ", upload_dict);
+
         if (!isEmpty(upload_dict)){
             const parameters = {"upload": JSON.stringify (upload_dict)};
             const url_str = get_attr_from_el(el_data, "data-employee_uploadsetting_url");
-            response = "";
+            let response = "";
             $.ajax({
                 type: "POST",
                 url: url_str,
@@ -1000,6 +1024,8 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
                 alert("No linked columns")
             } else {
 
+//  ---  get unique
+            const unique = (el_select_unique.value) ? el_select_unique.value : "payrollcode";
 //  ---  get codecalc
             const code_calc = (el_select_code_calc.value) ? el_select_code_calc.value : "linked";
 
@@ -1032,6 +1058,7 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 
                     const request = {importtable: "employee",
                                      tsaKey_list: tsaKey_list,
+                                     unique: unique,
                                      codecalc: code_calc,
                                      test: is_test_upload,
                                      dateformat: date_format,
@@ -1055,9 +1082,8 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 
                             FillDataTableAfterUpload(response, worksheet_range);
 
-
         //--------- print log file
-                            log_list = get_dict_value_by_key(response, "logfile")
+                            const log_list = get_dict_value_by_key(response, "logfile")
                             if (!!log_list && log_list.length > 0) {
                                 printPDFlogfile(log_list, "log_import_employees")
                             }
@@ -1156,6 +1182,9 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
     function HighlightAndDisableSelectedButton(called_by) {
         console.log("=== HighlightAndDisableSelectedButton ===", called_by);
         // el_btn_mod_prev andel_btn_mod_next don't exists when user has no permission
+        // called_by = GetWorkbook, HandleWorksheetList, LinkColumns, UnlinkColumns, HandleBtnPrevNext,
+        // HandleWorksheetList HandleSelectUnique, HandleSelectdateformat, HandleSelectCodeCalc, HandleSelectUnique
+
         if(!!el_btn_mod_prev && el_btn_mod_next) {
             const no_worksheet = (!worksheet_range);
             const no_worksheet_with_data = (!(!!el_worksheet_list && el_worksheet_list.options.length));
@@ -1163,23 +1192,20 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
             const no_excel_data = (!worksheet_data.length);
             const no_dateformat = ((no_excel_data) || (has_linked_datefields && !excel_dateformat && !el_select_dateformat.value))
 
-            let no_identifier_linked = true, key_payrollcode = false, key_identifier = false, key_code = false
-            if(!!stored_coldefs) {
+            const select_unique = el_select_unique.value
+            let no_select_unique_linked = true;
+            if(select_unique && stored_coldefs) {
                 for (let i = 0, stored_row; stored_row = stored_coldefs[i]; i++) {
                     // stored_row = {tsaKey: "orderdatelast", caption: "Einddatum opdracht"}
-                    const key = stored_row.tsaKey
-                    if (["payrollcode", "identifier"].indexOf(key) > -1){
-                        if (!!stored_row.excKey){
-                            if (key === "payrollcode") {key_payrollcode = true } else
-                            if (key === "identifier") {key_identifier = true } ;
-                            no_identifier_linked = false;
-                        }
+                    if (stored_row.tsaKey === select_unique && stored_row.excKey) {
+                        no_select_unique_linked = false;
+                        break;
                     }
                 }
             }
 
             const step2_disabled = (no_worksheet || no_worksheet_with_data);
-            const step3_disabled = (step2_disabled || no_linked_columns || no_identifier_linked || no_excel_data);
+            const step3_disabled = (step2_disabled || no_linked_columns || no_select_unique_linked || no_excel_data);
             const step4_disabled = (step3_disabled || el_select_code_calc.selectedIndex < 0 || no_dateformat);
 
             const btn_prev_disabled = (selected_btn === "btn_step1")
@@ -1227,8 +1253,17 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
 // ---  make err_msg visible
             let el_msg_err01 = document.getElementById("id_msg_err01");
             add_or_remove_class (el_msg_err01, cls_hide, !!selected_file);
-            let el_msg_err_no_identifier_linked = document.getElementById("id_msg_err_no_identifier_linked");
-            add_or_remove_class (el_msg_err_no_identifier_linked, cls_hide, !no_identifier_linked);
+
+            let msg_text = null;
+            if (no_select_unique_linked){
+                msg_text =(select_unique === "payrollcode") ? loc.The_field_payrollcode :
+                            (select_unique === "identifier") ? loc.The_field_idnumber  :
+                            (select_unique === "code") ? loc.The_field_shortname : ""
+                msg_text += loc.mustbe_linked_and_contain_unique_values;
+             }
+            let el_msg_err_select_unique = document.getElementById("id_msg_err_select_unique");
+            el_msg_err_select_unique.innerText = msg_text;
+            //add_or_remove_class (el_msg_err_select_unique, cls_hide, !no_select_unique_linked);
 
 // ---  focus on next element
             if (selected_btn === "btn_step1"){
@@ -1254,6 +1289,7 @@ console.log(" ========== HandleCheckboxHasheaderChanged ===========");
             if (!isEmpty(coldefs_dict)){
                 stored_worksheetname = get_dict_value(coldefs_dict, ["worksheetname"])
                 stored_has_header = get_dict_value(coldefs_dict, ["has_header"])
+                stored_unique = get_dict_value(coldefs_dict, ["unique"], "payrollcode")
                 stored_code_calc = get_dict_value(coldefs_dict, ["codecalc"], "linked")
                 stored_coldefs = get_dict_value(coldefs_dict, ["coldefs"])
             };
