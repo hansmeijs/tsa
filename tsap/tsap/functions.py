@@ -2709,15 +2709,35 @@ def system_updates():
 
 def update_sortby_in_orderhours():
     # Once-only function to put emplhour.excelstart of all companies in orderhour.excelstart PR2021-03-02
-    empty_sortby_exist = m.Emplhour.objects.filter(orderhour__sortby__isnull=True).exists()
-    if empty_sortby_exist:
-        emplhours = m.Emplhour.objects.filter(orderhour__sortby__isnull=True)
-        for emplhour in emplhours:
-            orderhour = emplhour.orderhour
-            if(not orderhour.sortby):
-                sort_by = calculate_sortby(emplhour.offsetstart, orderhour.isrestshift, orderhour.pk)
-                orderhour.sortby = sort_by
-                orderhour.save()
+    # this one takes too long - gives error 502 bad gateway
+    # nginx error.log says: upstream prematurely closed connection while reading response header from upstream
+    #empty_sortby_exist = m.Emplhour.objects.filter(orderhour__sortby__isnull=True).exists()
+    #if empty_sortby_exist:
+    #    emplhours = m.Emplhour.objects.filter(orderhour__sortby__isnull=True)
+    #    for emplhour in emplhours:
+    #        orderhour = emplhour.orderhour
+    #        if(not orderhour.sortby):
+    #            sort_by = calculate_sortby(emplhour.offsetstart, orderhour.isrestshift, orderhour.pk)
+    #            orderhour.sortby = sort_by
+    #            orderhour.save()
+
+    sql_eh_sub = """
+        SELECT eh.id AS eh_id, eh.orderhour_id, eh.offsetstart
+            FROM companies_emplhour AS eh
+        """
+    sql_orderhour = """
+        UPDATE companies_orderhour AS oh
+        SET sortby = CONCAT( CASE WHEN oh.isrestshift THEN '0' ELSE '1' END, '_',
+                CASE WHEN eh_sub.offsetstart IS NULL THEN '1440' 
+                ELSE  RIGHT(CONCAT('0000', eh_sub.offsetstart::TEXT), 4) END, '_',
+                RIGHT(CONCAT('000000', oh.id::TEXT), 6)                        
+            )
+        FROM (""" + sql_eh_sub + """) AS eh_sub
+        WHERE oh.id = eh_sub.orderhour_id
+        AND oh.sortby IS NULL
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql_orderhour)
 
 
 def calculate_sortby(offset_start, is_restshift, orderhour_pk):  # PR2021-03-02
