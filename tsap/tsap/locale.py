@@ -549,8 +549,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Export_hours_toAFAS'] = _("Export hours to AFAS")
         dict['Overview_rosterhours'] = _("Overview of roster hours")
         dict['Overview_rosterhours_per_category'] = _("Overview of roster hours per category")
-        dict['Total'] = TXT_Total
+        dict['Overview_allowances'] = _("Overview of allowances")
+        dict['Overview_allowances_per_category'] = _("Overview of allowances per category")
 
+        dict['Total'] = TXT_Total
 
         # menu
         dict['Show_report'] = TXT_Show_report

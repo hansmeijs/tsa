@@ -2887,6 +2887,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
     if logging_on:
         logger.debug(' --- make_absence_shift --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
+
     # in make_absence_shift:
     #  create absence record with current employee, absence order
     #   - current employee will become absence employee, must always have value
@@ -2960,10 +2961,6 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
             is_weekday = not is_saturday and not is_sunday and not is_publicholiday and not is_companyholiday
 
-# - get nopay. These fields are in order and scheme. For absence: use table 'order'
-            # TODO deprecated
-            # abscat_nopay = abscat_order.nopay
-
 # - get nohours These fields are in order and scheme. For absence only fields in table 'order' are used
             nohours_onwd = abscat_order.nohoursonweekday
             nohours_onsat = abscat_order.nohoursonsaturday
@@ -2972,8 +2969,8 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
 
             abscat_nohours = (is_weekday and nohours_onwd) or \
                              (is_saturday and nohours_onsat) or \
-                            (is_sunday and nohours_onsun) or \
-                            (is_publicholiday and nohours_onph)
+                             (is_sunday and nohours_onsun) or \
+                             (is_publicholiday and nohours_onph)
             if logging_on:
                 logger.debug('abscat_nohours: ' + str(abscat_nohours))
 
@@ -3004,7 +3001,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
     # - skip when abscat_nohours
             if abscat_nohours:
                 # calculate excelstart and excelend, otherwise check overlap does not work PR2020-05-13
-                # PR2021-02-10 debug: calculate start- and endtime when split shift
+                # TODO PR2021-02-10 debug: calculate start- and endtime when split shift
                 excel_start = excel_date * 1440
                 excel_end = excel_date * 1440 + 1440
             else:
@@ -3220,9 +3217,8 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
             nohours_onsun = abscat_order.nohoursonsunday
             nohours_onph = abscat_order.nohoursonpublicholiday
 
-            # - get nohours and nopay. Thse fields are in order and scheme. For absence: use table 'order'
-            # TODO deprecated
-            abscat_nopay = abscat_order.nopay
+            # PR2021-03-09 field 'nopay' is removed
+            # was: abscat_nopay = abscat_order.nopay
 
 # - get wagefactor from abscat order
             wfc_onwd = abscat_order.wagefactorcode_id
@@ -3270,8 +3266,10 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
                     row_employee_pk=emplhour.employee_id, row_employee_wmpd=employee_wmpd, default_wmpd=default_wmpd,
                     comp_timezone=comp_timezone)
 
-# update values in orderhour instanbce, save at end of this function
-            emplhour.nopay = abscat_nopay
+# update values in orderhour instance, save at end of this function
+            # PR2021-03-09 field 'nopay' is removed
+            # was: emplhour.nopay = abscat_nopay
+
             # dont copy shift, is confusing. Was: shift=orderhour.shift,
             # plannedduration = 0, billingduration = 0 , breakduration = 0
             emplhour.timeduration = time_duration
@@ -3632,7 +3630,6 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
         logger.debug('upload_dict: ' + str(upload_dict))
 
 # upload_dict: {'id': {'pk': 11760, 'ppk': 11215, 'table': 'emplhour'},
-    # 'nopay': {'value': True, 'update': True},
     # 'wagefactorcode': {'pk': None, 'update': True}}
 
     has_changed = False
@@ -3873,9 +3870,12 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
                                 emplhour.wagefactor = new_instance.wagerate if new_instance else 0  # wagefactor is NoNull field
                                 is_updated = True
                                 has_changed = True
+
+                                # PR2021-03-09 field 'nopay' is removed
+                                # was:
                                 # reset nopay when wagefactor has value
-                                if new_pk:
-                                    emplhour.nopay = False
+                                # if new_pk:
+                                #    emplhour.nopay = False
 
 ###########################################
 # ---   save changes in field 'status' when clicked on confirmstart ,confirmend or status
@@ -4035,7 +4035,7 @@ def update_emplhour(emplhour, upload_dict, error_list, clear_overlap_list, reque
 
 # - calculate amount, addition and tax
             # NOT IN USE YET
-            #wage = f.calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor)
+            #wage = f.calc_wage_rounded(time_duration, is_restshift, nopayXXX, wagerate, wagefactor)
 
             # also recalculate datepart when start- and endtime are given # PR2020-03-23
             date_part = 0
@@ -4200,11 +4200,11 @@ def get_nosat_sun_ph_ch_from_emplhour_order_and_shift(emplhour): # PR20120-09-09
             nohours_onph = emplhour.orderhour.shift.nohoursonpublicholiday
 
         """
-        # nopay and nosat etc in scheme are not in use (yet) PR2020-10-09
+        # nosat etc in scheme are not in use (yet) PR2020-10-09
         schemeitem = emplhour.orderhour.schemeitem
         if schemeitem:
             scheme = schemeitem.scheme
-            # nopay and nosat etc in scheme are not in use (yet) PR2020-10-09
+            # nosat etc in scheme are not in use (yet) PR2020-10-09
             if scheme:
                 # don't use nohoursonsunday = scheme.nohoursonsunday, because it will override order.nohoursonsunday
                 # or do we want to let override order_nosat by scheme.nosat when false?

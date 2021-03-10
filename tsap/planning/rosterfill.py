@@ -1084,7 +1084,6 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         'si_mod': 'n', 'e_id': 4, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2021, 1, 1), 's_dl': None, 's_cycle': 7, 
         's_exph': False, 's_exch': False, 's_dvgph': True, 
         'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': -1, 
-        XXX'o_nopay': False, 
         'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
         'sh_os': 840, 'sh_oe': 960, 'sh_os_nonull': 840, 'sh_oe_nonull': 960, 'sh_bd': 0, 'sh_td': 0, 
         xxx 'wfc_id': 1, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
@@ -1099,7 +1098,6 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
         'si_mod': 'a', 'e_id': 8, 'rpl_id': None, 'switch_id': None, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 
         's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
         'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 0, 
-        XXX'o_nopay': False, 
         'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
         'o_wfc_onwd_id': 2, 'o_wfc_onsat_id': 11, 'o_wfc_onsun_id': 10, 'o_wfc_onph_id': 3, 
         'sh_os': None, 'sh_oe': None, 
@@ -1428,7 +1426,6 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
      'o_sh_nowd': False, o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False,
      'sh_os': 1020, 'sh_oe': 1320, 'sh_os_nonull': 1020, 'sh_oe_nonull': 1320, 'sh_bd': 0, 'sh_td': 300, 
      XXX'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
-     XXX'o_nopay': False, 
      'isreplacement': True}
     
     employee_dictlist: {2617: {'id': 2617, 'comp_id': 3, 'code': 'Bakhuis RDJ', 

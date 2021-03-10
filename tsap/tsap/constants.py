@@ -354,7 +354,7 @@ FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'n
 FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode',
-                'nopay', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
+                'nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph',
                 'inactive', 'locked')
 
@@ -365,7 +365,7 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'customercode', 'ordercode', 's
 
 FIELDS_EMPLHOUR = ('orderhour', 'rosterdate', 'exceldate',
                     'employee', 'employeecode', 'cat', 'isreplacement', 'datepart',
-                    'paydatecode', 'lockedpaydate', 'nopay', 'payrollpublished', 'invoicepublished',
+                    'paydatecode', 'lockedpaydate', 'payrollpublished', 'invoicepublished',
                     'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                     'offsetstart', 'offsetend', 'excelstart', 'excelend',
                     'functioncode', 'wagefactorcode', 'wagefactor', 'wagefactorcaption',
@@ -381,11 +381,11 @@ FIELDS_EMPLHOUR = ('orderhour', 'rosterdate', 'exceldate',
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'divergentonpublicholiday',
-                 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                  'pricecode', 'additioncode', 'taxcode', 'inactive')
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+                'nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday',
                 'wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph',
                 'pricecode', 'additioncode', 'taxcode')
 

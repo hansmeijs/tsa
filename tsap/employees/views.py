@@ -1507,7 +1507,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28
                     setattr(scheme, 'datelast', new_datelast_dte)
                     scheme_has_changed = True
 # - fields excludecompanyholiday, divergentonpublicholiday, excludepublicholiday in table 'scheme' are not in use when absence
-# - fields nopay, nohoursonsaturday, nohoursonsunday, nohoursonpublicholiday in table 'scheme' are not in use yet
+# - fields nohoursonsaturday, nohoursonsunday, nohoursonpublicholiday in table 'scheme' are not in use yet
             if scheme_has_changed:
                 scheme.save(request=request)
                 data_has_changed = True

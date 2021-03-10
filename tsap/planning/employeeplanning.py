@@ -225,7 +225,6 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
              'si_id': 170, 'sh_id': 69, 'sh_code': '14.00 - 16.00', 'sh_isbill': False, 'si_mod': 'n', 'e_id': 8, 'rpl_id': None, 'switch_id': None, 
              'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2021, 1, 1), 's_dl': None, 's_cycle': 7, 's_exph': False, 's_exch': False, 's_dvgph': True, 
              'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 0, 
-             XXX'o_nopay': False, 
              'wfc_onwd_id': 4, 'wfc_onsat_id': 1, 'wfc_onsun_id': 2, 'wfc_onph_id': 11, 
              'o_wfc_onwd_id': None, 'o_wfc_onsat_id': None, 'o_wfc_onsun_id': None, 'o_wfc_onph_id': None, 
              'sh_os': 840, 'sh_oe': 960, 'sh_os_nonull': 840, 'sh_oe_nonull': 960, 'sh_bd': 0, 'sh_td': 0, 
@@ -236,7 +235,6 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             'si_id': 175, 'sh_id': 71, 'sh_code': '-', 'sh_isbill': False, 'si_mod': 'a', 'e_id': 7, 'rpl_id': None, 'switch_id': None, 
             'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
             'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 'o_seq': 44, 
-            XXX'o_nopay': False, 
             'wfc_onwd_id': None, 'wfc_onsat_id': None, 'wfc_onsun_id': None, 'wfc_onph_id': None, 
             'o_wfc_onwd_id': 1, 'o_wfc_onsat_id': 9, 'o_wfc_onsun_id': 12, 'o_wfc_onph_id': 4, 
             'sh_os': None, 'sh_oe': None, 'sh_os_nonull': 0, 'sh_oe_nonull': 1440, 'sh_bd': 0, 'sh_td': 0, 
@@ -338,7 +336,6 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
      's_df': None, 's_dl': None, 's_cycle': 1, 's_exph': False, 's_exch': False, 's_dvgph': False, 
      'o_sh_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False, 
      'sh_os': 510, 'sh_oe': 1020, 'sh_bd': 90, 'sh_td': 420, 'sh_wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
-     XXX'o_nopay': False,
      'isreplacement': False}
     """
 
@@ -530,7 +527,6 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     'wfc_id': wagefactor_pk,
                     'wfc_code': wagefactor_code,
                     'wfc_rate': wagefactor_rate,
-                    #'o_nopay': o_nopay,
 
                     'note': note,
                     'note_absent_eid': note_absent_eid,
@@ -877,7 +873,6 @@ def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id
             'o_s_nowd': False, 'o_sh_nosat': False, 'o_sh_nosun': False, 'o_sh_noph': False,  'o_s_noch': False, 
             'sh_id': 1348, 'sh_code': '14.00 - 22.00', 'sh_isbill': False, 'sh_os': 840, 'sh_oe': 1260, 'sh_bd': 0, 'sh_td': 420, 
             'wfc_id': 11, 'wfc_code': 'W100', 'wfc_rate': 1000000, 
-            XXX'o_nopay': False
             'e_id': 2621, 'rpl_id': None, 'switch_id': None} 
         """
 

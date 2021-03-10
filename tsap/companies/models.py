@@ -1,11 +1,15 @@
 # PR2019-02-28
-from django.contrib.postgres.fields import JSONField
 
-from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
+# PR2021-03-09 Deprecation warning: django.contrib.postgres.fields import JSONField  will be removed from Django 4
+# instead use: django.db.models import JSONField (is added in Django 3)
+# was: from django.contrib.postgres.fields import JSONField
+
 from django.db import connection
 
+from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, SmallIntegerField, IntegerField, \
-    DateField, DateTimeField, Q, Value
+    DateField, DateTimeField, JSONField, Q, Value
+
 from django.db.models.functions import Lower, Coalesce
 from django.utils.translation import ugettext_lazy as _
 

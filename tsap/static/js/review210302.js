@@ -806,7 +806,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("=== HandleTableRowClickedOrDoubleClicked");
         //console.log("event.target", event.target);
         //console.log("event.detail", event.detail);
-        // PR2020-02-24 dont use doubelckick event, wil also trigger click twice. Use this function instead
+        // PR2020-02-24 dont use doubleclick event, wil also trigger click twice. Use this function instead
         // from https://stackoverflow.com/questions/880608/prevent-click-event-from-firing-when-dblclick-event-fires#comment95729771_29993141
 
         // currentTarget refers to the element to which the event handler has been attached

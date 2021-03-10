@@ -31,6 +31,15 @@
         return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
     }
 
+/*
+
+PR2021-03-09 error after switching to Django 3.1:
+    in base.html:
+<!--  error: 'staticfiles' is not a registered tag library.
+    removed: {% load static from staticfiles %} -->
+*/
+
+
 //========= addEventListener touchstart touchmove ==================================
 // from https://stackoverflow.com/questions/46094912/added-non-passive-event-listener-to-a-scroll-blocking-touchstart-event
 // PR2019-12-21 to prevent message Added non-passive event listener to a scroll-blocking <some> event.

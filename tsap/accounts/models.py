@@ -1,12 +1,16 @@
 # PR2019-02-28
 from django.db.models import Model, ForeignKey, PROTECT, CASCADE, SET_NULL
-from django.db.models import CharField, IntegerField, PositiveSmallIntegerField, BooleanField, DateTimeField, EmailField
+from django.db.models import CharField, IntegerField, PositiveSmallIntegerField, BooleanField, \
+    DateTimeField, EmailField, JSONField
+
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from django.contrib.postgres.fields import ArrayField, JSONField
+from django.contrib.postgres.fields import ArrayField # was: , JSONField
+# PR2020-12-13 Deprecation warning: django.contrib.postgres.fields import JSONField  will be removed from Django 4
+# instead use: django.db.models import JSONField (is added in Django 3)
 
 from tsap import authentication as auth
 from tsap import constants as c

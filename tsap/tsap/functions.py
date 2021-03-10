@@ -2629,7 +2629,7 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
 
 
 ####################################
-
+# NOT IN USE YET
 def calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor):  #   PR2020-09-15
     #logger.debug(' ============= calc_amount_addition_tax_rounded ============= ')
     # when billable has changed billing_duration is changed outside this function
@@ -3251,6 +3251,8 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
         logger.debug('planned_duration: ' + str(planned_duration))
         logger.debug('time_duration: ' + str(time_duration))
         logger.debug('billing_duration: ' + str(billing_duration))
+        logger.debug('excel_start: ' + str(excel_start))
+        logger.debug('excel_end: ' + str(excel_end))
 
     return timestart, timeend, planned_duration, time_duration, billing_duration, no_hours, excel_date, excel_start, excel_end
 

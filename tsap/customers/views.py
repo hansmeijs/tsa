@@ -591,7 +591,7 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
                     if new_value != saved_value:
     # b. validate code or name
                         msg_err = v.validate_code_name_identifier(table, field,
-                                                                    new_value, False, parent, update_dict, {}, request, instance.pk)
+                               new_value, False, parent, update_dict, {}, request, instance.pk)
                         if not msg_err:
     # c. save field if changed and no_error
                             setattr(instance, field, new_value)
