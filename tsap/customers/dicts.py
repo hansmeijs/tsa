@@ -1,9 +1,11 @@
 from django.db import connection
 from django.db.models import Q
+
+from tsap import settings as s
 from tsap import constants as c
 from tsap import functions as f
 from companies import models as m
-import json
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -460,6 +462,7 @@ def create_order_dict_from_sql(instance, item_dict):
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
+# - end of create_order_dict_from_sql
 
 
 def create_order_dict(order, item_dict):
@@ -554,12 +557,51 @@ def create_order_dict(order, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 # end of create_order_dict
 
-def create_abscat_order_rows(request, request_item=None, order_pk=None):
+
+
+##########################################
+def create_customer_rows(request, request_item=None, customer_pk=None):
+    # --- create list of all active customers  of this company PR2021-03-21
+    # exclude absence customer
+
+    inactive = request_item.get('inactive') if request_item else None
+
+    sql_keys = {'compid': request.user.company.pk}
+
+    sql_list = ["SELECT c.id, c.company_id AS comp_id, CONCAT('customer_', c.id::TEXT) AS mapid,",
+        "COALESCE(REPLACE (c.code, '~', ''),'') AS c_code_notilde,",
+        "c.code, c.name, c.identifier, c.contactname, c.address, c.zipcode,  c.city,  c.country,  c.email, c.telephone,",
+        "c.interval, c.invoicecode_id AS c_invc_id, c.isabsence, c.istemplate, c.inactive",
+        "FROM companies_customer AS c",
+       " WHERE c.company_id = %(compid)s::INT",
+        "AND NOT c.isabsence"
+       ]
+
+    if customer_pk:
+        sql_keys['cid'] = customer_pk
+        sql_list.append('AND (c.id = %(cid)s)')
+    else:
+        if inactive is not None and not inactive:
+            sql_list.append('AND NOT o.inactive')
+
+        sql_list.append("ORDER BY LOWER(REPLACE (c.code, '~', ''))")
+    sql = ' '.join(sql_list)
+
+    newcursor = connection.cursor()
+    newcursor.execute(sql, sql_keys)
+    customer_rows = f.dictfetchall(newcursor)
+
+    return customer_rows
+# - end of create_order_rows
+
+
+##########################################
+def create_order_rows(request, is_absence, request_item=None, order_pk=None):
     # --- create list of all active absence categories of this company PR2019-06-25
     # each absence category contains abscat_customer, abscat_order
-    abscat_order_list = []
 
     # abscat_order_rows is used in employee page,
+    # PR2021-03-21 also used in page customer - to get orders
     #  TODO in scheme page  replace abscat_order_list by abscat_order_rows
     # Note: order_id must not have alias: 'id' is used in refresh_datamap
     #logger.debug('request_item: ' + str(request_item))
@@ -568,9 +610,11 @@ def create_abscat_order_rows(request, request_item=None, order_pk=None):
 
     sql_keys = {'compid': request.user.company.pk}
 
-    sql_list = ["SELECT o.id, c.id AS c_id, c.company_id AS comp_id, CONCAT('abscat_', o.id::TEXT) AS mapid,",
+    sql_list = ["SELECT o.id, c.id AS c_id, c.company_id AS comp_id,",
+        "CONCAT(CASE WHEN c.isabsence THEN 'abscat_' ELSE 'order_' END, o.id::TEXT) AS mapid,",
         "COALESCE(REPLACE (o.code, '~', ''),'') AS o_code_notilde, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code_notilde,",
-        "o.code AS o_code, o.identifier AS o_identifier, o.sequence AS o_sequence, o.inactive AS o_inactive,",
+        "c.code AS c_code, c.name AS c_name, c.identifier AS c_identifier, c.inactive AS c_inactive, c.isabsence AS c_isabsence,",
+        "o.code AS o_code, o.name AS o_name, o.identifier AS o_identifier, o.sequence AS o_sequence, o.inactive AS o_inactive,",
         "o.wagefactorcode_id AS wfc_onwd, o.wagefactoronsat_id AS wfc_onsat,",
         "o.wagefactoronsun_id AS wfc_onsun, o.wagefactoronph_id AS wfc_onph,",
 
@@ -589,13 +633,18 @@ def create_abscat_order_rows(request, request_item=None, order_pk=None):
         "LEFT JOIN companies_wagecode AS wfc_onsat ON (wfc_onsat.id = o.wagefactoronsat_id)",
         "LEFT JOIN companies_wagecode AS wfc_onsun ON (wfc_onsun.id = o.wagefactoronsun_id)",
         "LEFT JOIN companies_wagecode AS wfc_onph ON (wfc_onph.id = o.wagefactoronph_id)",
-       " WHERE c.company_id = %(compid)s::INT",
-        "AND c.isabsence"]
+       " WHERE c.company_id = %(compid)s::INT"
+       ]
 
     if order_pk:
         sql_list.append('AND (o.id = %(oid)s)')
         sql_keys['oid'] = order_pk
     else:
+        if is_absence:
+            sql_list.append("AND c.isabsence")
+        else:
+            sql_list.append("AND NOT c.isabsence")
+
         if inactive is not None and not inactive:
             sql_list.append('AND NOT o.inactive')
 
@@ -604,18 +653,20 @@ def create_abscat_order_rows(request, request_item=None, order_pk=None):
 
     newcursor = connection.cursor()
     newcursor.execute(sql, sql_keys)
-    abscat_order_rows = f.dictfetchall(newcursor)
+    order_rows = f.dictfetchall(newcursor)
 
-    return abscat_order_rows
+    return order_rows
+# - end of create_order_rows
+
 
 def create_abscat_order_list(request):
     # --- create list of all active absence categories of this company PR2019-06-25
     # each absence category contains abscat_customer, abscat_order
     abscat_order_list = []
+    logging_on = s.LOGGING_ON
 
-    #logger.debug(" --- create_abscat_order_list ---")
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
-    get_or_create_absence_customer(request)
+    get_or_create_absence_customer(logging_on, request)
     #logger.debug(" --- get_or_create_absence_customer ---")
     # order by priority: which is sequence desc
     orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True)
@@ -669,7 +720,7 @@ def create_absencecat_dict(order, request):
 
 
 # === Create new 'absence' customer and orders. Every absence teammember has its own scheme and team (and shift)
-def get_or_create_absence_customer(request):
+def get_or_create_absence_customer(logging_on, request):
     #logger.debug(" === get_or_create_absence_customer ===")
 
 # 1. get locale text of absence categories
@@ -1133,8 +1184,8 @@ def create_billing_detail_list(period_dict, request):
 
 
 def create_ordernote_rows(period_dict, request):  # PR2021-02-16
-    logger.debug(' ============= create_ordernote_rows ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+    #logger.debug(' ============= create_ordernote_rows ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
     company_pk = request.user.company.pk
 

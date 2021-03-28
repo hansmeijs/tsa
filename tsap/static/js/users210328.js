@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- insert table rows
                 let tblRow_header = tblHead_datatable.insertRow (-1);
                 let tblRow_filter = tblHead_datatable.insertRow (-1);
+                    tblRow_filter.setAttribute("data-filterrow", "1")
 
 //--- insert th's to tblHead_datatable
                 for (let j = 0; j < column_count; j++) {
@@ -326,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             el_filter.setAttribute("ondragstart", "return false;");
                             el_filter.setAttribute("ondrop", "return false;");
 
-                        } else if (["triple"].indexOf(filter_tag) > -1) {
+                        } else if (["triple"].includes(filter_tag)) {
                             // TODO
                             // default empty icon necessary to set pointer_show
                             //el_filter.addEventListener("click", function(event){HandleFilter_Tickmark(el_filter)});
@@ -334,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_icon.classList.add("tick_0_0", "tw-20")
                             el_filter.appendChild(el_icon);
                             el_filter.classList.add("pointer_show");
-                        } else if (["toggle", "activated", "inactive"].indexOf(filter_tag) > -1) {
+                        } else if (["toggle", "activated", "inactive"].includes(filter_tag)) {
                             // default empty icon necessary to set pointer_show
                             //append_background_class(el_filter,"tick_0_0");
                         }
@@ -405,9 +406,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
-                } else if (["username", "last_name", "email", "employee_code"].indexOf(field_name) > -1){
+                } else if (["username", "last_name", "email", "employee_code"].includes(field_name)){
                     el_td.addEventListener("click", function() {MSU_Open("update", el_div)}, false)
-                } else if (["permitcustomers", "permitorders"].indexOf(field_name) > -1){
+                } else if (["permitcustomers", "permitorders"].includes(field_name)){
                     el_td.addEventListener("click", function() {MSM_Open(el_div)}, false)
                 } else if (field_name.slice(0, 4) === "perm") {
                     el_td.addEventListener("click", function() {UploadToggle(el_div)}, false)
@@ -423,8 +424,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 // --- add  text_align
                el_div.classList.add("ta_" + field_align[j]);
-// --- add hover
-                if (["select", "activated", "last_login"].indexOf(field_name) === -1){
+// --- add hover, not on select and last_login
+                if (!["select", "last_login"].includes(field_name)){
                     add_hover(el_td)
                 };
                 el_td.appendChild(el_div)
@@ -459,9 +460,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if(field_name){
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
-                } else if (["username", "last_name", "email", "employee_code"].indexOf(field_name) > -1){
+                } else if (["username", "last_name", "email", "employee_code"].includes(field_name)){
                     el_div.innerText = fld_value;
-                } else if (["permitcustomers", "permitorders"].indexOf(field_name) > -1){
+                } else if (["permitcustomers", "permitorders"].includes(field_name)){
                     // this must go before 'if (field_name.slice(0, 4) === "perm")'
                     let value_str = null, title = null;
                     // array [] is truely, therefore check also fld_value.length
@@ -596,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const upload_mode = (mode === "validate") ? "validate" :
                             (mode === "resend_activation_email" ) ? "resend_activation_email" :
                             (mod_dict.mode === "update" ) ? "update" :
-                            (["addnew", "select"].indexOf(mod_dict.mode) > -1) ? "create" : null;
+                            (["addnew", "select"].includes(mod_dict.mode)) ? "create" : null;
 
 // ---  create mod_dict
         let upload_dict = {}
@@ -744,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log( "response");
                     console.log( response);
                     const mode = get_dict_value(response, ["mode"]);
-                    if(["delete", 'resend_activation_email'].indexOf(mode) > -1) {
+                    if(["delete", 'resend_activation_email'].includes(mode)) {
                         ModConfirmResponse(response);
                     } else {
                         if ("updated_list" in response) {
@@ -961,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!!code_value){
 // check if code_value contains filter_mod_employee
                         const code_value_lower = code_value.toLowerCase();
-                        show_row = (code_value_lower.indexOf(filter_mod_employee) !== -1)
+                        show_row = (code_value_lower.includes(filter_mod_employee))
                     }
                 }
                 if (show_row) {
@@ -1439,7 +1440,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tblRow && mod_dict.mode === "delete"){
             ShowClassWithTimeout(tblRow, "tsa_tr_error");
         }
-        if(["delete", 'resend_activation_email'].indexOf(mod_dict.mode) > -1) {
+        if(["delete", 'resend_activation_email'].includes(mod_dict.mode)) {
 // show loader
             el_confirm_loader.classList.remove(cls_visible_hide)
         } else if (mod_dict.mode === "inactive") {
@@ -1639,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- reset filter row when clicked on 'Escape'
         const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
 
-         if ( ["toggle", "inactive"].indexOf(filter_tag) > -1) {
+         if ( ["toggle", "inactive"].includes(filter_tag)) {
 // ---  toggle filter_checked
             let filter_checked = (col_index in filter_dict) ? filter_dict[col_index] : 0;
     // ---  change icon
@@ -1727,7 +1728,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // empty value gets '\n', therefore filter asc code 10
                                 if(!el_value || el_value === "\n" ){
                                     hide_row = true;
-                                } else if(el_value.indexOf(filter_text) === -1){
+                                } else if(!el_value.includes(filter_text)){
                                     hide_row = true;
                                 }
                             }

@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 
 from django.utils.translation import ugettext_lazy as _
 
+from tsap import settings as s
 from tsap import functions as f
 from tsap import constants as c
 from companies import models as m
@@ -16,11 +17,13 @@ from planning import rosterfill as plrf
 from planning import employeeplanning as emplan
 
 import xlsxwriter
+from xlsxwriter.utility import xl_rowcol_to_cell
+
 import logging
 logger = logging.getLogger(__name__)
 
 
-def create_employee_rows(request_item, msg_dict, request):
+def create_employee_rows(request_item, request):
     # --- create rows of all employees of this company PR2019-06-16 PR2020-09-09
     #     add messages to employee_row
     #logger.debug(' =============== create_employee_rows ============= ')
@@ -28,7 +31,7 @@ def create_employee_rows(request_item, msg_dict, request):
     sql_keys = {'compid': request.user.company.pk}
 
     # get list of allowed employees i.e. when user has permitcustomers or permitorders,
-    # the allowed employees are the employees or replacemenet employees of the allowed customers / orders
+    # the allowed employees are the employees or replacement employees of the allowed customers / orders
     allowed_employees_list = f.get_allowed_employees_and_replacements(request)
     if allowed_employees_list:
         allowed_str = "(e.id IN (SELECT UNNEST(%(eid_arr)s::INT[]))) AS allowed,"
@@ -83,13 +86,6 @@ def create_employee_rows(request_item, msg_dict, request):
     newcursor.execute(sql_employee, sql_keys)
     employee_rows = f.dictfetchall(newcursor)
 
-# - add messages to employee_row
-    if employee_pk and employee_rows:
-        # when teammember_pk has value there is only 1 row
-        row = employee_rows[0]
-        if row:
-            for key, value in msg_dict.items():
-                row[key] = value
     return employee_rows
 # --- end of create_employee_rows
 
@@ -1953,7 +1949,7 @@ def create_wagecode_rows(key_str, request, msg_dict, pk_int=None):
 def create_afas_hours_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = False
+    logging_on = s.LOGGING_ON
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast, paydateitem_year, paydateitem_period = None, None, 0, 0
@@ -2133,7 +2129,7 @@ def create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request):  #
 def create_afas_ehal_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = False
+    logging_on = s.LOGGING_ON
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast, paydateitem_year, paydateitem_period = None, None, 0, 0
@@ -2162,7 +2158,7 @@ def create_afas_ehal_rows(period_dict, user_lang, request):
         "SELECT alw.id, comp.id AS comp_id, comp.identifier AS comp_identifier,",
         "alw.code AS alw_code, alw.description AS alw_description,"
         "ehal.rate AS ehal_rate, ehal.quantity AS ehal_quantity, ehal.amount AS ehal_amount,"
-        "eh.rosterdate::TEXT AS eh_rosterdate,",
+        "eh.rosterdate AS eh_rosterdate,",
          pdc_line,
         "e.payrollcode AS e_payrollcode, CONCAT(e.namelast, ', ', e.namefirst) AS e_name,",
         "o.identifier AS o_identifier, CONCAT(o.code, ' - ', c.code) AS c_o_code",
@@ -2200,7 +2196,9 @@ def create_afas_ehal_rows(period_dict, user_lang, request):
 
 
 def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # PR2021-02-13
-    logger.debug(' ----- create_afas_ehal_xlsx -----')
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- create_afas_ehal_xlsx -----')
 
     # from https://stackoverflow.com/questions/16393242/xlsxwriter-object-save-as-http-response-to-create-download-in-django
     #logger.debug('period_dict: ' + str(period_dict))
@@ -2250,8 +2248,9 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
     sheet.write(0, 1, title)
     sheet.write(1, 0, str(_('Company')) + ':')
     sheet.write(1, 1, company_name)
-    sheet.write(2, 0, str(_('Date')) + ':')
+    sheet.write(2, 0, str(_('Created on')) + ':')
     sheet.write(2, 1, today_formatted)
+
 # ---  period row
     paydatecode_code = period_dict.get('paydatecode_code')
     dates_display_short = period_dict.get('dates_display_short')
@@ -2281,18 +2280,44 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
     for i, caption in enumerate(field_captions):
         sheet.write(row_index, i, caption, tblHead_format)
 
-    if len(afas_ehal_rows):
+    rows_length = len(afas_ehal_rows)
+    if rows_length:
+        #first_detail_row = row_index + 1
+        #last_detail_row = row_index + rows_length
         for row in afas_ehal_rows:
             row_index +=1
             for i, field_name in enumerate(field_names):
                 value = row.get(field_name)
-                logger.debug(field_name + str(value))
+
                 if value is not None:
-                    if field_name in ('ehal_rate', 'ehal_amount'):
+                    if field_name == 'eh_rosterdate':
+                        year = str(value.year)
+                        month = ('0' + str(value.month))[-2:]
+                        day = ('0' + str(value.day))[-2:]
+                        value = '-'.join((day, month, year))
+                        if logging_on:
+                            logger.debug('value: ' + str(value) + ' value' + str(type(value)))
+
+                    elif field_name in ('ehal_rate', 'ehal_amount'):
                         value = str(value / 100)
                     elif field_name =='ehal_quantity':
                         value = str(value / 10000)
                     sheet.write(row_index, i, value)
+        """
+        AFAS sheets use text, not numbers. Cannot use SUM here.
+        if rows_length > 1:
+            row_index += 2
+            for i, field_name in enumerate(field_names):
+
+                upper_cell_ref = xl_rowcol_to_cell(first_detail_row, i)  # cell_ref: 10,0 > A11
+                lower_cell_ref = xl_rowcol_to_cell(last_detail_row, i)  # cell_ref: 10,0 > A11
+
+                sum_cell_ref = xl_rowcol_to_cell(row_index, i)  # cell_ref: 10,0 > A11
+                print('cell_ref: ' + str(row_index) + ',' + str( i) + ' > ' + str(sum_cell_ref))
+
+                formula = ''.join(['=SUM(', upper_cell_ref, ':', lower_cell_ref,')'])
+                sheet.write_formula(sum_cell_ref, formula)
+        """
     book.close()
     return response
 
@@ -2303,7 +2328,7 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
 def create_afas_invoice_rows(period_dict, user_lang, request):
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
-    logging_on = False
+    logging_on = s.LOGGING_ON
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast = None, None

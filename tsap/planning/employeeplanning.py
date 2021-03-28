@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from datetime import timedelta
 from timeit import default_timer as timer
 
+from tsap import settings as s
 from tsap import functions as f
 from tsap import constants as c
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug('   ')
         logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
@@ -708,7 +709,7 @@ def create_employee_dictlist(request, datefirst_iso, datelast_iso, paydatecode_p
 
 def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list, employee_pk_list):
     # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11  PR2021-02-17
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' ------------- emplan_create_teammember_dict ----------------- ')
         logger.debug('order_pk_list' + str(order_pk_list))
@@ -804,7 +805,7 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
 
 #######################################################
 def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte):
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug('  ')
         logger.debug('------------ calculate_add_row_to_dictNEW ------------------------------ ')

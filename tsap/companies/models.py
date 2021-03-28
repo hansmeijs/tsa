@@ -1436,23 +1436,18 @@ def get_parent_NIU(table, ppk_int, update_dict, request):
     return parent
 
 
-def delete_instance(instance, msg_dict, request, this_text=None):
-    # function deletes instance of table,  PR2019-08-25
-    deleted_ok = False
-
+def delete_instance(instance, request, this_text=None):
+    # function deletes instance of table,  PR2019-08-25 PR2021-03-22
+    msg_err = None
     if instance:
         try:
             instance.delete(request=request)
         except:
             if this_text:
-                msg_dict['err_delete'] = _('An error occurred. %(tbl)s could not be deleted.') % {'tbl': this_text}
+                msg_err = _('An error occurred. %(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
-                msg_dict['err_delete'] = _('An error occurred. This item could not be deleted.')
-            # deprecated: update_dict['id']['error'] = msg_err
-        else:
-            # deprecated:  update_dict['id']['deleted'] = True
-            deleted_ok = True
+                msg_err = _('An error occurred. This item could not be deleted.')
 
-    return deleted_ok
+    return msg_err
 
 

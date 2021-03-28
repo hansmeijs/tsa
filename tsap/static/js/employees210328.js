@@ -772,6 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++  insert header rows ++++++++++++++++++++++++++++++++
                 let tblRow_header = tblHead_datatable.insertRow (-1);
                 let tblRow_filter = tblHead_datatable.insertRow (-1);
+                    tblRow_filter.setAttribute("data-filterrow", "1")
 
 //--- insert th's to tblRow_header
                 for (let i = 0; i < column_count; i++) {
@@ -1056,36 +1057,39 @@ document.addEventListener('DOMContentLoaded', function() {
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-///=========  UpdateEmployeeRowsFromResponseNEW  ================ PR2020-09-12
-    function UpdateEmployeeRowsFromResponseNEW(updated_rows) {
-        //console.log(" --- UpdateEmployeeRowsFromResponseNEW  ---");
+///=========  refresh_updated_employee_rows  ================ PR2020-09-12
+    function refresh_updated_employee_rows(updated_rows) {
+        //console.log(" --- refresh_updated_employee_rows  ---");
         for (let i = 0, dict; dict = updated_rows[i]; i++) {
-            UpdateEmployeeRowFromResponseNEW(dict)
+            refresh_updated_employee_item(dict)
         }
-    } // UpdateEmployeeRowsFromResponseNEW
+    } // refresh_updated_employee_rows
 
-//=========  UpdateEmployeeRowFromResponseNEW  ================ PR2020-09-12
-    function UpdateEmployeeRowFromResponseNEW(update_dict) {
-        //console.log(" =====  UpdateEmployeeRowFromResponseNEW  =====");
+//=========  refresh_updated_employee_item  ================ PR2020-09-12
+    function refresh_updated_employee_item(update_dict) {
+        //console.log(" =====  refresh_updated_employee_item  =====");
         //console.log("update_dict", update_dict);
 
         if(!isEmpty(update_dict)){
             const map_id = update_dict.mapid;
             const is_deleted = update_dict.deleted;
             const is_created = update_dict.created;
-            if ("error" in update_dict) {
-                let err_text = "";
-                const err_dict = update_dict.error
-                for(let key in err_dict) {
-                    if(err_dict.hasOwnProperty(key)){
-                        const value = err_dict[key];
-                        if(value){
-                            if (err_text) { err_text += "\n"};
-                            err_text += value;
-                        }
-                }};
-                if(err_text) { ModConfirm_Message(loc, loc.An_error_occurred, err_text)}
-
+            if ("msg" in update_dict) {
+                const msg_dict = update_dict.msg;
+                let html_text = "", msg_header = null;
+                // TODO add table absence / teammember
+                const tblName = "employee";
+                for (const [key, value] of Object.entries(msg_dict)) {
+                    if( key === "err_delete"){
+                       msg_header = (tblName === "employee") ? loc.Employee_cannot_be_deleted : loc.Item_cannot_be_deleted;
+                    }
+                    html_text += "<div>" + value + "</div>";
+                };
+                if(html_text) {
+                    document.getElementById("id_mod_message_header").innerText = msg_header;
+                    document.getElementById("id_mod_message_container").innerHTML = html_text;
+                    $("#id_mod_message").modal({backdrop: true});
+                }
             }
 // +++  create list of updated fields, before updating data_map, to make them green later
             const updated_fields = b_get_updated_fields_list(field_settings.employee.field_names, employee_map, update_dict);
@@ -1151,20 +1155,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                     ShowOkElement(cell);
             }}}}}};
         }  // if(!isEmpty(update_dict))
-    }  // UpdateEmployeeRowFromResponseNEW
+    }  // refresh_updated_employee_item
 
 
-///=========  UpdateAbsenceRowsFromResponseNEW  ================ PR2020-09-10
-    function UpdateAbsenceRowsFromResponseNEW(updated_rows) {
-        //console.log(" --- UpdateAbsenceRowsFromResponseNEW  ---");
+///=========  refresh_updated_absence_rows  ================ PR2020-09-10
+    function refresh_updated_absence_rows(updated_rows) {
+        //console.log(" --- refresh_updated_absence_rows  ---");
         for (let i = 0, dict; dict = updated_rows[i]; i++) {
-            UpdateAbsenceRowFromResponseNEW(dict)
+            refresh_updated_absence_item(dict)
         }
-    } // UpdateAbsenceRowsFromResponseNEW
+    } // refresh_updated_absence_rows
 
-//=========  UpdateAbsenceRowFromResponseNEW  ================ PR2020-08-28 PR2020-09-10
-    function UpdateAbsenceRowFromResponseNEW(update_dict) {
-        //console.log(" =====  UpdateAbsenceRowFromResponseNEW  =====");
+//=========  refresh_updated_absence_item  ================ PR2020-08-28 PR2020-09-10
+    function refresh_updated_absence_item(update_dict) {
+        //console.log(" =====  refresh_updated_absence_item  =====");
         //console.log("update_dict", update_dict);
 
         if(!isEmpty(update_dict)){
@@ -1232,66 +1236,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     ShowOkElement(cell);
             }}}}}};
         }  // if(!isEmpty(update_dict))
-    }  // UpdateAbsenceRowFromResponseNEW
+    }  // refresh_updated_absence_item
 
-
-
-
-//=========  UpdateAbsenceFromResponse  ================ PR2020-05-17 PR2020-09-10
-    function UpdateAbsenceFromResponseXXXX(update_dict) {
-        //console.log("========= UpdateAbsenceFromResponse  =========");
-        //console.log("update_dict", update_dict);
-
-        if(!isEmpty(update_dict)){
-            const tblName = 'absence';
-            const pk_int = update_dict.id;
-            const ppk_int = update_dict.t_id;
-            const map_id = update_dict.mapid;
-            const is_absence = update_dict.c_isabsence;
-            const is_created = update_dict.created;
-            const is_deleted = update_dict.deleted;
-            const employee_pk = update_dict.e_id;
-
-// +++  update or add absence_dict in absence_map
-// ---  replace updated item in map or remove deleted item from map
-            const data_map = absence_map;
-            if(is_deleted){
-                data_map.delete(map_id);
-            } else {
-//--- insert new item or replace existing item
-                data_map.set(map_id, update_dict)
-            }
-
-
-// ---  refresh table
-
-            if(is_deleted){
-    //--- remove deleted tblRow from table
-                const tblRow = document.getElementById(map_id)
-                if (tblRow){tblRow.parentNode.removeChild(tblRow)};
-                selected.teammember_pk = null;
-            } else if (is_created){
-                const search_code = update_dict.e_code;
-                // absence datefirst / datelast is stored in table scheme
-                const search_datefirst = update_dict.s_df
-                let row_index = t_get_rowindex_by_code_datefirst(tblBody_datatable, "absence", absence_map, search_code, search_datefirst)
-                // headerrow has index 0, filerrow has index 1. Deduct 1 for filterrow.
-                row_index -= 1;
-                if (row_index < -1) { row_index = -1}
-                const tblRow = CreateAbsenceTblRow(map_id, pk_int, ppk_int, employee_pk, row_index);
-                UpdateAbsenceTblRow(tblRow, map_id, update_dict)
-                selected.teammember_pk = pk_int;
-
-    // --- highlight selected row, make green for 2 seconds
-                DeselectHighlightedRows(tblRow, cls_selected);
-                tblRow.classList.add(cls_selected)
-                ShowClassWithTimeout(tblRow, "tsa_tr_ok")
-            } else {
-                let tblRow = document.getElementById(map_id);
-                UpdateTeammemberTblRow(tblRow, map_id, update_dict)
-            }
-        }  // if(!isEmpty(update_dict))
-    } // UpdateAbsenceFromResponse
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 //=========  UpdateTeammemberFromResponse  ================ PR2020-05-17
@@ -1664,12 +1610,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Attributes are in the HTML itself, rather than in the DOM. It shows the default value even if the value has changed.
 // An attribute is only ever a string, no other type
     function UploadChanges(upload_dict, url_str) {
-       //console.log("=== UploadChanges");
+        console.log("=== UploadChanges");
         if(!isEmpty(upload_dict)) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
 
-           //console.log("url_str: ", url_str);
-           //console.log("upload_dict: ", upload_dict);
+            console.log("url_str: ", url_str);
+            console.log("upload_dict: ", upload_dict);
 
             let response = "";
             $.ajax({
@@ -1678,15 +1624,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                   console.log( "response");
+                    console.log( "response");
                     console.log( response);
 
                     if ("updated_absence_rows" in response) {
-                        UpdateAbsenceRowsFromResponseNEW(response.updated_absence_rows)
+                        refresh_updated_absence_rows(response.updated_absence_rows)
                     };
 
                     if ("updated_employee_rows" in response) {
-                        UpdateEmployeeRowsFromResponseNEW(response.updated_employee_rows);
+                        refresh_updated_employee_rows(response.updated_employee_rows);
                     };
 
                     if ("employee_list" in response) {
@@ -1717,8 +1663,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },  // success: function (response) {
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                 }  // error: function (xhr, msg) {
             });  // $.ajax({
         }  //  if(!!row_upload)
@@ -2069,7 +2014,7 @@ if(pgeName === "absence"){
 
 //=========  ModConfirmSave  ================ PR2019-06-23 PR2020-08-11
     function ModConfirmSave() {
-        //console.log("===  ModConfirmSave  =====") ;
+        console.log("===  ModConfirmSave  =====") ;
         //console.log("mod_dict:", mod_dict)
         $("#id_mod_confirm").modal("hide");
 
@@ -4396,9 +4341,13 @@ console.log( "reset mod_dict: ");
 
         } else {
 // ---  show modal confirm with message 'First select employee'
-            const hdr_text = loc.Select_employee + "...";
-            const msg01_txt = loc.err_open_calendar_01 + loc.an_employee + loc.err_open_calendar_02;
-            ModConfirm_Message(loc, hdr_text, msg01_txt);
+            const msg_header = loc.Select_employee + "...";
+            const html_text = loc.err_open_calendar_01 + loc.an_employee + loc.err_open_calendar_02;
+
+            document.getElementById("id_mod_message_header").innerText = msg_header;
+            document.getElementById("id_mod_message_container").innerHTML = html_text;
+
+            $("#id_mod_message").modal({backdrop: true});
         };  // if (!!employee_pk)
     };  // MSE_Open
 

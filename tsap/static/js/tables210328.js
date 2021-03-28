@@ -15,8 +15,8 @@
                             bc_color_default, bc_color_selected, bc_color_hover,
                             imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                             header_txt, title_header_btn, title_row_btn) {
-        console.log("===== t_Fill_SelectTable ===== ", tblName);
-        console.log("header_txt = ", header_txt)
+        //console.log("===== t_Fill_SelectTable ===== ", tblName);
+        //console.log("header_txt = ", header_txt)
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive filters in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -361,7 +361,7 @@
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_text, filter_show_inactive, has_ppk_filter, selected_ppk, col_index_list) {
-        console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "===== t_Filter_SelectRows  ========= ");
         //console.log( "filter_text: <" + filter_text + ">");
         //console.log( "has_ppk_filter: " + has_ppk_filter);
         //console.log( "selected_ppk: " + selected_ppk, typeof selected_ppk);
@@ -426,7 +426,7 @@
                         sel_display = get_attr_from_el(tblRow, "data-display");
                         sel_rowid = get_attr_from_el(tblRow, "id");
 
-        console.log( "tblRow", tblRow);
+        //console.log( "tblRow", tblRow);
                     } else {
                         has_multiple = true;
                     }
@@ -626,6 +626,7 @@
             let new_value = old_value - 1;
             if(new_value < 0) { new_value = 2};
             filter_dict[col_index] = [filter_tag, new_value];
+
         } else if ( filter_tag === "inactive") {
             let arr = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
             const old_value = (arr && arr[1] ) ? arr[1] : 0;
@@ -731,9 +732,9 @@
 //========= t_ShowTableRowExtended  ==================================== PR2020-07-12 PR2020-09-12
     function t_ShowTableRowExtended(filter_row, filter_dict, tblRow) {
         // only called by FillPayrollRows,
-        //console.log( "===== t_ShowTableRowExtended  ========= ");
-        //console.log( "filter_dict", filter_dict);
-        //console.log( "filter_row", filter_row);
+        console.log( "===== t_ShowTableRowExtended  ========= ");
+        console.log( "filter_dict", filter_dict);
+        console.log( "filter_row", filter_row);
         // filter_dict = {2: ["text", "r", ""], 4: ["text", "y", ""] }
         //  filter_row = [empty × 2, "acu - rif", empty, "agata mm"]
 
@@ -771,9 +772,9 @@
                         if(cell){
                             const el = cell.children[0];
                             if (el){
+                                const cell_value = get_attr_from_el_int(el, "data-filter")
                                 if (filter_tag === "triple"){
-                                   //console.log( "el", el);
-                                    const cell_value = get_attr_from_el_int(el, "data-filter")
+
                                     if (filter_value === 2){
                                         // show only rows with tickmark
                                         if (!cell_value) { hide_row = true}
@@ -781,13 +782,23 @@
                                         // show only rows without tickmark
                                         if (cell_value) { hide_row = true}
                                     }
+                                } else if (filter_tag === "inactive"){
+        //console.log( "filter_value", filter_value);
+        //console.log( "cell_value", cell_value);
+                                    // if inactive sign is visible: show all, else: show active only
+                                    if (filter_value !== 1){
+                                        if(cell_value === 1) {
+                                            hide_row = true;
+                                        }
+                                    }
+
                                 }
                             }
                         }
 
                     } else if (filter_row){
                         let cell_value = (filter_row[col_index]) ? filter_row[col_index] : null;
-       //console.log( "========== cell_value", cell_value, typeof cell_value);
+        //console.log( "========== cell_value", cell_value, typeof cell_value);
 
                         // PR2020-06-13 debug: don't use: "hide_row = (!el_value)", once hide_row = true it must stay like that
                         if( filter_tag === "boolean") {
@@ -848,11 +859,11 @@
     }; // t_ShowTableRowExtended
 
 //========= t_create_filter_row  ====================================
-    function t_create_filter_row(tblRow, filter_dict) {  // PR2020-09-14
+    function t_create_filter_row(tblRow, filter_dict) {  // PR2020-09-14 PR2021-03-23
         //console.log( "===== t_create_filter_row  ========= ");
         let filter_row = [];
         if (tblRow){
-            Object.keys(filter_dict).forEach(function(index_str) {
+            for (const index_str of Object.keys(filter_dict)) {
                 const col_index = (Number(index_str)) ? Number(index_str) : 0;
                 const el = tblRow.cells[col_index].children[0];
                 if(el){
@@ -864,7 +875,7 @@
                         filter_row[col_index] = data_filter
                     }
                 }
-            });
+            };
         }
         return filter_row
     }; // t_create_filter_row

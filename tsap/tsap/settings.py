@@ -21,6 +21,8 @@ SECRET_KEY = config('SECRET_KEY')  # PR2019-02-28
 DEBUG = config('DEBUG', default=False, cast=bool) # PR2019-02-28
 
 LOGGING_HIDE = config('LOGGING_HIDE', default='WARNING') # PR2021-01-09 sets level of loggers that must be showed
+# PR 2021-03-21 logger only saves when LOGGING_ON = True
+LOGGING_ON = config('LOGGING_ON', default=False, cast=bool)
 
 # ALLOWED_HOSTS =
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())  # PR2019-02-28

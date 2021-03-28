@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Employees' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/employees210302.js' %}"></script>
+    <script src="{% static 'js/employees210328.js' %}"></script>
     <script src="{% static 'js/calendar201123.js' %}"></script>
 {% endblock %}
 
@@ -58,22 +58,17 @@
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-<!-- =================== MODAL EMPLOYEE  =================== -->
+<!-- =================== MODALS  =================== -->
         {% include 'includes/modemployee.html' %}
-<!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
-<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modmessage.html' %}
         {% include 'includes/modselectperiod.html' %}
-<!-- =================== MODAL SELECT EMPLOYEE FUNCTION =================== -->
         {% include 'includes/modselectemployeefunction.html' %}
-<!-- =================== MODAL SELECT ORDER  ===================-->
         {% include 'includes/modselectcustomerorder.html' %}
-<!-- =================== MODAL SHIFT EMPLOYEE   ===================-->
         {% include 'includes/modshiftemployee.html' %}
-<!-- =================== MODAL ABSENCE  =================== -->
         {% include 'includes/modabsence.html' %}
-<!-- =================== MODAL TIMEPICKER  =================== -->
         {% include 'includes/modtimepicker.html' %}
+
 <!-- =================== MODAL EMPLOYEE ADD  =================== -->
         <div class="modal " id="id_mod_empl_add" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">

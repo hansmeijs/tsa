@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 from accounts.models import Usersetting
 from companies import models as m
 
-from tsap.settings import TIME_ZONE
+from tsap import settings as s
 from tsap import constants as c
 from tsap import functions as f
 from employees import dicts as ed
@@ -94,7 +94,7 @@ def remove_status_from_statussum(status, old_status_sum):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def check_rosterdate_emplhours(upload_dict, user_lang, request):  # PR2019-11-11 PR2020-07-26 PR2021-02-20
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' --- check_rosterdate_emplhours --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -378,7 +378,7 @@ def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request
     if request.user is not None and request.user.company is not None:
 
 # get comp_timezone
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # get now without timezone
         now_utc_naive = datetime.utcnow()
@@ -1795,7 +1795,7 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
     # get now_usercomp_dtm from now_arr
     # now is the time of the computer of the current user. May be different from company local
     today_dte, now_usercomp_dtm = f.get_today_usertimezone(period_dict)
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug('===== calc_periodstart_datetimelocal_periodend_datetimelocal ===== ')
         logger.debug('period_tag: ' + str(period_tag))
@@ -3438,7 +3438,7 @@ def get_period_endtimeXXXX(interval_int, overlap_prev_int, overlap_next_int, req
     if request.user is not None and request.user.company is not None:
 
 # get comp_timezone
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # get now without timezone
         now_utc_naive = datetime.utcnow()

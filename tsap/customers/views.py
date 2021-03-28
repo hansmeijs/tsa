@@ -38,192 +38,215 @@ class CustomerListView(View):
 
 
 @method_decorator([login_required], name='dispatch')
-class CustomerUploadView(UpdateView):# PR2019-03-04
+class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= CustomerUploadView ============= ')
-
+        logging_on = settings.LOGGING_ON
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-# 1. Reset language
+
+# - reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-# 2. get upload_dict from request.POST
+# - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
 
-                logging_on = False
+# - get variables
+                table = upload_dict.get('table')
+                pk_int = upload_dict.get('pk')
+                ppk_int = upload_dict.get('ppk')
+                map_id = upload_dict.get('mapid')
+                is_create = upload_dict.get('create', False)
+                is_delete = upload_dict.get('delete', False)
 
-# 3. get iddict variables
-                id_dict = f.get_dict_value(upload_dict, ('id',))
-                #logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
-                if id_dict:
-                    #logger.debug('upload_dict: ' + str(upload_dict))
-                    table = f.get_dict_value(id_dict, ('table',), '')
-                    pk_int = f.get_dict_value(id_dict, ('pk',))
-                    ppk_int = f.get_dict_value(id_dict, ('ppk',))
-                    temp_pk_str = f.get_dict_value(id_dict, ('temp_pk',), '')
-                    row_index = f.get_dict_value(id_dict, ('rowindex',))
-                    mode = f.get_dict_value(id_dict, ('mode',), '')
-                    is_create = ('create' in id_dict)
-                    is_delete = ('delete' in id_dict)
-                    is_absence = ('isabsence' in id_dict)
-                    is_template = ('istemplate' in id_dict)
+                # PR2021-03-21 is_absence is always False when called byCustomerUploadView.
+                is_absence = False
 
-                    orders_list = f.get_dict_value(upload_dict, ('orders_list',))
+                if logging_on:
+                    logger.debug(' ============= CustomerUploadView ============= ')
+                    logger.debug('upload_dict: ' + str(upload_dict))
+                    logger.debug('pk_int:    ' + str(pk_int))
+                    logger.debug('ppk_int:   ' + str(ppk_int))
+                    logger.debug('map_id:    ' + str(map_id))
+                    logger.debug('is_create: ' + str(is_create))
+                    logger.debug('is_delete: ' + str(is_delete))
 
-                    #logger.debug('table: ' + str(table))
-                    #logger.debug('is_delete: ' + str(is_delete))
 # TODO check identifier for duplicates
 
-                    updated_customer_rows = []
-                    updated_order_rows = []
-                    update_dict = {}
+                updated_list = []
+                deleted_list = []
+                msg_dict = {}
+                is_created = False
 
 # =====  CUSTOMER  ==========
-                    if table == "customer":
+                if table == "customer":
 
-# A. check if parent with ppk_int exists and is same as request.user.company
-                        parent = m.Company.objects.get_or_none(id=ppk_int)
-                        #logger.debug('parent:', parent)
-                        if parent and ppk_int == request.user.company_id:
+# - check if parent with ppk_int exists and is same as request.user.company
+                    parent = m.Company.objects.get_or_none(id=ppk_int)
+                    if parent and ppk_int == request.user.company_id:
 
-# B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
-                            update_dict = f.create_update_dict(
-                                c.FIELDS_CUSTOMER,
-                                table=table,
-                                pk=pk_int,
-                                ppk=parent.pk,
-                                row_index=row_index)
-
-# C. Delete customer
-                            if is_delete:
-                                instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
-                                if instance:
-                                    this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
-                                    # delete_instance
-                                    # msg_dict is not in use yet PR2020-10-14
-                                    msg_dict = {}
-                                    deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
-                                    if deleted_ok:
-                                        instance = None
-                                        # - create deleted_dict
-                                        deleted_dict = {'pk': pk_int,
-                                                       'mapid': 'customer_' + str(pk_int),
-                                                       'deleted': True}
-                                        updated_customer_rows.append(deleted_dict)
-                            else:
-# D. Create new customer
-                                if is_create:
-                                    instance = create_new_customer(parent, upload_dict, update_dict, request)
-# E. Get existing customer
-                                else:
-                                    instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
-
-# F. Update customer, also when it is created
-                                if instance:
-                                    update_customer(instance, parent, upload_dict, update_dict, request)
-
-# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+# +++ Delete customer
+                        if is_delete:
+                            instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
                             if instance:
-                                cd.create_customer_dict(instance, update_dict)
+                                this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
 
-                                customer_listNIU, customer_rows = cd.create_customer_list(
-                                    request=request,
-                                    customer_pk=instance.pk)
-                                updated_customer_rows.extend(customer_rows)
+                        # - check if customer has emplhours or schemes
+                                # validate_order_has_emplhours_or_schemes, returns msg_err when error
+                                msg_err = v.validate_customer_has_emplhours_or_schemes(instance)
+                                if logging_on and msg_err:
+                                    logger.debug('msg_err: ' + str(msg_err))
 
-# H. If new customer has orders_list: list contains new orders, add them to orders
-                                #logger.debug('orders_list: '+ str(orders_list))
-                                #logger.debug('is_create: ' + str(is_create))
-                                #if is_create and orders_list:
-                                #    update_orders_list = []
-                                #    for new_order_dict in orders_list:
-                                #        ppk_str = f.get_dict_value(new_order_dict, ('id', 'ppk'))
-                                #        if ppk_str == temp_pk_str:
-                                #            update_order_dict = {'id': {'pk': '', 'ppk': '', 'table': 'order'}}
-                                #            order = create_order(instance, new_order_dict, update_order_dict, request)
-                                #            cd.create_order_dict(order, update_order_dict)
-                                #            update_orders_list.append(update_order_dict)
-                                #    if update_orders_list:
-                                #        update_wrap['update_orders_list'] = update_orders_list
+                                if msg_err:
+                                    msg_dict['err_delete'] = msg_err
+                                else:
+                        # - create deleted_row, to be sent back to page
+                                    deleted_row = {'pk': instance.pk,
+                                                   'mapid': map_id,
+                                                   'deleted': True}
+                        # - delete customer
+                                    msg_err = m.delete_instance(instance, request, this_text)
+                                    if msg_err:
+                                        msg_dict['err_delete'] = msg_err
+                                    else:
+                                # - add deleted_row to deleted_list
+                                        deleted_list.append(deleted_row)
+                                        instance = None
+                                        if logging_on:
+                                            logger.debug('delete customer ok')
+                                            logger.debug('deleted_row: ' + str(deleted_row))
+
+                        else:
+# +++  Create new customer
+                            if is_create:
+                                instance, msg_err = create_new_customer(parent, upload_dict, request)
+                                if msg_err:
+                                    msg_dict['err_create'] = msg_err
+                                    instance = None
+                                if instance:
+                                    is_created = True
+                                if logging_on:
+                                    logger.debug('customer instance:   ' + str(instance))
+                                    logger.debug('msg_err: ' + str(msg_err))
+                                    logger.debug('is_created: ' + str(is_created))
+
+# +++  Get existing customer
+                            else:
+                                instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
+                            if logging_on:
+                                logger.debug('customer instance:   ' + str(instance))
+                                logger.debug('is_created: ' + str(is_created))
+
+# +++  Update customer, also when it is created
+                            if instance:
+                                update_customer(instance, parent, upload_dict, logging_on, request)
+# +++  create order_row, add deleted_row
+# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+                        if instance:
+                            updated_list = cd.create_customer_rows(
+                                request=request,
+                                customer_pk=instance.pk)
+                            if updated_list and updated_list[0]:
+                                updated_row = updated_list[0]
+                                if is_created:
+                                    # - add 'created' to updated_row, to show OK when new row is added to table
+                                    updated_row['created'] = True
+                                if msg_dict:
+                                    updated_row.update({'msg': msg_dict})
+
+                        if deleted_list:
+                            updated_list.extend(deleted_list)
 
 # =====  ORDER  ==========
-                    elif table == "order":
-                        #logger.debug('table: ' + str(table))
-                        #logger.debug('ppk_int: ' + str(ppk_int))
+                elif table == "order":
 
-# A. check if parent exists (customer is parent of order)
-                        parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
-                        #logger.debug('parent: ' + str(parent))
-                        #logger.debug('is_delete: ' + str(is_delete))
-                        if parent:
-# B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
-                            update_dict = f.create_update_dict(
-                                c.FIELDS_ORDER,
-                                table=table,
-                                pk=pk_int,
-                                ppk=parent.pk,
-                                row_index=row_index)
-# C. Delete instance
-                            if is_delete:
-                                instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
-                                if instance:
-                                    this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                                    # delete_instance
-                                    # msg_dict is not in use yet PR2020-10-14
-                                    msg_dict = {}
-                                    deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
-                                    if deleted_ok:
-                                        instance = None
-                            # - create deleted_dict
-                                        deleted_dict = {'pk': pk_int,
-                                                       'mapid': 'order_' + str(pk_int),
-                                                       'deleted': True}
-                                        updated_order_rows.append(deleted_dict)
-                            else:
-# D. Create new order
-                                if is_create:
-                                    instance = create_order(parent, upload_dict, update_dict, request)
-# E. Get existing order
-                                else:
-                                    instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
-
-# F. update order, also when it is created
-                                if instance:
-                                    update_order(instance, parent, upload_dict, update_dict, logging_on, request)
-
-# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+# - check if parent exists (customer is parent of order)
+                    parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
+                    #logger.debug('parent: ' + str(parent))
+                    #logger.debug('is_delete: ' + str(is_delete))
+                    if parent:
+# +++  Delete order
+                        if is_delete:
+                            instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                             if instance:
-                                cd.create_order_dict(instance, update_dict)
+                                this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
 
-                                order_listNIU, order_rows = cd.create_order_list(
-                                    request=request,
-                                    order_pk=instance.pk)
-                                updated_order_rows.extend(order_rows)
+                        # - check if order has emplhours or schemes
+                                is_abscat = False
+                                # validate_order_has_emplhours_or_schemes, returns msg_err when error
+                                msg_err = v.validate_order_has_emplhours_or_schemes(instance, is_abscat)
+                                if logging_on and msg_err:
+                                    logger.debug('msg_err: ' + str(msg_err))
+
+                                if msg_err:
+                                    msg_dict['err_delete'] = msg_err
+                                else:
+                       # - create deleted_row, to be sent back to page
+                                    deleted_row = {'pk': instance.pk,
+                                                   'mapid': map_id,
+                                                   'deleted': True}
+                        # - delete order
+                                    msg_err = m.delete_instance(instance, request, this_text)
+                                    if msg_err:
+                                        msg_dict['err_delete'] = msg_err
+                                    else:
+                                # - add deleted_row to deleted_list
+                                        deleted_list.append(deleted_row)
+                                        instance = None
+                                        if logging_on:
+                                            logger.debug('delete order ok')
+                                            logger.debug('deleted_row: ' + str(deleted_row))
+
+                        else:
+
+# +++  Create new order
+                            if is_create:
+                                instance, msg_err = create_order(parent, is_absence, upload_dict, logging_on, request)
+                                if instance:
+                                    is_created = True
+                                if msg_err:
+                                    msg_dict['err_create'] = msg_err
+# +++  Get existing order
+                            else:
+                                instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
+                            if logging_on:
+                                logger.debug('instance:   ' + str(instance))
+                                logger.debug('is_created: ' + str(is_created))
+
+# +++  Update order, also when it is created
+                            if instance:
+                                update_order(instance, parent, upload_dict, logging_on, request)
+
+# +++  create order_row, add deleted_row
+# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+                        if instance:
+                            updated_list = cd.create_order_rows(
+                                request=request,
+                                is_absence=is_absence,
+                                order_pk=instance.pk)
+                            if updated_list and updated_list[0]:
+                                updated_row = updated_list[0]
+                                if is_created:
+                                # - add 'created' to updated_row, to show OK when new row is added to table
+                                    updated_row['created'] = True
+                                if msg_dict:
+                                    updated_row.update({'msg': msg_dict})
+                        if deleted_list:
+                            updated_list.extend(deleted_list)
 # =====  END ORDER  ==========
 
-# H. remove empty attributes from update_dict
-                    f.remove_empty_attr_from_dict(update_dict)
+#  - add update_list to update_wrap
+                if table == "customer":
+                    update_wrap['updated_customer_rows'] = updated_list
+                else:
+                    update_wrap['updated_order_rows'] = updated_list
 
-# I. add update_dict to update_wrap
-                    if update_dict:
-                        update_list = []
-                        update_list.append(update_dict)
-                        update_wrap['update_list'] = update_list
-
-                    if updated_order_rows:
-                        update_wrap['updated_order_rows'] = updated_order_rows
-                    if updated_customer_rows:
-                        update_wrap['updated_customer_rows'] = updated_customer_rows
-
-# J. return update_wrap
+# - return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
-
 
 
 @method_decorator([login_required], name='dispatch')
@@ -296,7 +319,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
 
-                logging_on = False
+                logging_on = settings.LOGGING_ON
 
     # 3. get iddict variables
                 id_dict = upload_dict.get('id')
@@ -319,7 +342,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                             #logger.debug('parent: ' + str(instance))
                             if instance:
-                                update_order(instance, parent, upload_dict, update_dict, logging_on, request)
+                                update_order(instance, parent, upload_dict, logging_on, request)
                         f.remove_empty_attr_from_dict(update_dict)
 # =====  SCHEME  ==========
                     if table == "scheme":
@@ -362,159 +385,143 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
-def create_new_customer(parent, upload_dict, update_dict, request):
-    # --- create customer or order # PR2019-06-24
+def create_new_customer(parent, upload_dict, request):
+    # --- create customer or order # PR2019-06-24 PR2021-03-21
     # Note: all keys in update_dict must exist by running create_update_dict first
     #logger.debug(' --- create_customer')
-    #logger.debug(upload_dict)
-    # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
     instance = None
+    msg_err = None
 
-# 1. get iddict variables
-    # id_dict is added in create_update_dict
-    id_dict = upload_dict.get('id')
-    if id_dict:
-        table = 'customer'
+    table = 'customer'
 
 # 2. get parent instance
-        if parent:
+    if parent:
 # 3. Get value of 'code' and 'name'
-            code = f.get_dict_value(upload_dict, ('code', 'value'))
-            name = f.get_dict_value(upload_dict, ('name', 'value'))
+        code = upload_dict.get('code')
+        name = upload_dict.get('name')
 
-    # b. copy code to name if name is empty, also vice versa (slice name is necessary)
-            if name is None:
-                name = code
-            elif code is None:
-                code = name[:c.CODE_MAX_LENGTH]
-            if code and name:
+# b. copy code to name if name is empty, also vice versa (slice name is necessary)
+        if name is None:
+            name = code
+        elif code is None:
+            code = name[:c.CODE_MAX_LENGTH]
+        if code and name:
 
-    # c. validate code and name
-                msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
+# c. validate code and name
+            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, request)
+            if not msg_err:
+                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, request)
+
+# 4. create and save customer
                 if not msg_err:
-                    msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, {}, request)
-
-    # 4. create and save customer
-                    if not msg_err:
+                    try:
                         instance = m.Customer(company=parent, code=code, name=name)
                         instance.save(request=request)
+                    except Exception as e:
+# 5. return msg_err when instance not created
+                        instance = None
+                        logger.error(getattr(e, 'message', str(e)))
+                        msg_err = _('This customer could not be created.')
 
-    # 5. return msg_err when instance not created
-                        if instance.pk is None:
-                            msg_err = _('This customer could not be created.')
-                            update_dict['code']['error'] = msg_err
-                        else:
-    # 6. put info in update_dict
-                            update_dict['id']['created'] = True
-
-    return instance
+    return instance, msg_err
 
 
-def update_customer(instance, parent, upload_dict, update_dict, request):
+def update_customer(instance, parent, upload_dict, logging_on, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    #logger.debug(' --- update_customer --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
 
-    has_error = False
+    if logging_on:
+        logger.debug(' --- update_customer --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
+
+    err_list = []
     if instance:
         # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone',
         # 'interval', 'inactive')
         table = 'customer'
         save_changes = False
-        for field in c.FIELDS_CUSTOMER:
 
-# --- get field_dict from  upload_dict  if it exists
-            field_dict = upload_dict[field] if field in upload_dict else {}
-            if field_dict:
-                if 'update' in field_dict:
-                    is_updated = False
-# a. get new_value
-                    new_value = field_dict.get('value')
+        for field, field_value in upload_dict.items():
+            if logging_on:
+                logger.debug('field:       ' + str(field))
+                logger.debug('field_value: ' + str(field_value))
 
-# 2. save changes in field 'code', 'name'
-                    if field in ['code', 'name']:
-                # a. get old value
-                        saved_value = getattr(instance, field)
-                        # fields 'code', 'name' are required
-                        if new_value != saved_value:
-                # b. validate code or name
-                            msg_err = v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, {}, request, this_pk=None)
-                            if not msg_err:
-                 # c. save field if changed and no_error
-                                setattr(instance, field, new_value)
-                                is_updated = True
+# - save changes in field 'code', 'name', 'identifier'
+            if field in ['code', 'name', 'identifier']:
+    # - get new_value
+                new_value = field_value
+    # - get old value
+                saved_value = getattr(instance, field)
+                # fields 'code', 'name' are required
+                if new_value != saved_value:
+        # - validate code or name
+                #  (code, name: blank_not_allowed, unique in customer; identifier: blank_not_allowed, unique in company
+                    msg_err = v.validate_code_name_identifier(table, field,
+                        new_value, False, parent, request, instance.pk)
+                    if msg_err:
+                        err_list.append(msg_err)
+                    else:
+        # - save field if changed and no_error
+                        setattr(instance, field, new_value)
+                        save_changes = True
 
-# 3. save changes in fields 'identifier', 'email', 'telephone'
-                    elif field in ['identifier', 'email', 'telephone']:
-                        saved_value = getattr(instance, field)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
+# 3. save changes in fields 'email', 'telephone'
+            elif field in ['email', 'telephone']:
+                new_value = field_value
+                saved_value = getattr(instance, field)
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
 
-# 3. save changes in fields 'cat', 'interval'
-                    elif field in ['cat', 'interval']:
-                        if not new_value:
-                            new_value = 0
-                        saved_value = getattr(instance, field, 0)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
+# 3. save changes in fields 'interval'
+            elif field in ['interval']:
+                new_value = field_value if field_value else 5
+                saved_value = getattr(instance, field, 5)
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
 
 # 4. save changes in field 'inactive'
-                    elif field == 'inactive':
-                        saved_value = getattr(instance, field)
-                        if new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            is_updated = True
-
-# 4. add 'updated' to field_dict'
-                    if is_updated:
-                        update_dict[field]['updated'] = True
-                        save_changes = True
+            elif field == 'inactive':
+                new_value = field_value if field_value else False
+                saved_value = getattr(instance, field)
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
 # --- end of for loop ---
 
 # 5. save changes
         if save_changes:
             try:
                 instance.save(request=request)
-            except:
-                has_error = True
-                if table == 'customer':
-                    msg_err = _('This customer could not be updated.')
-                elif table == 'order':
-                    msg_err = _('This order could not be updated.')
-                else:
-                    msg_err = _('This item could not be updated.')
-                update_dict['id']['error'] = msg_err
+            except Exception as e:
+                logger.error(getattr(e, 'message', str(e)))
+                msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
+                err_list.append(msg_err)
 
-    return has_error
+    return err_list
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_order(parent, upload_dict, update_dict, request):
+def create_order(parent, is_absence, upload_dict, logging_on, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    #logger.debug(' >>>>>>>>>>>> --- create_order   ---- ')
-    #logger.debug(' upload_dict ', str(upload_dict))
+    if logging_on:
+        logger.debug(' --- create_order   ---- ')
+        logger.debug(' upload_dict ', str(upload_dict))
+        logger.debug('is_absence: ' + str(is_absence))
 
-    instance = None
-
-# 1. get iddict variables
-    # update_dict already contains key 'id', all keys are added in create_update_dict
-    # value of 'id' are filled in
     table = 'order'
-
-    if 'create' in update_dict['id']:
-        del update_dict['id']['create']
+    instance = None
+    msg_err = None
 
 # 2. get parent instance
     if parent:
 # 3. Get value of 'code' and 'name'
-        code = f.get_dict_value(upload_dict, ('code', 'value'))
-        name = f.get_dict_value(upload_dict, ('name', 'value'))
-        is_absence = f.get_dict_value(upload_dict, ('id', 'isabsence'), False)
+        code = upload_dict.get('code')
+        name = upload_dict.get('name')
+        # is_absence is a parameter of this function
 
 # b. copy code to name if name is empty, also vice versa (slice name is necessary)
         if name is None:
@@ -522,16 +529,19 @@ def create_order(parent, upload_dict, update_dict, request):
         elif code is None:
             code = name[:c.CODE_MAX_LENGTH]
 
-        #logger.debug('code' + str(code))
-        #logger.debug('name' + str(name))
+        if logging_on:
+            logger.debug('code: ' + str(code))
+            logger.debug('name: ' + str(name))
 
 # c. validate code and name
         if code and name:
             # validator creates key 'code' or 'name' in update_dict if they don't exist
-            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, update_dict, {}, request)
-            #logger.debug('msg_err' + str(msg_err))
+            msg_err = v.validate_code_name_identifier(table, 'code', code, False, parent, request)
+            if logging_on and msg_err:
+                logger.debug('msg_err' + str(msg_err))
+
             if not msg_err:
-                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, update_dict, {}, request)
+                msg_err = v.validate_code_name_identifier(table, 'name', name, False, parent, request)
 
 # 4. create and save order
                 if not msg_err:
@@ -542,29 +552,25 @@ def create_order(parent, upload_dict, update_dict, request):
                         isabsence=is_absence
                     )
                     instance.save(request=request)
-                    #logger.debug('instance' + str(instance))
+                    if logging_on:
+                        logger.debug('instance' + str(instance) + ' pk: ' + str(instance.pk))
 
 # 5. return msg_err when instance not created
                     if instance.pk is None:
                         msg_err = _('This order could not be created.')
-                        update_dict['code'] = {'error': msg_err}
-                    else:
-# 6. put info in update_dict
-                        # rest of the info is added in cd.create_order_dict
-                        update_dict['id']['created'] = True
 
-    return instance
+    return instance, msg_err
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def update_order(instance, parent, upload_dict, update_dict, logging_on, request):
-    # --- update existing and new customer or order PR2019-06-24
+def update_order(instance, parent, upload_dict, logging_on, request):
+    # --- update existing and new customer or order PR2019-06-24 PR2021-03-21
     # called by CustomerUploadView, PricerateUploadView, PayrollUploadView.upload_abscat_order
-    # add new values to update_dict (don't reset update_dict, it has values)
+
     if logging_on:
         logger.debug(' --- update_order --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
 
-    has_error = False
+    err_list = []
     if instance:
         table = 'order'
         save_changes = False
@@ -573,151 +579,144 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
 
         comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
 
-        for field, field_dict in upload_dict.items():
+        for field, field_value in upload_dict.items():
             if logging_on:
-                logger.debug('field: ' + str(field))
-                logger.debug('   field_dict: ' + str(field_dict))
+                logger.debug('field:       ' + str(field))
+                logger.debug('field_value: ' + str(field_value))
 
-            if field_dict:
-                is_updated = False
-# - get new_value
 # - save changes in field 'code', 'name', 'identifier'
-                if field in ['code', 'name', 'identifier']:
-                    new_value = field_dict.get('value')
-
-    # a. get old value
-                    saved_value = getattr(instance, field)
-                    # fields 'code', 'name' are required
-                    if new_value != saved_value:
-    # b. validate code or name
-                        msg_err = v.validate_code_name_identifier(table, field,
-                               new_value, False, parent, update_dict, {}, request, instance.pk)
-                        if not msg_err:
-    # c. save field if changed and no_error
-                            setattr(instance, field, new_value)
-                            is_updated = True
+            if field in ['code', 'name', 'identifier']:
+    # - get new_value
+                new_value = field_value
+    # - get old value
+                saved_value = getattr(instance, field)
+                # fields 'code', 'name' are required
+                if new_value != saved_value:
+    # - validate field  (code, name: blank_not_allowed, unique in customer; identifier: blank_not_allowed, unique in company
+                    msg_err = v.validate_code_name_identifier(table, field,
+                           new_value, False, parent, request, instance.pk)
+                    if msg_err:
+                        err_list.append(msg_err)
+                    else:
+    # - save field if changed and no_error
+                        setattr(instance, field, new_value)
+                        save_changes = True
 
 # - save changes in field 'sequence'
-                elif field == 'sequence':
-                    new_value = field_dict.get('value')
-                    saved_value = getattr(instance, field)
-                    if new_value != saved_value:
-                        setattr(instance, field, new_value)
-                        is_updated = True
+            elif field == 'sequence':
+                new_value = field_value
+                saved_value = getattr(instance, field)
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
 
 # - save changes in field 'billable'
-                elif field in ['billable']:
-                    is_override = field_dict.get('override', False)
-                    is_billable = field_dict.get('billable', False)
-                    #logger.debug('is_override: ' + str(is_override))
-                    #logger.debug('is_billable: ' + str(is_billable))
-                    new_value = 0
-                    if is_override:
-                        new_value = 2 if is_billable else 1
-                    #logger.debug('new_value: ' + str(new_value))
-                    saved_value = getattr(instance, field, 0)
-                    #logger.debug('saved_value: ' + str(saved_value))
+            elif field in ['billable']:
+                is_billable = field_value if field_value else False
+                is_override = upload_dict.get('override', False)
+                #logger.debug('is_override: ' + str(is_override))
+                #logger.debug('is_billable: ' + str(is_billable))
+                new_value = 0
+                if is_override:
+                    new_value = 2 if is_billable else 1
+                #logger.debug('new_value: ' + str(new_value))
+                saved_value = getattr(instance, field, 0)
+                #logger.debug('saved_value: ' + str(saved_value))
 
-                    if new_value != saved_value:
-                        setattr(instance, field, new_value)
-                        is_updated = True
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
 
 # - save changes in date fields
-                elif field in ['datefirst', 'datelast']:
-                    # not used in abscat_order
-                    new_value = field_dict.get('value')
-    # a. get new_date
-                    new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
-    # b. validate value
-                    if msg_err:
-                        update_dict[field]['error'] = msg_err
-                        has_error = True
-                    else:
-    # c. save field if changed and no_error
-                        old_date = getattr(instance, field)
-                        if new_date != old_date:
-                            setattr(instance, field, new_date)
-                            is_updated = True
+            elif field in ['datefirst', 'datelast']:
+                # not used in abscat_order
+                new_value = field_value
+# a. get new_date
+                new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
+# b. validate value
+                if msg_err:
+                    err_list.append(msg_err)
+                else:
+# c. save field if changed and no_error
+                    old_date = getattr(instance, field)
+                    if new_date != old_date:
+                        setattr(instance, field, new_date)
+                        save_changes = True
 
-                elif field in ('nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
-                    # only used in abscat_order
-    # a. get old value
-                    new_value = field_dict.get('value', False)
-                    saved_value = getattr(instance, field, False)
-                    if new_value != saved_value:
-    # c. save field if changed
-                        setattr(instance, field, new_value)
-                        is_updated = True
-                        recalc_nohours = True
+            elif field in ('nohoursonweekday', 'nohoursonsaturday', 'nohoursonsunday', 'nohoursonpublicholiday'):
+                # only used in abscat_order
+# a. get old value
+                new_value = field_value if field_value else False
+                saved_value = getattr(instance, field, False)
+                if new_value != saved_value:
+# c. save field if changed
+                    setattr(instance, field, new_value)
+                    save_changes = True
+                    recalc_nohours = True
 
-                elif field in ('wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph'):
-                    # only used in abscat_order, normal orders get wfc values from shift
-                    # a. get old value
-                    new_pk_int = field_dict.get('value', False)
-                    new_wagefactor = m.Wagecode.objects.get_or_none(
-                        id=new_pk_int,
-                        key= 'wfc')
-                    saved_wagefactor = getattr(instance, field, False)
-                    if new_wagefactor != saved_wagefactor:
-                        # c. save field if changed
-                        setattr(instance, field, new_wagefactor)
-                        is_updated = True
-                        recalc_wagefactor = True
-                    if logging_on:
-                        logger.debug('new_pk_int: ' + str(new_pk_int))
-                        logger.debug('new_wagefactor: ' + str(new_wagefactor))
-                        logger.debug('saved_wagefactor: ' + str(saved_wagefactor))
-                        logger.debug('is_updated: ' + str(is_updated))
+            elif field in ('wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph'):
+                # only used in abscat_order, normal orders get wfc values from shift
+                # a. get old value
+                new_pk_int = field_value if field_value else False
+                new_wagefactor = m.Wagecode.objects.get_or_none(
+                    id=new_pk_int,
+                    key= 'wfc')
+                saved_wagefactor = getattr(instance, field, False)
+                if new_wagefactor != saved_wagefactor:
+                    # c. save field if changed
+                    setattr(instance, field, new_wagefactor)
+                    save_changes = True
+                    recalc_wagefactor = True
+                if logging_on:
+                    logger.debug('new_pk_int: ' + str(new_pk_int))
+                    logger.debug('new_wagefactor: ' + str(new_wagefactor))
+                    logger.debug('saved_wagefactor: ' + str(saved_wagefactor))
+                    logger.debug('save_changes: ' + str(save_changes))
 
 # 4. save changes in fields 'priceratejson'
-                elif field in ['priceratejson']:
-                    #logger.debug('field: ' + str(field))
-                    # TODO save pricerate with date and wagefactor
-                    rosterdate = None
-                    wagefactor = None
+            elif field in ['priceratejson']:
+                #logger.debug('field: ' + str(field))
+                # TODO save pricerate with date and wagefactor
+                rosterdate = None
+                wagefactor = None
 
-                    # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
-                    #if pricerate_is_updated:
-                    #    is_updated = True
+                # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
+                #if pricerate_is_updated:
+                #    is_updated = True
 
-                    #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
-                    #logger.debug('is_updated: ' + str(is_updated))
+                #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
+                #logger.debug('is_updated: ' + str(is_updated))
 
-# 4. save changes in field 'taxcode'
-                elif field in ['taxcode']:
-        # a. get new taxcode_pk
-                    new_taxcode_pk = int(field_dict.get('pk', 0))
-                    if new_taxcode_pk:
-        # b. check if new_taxcode exists
-                        taxcode = m.Pricecode.objects.get_or_none(
-                            id=new_taxcode_pk,
-                            istaxcode=True,
-                            company=request.user.company
-                        )
-        # c. upate if exists. msg_err if not found
-                        if taxcode is None:
-                            msg_err = _('This field could not be updated.')
-                            update_dict[field]['error'] = msg_err
-                        else:
-                            setattr(instance, field, taxcode)
-                            is_updated = True
-        # d. remove taxcode from order when pk is None
+# 4. save changes in field 'taxcode'.
+            elif field in ['taxcode']:
+    # a. get new taxcode_pk
+                new_taxcode_pk = field_value # field 'taxcode' contains taxcode.pk
+                if new_taxcode_pk:
+    # b. check if new_taxcode exists
+                    taxcode = m.Pricecode.objects.get_or_none(
+                        id=new_taxcode_pk,
+                        istaxcode=True,
+                        company=request.user.company
+                    )
+    # c. upate if exists. msg_err if not found
+                    if taxcode is None:
+                        msg_err = _('This field could not be updated.')
+                        err_list.append(msg_err)
                     else:
-                        if instance.taxcode is not None:
-                            instance.taxcode = None
-                            is_updated = True
+                        setattr(instance, field, taxcode)
+                        save_changes = True
+    # d. remove taxcode from order when pk is None
+                else:
+                    if instance.taxcode is not None:
+                        instance.taxcode = None
+                        save_changes = True
 
 # 5. save changes in field 'inactive'
-                elif field == 'inactive':
-                    new_value = field_dict.get('value', False)
-                    saved_value = getattr(instance, field)
-                    if new_value != saved_value:
-                        setattr(instance, field, new_value)
-                        is_updated = True
-
-# - add 'updated' to field_dict'
-                if is_updated:
-                    update_dict[field]['updated'] = True
+            elif field == 'inactive':
+                new_value = field_value if field_value else False
+                saved_value = getattr(instance, field)
+                if new_value != saved_value:
+                    setattr(instance, field, new_value)
                     save_changes = True
 # --- end of for loop ---
 
@@ -725,23 +724,25 @@ def update_order(instance, parent, upload_dict, update_dict, logging_on, request
         if save_changes:
             try:
                 instance.save(request=request)
-            except:
-                has_error = True
+            except Exception as e:
+                logger.error(getattr(e, 'message', str(e)))
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
-                update_dict['id']['error'] = msg_err
+                err_list.append(msg_err)
             finally:
                 # TODO recalc emplhour records when necessary
                 if recalc_wagefactor:
                     update_wagefactor_in_emplhour(instance, request)
                 if recalc_nohours:
                     update_nohours_in_emplhour(instance, comp_timezone, request)
-    return has_error
+    return err_list
+# - end of update_order
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 def update_nohours_in_emplhour(abscat_order, comp_timezone, request):
     # logger.debug(' --- update_nohours_in_emplhour --- ')  # PR2021-02-28
     # - update field billable, amount, addition, tax in all orderhour records that are not locked
-    logging_on = True
+    logging_on = settings.LOGGING_ON
     if logging_on:
         logger.debug(' --- update_nohours_in_emplhour --- ')  # PR2021-02-28
 

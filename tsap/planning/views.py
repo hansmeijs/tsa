@@ -17,13 +17,16 @@ from accounts import dicts as ad
 from companies.views import LazyEncoder
 from customers import dicts as cust_dicts
 
+from tsap import settings as s
 from tsap import constants as c
 from tsap import functions as f
 from tsap import locale as loc
+
 from planning import dicts as d
 from planning import prices as p
 from planning import rosterfill as r
 from planning import employeeplanning as emplan
+
 from employees import dicts as ed
 from customers import dicts as cd
 
@@ -33,7 +36,6 @@ from companies import models as m
 from companies import dicts as comp_dicts
 
 from tsap.validators import validate_code_name_identifier
-from tsap import settings
 
 import pytz
 import json
@@ -42,13 +44,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 # PR2021-01-09 value is stored in .env
-if settings.LOGGING_HIDE == 'NOTSET':
+if s.LOGGING_HIDE == 'NOTSET':
     log_level = logging.NOTSET
-elif settings.LOGGING_HIDE == 'DEBUG':
+elif s.LOGGING_HIDE == 'DEBUG':
     log_level = logging.DEBUG
-elif settings.LOGGING_HIDE == 'WARNING':
+elif s.LOGGING_HIDE == 'WARNING':
     log_level = logging.WARNING
-elif settings.LOGGING_HIDE == 'ERROR':
+elif s.LOGGING_HIDE == 'ERROR':
     log_level = logging.ERROR
 else:
     log_level = logging.CRITICAL
@@ -62,7 +64,7 @@ logging.disable(log_level)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request):
-        logging_on = False
+        logging_on = s.LOGGING_ON
         if logging_on:
             logger.debug(' ')
             logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
@@ -80,7 +82,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
 # ----- get comp_timezone PR2019-06-14
-                    comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+                    comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 # ----- get interval
                     interval = request.user.company.interval if request.user.company.interval else 15
@@ -158,7 +160,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['employee_list'] = employee_list
                     request_item = datalist_request.get('employee_rows')
                     if request_item:
-                        datalists['employee_rows'] = ed.create_employee_rows(request_item, {}, request)
+                        datalists['employee_rows'] = ed.create_employee_rows(request_item, request)
 
 # ----- customer
                     request_item = datalist_request.get('customer_rows')
@@ -184,8 +186,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- abscat_rows
                     request_item = datalist_request.get('abscat_rows')
                     if request_item:
-                        datalists['abscat_rows'] = cust_dicts.create_abscat_order_rows(
-                            request=request, request_item=request_item)
+                        is_absence = True
+                        datalists['abscat_rows'] = cust_dicts.create_order_rows(
+                            request=request,
+                            is_absence=is_absence,
+                            request_item=request_item)
 
 # ----- absence_rows used in scheme and employee
                     request_item = datalist_request.get('absence_rows')
@@ -643,7 +648,10 @@ def download_setting(request_item, user_lang, comp_timezone, timeformat, interva
 
 
 def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_scheme_pk, saved_btn, user_lang, comp_timezone, request):
-    logger.debug(' ============= download_page_scheme_list ============= ')
+
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ============= download_page_scheme_list ============= ')
 
 # - check which info must be retrieved, get saved_btn etc from settings if not given in upload_dict
     is_template = request_item.get('istemplate', False)
@@ -651,7 +659,9 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
         is_absence = request_item.get('isabsence', False)
     else:
         is_absence = (saved_btn == 'btn_absence')
-    #logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
+
+    if logging_on:
+        logger.debug('is_template: ' + str(is_template) + ' is_absence: ' + str(is_absence))
 
 # - get holiday_dict from previous year thru next year PR2020-07-07
     # holiday_dict is used in schemes.js Grid_FillTblShiftsNoCycle
@@ -679,7 +689,7 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
     if is_absence:
         # when btn_absence: get abscat list and all absence orders
         # - check if absence_customer exists, create if not exists
-        absence_customer = cust_dicts.get_or_create_absence_customer(request)
+        absence_customer = cust_dicts.get_or_create_absence_customer(logging_on, request)
         if absence_customer:
             absence_customer_pk = absence_customer.pk
             abscat_list = cust_dicts.create_abscat_order_list(request)
@@ -954,7 +964,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
             activate(user_lang)
 
 # get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -1488,7 +1498,7 @@ class GridUploadView(UpdateView):  #PR2020-03-18
             activate(user_lang)
 
 # b. get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -1519,7 +1529,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 # - get comp_timezone
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 # - get upload_dict from request.POST
             upload_json = request.POST.get("upload")
             if upload_json:
@@ -1598,8 +1608,10 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                     this_text = _("Scheme '%(suffix)s'") % {'suffix': instance.code}
                     # update_dict is no longer used in delete_instance, msg_dict is not in use yet PR2020-10-14
                     msg_dict = {}
-                    deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
-                    if deleted_ok:
+                    msg_err = m.delete_instance(instance, request, this_text)
+                    if msg_err:
+                        msg_dict['err_delete'] = msg_err
+                    else:
                         # instance will stay after delete, therefore must set instance = None
                         update_dict['id']['deleted'] = True
             else:
@@ -1690,9 +1702,10 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
             # delete_instance
             # msg_dict is not in use yet PR2020-10-14
             msg_dict = {}
-            deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
-            #logger.debug('deleted_ok' + str(deleted_ok))
-            if deleted_ok:
+            msg_err = m.delete_instance(instance, request, this_text)
+            if msg_err:
+                msg_dict['err_delete'] = msg_err
+            else:
                 instance = None
                 update_dict['id']['deleted'] = True
 # C. Create new shift
@@ -1766,9 +1779,12 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
                 # msg_dict is not in use yet PR2020-10-14
                 msg_dict = {}
                 update_dict['id']['pk'] = instance.pk
-                deleted_or_created_ok = m.delete_instance(instance, msg_dict, request, this_text)
+                msg_err = m.delete_instance(instance, request, this_text)
+                if msg_err:
+                    msg_dict['err_delete'] = msg_err
+                else:
                 #logger.debug('deleted_or_created_ok' + str(deleted_or_created_ok))
-                if deleted_or_created_ok:
+                #if deleted_or_created_ok:
                     instance = None
                     update_dict['id']['deleted'] = True
                 #logger.debug('update_dict' + str(update_dict))
@@ -1874,7 +1890,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
     #logger.debug('upload_dict: ' + str(upload_dict))
 
 #  get comp_timezone
-    comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+    comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
     has_error = False
     if instance:
@@ -1904,8 +1920,6 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                                 new_value=new_value,
                                 is_absence=False,
                                 parent=parent,
-                                update_dict=update_dict,
-                                msg_dict={},
                                 request=request,
                                 this_pk=instance.pk)
                             if not msg_err:
@@ -1958,7 +1972,7 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                 activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
-                comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
                 if request.POST['scheme_download']:
                     scheme_download = json.loads(request.POST['scheme_download'])
@@ -2035,7 +2049,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
             activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # - get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -2290,8 +2304,10 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                                 # delete_instance
                                 # msg_dict is not in use yet PR2020-10-14
                                 msg_dict = {}
-                                deleted_ok = m.delete_instance(instance, msg_dict, request, this_text)
-                                if deleted_ok:
+                                msg_err = m.delete_instance(instance, request, this_text)
+                                if msg_err:
+                                    msg_dict['err_delete'] = msg_err
+                                else:
                                     instance = None
                                     update_dict['id']['deleted'] = True
 # C. Create new schemeitem
@@ -2449,7 +2465,7 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 
 # calculate  updated period_dict
             # get today_midnight_local_iso
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
             today_utc = d.get_rosterdate_utc(date.today())
             today_utc = d.get_datetime_utc(datetime.utcnow())
             #logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
@@ -2583,7 +2599,7 @@ class EmplhourDownloadView(UpdateView):  # PR2020-05-07
 class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
 
     def post(self, request, *args, **kwargs):
-        logging_on = False
+        logging_on = s.LOGGING_ON
         if logging_on:
             logger.debug(' ')
             logger.debug(' ============= EmplhourUploadView ============= ')
@@ -2598,7 +2614,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
                 activate(user_lang)
 
     # - get comp_timezone PR2019-06-14
-                comp_timezone = request.user.company.timezone if request.user.company.timezone else settings.TIME_ZONE
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
                 timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 
     # - get upload_dict from request.POST
@@ -2883,7 +2899,7 @@ def create_orderhour_emplhour(upload_dict, error_list, logging_on, request):
 
 def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check_overlap_list,
                        comp_timezone, request, logging_on=False):
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' --- make_absence_shift --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -2935,7 +2951,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
 # - if abscat_order not found: set default abscat if category not entered (default abscat has lowest sequence)
     if abscat_order is None:
         # lookup abscat_cust if order not found, create abscat_cust and abscat_order if not exist
-        abscat_cust = cust_dicts.get_or_create_absence_customer(request)
+        abscat_cust = cust_dicts.get_or_create_absence_customer(logging_on, request)
         if abscat_cust:
             # get abscat_order with lowest sequence
             abscat_order = m.Order.objects.filter(
@@ -3379,7 +3395,7 @@ def moveto_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, co
 # --- end of moveto_shift
 
 def make_split_shift(emplhour, upload_dict, eplh_update_list, check_overlap_list, leave_cur_employee_blank, comp_timezone, request):
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' ------------- make_split_shift ------------- ')
         logger.debug('upload_dict: ' + str(upload_dict))
@@ -4327,7 +4343,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             # TODO code can have inactive duplicates
-                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, False, parent, update_dict, {}, request,  this_pk=None)
+                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, False, parent, request)
                             if not has_error:
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -4582,7 +4598,7 @@ def create_shift_instance(parent, upload_dict, update_dict, request):
             code = code_dict.get('value')
         if code:
 # 2. validate code
-            msg_err = validate_code_name_identifier('shift', 'code', code, False, parent, update_dict, {}, request)
+            msg_err = validate_code_name_identifier('shift', 'code', code, False, parent, request)
             if not msg_err:
 # 4. create and save shift
                 try:
@@ -4635,8 +4651,6 @@ def update_shift_instance(instance, parent, upload_dict, update_dict, user_lang,
                                 new_value=new_value,
                                 is_absence=False,
                                 parent=parent,
-                                update_dict=update_dict,
-                                msg_dict={},
                                 request=request,
                                 this_pk=instance.pk)
                             if not msg_err:
@@ -4759,7 +4773,7 @@ def create_scheme(parent, upload_dict, update_dict, request):
         if code_dict:
             code = code_dict.get('value')
 # - validate code
-        msg_err = validate_code_name_identifier('scheme', 'code', code, False, parent, update_dict, {}, request)
+        msg_err = validate_code_name_identifier('scheme', 'code', code, False, parent, request)
         if not msg_err:
             instance = m.Scheme(order=parent, code=code)
             instance.save(request=request)
@@ -5105,10 +5119,12 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                                     this_text = _("Allowance '%(code)s'") % {'code': ehal.allowancecode.code}
                                     # update_dict is no longer used in delete_instance, msg_dict is not in use yet PR2020-10-14
                                     msg_dict = {}
-                                    deleted_ok = m.delete_instance(ehal, msg_dict, request, this_text)
-                                    #if deleted_ok:
+                                    msg_err = m.delete_instance(ehal, request, this_text)
+                                    if msg_err:
+                                        msg_dict['err_delete'] = msg_err
+                                    else:
                                         # instance will stay after delete, therefore must set instance = None
-                                        #update_dict['id']['deleted'] = True
+                                        update_dict['id']['deleted'] = True
                             elif mode == 'update':
                                 if allowancecode:
                                     # only quantity field can change, also get rate again from allowancecode

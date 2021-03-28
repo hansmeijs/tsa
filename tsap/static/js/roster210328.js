@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id_new assigns fake id to new records
         let id_new = 0;
 
-        let payroll_header_row = [];
+        //let payroll_header_row = [];
 
 // --- field settings used in CreateTblRow and CreateTblHeader
         const field_settings = {
@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
-        let intervalID = window.setInterval(CheckForUpdates, 30000);  // every 30 seconds
+        let intervalID = window.setInterval(CheckForUpdates, 60000);  // every 60 seconds
 //>>>>>>>>>>>>>>> SET INTERVAL >>>>>>>>>>>>>>>>>>>
 
 // ---  set selected menu button active
@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //team: {istemplate: false},
             //teammember: {datefirst: null, datelast: null, employee_nonull: false},
             employee_rows: {get: true},
-            abscat_rows: {get: true},
+            abscat_rows: {inactive: false},
             allowance_rows: {inactive: false},
             wagecode_rows: {inactive: false}
         };
@@ -579,7 +579,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (fill_table) {
-                    CreateTblHeader();
                     FillTblRows()
                 }
 
@@ -606,7 +605,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
                 console.log(msg + '\n' + xhr.responseText);
-                //alert(msg + '\n' + xhr.responseText);
             }
         });
     }  // function DatalistDownload
@@ -691,9 +689,34 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnClicked() {
     }
 
-///////////////////////////////
+// ###############################################################
+//========= FillTblRows === PR2020-08-12
+    function FillTblRows() {
+        //console.log(" ===== FillTblRows =====");
+// --- reset tblBody
+        tblBody_datatable.innerText = null;
 
-//=========  CreateTblHeader  === PR2020-07-21 PR2020-08-13
+// --- create table header and filter row
+        CreateTblHeader();
+
+// --- loop through emplhour_map
+        if(emplhour_map) {
+            let previous_oh_id = null, is_odd_row = false;
+            for (const [map_id, map_dict] of emplhour_map.entries()) {
+                if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
+                previous_oh_id = map_dict.oh_id;
+        //console.log("employeecode", map_dict.employeecode);
+        //console.log("map_dict.oh_id", map_dict.oh_id);
+        //console.log("previous_oh_id", previous_oh_id);
+        //console.log("is_odd_row", is_odd_row);
+                const tblRow = CreateTblRow(map_id, map_dict, -1, false, is_odd_row)
+                UpdateTblRow(tblRow, map_dict)
+            }
+        }
+    }  // FillTblRows
+
+
+//=========  CreateTblHeader  === PR2020-07-21 PR2020-08-13 PR2021-03-23
     function CreateTblHeader() {
         //console.log("===  CreateTblHeader ==");
 
@@ -703,15 +726,17 @@ document.addEventListener('DOMContentLoaded', function() {
         tblHead_datatable.innerText = null
         tblBody_datatable.innerText = null
 
-// +++  insert header and filter row ++++++++++++++++++++++++++++++++
+// +++  create header and filter row ++++++++++++++++++++++++++++++++
         let tblRow_header = tblHead_datatable.insertRow (-1);
         let tblRow_filter = tblHead_datatable.insertRow (-1);
+            tblRow_filter.setAttribute("data-filterrow", "1")
 
-// ---  create header_row, put caption in columns
-        for (let j = 0, len = field_settings.field_names.length; j < len; j++) {
+// - insert th's into header row
+        const column_count = field_setting.field_names.length;
+        for (let j = 0; j < column_count; j++) {
             const key = field_settings.field_caption[j];
             const caption = (loc[key]) ? loc[key] : key;
-            payroll_header_row.push(caption);
+            //payroll_header_row.push(caption);
 
             const field_name = field_settings.field_names[j];
             const field_tag = field_settings.field_tags[j];
@@ -719,9 +744,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const class_width = "tw_" + field_settings.field_width[j];
             const class_align = "ta_" + field_settings.field_align[j];
 
-// +++ add th to tblRow_header +++
+// ++++++++++ create header row +++++++++++++++
+    // --- add th to tblRow_header +++
             let th = document.createElement("th");
-// --- add div to th, margin not working with th
+    // --- add div to th, margin not working with th
                 let el = document.createElement("div");
                     if ( ["ordernote", "employeenote", "stat_start_conf", "stat_end_conf", "status", "hasallowance", "hasnote"].indexOf(field_name) > -1) {
                         const class_name = (field_name === "stat_start_conf") ? "stat_0_2" :
@@ -733,61 +759,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         el.innerText = caption;
                     }
-// --- add width, text_align
+    // --- add width, text_align
                     el.classList.add(class_width, class_align);
                 th.appendChild(el);
             tblRow_header.appendChild(th);
 
 // ++++++++++ create filter row +++++++++++++++
-// --- add th to tblRow_filter.
+    // --- add th to tblRow_filter.
             th = document.createElement("th");
+    // --- create element with tag from field_tags
                 el = document.createElement(field_tag);
+    // --- add data-field Attribute.
                     el.setAttribute("data-field", field_name);
                     el.setAttribute("data-filtertag", filter_tag);
-
-// --- add Event Listener
+    // --- add EventListener to el_filter
                     if ( ["status"].indexOf(field_name) > -1) {
                         el.addEventListener("click", function(event){HandleFilterImage(el, j)});
                         el.classList.add("stat_0_0")
                         el.classList.add("pointer_show");
                     } else {
                         el.addEventListener("keyup", function(event){HandleFilterKeyup(el, j, event)});
+    // --- add other attributes
                         el.setAttribute("autocomplete", "off");
                         el.setAttribute("ondragstart", "return false;");
                         el.setAttribute("ondrop", "return false;");
                     }
-// --- add width, text_align
+    // --- add width, text_align
                     el.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                 th.appendChild(el);
             tblRow_filter.appendChild(th);
         }
     };  //  CreateTblHeader
 
-//========= FillTblRows === PR2020-08-12
-    function FillTblRows() {
-        //console.log(" ===== FillTblRows =====");
-// --- reset tblBody
-        tblBody_datatable.innerText = null;
-// --- loop through emplhour_map
-        if(emplhour_map) {
-            let previous_oh_id = null, is_odd_row = false;
-            for (const [map_id, map_dict] of emplhour_map.entries()) {
-                if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
-                previous_oh_id = map_dict.oh_id;
-        console.log("employeecode", map_dict.employeecode);
-        console.log("map_dict.oh_id", map_dict.oh_id);
-        console.log("previous_oh_id", previous_oh_id);
-        console.log("is_odd_row", is_odd_row);
-                const tblRow = CreateTblRow(map_id, map_dict, -1, false, is_odd_row)
-                UpdateTblRow(tblRow, map_dict)
-            }
-        }
-    }  // FillTblRows
 
 //=========  CreateTblRow  ===== PR2020-08-12 PR2021-03-02
     function CreateTblRow(map_id, map_dict, row_index, is_new_item, is_odd_row) {
-        console.log("=========  CreateTblRow =========");
-       console.log("map_dict", map_dict);
+        //console.log("=========  CreateTblRow =========");
+        //console.log("map_dict", map_dict);
 
         const tblName = "emplhour";
 
@@ -928,6 +936,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_or_remove_class(el, "tsa_color_darkgrey", !abscat_enabled )
                 // hover doesn't show when el is disabled PR2020-07-22
                 add_or_remove_class (el, "pointer_show", abscat_enabled)
+                // add title when text longer dan 24 characters
+                const title = (map_dict.c_o_code && map_dict.c_o_code.length > 24) ? map_dict.c_o_code : null;
+                add_or_remove_attr (el, "title", (!!title), title);
 
             } else if (fldName === "shiftcode") {
                 inner_text = (map_dict.oh_isrestshift) ? (map_dict.shiftcode) ? map_dict.shiftcode + " (R)" : loc.Rest_shift : map_dict.shiftcode;
@@ -940,14 +951,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 // disable field employee when is_locked, also when is_restshift or is_absence
                 const employee_enabled = (!is_locked && !map_dict.oh_isrestshift && !map_dict.c_isabsence && permit_edit_rows);
                 let value = map_dict.employeecode;
+                // PR2021-03-22 do't add asterisk, is confusing
                 // add * in front of name when is_replacement
-                if(map_dict.eh_isrpl) {value = "*" + value}
+                // if(map_dict.eh_isrpl) {value = "*" + value}
                 filter_value = (value) ? value.toLowerCase() : "";
                 // put any character in field, to show pointer
                 inner_text = (value) ? value : "---";
                 add_or_remove_class(el, "tsa_color_darkgrey", !employee_enabled)
                 // hover doesn't show when el is disabled PR2020-07-22
                 add_or_remove_class (el, "pointer_show", employee_enabled)
+                // add title when text longer dan 20 characters
+                const title = (map_dict.employeecode && map_dict.employeecode.length > 20) ? map_dict.employeecode : null;
+                add_or_remove_attr (el, "title", (!!title), title);
 
             } else if (["offsetstart", "offsetend"].indexOf( fldName ) > -1){
                 const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
@@ -1026,6 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  put value in innerText and title
             el.innerText = inner_text;
 
+// ---  add attribute filter_value
             if(filter_value){
                 el.setAttribute("data-filter", filter_value)
             } else {
@@ -1564,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSE_Save  ================ PR2020-01-29
     function MSE_Save() {
-        console.log("===  MSE_Save =========");
+        //console.log("===  MSE_Save =========");
         //console.log("mod_dict", mod_dict);
 
         // send 'now' as array to server, so 'now' of local computer will be used
@@ -1584,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSE_SelectEmployee  ================ PR2020-01-09
     function MSE_SelectEmployee(tblRow) {
-        console.log( "===== MSE_SelectEmployee ========= ");
+        //console.log( "===== MSE_SelectEmployee ========= ");
         //console.log( tblRow);
         // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
@@ -1954,7 +1970,7 @@ rowcount: 11
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= MOD ALLOWANCE Open====================================
     function MAL_Open (el_input) {
-        console.log("===  MAL_Open  =====") ;
+        //console.log("===  MAL_Open  =====") ;
         //  emplhourallowance_dict contains key = alw_pk for every allowance (also created and deleted ones)
         // plus key emplhour_pk and mapid
         mod_MAL_dict = {}
@@ -1998,9 +2014,9 @@ rowcount: 11
 
 //========= MNO_Save============== PR2021-01-30
     function MAL_Save () {
-        console.log("===  MAL_Save  =====");
+        //console.log("===  MAL_Save  =====");
 
-        console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict);
+        //console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict);
 
         if(permit_add_notes){
             let ehal_list = [];
@@ -2022,7 +2038,7 @@ rowcount: 11
 
 //=========  MAL_CreateTblHeader  === PR2021-01-30
     function MAL_CreateTblHeader(table, fields) {
-        console.log("===  MAL_CreateTblHeader == ");
+        //console.log("===  MAL_CreateTblHeader == ");
 
         const tblHead_id = (table === "alw_listdict")  ? "id_MAL_thead" :
                    (table === "allowance_map")  ? "id_MSA_thead" : "none";
@@ -2081,7 +2097,7 @@ rowcount: 11
 
 //========= MSOD SELECT ALLOWANCE ============= PR2021-01-31
     function MSA_Open() {
-        console.log( " ==== MSA_Open ====");
+        //console.log( " ==== MSA_Open ====");
         // function is called when clicked on footer 'New allowance
 
     // ---  fill selct table allowance
@@ -2095,20 +2111,20 @@ rowcount: 11
 
 //========= MAL_DeleteAlw  ============= PR2021-01-30
     function MAL_DeleteAlw(tblRow) {
-        console.log( " ==== MAL_DeleteAlw ====");
-        console.log( "tblRow", tblRow);
+        //console.log( " ==== MAL_DeleteAlw ====");
+        //console.log( "tblRow", tblRow);
 
         const teammember_pk = get_attr_from_el(tblRow, "data-pk", 0);
         const team_pk = get_attr_from_el(tblRow, "data-ppk", 0);
 
-        console.log( "teammember_pk", teammember_pk);
-        console.log( "team_pk", team_pk);
+        //console.log( "teammember_pk", teammember_pk);
+        //console.log( "team_pk", team_pk);
         let teammember_dict = mod_MGT_dict[teammember_pk]
         if(teammember_dict) {
             teammember_dict.delete = true;
         }
         mod_MGT_dict.update = true;
-        console.log( "mod_MGT_dict", mod_MGT_dict);
+        //console.log( "mod_MGT_dict", mod_MGT_dict);
 
         MAL_BtnSaveDeleteEnable();
 
@@ -2117,14 +2133,14 @@ rowcount: 11
 
 //=========  MAL_BtnSaveDeleteEnable  ================ PR2021-01-30
     function MAL_BtnSaveDeleteEnable(){
-        console.log( "MAL_BtnSaveDeleteEnable");
+        //console.log( "MAL_BtnSaveDeleteEnable");
 /*
         el_MAL_btn_save.disabled = !mod_dict.update;
 
         const team_mode = get_dict_value(mod_dict, ["team", "mode"])
         const btn_delete_hidden = (!selected.scheme_pk || team_mode === "create");
-        console.log( "team_mode", team_mode);
-        console.log( "btn_delete_hidden", btn_delete_hidden);
+        //console.log( "team_mode", team_mode);
+        //console.log( "btn_delete_hidden", btn_delete_hidden);
         add_or_remove_class (el_MAL_btn_save, cls_hide, btn_delete_hidden) // args: el, classname, is_add
 */
     }  // MAL_BtnSaveDeleteEnable
@@ -2132,8 +2148,8 @@ rowcount: 11
 
 //=========  MAL_fill_MAL_dict  ================  PR2021-01-31
     function MAL_fill_MAL_dict(empl_alw_dict){
-        console.log( "MAL_fill_MAL_dict");
-        console.log( "empl_alw_dict", empl_alw_dict);
+        //console.log( "MAL_fill_MAL_dict");
+        //console.log( "empl_alw_dict", empl_alw_dict);
         // only called by MAL_Open
         // function fills mod_MAL_dict.alw_list with allowances of this emplhour
         /*
@@ -2177,15 +2193,15 @@ rowcount: 11
         mod_MAL_dict.max_modifiedat = max_modifiedat;
         mod_MAL_dict.max_modifiedby = max_modifiedby;
 
-        console.log( "mod_MAL_dict", mod_MAL_dict);
+        //console.log( "mod_MAL_dict", mod_MAL_dict);
 
     }  // MAL_fill_MAL_dict
 
 //========= MAL_FillTable  ==========  PR2021-01-30
     function MAL_FillTable(table){
-        console.log( "===== MAL_FillTable  ========= ");
-        console.log( "table", table);
-        console.log( "mod_MAL_dict", mod_MAL_dict);
+        //console.log( "===== MAL_FillTable  ========= ");
+        //console.log( "table", table);
+        //console.log( "mod_MAL_dict", mod_MAL_dict);
 
         const emplhour_pk = get_dict_value(mod_MAL_dict, ["emplhour_pk"]);
         const fields = (table === "alw_listdict") ? fields_allowance :
@@ -2270,10 +2286,10 @@ rowcount: 11
 
 //========= MAL_UpdateTblRow  ============= PR2021-01-30
     function MAL_UpdateTblRow(tblRow, table, alw_dict){
-       console.log("--- MAL_UpdateTblRow  --------------");
-       console.log("tblRow", tblRow);
-       console.log("alw_dict", alw_dict);
-       console.log("table", table);
+       //console.log("--- MAL_UpdateTblRow  --------------");
+       //console.log("tblRow", tblRow);
+       //console.log("alw_dict", alw_dict);
+       //console.log("table", table);
 
         if (!!tblRow && !isEmpty(alw_dict)) {
             // add data-pk and data-display for t_Filter_SelectRows
@@ -2323,10 +2339,10 @@ rowcount: 11
 
 //========= MSA_TblRowClicked  ============= PR2021-01-31
     function MSA_TblRowClicked(tblRow){
-        console.log("=== MSA_TblRowClicked ===") ;
+        //console.log("=== MSA_TblRowClicked ===") ;
 
         const map_dict = get_mapdict_from_datamap_by_id(allowance_map, tblRow.id)
-        console.log("map_dict", map_dict) ;
+        //console.log("map_dict", map_dict) ;
 
         id_new += 1;
         const pk_new = "new" + id_new.toString()
@@ -2349,7 +2365,7 @@ rowcount: 11
 
 //========= MAL_DeleteClicked  ============= PR2021-01-31
     function MAL_DeleteClicked(tblRow){
-       console.log("MAL_DeleteClicked") ;
+       //console.log("MAL_DeleteClicked") ;
 
         const map_id = tblRow.id;
         const ehal_dict = mod_MAL_dict.alw_listdict[map_id];
@@ -2364,17 +2380,17 @@ rowcount: 11
 // ---  fill table empl_alw
             MAL_FillTable("alw_listdict");
         }
-        console.log("mod_MAL_dict", mod_MAL_dict) ;
+        //console.log("mod_MAL_dict", mod_MAL_dict) ;
     }  // MAL_DeleteClicked
 
 //========= MAL_QuantityChanged  ============= PR2021-01-31
     function MAL_QuantityChanged(tblRow, el){
-        console.log("MAL_QuantityChanged")
-        console.log("el.value", el.value)
+        //console.log("MAL_QuantityChanged")
+        //console.log("el.value", el.value)
         const ehal_dict = get_dict_value(mod_MAL_dict, ["alw_listdict", tblRow.id ]);
 
-        console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict)
-        console.log("tblRow.id", tblRow.id)
+        //console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict)
+        //console.log("tblRow.id", tblRow.id)
 
         if (ehal_dict){
 
@@ -2382,19 +2398,19 @@ rowcount: 11
 
         const quantity = arr[0];
         const msg_err = arr[1];
-        console.log("quantity", quantity)
+        //console.log("quantity", quantity)
             ehal_dict.quantity = quantity;
             ehal_dict.update = true;
         }
 
-        console.log("ehal_dict", ehal_dict)
+        //console.log("ehal_dict", ehal_dict)
     }  // MAL_QuantityChanged
 
 
 //=========  MSA_Filter  ================ PR2021-02-01
     function MSA_Filter (el_input) {
-        console.log("=====  MSA_Filter =====")
-        console.log("el_input.value", el_input.value)
+        //console.log("=====  MSA_Filter =====")
+        //console.log("el_input.value", el_input.value)
 // ---  get value of new_filter
         let new_filter = el_input.value
 
@@ -2405,7 +2421,7 @@ rowcount: 11
             const col_index_list = [1, 2, 3]
             const filter_dict = t_Filter_SelectRows(tblBody, new_filter, false, false, null, col_index_list);
 
-        console.log("filter_dict", filter_dict)
+        //console.log("filter_dict", filter_dict)
 // ---  if filter results have only one row: put selected row in el_input
             const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
             const selected_value = get_dict_value(filter_dict, ["selected_value"])
@@ -2424,7 +2440,7 @@ rowcount: 11
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= MOD NOTE Open====================================
     function MNO_Open (el_input) {
-       console.log("===  MNO_Open  =====") ;
+       //console.log("===  MNO_Open  =====") ;
 
 // get tr_selected
         let emplhour_dict = null
@@ -2432,15 +2448,15 @@ rowcount: 11
         if(el_input){
             const fldName = get_attr_from_el(el_input, "data-field");
             const tr_selected = get_tablerow_selected(el_input)
-            console.log("fldName", fldName) ;
+            //console.log("fldName", fldName) ;
 // get info from emplhour_map
             emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
-            console.log("emplhour_dict", emplhour_dict) ;
+            //console.log("emplhour_dict", emplhour_dict) ;
             if(!isEmpty(emplhour_dict)){
 
                 let show_note = (fldName === "hasnote") || (fldName === "employeenote") || (fldName === "ordernote" && !emplhour_dict.c_isabsence && !emplhour_dict.oh_isrestshift);
 
-            console.log("show_note", show_note) ;
+            //console.log("show_note", show_note) ;
                 if(show_note){
                     const pk_int = (fldName === "hasnote") ? emplhour_dict.id :
                                     (fldName === "ordernote") ? emplhour_dict.o_id :
@@ -2458,7 +2474,7 @@ rowcount: 11
                     }
                     if(!isEmpty(map_dict)){
                         let header_txt = (fldName === "ordernote") ? map_dict.c_o_code : (fldName === "employeenote") ? map_dict.code : null;
-            console.log("header_txt", header_txt) ;
+            //console.log("header_txt", header_txt) ;
                         if (fldName === "hasnote") {
                             header_txt = format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
                             if(emplhour_dict.c_o_code) { header_txt += " - " + emplhour_dict.c_o_code };
@@ -2508,20 +2524,20 @@ rowcount: 11
 
 //========= MNO_FillNotes============== PR2020-10-15
     function MNO_FillNotes (tblName, pk_int) {
-        console.log("===  MNO_FillNotes  =====") ;
+        //console.log("===  MNO_FillNotes  =====") ;
         el_MNO_note_container.innerText = null;
         const note_rows = (tblName === "emplhour") ? emplhournote_rows :
                           (tblName === "employee") ? employeenote_rows :
                           (tblName === "order") ? ordernote_rows : null;
 
-        console.log("emplhournote_rows", emplhournote_rows) ;
-        console.log("tblName", tblName) ;
-        console.log("note_rows", note_rows) ;
-        console.log("pk_int", pk_int) ;
+        //console.log("emplhournote_rows", emplhournote_rows) ;
+        //console.log("tblName", tblName) ;
+        //console.log("note_rows", note_rows) ;
+        //console.log("pk_int", pk_int) ;
         const pk_str = (pk_int) ? pk_int.toString() : null;
-        console.log("pk_str", pk_str) ;
+        //console.log("pk_str", pk_str) ;
         const note = get_dict_value(note_rows, [pk_str]);
-        console.log("note", note) ;
+        //console.log("note", note) ;
         if(note){
             const len = note.id_agg.length;
             for (let i = 0; i < len; i++) {
@@ -2580,7 +2596,7 @@ rowcount: 11
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= ModalStatusOpen========================= PR2021-02-04
     function ModalStatusOpen (el_input) {
-       console.log("===  ModalStatusOpen  =====") ;
+       //console.log("===  ModalStatusOpen  =====") ;
         // PERMISSIONS: only hrman can unlock shifts, supervisor can only lock shifts PR2020-08-05
         // supervisor can confirm / undo confirm / close shift
         // hrman can close shift / undo close shift / close all shifts of this day
@@ -2612,10 +2628,10 @@ rowcount: 11
 
             const field_is_confirmed = ( (is_field_start_conf && stat_start_conf) || (is_field_end_conf && stat_end_conf) );
 
-            console.log("emplhour_dict", emplhour_dict) ;
+            //console.log("emplhour_dict", emplhour_dict) ;
 
-            console.log("permit_lock_rows", permit_lock_rows) ;
-            console.log("stat_locked", stat_locked) ;
+            //console.log("permit_lock_rows", permit_lock_rows) ;
+            //console.log("stat_locked", stat_locked) ;
 
        //console.log("allow_open", allow_open)
             //if (allow_open) {
@@ -2663,17 +2679,17 @@ rowcount: 11
                     field_is_confirmed: field_is_confirmed,
                     stat_locked: stat_locked,
                 }
-               console.log("emplhour_dict", emplhour_dict) ;
-               console.log("mod_status_dict", mod_status_dict) ;
+               //console.log("emplhour_dict", emplhour_dict) ;
+               //console.log("mod_status_dict", mod_status_dict) ;
 
-               console.log("is_field_start_conf", is_field_start_conf) ;
-               console.log("stat_start_conf", stat_start_conf, typeof stat_start_conf) ;
-               console.log("stat_end_conf", stat_end_conf) ;
+               //console.log("is_field_start_conf", is_field_start_conf) ;
+               //console.log("stat_start_conf", stat_start_conf, typeof stat_start_conf) ;
+               //console.log("stat_end_conf", stat_end_conf) ;
 
-               console.log("overlap_abs", overlap_abs) ;
-               console.log("overlap_rest", overlap_rest) ;
-               console.log("overlap_normal", overlap_normal) ;
-               console.log("has_overlap_normal_or_abs", has_overlap_normal_or_abs) ;
+               //console.log("overlap_abs", overlap_abs) ;
+               //console.log("overlap_rest", overlap_rest) ;
+               //console.log("overlap_normal", overlap_normal) ;
+               //console.log("has_overlap_normal_or_abs", has_overlap_normal_or_abs) ;
 
                 let header_text = null, btn_save_text = loc.Confirm;
                 if (is_field_start_conf) {
@@ -2792,7 +2808,7 @@ rowcount: 11
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
-        console.log("===  ModalStatusSave =========");
+        //console.log("===  ModalStatusSave =========");
 
         const stat_locked = mod_status_dict.stat_locked;
 
@@ -2860,8 +2876,8 @@ rowcount: 11
 
 //=========  UpdateOverlap  === PR2020-05-13
     function UpdateOverlap(overlap_dict, skip_reset_all) {
-        console.log("===  UpdateOverlap == ");
-        console.log("overlap_dict", overlap_dict);
+        //console.log("===  UpdateOverlap == ");
+        //console.log("overlap_dict", overlap_dict);
         // --- lookup input field with name: fieldname
                 //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
                 // CSS.escape not supported by IE, Chrome and Safari,
@@ -3334,6 +3350,21 @@ rowcount: 11
 */
 
 
+//========= HandleFilterKeyup  ====================================
+    function HandleFilterKeyup(el, col_index, event) {
+        //console.log( "===== HandleFilterKeyup  ========= ");
+        //console.log( "col_index", col_index, "event.key", event.key);
+        // skip filter if filter value has not changed, update variable filter_text
+
+        const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
+        //console.log( "filter_dict", filter_dict);
+
+        if (!skip_filter) {
+            Filter_TableRows();
+        } //  if (!skip_filter) {
+    }; // function HandleFilterKeyup
+
+
 //========= HandleFilterImage  =============== PR2020-07-21 PR2020-09-14
     function HandleFilterImage(el_input, col_index) {
         //console.log( "===== HandleFilterImage  ========= ");
@@ -3352,22 +3383,6 @@ rowcount: 11
         Filter_TableRows();
 
     };  // HandleFilterImage
-
-
-//========= HandleFilterKeyup  ====================================
-    function HandleFilterKeyup(el, col_index, event) {
-        //console.log( "===== HandleFilterKeyup  ========= ");
-        //console.log( "col_index", col_index, "event.key", event.key);
-        // skip filter if filter value has not changed, update variable filter_text
-
-        const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
-        //console.log( "filter_dict", filter_dict);
-
-        if (!skip_filter) {
-            Filter_TableRows();
-        } //  if (!skip_filter) {
-    }; // function HandleFilterKeyup
-
 
 //========= Filter_TableRows  ====================================
     function Filter_TableRows() {  // PR2019-06-09 PR2020-08-31
@@ -3500,7 +3515,7 @@ rowcount: 11
 
 //========= UploadTblrowTimepickerResponse  ============= PR2019-10-12 PR2020-08-13
     function UploadTblrowTimepickerResponse(tp_dict) {
-        console.log("=== UploadTblrowTimepickerResponse");
+        //console.log("=== UploadTblrowTimepickerResponse");
         //console.log("tp_dict", tp_dict);
         // this function uploads TimepickerResponse from tblRow
         let upload_dict = { id: {pk: tp_dict.pk, ppk: tp_dict.ppk, table: tp_dict.table},
@@ -3540,8 +3555,8 @@ rowcount: 11
         const map_id = tp_dict.mapid;
         let tr_changed = document.getElementById(map_id)
 
-        console.log ("url_str", url_str);
-        console.log ("upload_dict", upload_dict);
+        //console.log ("url_str", url_str);
+        //console.log ("upload_dict", upload_dict);
 
         let parameters = {"upload": JSON.stringify (upload_dict)}
         let response;
@@ -3565,7 +3580,6 @@ rowcount: 11
             },
             error: function (xhr, msg) {
                 console.log(msg + '\n' + xhr.responseText);
-                //alert(msg + '\n' + xhr.responseText);
             }
         });
     }  // if("save_changes" in tp_dict) {
@@ -3578,12 +3592,12 @@ rowcount: 11
 // It also has a DOM property 'value' that holds the current value of the input  - get it with elem.value
 // see https://javascript.info/dom-attributes-and-properties
     function UploadChanges(upload_dict, url_str) {
-        console.log("=== UploadChanges");
-        console.log("url_str: ", url_str);
+        //console.log("=== UploadChanges");
+        //console.log("url_str: ", url_str);
 
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)};
-            console.log("upload_dict", upload_dict);
+            //console.log("upload_dict", upload_dict);
 
 // if delete: make tblRow red
             const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]))
@@ -3599,8 +3613,8 @@ rowcount: 11
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log("response");
-                    console.log(response);
+                    //console.log("response");
+                    //console.log(response);
 
 
                     // update EmplhourNotes must come before refresh_updated_emplhour_rows
@@ -3657,7 +3671,6 @@ rowcount: 11
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
                 }
             });
         }  //  if(!!new_item)
@@ -3697,9 +3710,9 @@ rowcount: 11
 
 //=========  refresh_updated_emplhour_row  ================ PR2020-08-14
     function refresh_updated_emplhour_row(update_dict, is_update_check) {
-        console.log(" --- refresh_updated_emplhour_row  ---");
-        console.log("is_update_check", is_update_check);
-        console.log("update_dict", deepcopy_dict(update_dict));
+        //console.log(" --- refresh_updated_emplhour_row  ---");
+        //console.log("is_update_check", is_update_check);
+        //console.log("update_dict", deepcopy_dict(update_dict));
 
 // ---  update or add emplhour_dict in emplhour_map
         const map_id = update_dict.mapid;
@@ -3710,7 +3723,7 @@ rowcount: 11
         //console.log("map_id", map_id);
         //console.log("is_created", is_created);
         //console.log("is_deleted", is_deleted);
-        console.log("emplhour_map.size before: " + emplhour_map.size);
+        //console.log("emplhour_map.size before: " + emplhour_map.size);
 
         let updated_columns = [];
         if(is_created){
@@ -3812,10 +3825,10 @@ rowcount: 11
 
 //=========  RefreshEmplhourAllowanceRows  ================ PR2021-02-10
     function RefreshEmplhourAllowanceRows(emplhourallowance_updates) {
-        console.log(" ----- RefreshEmplhourAllowanceRows  -----");
+        //console.log(" ----- RefreshEmplhourAllowanceRows  -----");
         if (emplhourallowance_updates) {
             for (const [emplhour_pk, updated_row] of Object.entries(emplhourallowance_updates)) {
-                console.log("updated_row", updated_row);
+                //console.log("updated_row", updated_row);
                 const add_icon = (!isEmpty(updated_row))
                 if(add_icon){
                     emplhourallowance_dict[emplhour_pk] = updated_row;
@@ -3824,39 +3837,39 @@ rowcount: 11
                 }
                 UpdateAllowanceIcon(emplhour_pk, updated_row, add_icon, true); // true = show_ok
         }}
-         console.log("emplhourallowance_dict", emplhourallowance_dict);
+         //console.log("emplhourallowance_dict", emplhourallowance_dict);
     } // RefreshEmplhourAllowanceRows
 
 
 
 //=========  RefreshEmplhourStatusRows  ================ PR2021-02-21
     function RefreshEmplhourStatusRows(emplhourstatus_updates) {
-        console.log(" ===  RefreshEmplhourStatusRows ===");
-        console.log("emplhourstatus_updates: ", emplhourstatus_updates);
+        //console.log(" ===  RefreshEmplhourStatusRows ===");
+        //console.log("emplhourstatus_updates: ", emplhourstatus_updates);
 
         if (emplhourstatus_rows && emplhourstatus_updates) {
             for (const [emplhour_pk, updated_row] of Object.entries(emplhourstatus_updates)) {
-        console.log("emplhour_pk: ", emplhour_pk);
-        console.log("updated_row: ", updated_row);
+        //console.log("emplhour_pk: ", emplhour_pk);
+        //console.log("updated_row: ", updated_row);
                 emplhourstatus_rows[emplhour_pk] = updated_row;
 
                 UpdateEmplhourStatusItem(emplhour_pk, updated_row, true);  // true = skip_reset_all
             }
         }
-        console.log("emplhourstatus_rows: ", emplhourstatus_rows);
+        //console.log("emplhourstatus_rows: ", emplhourstatus_rows);
     } // RefreshEmplhourStatusRows
 
 
 
 //=========  RefreshEmplhourNoteRows  ================ PR2020-10-15
     function RefreshEmplhourNoteRows(emplhournote_updates) {
-        console.log("=== RefreshEmplhourNoteRows ===");
-        console.log("emplhournote_updates", emplhournote_updates);
-        console.log("emplhournote_rows", emplhournote_rows);
+        //console.log("=== RefreshEmplhourNoteRows ===");
+        //console.log("emplhournote_updates", emplhournote_updates);
+        //console.log("emplhournote_rows", emplhournote_rows);
         if (emplhournote_rows && emplhournote_updates) {
             for (const [emplhour_pk_str, updated_row] of Object.entries(emplhournote_updates)) {
-        console.log("emplhour_pk_str: ", emplhour_pk_str, typeof emplhour_pk_str);
-        console.log("updated_row: ", updated_row);
+        //console.log("emplhour_pk_str: ", emplhour_pk_str, typeof emplhour_pk_str);
+        //console.log("updated_row: ", updated_row);
                 emplhournote_rows[emplhour_pk_str] = updated_row;
 
             }
@@ -3867,7 +3880,7 @@ rowcount: 11
 
 //=========  RefreshEmployeeNoteRows  ================ PR2021-02-16
     function RefreshEmployeeNoteRows(employeenote_updates) {
-        console.log("RefreshEmployeeNoteRows: ");
+        //console.log("RefreshEmployeeNoteRows: ");
         //console.log("employeenote_updates: ", employeenote_updates);
         if (employeenote_updates && employeenote_updates) {
             for (const [employee_pk, updated_row] of Object.entries(employeenote_updates)) {
@@ -3881,7 +3894,7 @@ rowcount: 11
 
 //=========  RefreshOrderNoteRows  ================ PR2021-02-16
     function RefreshOrderNoteRows(tblName, note_updates) {
-        console.log("RefreshOrderNoteRows: ");
+        //console.log("RefreshOrderNoteRows: ");
         //console.log("note_updates: ", note_updates);
         const note_rows = (tblName === "employeenote") ? employeenote_rows : (tblName === "ordernote") ? ordernote_rows : null;
         if (note_updates && note_rows) {
@@ -3971,8 +3984,8 @@ rowcount: 11
 
 // +++++++++  MRD_InputChange  ++++++++++++++++++++++++++++++ PR2019-11-12
     function MRD_InputChange() {
-        console.log("=== MRD_InputChange =========");
-        console.log("mod_MRD_dict", mod_MRD_dict);
+        //console.log("=== MRD_InputChange =========");
+        //console.log("mod_MRD_dict", mod_MRD_dict);
         // called when date input changed
 
 // reset mod_MRD_dict, keep 'mode'
@@ -4080,8 +4093,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 // +++++++++  MRD_Checked  ++++++++++++++++++++++++++++++ PR2019-11-13 PR2020-07-26
     function MRD_Checked(response_dict) {
-        console.log("=== MRD_Checked =========" );
-        console.log("response_dict:", response_dict );
+        //console.log("=== MRD_Checked =========" );
+        //console.log("response_dict:", response_dict );
         // response_dict: {mode: "last", value: "2019-12-19", count: 10, confirmed: 0}
         //rosterdate_check: {confirmed: 0, count: 0, mode: "check_create", rosterdate: "2021-02-21"
 
@@ -4421,8 +4434,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //=========  MRO_Save  ================ PR2020-01-29
     function MRO_Save() {
-       console.log("===  MRO_Save =========");
-       console.log( "mod_dict: ", mod_dict);
+       //console.log("===  MRO_Save =========");
+       //console.log( "mod_dict: ", mod_dict);
 
         // new orderhour and emplhour records are created in  function: create_orderhour_emplhour
         // minimum necessary parameters to create new record:
@@ -4530,8 +4543,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //=========  MSE_MSO_MRE_MRO_FillSelectTable  ================ PR2020-08-21
     function MSE_MSO_MRE_MRO_FillSelectTable(pgeName, tblName, selected_pk) {
-        console.log( "===== MSE_MSO_MRE_MRO_FillSelectTable ========= ");
-        console.log( "pgeName: ", pgeName, "tblName: ", tblName);
+        //console.log( "===== MSE_MSO_MRE_MRO_FillSelectTable ========= ");
+        //console.log( "pgeName: ", pgeName, "tblName: ", tblName);
 
         const data_map = (tblName === "customer") ? customer_map : // only used in MSO
                          (tblName === "order") ? order_map :
@@ -4579,7 +4592,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                                      );
         el_MSO_input_order.disabled = input_order_disabled
 
-        console.log( "row_count: ", row_count);
+        //console.log( "row_count: ", row_count);
 
         if(!row_count){
             let tblRow = tblBody_select.insertRow(-1);
@@ -4701,7 +4714,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 //=========  MSE_MSO_MRE_MRO_AddAllToList  ================ PR2020-08-24
     function MSE_MSO_MRE_MRO_AddAllToList(tblBody_select, pgeName, tblName){
         //console.log( "===== MSE_MSO_MRE_MRO_AddAllToList ========= ");
-       // console.log( "pgeName", pgeName);
+        //console.log( "pgeName", pgeName);
         let map_dict = {};
         if (pgeName === "MSE") {
             const ppk_int = get_dict_value(company_dict, ["id", "pk"]);
@@ -4885,8 +4898,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //=========  MRE_MRO_TimepickerOpen  ================ PR2019-10-12 PR2020-08-13
     function MRE_MRO_TimepickerOpen(el_input, pgeName, calledby) {
-        console.log("=== MRE_MRO_TimepickerOpen ===");
-        console.log("calledby", calledby);
+        //console.log("=== MRE_MRO_TimepickerOpen ===");
+        //console.log("calledby", calledby);
        // called by 'tblRow', MRE (splittime), MRO (offsetstart, offsetend, breakduration, timeduration)
 // ---  create tp_dict
         // minoffset = offsetstart + breakduration
@@ -4897,7 +4910,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         let map_id = null, pk_int = null, ppk_int = null, tblName = "emplhour";
         let is_not_locked = false, is_not_start_conf = false, is_not_end_conf = false, is_not_restshift = false;
         if (calledby === "mod_status") {
-            console.log("mod_status_dict", mod_status_dict);
+            //console.log("mod_status_dict", mod_status_dict);
             fldName = (mod_status_dict.is_field_start_conf) ? "offsetstart" : (mod_status_dict.is_field_end_conf) ? "offsetend" : null;
 
             rosterdate = mod_status_dict.rosterdate;
@@ -4918,7 +4931,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
             fldName = get_attr_from_el(el_input, "data-field")
             const map_dict = get_mapdict_from_datamap_by_id(emplhour_map, map_id);
-            console.log("map_dict", map_dict);
+            //console.log("map_dict", map_dict);
 
             pk_int = map_dict.id;
             ppk_int = map_dict.oh_id;
@@ -5003,7 +5016,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
                         show_btn_delete: show_btn_delete};
 
-        console.log("no_hours", no_hours)
+        //console.log("no_hours", no_hours)
         //console.log("fldName", fldName)
         //console.log("txt_dateheader", txt_dateheader)
         //console.log("st_dict", st_dict)
@@ -5068,9 +5081,9 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //========= MRE_MRO_TimepickerResponse  ============= PR2019-10-12
     function MRE_MRO_TimepickerResponse(tp_dict) {
-        console.log(" === MRE_MRO_TimepickerResponse ===" );
-        console.log("tp_dict", tp_dict);
-        console.log("mod_dict", deepcopy_dict(mod_dict));
+        //console.log(" === MRE_MRO_TimepickerResponse ===" );
+        //console.log("tp_dict", tp_dict);
+        //console.log("mod_dict", deepcopy_dict(mod_dict));
 
         // new value of quicksave is uploaded to server in ModTimepicker
         if("quicksave" in tp_dict) {is_quicksave = tp_dict.quicksave};
@@ -5084,10 +5097,10 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 // ---  put new_offset in mod_status_dict when called by page "mod_status"
             const called_by_page = tp_dict.page;
-        console.log("called_by_page", called_by_page);
+        //console.log("called_by_page", called_by_page);
             if(called_by_page === "mod_status"){
                 mod_status_dict.new_offset = new_offset;
-        console.log("mod_status_dict.new_offset", mod_status_dict.new_offset);
+        //console.log("mod_status_dict.new_offset", mod_status_dict.new_offset);
                 el_mod_status_time.innerText = display_offset_time (loc, new_offset, false, false);
             } else {
 
@@ -5391,7 +5404,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ++++ MOD ROSTER EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // =========  MRE_Open  ================ PR2019-06-23 PR2020-08-22
     function MRE_Open(el_input) {
-        console.log(" =========  MRE_Open  ==========")
+        //console.log(" =========  MRE_Open  ==========")
 
 // reset mod_dict
         mod_dict = {};
@@ -5411,7 +5424,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                 row_is_locked = (!!status_array[5]); // STATUS_05_LOCKED = 32
             }
 
-            console.log("map_dict", map_dict)
+            //console.log("map_dict", map_dict)
             mod_dict = {rosterdate: map_dict.rosterdate,
                         mapid: map_dict.mapid,
                         isabsence: map_dict.c_isabsence,

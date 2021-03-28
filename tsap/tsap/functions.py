@@ -5,7 +5,7 @@ from django.db import connection
 from datetime import date, time, datetime, timedelta
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.settings import TIME_ZONE
+from tsap import settings as s
 from companies import models as m
 from tsap import constants as c
 
@@ -567,7 +567,7 @@ def get_today_local_iso(request):  # PR2019-07-14
     if request.user is not None and request.user.company is not None:
 
 # get comp_timezone
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
 
 # get now without timezone
         now_utc_naive = datetime.utcnow()
@@ -3130,7 +3130,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - calculates timeduration, only when both start- and endtime have value.
     # - and takes in account daylight saving time
     # - value of row_timeduration is used when offset_start or offset_end is null (shift '6:00 hours')
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
         logger.debug('is_absence: ' + str(is_absence))
@@ -3673,7 +3673,7 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
 
 
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' =============== check_emplhour_overlap ============= ')
 

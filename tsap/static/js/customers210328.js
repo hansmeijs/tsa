@@ -982,6 +982,7 @@ let planning_list = [] // for export and printing - can replace map?
 // +++  insert header and filter row ++++++++++++++++++++++++++++++++
         let tblRow_header = tblHead_datatable.insertRow (-1);
         let tblRow_filter = tblHead_datatable.insertRow (-1);
+            tblRow_filter.setAttribute("data-filterrow", "1")
 
 // ---  create header_row, put caption in columns
         for (let j = 0, len = field_settings[tblName].field_names.length; j < len; j++) {
@@ -1001,23 +1002,22 @@ let planning_list = [] // for export and printing - can replace map?
                 th.appendChild(el_header);
             tblRow_header.appendChild(th);
 
-// ++++++++++ create filter row +++++++++++++++
-// +++ add th to tblRow_filter +++
+// +++ add th to tblFilterRow +++
             const th_filter = document.createElement("th");
-                const el_tag = (["inactive", "delete", "select"].indexOf(field_name) > -1) ? "div" : "input";
-                const el_filter = document.createElement(el_tag);
+                const field_tag = (["inactive", "delete", "select"].indexOf(field_name) > -1) ? "div" : "input";
+                const el_filter = document.createElement(field_tag);
                     el_filter.setAttribute("data-field", field_name);
                     el_filter.setAttribute("data-filtertag", filter_tag);
                     //if ([5, 7, 11].indexOf(j) > -1) {
 // --- add EventListener to el_filter
                     if (field_name === "inactive") {
-                        el_filter.addEventListener("click", function(event){HandleFilterInactive(el_filter, j)});
+                        el_filter.addEventListener("click", function(event){HandleFilterInactive(el_filter)});
         // --- add title
                         el_filter.title = (tblName === "customer") ? loc.Cick_show_inactive_customers : loc.Cick_show_inactive_orders;
         // --- add div for image inactive
-                        let el_div = document.createElement("div");
-                            el_div.classList.add("inactive_0_2")
-                            el_filter.appendChild(el_div);
+                        let el_icon = document.createElement("div");
+                            el_icon.classList.add("inactive_0_2")
+                        el_filter.appendChild(el_icon);
                         el_filter.classList.add("pointer_show");
                     } else {
                         el_filter.addEventListener("keyup", function(event){HandleFilterKeyup(el_filter, j, event.key)});
@@ -1025,6 +1025,9 @@ let planning_list = [] // for export and printing - can replace map?
                         el_filter.setAttribute("ondragstart", "return false;");
                         el_filter.setAttribute("ondrop", "return false;");
                     }
+                    el_filter.setAttribute("data-table", tblName);
+                    el_filter.setAttribute("data-colindex", j);
+
                     el_filter.classList.add(class_width, class_align, "tsa_color_darkgrey", "tsa_transparent");
                 th_filter.appendChild(el_filter);
             tblRow_filter.appendChild(th_filter);
@@ -1069,7 +1072,6 @@ let planning_list = [] // for export and printing - can replace map?
                 // was: const add_Row = (selected_btn !== "order" || !selected_customer_pk || (selected_customer_pk && ppk_int === selected_customer_pk) );
 
                 if (add_Row){
-                // CreateTblRow(tblBody, tblName, pk_str, ppk_str, is_addnew_row, data_customer_pk)
                     let tblRow = CreateTblRow(tblName, map_id, map_dict, -1);
                     UpdateTableRow(tblRow, map_dict)
 // --- highlight selected row
@@ -1084,8 +1086,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  CreateTblRow  ================ PR2019-09-04 PR2020-08-25
     function CreateTblRow(tblName, map_id, map_dict, row_index) {
-       //console.log("=========  CreateTblRow =========");
-       //console.log("tblName: ", tblName);
+       console.log("=========  CreateTblRow =========");
+       console.log("tblName: ", tblName);
 
         let tblRow = null;
         if(field_settings[tblName]){
@@ -1115,6 +1117,7 @@ let planning_list = [] // for export and printing - can replace map?
 // --- add background image 'inactive_0_2' to element 'inactive'
                 if(field_name === "inactive"){
                     el_div.classList.add("inactive_0_2")
+                    el_div.classList.add("pointer_show")
                 }
 // --- add event listeners
                 if (field_name === "select") {
@@ -1143,9 +1146,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateTableRow  =============  PR2020-08-25
     function UpdateTableRow(tblRow, map_dict){
-        //console.log(" =====  UpdateTableRow  =====");
-        //console.log("map_dict", map_dict);
-        //console.log("tblRow", tblRow);
+        console.log(" =====  UpdateTableRow  =====");
+        console.log("map_dict", map_dict);
+        console.log("tblRow", tblRow);
 
         if (tblRow && !isEmpty(map_dict)) {
         // ---  set tblRow attr data-inactive, hide tblRow when inactive and filter_inactive
@@ -1165,9 +1168,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateField  ============= PR2019-10-09 PR2020-08-25
     function UpdateField(el_div, map_dict) {
-        //console.log("========= UpdateField  ========= ");
-        //console.log("el_div ", el_div);
-        //console.log("map_dict ", map_dict);
+        console.log("========= UpdateField  ========= ");
+        console.log("el_div ", el_div);
+        console.log("map_dict ", map_dict);
 
         if(el_div){
             const fldName = get_attr_from_el(el_div, "data-field");
@@ -1503,7 +1506,7 @@ let planning_list = [] // for export and printing - can replace map?
         console.log( " ==== UploadChanges ====");
         if(!!upload_dict) {
             console.log("url_str: ", url_str );
-            console.log("upload_dict: ", upload_dict);
+            console.log("??????? upload_dict: ", deepcopy_dict(upload_dict));
             const parameters = {"upload": JSON.stringify (upload_dict)};
             let response = "";
             $.ajax({
@@ -1548,22 +1551,23 @@ let planning_list = [] // for export and printing - can replace map?
         }
     } // RefreshMap
 
-// =====  RefreshMapItem  =====  PR2020-08-26
+// =====  RefreshMapItem  =====  PR2020-08-26 PR2021-03-22
     function RefreshMapItem(tblName, updated_dict) {
-        //console.log(" =====  RefreshMapItem  =====");
-       // console.log("updated_dict", updated_dict);
+        console.log(" =====  RefreshMapItem  =====");
+        console.log("updated_dict", updated_dict);
 
 // ---  update or add order_dict in customer_map / order_map
         const map_id = updated_dict.mapid;
         const data_map = (tblName === "customer") ? customer_map : order_map;
         const old_map_dict = data_map.get(map_id);
-        //console.log("old_map_dict", old_map_dict);
+        console.log("old_map_dict", old_map_dict);
 
         const is_deleted = updated_dict.deleted;
         const is_created = ( (!is_deleted) && (isEmpty(old_map_dict)) );
 
         let updated_columns = [];
-        //console.log("data_map.size before: " + data_map.size);
+        console.log("data_map.size before: " + data_map.size);
+
         if(is_created){
 // ---  add new item to map
             data_map.set(map_id, updated_dict)
@@ -1589,8 +1593,8 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  update item in data_map
             data_map.set(map_id, updated_dict)
         }
-        //console.log("data_map.size after: " + data_map.size);
-        //console.log("updated_columns", updated_columns);
+        console.log("data_map.size after: " + data_map.size);
+        console.log("updated_columns", updated_columns);
 
 /////////////////////////////////////////
 // +++  create tblRow when is_created, only when selected btn equals tblName;
@@ -1598,6 +1602,7 @@ let planning_list = [] // for export and printing - can replace map?
             let tblRow = null;
             if(is_created){
 
+        console.log("is_created", is_created);
         // get row_index
                 // get_excelstart_from_order_dict is needed to give value to excelstart when excelstart is null
                 const search_code = updated_dict.c_o_code;
@@ -1605,7 +1610,6 @@ let planning_list = [] // for export and printing - can replace map?
                 let row_index = 0 //get_rowindex_by_code_excelstart(search_code, search_excelstart);
 
         // add new tablerow if it does not exist
-                //  CreateTblRow(map_id, map_dict, row_index, is_new_item, new_exceldatetime)
                 tblRow = CreateTblRow(tblName, map_id, updated_dict, row_index);
                 UpdateTableRow(tblRow, updated_dict)
 
@@ -1744,21 +1748,20 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MFC_Save  ================  PR2020-06-14
     function MFC_Save(crud_mode) {
-        //console.log(" -----  MFC_save  ----", crud_mode);
-        //console.log( "mod_dict: ", mod_dict);
+        console.log(" -----  MFC_save  ----", crud_mode);
+        console.log( "mod_dict: ", mod_dict);
         const is_delete = (crud_mode === "delete")
-        let upload_dict = {id: {table: 'customer' } }
+        let upload_dict = {table: 'customer', ppk: mod_dict.comp_id}
 
-        upload_dict.id.ppk = mod_dict.ppk;
         if(mod_dict.create) {
-            upload_dict.id.create = true;
-            upload_dict.id.ppk = mod_dict.comp_id;
+            upload_dict.create = true;
         } else {
-            upload_dict.id.pk = mod_dict.id;
-            upload_dict.id.ppk = mod_dict.comp_id;
-            upload_dict.id.mapid = mod_dict.mapid;
-            if(is_delete) {upload_dict.id.delete = true}
+            upload_dict.pk = mod_dict.id;
+            upload_dict.mapid = mod_dict.mapid;
+            if(is_delete) {upload_dict.delete = true}
         }
+
+        const tblRow = document.getElementById(mod_dict.mapid);
 // ---  put changed values of input elements in upload_dict
         let form_elements = document.getElementById("id_MFC_input_container").querySelectorAll(".tsa_input_text")
         for (let i = 0, el_input; el_input = form_elements[i]; i++) {
@@ -1766,10 +1769,9 @@ let planning_list = [] // for export and printing - can replace map?
             let new_value = (el_input.value) ? el_input.value : null;
             const old_value = get_dict_value(mod_dict, [fldName]);
             if (new_value !== old_value) {
-                upload_dict[fldName] = {value: new_value, update: true}
+                upload_dict[fldName] = new_value;
 
 // put changed new value in tblRow before uploading
-                const tblRow = document.getElementById(mod_dict.mapid);
                 if(tblRow){
                     const el_tblRow = tblRow.querySelector("[data-field=" + fldName + "]");
                     if(el_tblRow){el_tblRow.innerText = new_value };
@@ -1938,7 +1940,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
         if(selected_element){set_focus_on_el_with_timeout(selected_element, 50)}
 // ---  validate input and disable save button
-        MFC_validate_and_disable();
+        MFO_validate_and_disable();
 // ---  show modal
         $("#id_mod_form_order").modal({backdrop: true});
     }  // MFO_Open
@@ -1947,15 +1949,28 @@ let planning_list = [] // for export and printing - can replace map?
     function MFO_Save(crud_mode) {
         console.log( "===== MFO_save ========= ");
         console.log( "mod_dict: ", mod_dict);
-        const is_delete = (crud_mode === "delete")
-        let upload_dict = {id: {ppk: mod_dict.c_id,
-                                table: 'order'} }
+
+        const is_delete = (crud_mode === "delete");
+        const tblName = "order";
+
+// ---  create upload_dict
+        // PR2021-03-21 isabsence: false is hardcoeded on server, no need to add to upload_dict, but let it stay
+        const upload_dict = {
+            isabsence: false,
+            table: tblName,
+            ppk: mod_dict.c_id
+        };
+
         if(mod_dict.create) {
-            upload_dict.id.create = true;
+            upload_dict.create = true;
         } else {
-            upload_dict.id.pk = mod_dict.id;
-            if(is_delete) {upload_dict.id.delete = true}
+            upload_dict.pk = mod_dict.id;
+            upload_dict.mapid = mod_dict.mapid;  // mapid = "order_27"
+            if(is_delete) {
+                upload_dict.delete = true
+            }
         }
+
 // ---  put changed values of input elements in upload_dict
         let form_elements = document.getElementById("id_MFO_input_container").querySelectorAll(".form-control")
         for (let i = 0, el_input; el_input = form_elements[i]; i++) {
@@ -1965,18 +1980,19 @@ let planning_list = [] // for export and printing - can replace map?
                 let new_value = (el_input.value) ? el_input.value : null;
                 const old_value = get_dict_value(mod_dict, [fldName]);
                 if (new_value !== old_value) {
-                    upload_dict[fldName] = {value: new_value, update: true}
+                    upload_dict[fldName] = new_value;
                 };
             }
         };
+
         // modal is closed by data-dismiss="modal"
         UploadChanges(upload_dict, url_customer_upload);
     }  // MFO_Save
 
-//=========  MFO_validate_and_disable  ================  PR2020-08-25
-    function MFO_validate_and_disable(el_input) {
-        //console.log(" -----  MFC_validate_and_disable   ----")
-
+//=========  MFO_validate_and_disable  ================  PR2020-08-25  PR2021-03-22
+    function MFO_validate_and_disable() {
+        console.log(" -----  MFO_validate_and_disable   ----")
+        // TODO make function smoother, like MFE_validate_and_disable in employees.js
 // ---  dont_show_err_msg when opened in addnew mode
         const dont_show_err_msg = mod_dict.dont_show_err_msg
         mod_dict.dont_show_err_msg = false;
@@ -2011,6 +2027,10 @@ let planning_list = [] // for export and printing - can replace map?
                 }
             }
         };
+
+// ---  set min max date of date fieds, remove when blank PR2021-03-22
+        add_or_remove_attr (el_MFO_input_datefirst, "max", (!!el_MFO_input_datelast.value), el_MFO_input_datelast.value);
+        add_or_remove_attr (el_MFO_input_datelast, "min", (!!el_MFO_input_datefirst.value), el_MFO_input_datefirst.value);
 
 // set header text
         let header_text = null;
@@ -4754,8 +4774,8 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-06-23 PR2020-08-26
     function ModConfirmOpen(mode, tblName, el_input) {
-        //console.log(" -----  ModConfirmOpen   ----")
-        //console.log("mode", mode, "tblName", tblName)
+        console.log(" -----  ModConfirmOpen   ----")
+        console.log("mode", mode, "tblName", tblName)
         // values of mode are : "delete", "inactive"
         if(!tblName) { tblName = selected_btn };
 
@@ -4852,20 +4872,20 @@ let planning_list = [] // for export and printing - can replace map?
 
         let tblRow = document.getElementById(mod_dict.mapid);
 
-        let upload_dict = {id: {pk: mod_dict.pk,
-                                ppk: mod_dict.ppk,
-                                mapid: mod_dict.mapid,
-                                table: mod_dict.table}
+        let upload_dict = {pk: mod_dict.pk,
+                           ppk: mod_dict.ppk,
+                           mapid: mod_dict.mapid,
+                           table: mod_dict.table
                            };
 
 // ---  when delete: make tblRow red, before uploading
         if (mod_dict.mode === "delete"){
-            upload_dict.id.delete = true
+            upload_dict.delete = true
             ShowErrorRow(tblRow, cls_selected )
         } else if (mod_dict.mode === "inactive"){
 // toggle inactive
             mod_dict.inactive = !mod_dict.inactive;
-            upload_dict.inactive = {value: mod_dict.inactive, update: true};
+            upload_dict.inactive = mod_dict.inactive;
             // change inactive icon, before uploading
 // ---  toggle inactive icon, before uploading
             let el_input = tblRow.querySelector("[data-field=inactive]");
@@ -4926,15 +4946,20 @@ let planning_list = [] // for export and printing - can replace map?
         }  //  if (!!tblName){
     }  // function ResetFilterRows
 
-//========= HandleFilterInactive  =====  PR2020-08-30
-    function HandleFilterInactive(el_input, index) {
+//========= HandleFilterInactive  =====  PR2020-08-30 PR2021-03-22
+    function HandleFilterInactive(el_filter) {
         console.log( "===== HandleFilterInactive  ========= ");
 
-        filter_inactive = !filter_inactive;
-        const el_img = el_input.children[0];
-        add_or_remove_class(el_img, "inactive_0_2", filter_inactive, "inactive_1_3")
+        // PR2020-09-03 debug: col_index as parameter doesn't work, keeps giving highest col_index. Use data-colindex instead
+        const col_index = get_attr_from_el_int(el_filter, "data-colindex")
+        const skip_filter = t_SetExtendedFilterDict(el_filter, col_index, filter_dict, event.key);
+        const [key, value] = (filter_dict && filter_dict[col_index]) ? filter_dict[col_index] : "";
 
-        Filter_TableRows();
+        if(key === "inactive"){
+            el_filter.children[0].className = (value) ? "inactive_1_3" : "inactive_0_2";
+            filter_inactive = (!value);
+            Filter_TableRows();
+        }
     };
 
 //========= HandleFilterKeyup  =====  PR2020-08-27
@@ -5022,9 +5047,10 @@ let planning_list = [] // for export and printing - can replace map?
                     const filter_arr = filter_dict[index_str];
                     const filter_tag = filter_arr[0];
                     const filter_value = filter_arr[1];
-                    console.log( "filter_arr", filter_arr, typeof filter_arr);
-                    console.log( "filter_tag", filter_tag, typeof filter_tag);
-                    console.log( "filter_value", filter_value, typeof filter_value);
+
+                    //console.log( "filter_arr", filter_arr, typeof filter_arr);
+                    //console.log( "filter_tag", filter_tag, typeof filter_tag);
+                    //console.log( "filter_value", filter_value, typeof filter_value);
 
                     if(filter_tag === "text"){
                         const filter_blank = (filter_value ==="#")
@@ -5075,9 +5101,6 @@ let planning_list = [] // for export and printing - can replace map?
     }; // function ShowTableRow_dict
 
 // +++++++++++++++++ END FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-////////////////////////////////
 
 
 //========= HandleSelect_Filter  ====================================

@@ -1,5 +1,5 @@
 # PR2019-03-01
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.conf.urls import url
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
@@ -102,10 +102,20 @@ urlpatterns = [
     path('signup/', account_views.SignupView.as_view(), name='signup'),
     path('signup_upload/', account_views.SignupUploadView.as_view(), name='signup_upload_url'),
     # dont know yet how to do signup_activate with path PR2020-04-01
-   # url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-   #     account_views.SignupActivate, name='signup_activate_url'),
-    url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-        account_views.SignupActivateView, name='signup_activate_url'),
+    # url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+    #     account_views.SignupActivate, name='signup_activate_url'),
+
+    # PR2021-03-24 debug. After upgrading to django 3 this error came up:
+    # Reverse for 'signup_activate_url' not found.
+    #  from https://www.reddit.com/r/django/comments/jgmbz7/trying_to_resolve_noreversematcherror_for/
+    # solved with https://learndjango.com/tutorials/django-password-reset-tutorial
+    # solved by changing 'url' with 'path'
+    # was:
+    # url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+    #    account_views.SignupActivateView, name='signup_activate_url'),
+
+    path('signup_activate/<uidb64>/<token>/', account_views.SignupActivateView, name='signup_activate_url'),
+
 
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         account_views.UserActivate, name='activate_url'),

@@ -14,14 +14,13 @@ from operator import itemgetter
 
 from companies.views import LazyEncoder
 
+from tsap import settings as s
 from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as pld
 
 from planning import employeeplanning as emplan
 from companies import subscriptions as subscr
-
-from tsap.settings import TIME_ZONE
 
 from companies import models as m
 
@@ -878,7 +877,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26 revised PR2020-11-08
             activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             interval = request.user.company.interval if request.user.company.interval else 15
 
@@ -1192,7 +1191,7 @@ def FillRosterdate(rosterdate_iso, rosterdate_dte, comp_timezone, user_lang, req
 def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                            employee_dictlist, wagecode_dictlist, default_wagefactor_pk, tm_si_id_info,
                            comp_timezone, request):  # PR2020-01-5 PR2020-08-14 PR2021-02-21
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' ============= add_orderhour_emplhour ============= ')
         #logger.debug('row ' + str(row) + ' type: ' + str(type(row)))

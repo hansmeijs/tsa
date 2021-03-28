@@ -142,7 +142,7 @@ class CompanyAddView(CreateView):
             self.new_company.save(request=self.request)
 
             # create special customers and orders
-            get_or_create_absence_customer(request)
+            get_or_create_absence_customer(logging_on, request)
             get_or_create_template_order(request)
 
             return redirect('company_list_url')
@@ -227,7 +227,7 @@ class InvoiceAddView(CreateView):
             self.new_company.save(request=self.request)
 
             # TODO create absence customer after adding company
-            # get_or_create_absence_customer(request)
+            # get_or_create_absence_customer(logging_on, equest)
 
 
             return redirect('company_list_url')

@@ -173,7 +173,13 @@ class UserAddView(CreateView):
                     'domain': current_site.domain,
                     # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
                     # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+
+                    # PR2021-03-24 debug. Gave error: 'str' object has no attribute 'decode'
+                    # apparently force_bytes(user.pk) returns already a string, no need for decode() any more
+                    # from https://stackoverflow.com/questions/28583565/str-object-has-no-attribute-decode-python-3-error
+                    # was: 'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)),
+
                     'token': account_activation_token.make_token(new_user),
                 })
                 #logger.debug('UserAddView post subject: ' + str(subject))
@@ -715,7 +721,13 @@ class SignupUploadView(View):
                     'domain': current_site.domain,
                     # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
                     # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+
+                    # PR2021-03-24 debug. Gave error: 'str' object has no attribute 'decode'
+                    # apparently force_bytes(user.pk) returns already a string, no need for decode() any more
+                    # from https://stackoverflow.com/questions/28583565/str-object-has-no-attribute-decode-python-3-error
+                    # was: 'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)),
+
                     'token': account_activation_token.make_token(new_user),
                 })
                 # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
@@ -742,8 +754,8 @@ class SignupUploadView(View):
 
 # === SignupActivateView ===================================== PR2020-04-01
 def SignupActivateView(request, uidb64, token):
-    #logger.debug('  === SignupActivateView =====')
-    #logger.debug('request: ' + str(request))
+    logger.debug('  === SignupActivateView =====')
+    logger.debug('request: ' + str(request))
 
     # SignupActivateView is called when user clicks on link 'Activate your TSA-secure account'
     # it returns the page 'signup_setpassword'
@@ -858,8 +870,10 @@ class UserUploadView(View):
     #  when ok: it also sends an email to the user
 
     def post(self, request):
-        #logger.debug('  ')
-        #logger.debug(' ========== UserUploadView ===============')
+        logging_on = settings.LOGGING_ON
+        if logging_on:
+            logger.debug('  ')
+            logger.debug(' ========== UserUploadView ===============')
 
         update_wrap = {}
         err_dict = {}
@@ -869,7 +883,8 @@ class UserUploadView(View):
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                if logging_on:
+                    logger.debug('upload_dict: ' + str(upload_dict))
 
                 # upload_dict: {'mode': 'validate', 'company_pk': 3, 'pk_int': 114, 'user_ppk': 3,
                 # 'employee_pk': None, 'employee_code': None, 'username': 'Giterson_Lisette', 'last_name': 'Lisette Sylvia enzo Giterson', 'email': 'hmeijs@gmail.com'}
@@ -1079,6 +1094,11 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
 
             current_site = get_current_site(request)
 
+            new_uid = urlsafe_base64_encode(force_bytes(new_user.pk))
+            new_token = account_activation_token.make_token(new_user)
+            logger.debug('new_uid: ' + str(new_uid))
+            logger.debug('new_token: ' + str(new_token))
+
             # -  send email 'Activate your account'
             subject = 'Activate your TSA-secure account'
             from_email = 'TSA-secure <noreply@tsasecure.com>'
@@ -1087,7 +1107,16 @@ def create_or_validate_user_instance(upload_dict, user_pk, is_validate_only, use
                 'domain': current_site.domain,
                 # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
                 # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+
+                # PR2021-03-24 debug. Gave error: 'str' object has no attribute 'decode'
+                # apparently force_bytes(user.pk) returns already a string, no need for decode() any more
+                # from https://stackoverflow.com/questions/28583565/str-object-has-no-attribute-decode-python-3-error
+
+                # PR2021-03-24 debug. Gave error: 'str' object has no attribute 'decode'
+                # apparently force_bytes(user.pk) returns already a string, no need for decode() any more
+                # from https://stackoverflow.com/questions/28583565/str-object-has-no-attribute-decode-python-3-error
+                # was: 'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                'uid': urlsafe_base64_encode(force_bytes(new_user.pk)),
                 'token': account_activation_token.make_token(new_user),
             })
             # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
@@ -1242,7 +1271,8 @@ def resend_activation_email(user_pk, update_wrap, err_dict, request):
 
 # -  send email 'Activate your account'
         if not has_error:
-            try:
+            #try:
+            if True:
                 subject = 'Activate your TSA-secure account'
                 from_email = 'TSA-secure <noreply@tsasecure.com>'
                 message = render_to_string('signup_activation_email.html', {
@@ -1250,7 +1280,11 @@ def resend_activation_email(user_pk, update_wrap, err_dict, request):
                     'domain': current_site.domain,
                     # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
                     # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                    # PR2021-03-24 debug. Gave error: 'str' object has no attribute 'decode'
+                    # apparently force_bytes(user.pk) returns already a string, no need for decode() any more
+                    # from https://stackoverflow.com/questions/28583565/str-object-has-no-attribute-decode-python-3-error
+                    # was: 'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                     'token': account_activation_token.make_token(user),
                 })
                 # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
@@ -1267,9 +1301,9 @@ def resend_activation_email(user_pk, update_wrap, err_dict, request):
 
                     update_wrap['msg_ok'] = {'msg01': msg01, 'msg02': msg02, 'msg03': msg03}
 
-            except:
-                err_dict['msg01'] = _('An error occurred.')
-                err_dict['msg0'] = _('The activation email has not been sent.')
+            #except:
+            #    err_dict['msg01'] = _('An error occurred.')
+            #    err_dict['msg0'] = _('The activation email has not been sent.')
 
 # - reset expiration date by setting the field 'date_joined', to now
         if not has_error:

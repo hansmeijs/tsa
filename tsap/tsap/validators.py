@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.db.models.functions import Upper, Lower
 
 from django.utils.translation import ugettext_lazy as _
 from django.core.validators import validate_email
@@ -250,7 +249,7 @@ class validate_unique_employee_name(object):  # PR2019-03-15
         return value
 
 
-def validate_code_name_identifier(table, field, new_value, is_absence, parent, update_dict, msg_dict, request, this_pk=None):
+def validate_code_name_identifier(table, field, new_value, is_absence, parent, request, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30 PR2020-06-14
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
@@ -374,16 +373,6 @@ def validate_code_name_identifier(table, field, new_value, is_absence, parent, u
                 else:
                     msg_err = _("%(fld)s '%(val)s' already exists.") % {'fld': fld, 'val': new_value}
 
-    #logger.debug('msg_err: ' + str(msg_err))
-    if msg_err:
-        # empty update_dict {} is Falsey
-        if update_dict:
-            if field not in update_dict:
-                update_dict[field] = {}
-            update_dict[field]['error'] = msg_err
-        elif msg_dict:
-            update_dict['err_' + field] = msg_err
-
     return msg_err
 
 
@@ -469,20 +458,72 @@ def validate_employee_has_emplhours(instance):
     if instance:
         has_emplhours = m.Emplhour.objects.filter(employee=instance).exists()
         if has_emplhours:
-            msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
+            fld = _('Employee')
+            art_fld = _('the employee')
+            children = _('shifts')
+            # msg_err is HTML
+            msg_err = '<br>'.join((str(_("%(fld)s '%(name)s' has %(chld)s and cannot be deleted.") % {'fld': fld, 'name': instance.code, 'chld': children}),
+                        str(_("You can make %(fld)s inactive instead.")  % {'fld': art_fld})))
     return msg_err
 
 
-def validate_order_has_emplhours(order, update_dict, is_abscat):
-    # validate if order has emplhour records PR2020-06-10
-    has_emplhours = False
+def validate_customer_has_emplhours_or_schemes(customer):
+    # validate if customer has emplhour records or scheme records PR2021-03-21
+    # not for absence customer, absence customer cannot be deleted
+    msg_err = None
+    if customer:
+        # check only for orderhour, every orderhour should have at least one emplhour
+        has_emplhours = m.Orderhour.objects.filter(order__customer=customer).exists()
+        # check for schemes
+        has_schemes = m.Scheme.objects.filter(order__customer=customer).exists()
+        if has_emplhours or has_schemes:
+            if has_emplhours and has_schemes:
+                children = 'schemes and roster shifts'
+            elif has_schemes:
+                children = 'schemes'
+            else:
+                children = 'roster shifts'
+
+            fld = _('Customer')
+            art_fld = _('the customer')
+            # msg_err is HTML
+            msg_err = '<br>'.join((str(_("%(fld)s '%(name)s' has %(chld)s and cannot be deleted.") % {'fld': fld, 'name': customer.code, 'chld': children}),
+                        str(_("You can make %(fld)s inactive instead.")  % {'fld': art_fld})))
+
+    return msg_err
+
+
+def validate_order_has_emplhours_or_schemes(order, is_abscat):
+    # validate if order has emplhour records or scheme records PR2020-06-10 PR2021-03-21
+
+    msg_err = None
     if order:
-        has_emplhours = m.Emplhour.objects.filter(orderhour__order=order).exists()
-        if has_emplhours:
+        # check only for orderhour, every orderhour should have at least one emplhour
+        has_emplhours = m.Orderhour.objects.filter(order=order).exists()
+        # check for schemes
+        has_schemes = m.Scheme.objects.filter(order=order).exists()
+        if has_emplhours or has_schemes:
             field = _('Absence category') if is_abscat else _('Order')
-            msg_err = _("%(fld)s '%(tbl)s' has shifts and cannot be deleted.") % {'fld': field, 'tbl': order.code}
-            update_dict['id']['error'] = msg_err
-    return has_emplhours
+            art_field = _('the absence category') if is_abscat else _('the order')
+            if is_abscat:
+                if has_emplhours and has_schemes:
+                    children = _('planned- and roster absence')
+                elif has_schemes:
+                    children = _('planned absence')
+                else:
+                    children = _('roster absence')
+            else:
+                if has_emplhours and has_schemes:
+                    children = 'schemes and roster shifts'
+                elif has_schemes:
+                    children = 'schemes'
+                else:
+                    children = 'roster shifts'
+            # msg_err is HTML
+            msg_err = '<br>'.join((str(_("%(fld)s '%(tbl)s' has %(chld)s and cannot be deleted.")
+                                       % {'fld': field, 'tbl': order.code, 'chld': children}),
+                                str(_("You can make %(fld)s inactive instead.")  % {'fld': art_field})))
+    return msg_err
 
 
 def check_date_overlap(datefirst, datelast, datefirst_is_updated):

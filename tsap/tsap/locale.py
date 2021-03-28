@@ -154,6 +154,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
     dict['err_msg_must_be_percentage_greater_than_or_equal_to'] = TXT_err_msg_must_be_percentage_greater_than_or_equal_to
 
     dict['An_error_occurred'] = TXT_err_msg_error
+    dict['Item_cannot_be_deleted'] = _('Item cannot be deleted')
+
 
 # ====== PAGE UPLOAD =========================
     if page == 'upload':
@@ -220,6 +222,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['This_employee'] = TXT_This_employee
         dict['Add_employee'] = TXT_Add_employee
         dict['Delete_employee'] = TXT_Delete_employee
+        dict['Employee_cannot_be_deleted'] = _('Employee cannot be deleted.')
 
         dict['Replacement_employee'] = TXT_Replacement_employee
         dict['Replacement_employees'] = TXT_Replacement_employees
@@ -347,6 +350,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Add_abscat'] = TXT_Add_abscat
         dict['Delete_abscat'] = TXT_Delete_abscat
+
+        dict['Absence_category_cannot_be_deleted'] = _('Absence category cannot be deleted')
+
         dict['Make_abscat_inactive'] = TXT_Make_abscat_inactive
         dict['Make_abscat_active'] = TXT_Make_abscat_active
 
@@ -605,7 +611,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['No_order_selected'] = TXT_No_order_selected
 
         dict['Rosterdate'] = TXT_Rosterdate
-        # dict['Identifier'] = TXT_Identifier
+        dict['Identifier'] = TXT_Identifier
 
         dict['Projectcode'] = _('Project code')
         dict['Customercode'] = _('Customer code')

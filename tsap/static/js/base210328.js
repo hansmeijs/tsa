@@ -160,7 +160,10 @@ PR2021-03-09 error after switching to Django 3.1:
 //========= b_reset_tblHead_filterRow  ============= PR2020-06-20 PR2020-09-21
     function b_reset_tblHead_filterRow(tblHead) {
         if(tblHead){
-            let filterRow = tblHead.rows[1];
+            // PR2021-03-22 TODO: add data-filterrow to all filterrows
+            let filterRow = tblHead.querySelector("[data-filterrow='1']");
+            if(!filterRow) {filterRow = tblHead.rows[1];}
+
             if(filterRow){
                 for (let j = 0, cell, el ; cell = filterRow.cells[j]; j++) {
                     el = cell.children[0];
@@ -287,7 +290,7 @@ PR2021-03-09 error after switching to Django 3.1:
 
 //========= b_set_status_bool_at_index  ============= PR2021-01-15
     function b_set_status_bool_at_index(status_sum, index, new_value) {
-        console.log( " ==== b_set_status_bool_at_index ====");
+        //console.log( " ==== b_set_status_bool_at_index ====");
 
         if(status_sum == null){status_sum = 0};
         let new_status_sum = 0;
@@ -1938,29 +1941,6 @@ PR2021-03-09 error after switching to Django 3.1:
         //console.log( "el_datefirst: ", el_datefirst);
         }
     }  // set_other_datefield_minmax
-
-
-
-//###########################################################################
-// ================ MODAL FUNCTIONS ========================
-
-
-
-// --- ModConfirm_Message---------------------------------- PR2020-08-11
-    function ModConfirm_Message(loc, hdr_text, msg01_txt, msg02_txt, msg03_txt){
-    // ---  show modal confirm with message 'First select employee'
-            document.getElementById("id_confirm_header").innerText = (hdr_text) ? hdr_text : null
-            document.getElementById("id_confirm_msg01").innerText =  (msg01_txt) ? msg01_txt : null
-            document.getElementById("id_confirm_msg02").innerText = (msg02_txt) ? msg02_txt : null
-            document.getElementById("id_confirm_msg03").innerText = (msg03_txt) ? msg03_txt : null
-
-            document.getElementById("id_confirm_btn_save").classList.add(cls_hide);
-            const el_btn_cancel = document.getElementById("id_confirm_btn_cancel");
-            el_btn_cancel.innerText = loc.Close;
-            setTimeout(function() {el_btn_cancel.focus()}, 50);
-
-            $("#id_mod_confirm").modal({backdrop: true});
-    }
 
 //###########################################################################
 // +++++++++++++++++ VALIDATORS ++++++++++++++++++++++++++++++++++++++++++++++++++
