@@ -2984,16 +2984,16 @@ function HandleExpand(mode){
 
 //========= MSIO_AddRemoveCustomer  ============= PR2021-03-29
     function MSIO_AddRemoveCustomer(tblName, el_div){
-        console.log( "===== MSIO_AddRemoveCustomer  ========= ");
+        //console.log( "===== MSIO_AddRemoveCustomer  ========= ");
 
         const listname = (mod_MSIO_dict.sel_listname) ? mod_MSIO_dict.sel_listname : "no_list_sys"
         const sel_customers = mod_MSIO_dict.lists[listname].cl;
         const sel_orders = mod_MSIO_dict.lists[listname].ol;
 
         const cust_pk_int = get_attr_from_el_int(el_div, "data-cust_pk");
-        console.log( "cust_pk_int", cust_pk_int);
-        console.log( "sel_customers", sel_customers);
-        console.log( "sel_orders", sel_orders);
+        //console.log( "cust_pk_int", cust_pk_int);
+        //console.log( "sel_customers", sel_customers);
+        //console.log( "sel_orders", sel_orders);
 
         if(tblName === "tbl_available") {
             // add  this customer to mod_MSIO_dict.sel_customers
@@ -3013,7 +3013,7 @@ function HandleExpand(mode){
 
 //========= MSIO_AddRemoveOrder  ============= PR2021-03-29
     function MSIO_AddRemoveOrder(tblName, el_div){
-        console.log( "===== MSIO_AddRemoveOrder  ========= ");
+        //console.log( "===== MSIO_AddRemoveOrder  ========= ");
 
         const listname = (mod_MSIO_dict.sel_listname) ? mod_MSIO_dict.sel_listname : "no_list_sys"
         const order_pk_int = get_attr_from_el_int(el_div, "data-ordr_pk");
@@ -3054,7 +3054,7 @@ function HandleExpand(mode){
 
 //========= MSIO_RemoveCustomerFromSel_customers  ============= PR2021-03-31
     function MSIO_RemoveCustomerFromSel_customers(sel_customers, sel_orders, cust_pk_int) {
-        console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
+        //console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
 // ---  remove this customer from sel_customers
         if(sel_customers.includes(cust_pk_int)) {
              for (let i = 0, sel_pk_int; sel_pk_int = sel_customers[i]; i++) {
@@ -3078,7 +3078,7 @@ function HandleExpand(mode){
 
 //========= MSIO_AddOrderToSel_orders  ============= PR2021-03-31
     function MSIO_AddOrderToSel_orders(listname, cust_pk_int, order_pk_int) {
-        console.log( "===== MSIO_AddOrderToSel_orders  ========= ");
+        //console.log( "===== MSIO_AddOrderToSel_orders  ========= ");
 
         if(cust_pk_int && order_pk_int){
             const sel_customers = mod_MSIO_dict.lists[listname].cl;
@@ -3110,7 +3110,7 @@ function HandleExpand(mode){
 
 //========= MSIO_RemoveOrderFromSel_orders  ============= PR2021-03-31
     function MSIO_RemoveOrderFromSel_orders(listname, cust_pk_int, order_pk_int) {
-        console.log( "===== MSIO_RemoveOrderFromSel_orders  ========= ");
+        //console.log( "===== MSIO_RemoveOrderFromSel_orders  ========= ");
 
         if(cust_pk_int && order_pk_int){
             const sel_customers = mod_MSIO_dict.lists[listname].cl;
@@ -3141,8 +3141,8 @@ function HandleExpand(mode){
 
 //========= MSIO_SetHref  ============= PR2021-03-30
     function MSIO_SetHref(){
-        console.log( "===== MSIO_SetHref  ========= ");
-        console.log("mod_MSIO_dict", mod_MSIO_dict)
+        //console.log( "===== MSIO_SetHref  ========= ");
+        //console.log("mod_MSIO_dict", mod_MSIO_dict)
 
         // put orderlist as argument in in href
         // format href:   list_tobe_printed | list % list % list   | name % name % name
@@ -3152,10 +3152,7 @@ function HandleExpand(mode){
         //  <lists with cust and orders >
 
 // +++  add list_tobe_printed
-
         const list_dict = MSIO_SetHref_AddList();
-        console.log("list_dict", list_dict)
-
         let href_str = JSON.stringify(list_dict)
 
         if (href_str){
@@ -3163,9 +3160,8 @@ function HandleExpand(mode){
             el_MSIO_btn_save.setAttribute("href", href)
         }
 
-        console.log( "href_str", href_str);
+        //console.log( "href_str", href_str);
     }  // MSIO_SetHref
-
 
 //========= function replaceCharacters  ====================================
     function replaceCharacters(value){
@@ -3181,7 +3177,6 @@ function HandleExpand(mode){
         }
         return newValue;
     }
-
 
 //========= MSIO_SetHref_AddList  ============= PR2021-04-01
     function MSIO_SetHref_AddList(){
@@ -3285,15 +3280,15 @@ function HandleExpand(mode){
 
 //========= MSIO_SelectList  ============= PR2021-03-30
     function MSIO_SelectList(el) {
-        console.log(" === MSIO_SelectList ===")
+        //console.log(" === MSIO_SelectList ===")
 
     // toggle is_selected
 
         const data_selected = get_attr_from_el(el, "data-selected", "0");
         const new_is_selected = (data_selected !== "1");
 
-        console.log("data_selected", data_selected)
-        console.log("new_is_selected", new_is_selected)
+        //console.log("data_selected", data_selected)
+        //console.log("new_is_selected", new_is_selected)
 
     // reset selected on all lists
         const tblBody = el_MSIO_tblBody_lists;
@@ -3351,15 +3346,39 @@ function HandleExpand(mode){
             listname_arr.push(listname)
         }
         // if only 1 customer selected: give list name of customer
-        const this_list = mod_MSIO_dict.lists.no_list_sys;
+        const this_list_dict = mod_MSIO_dict.lists[mod_MSIO_dict.sel_listname];
+        console.log("mod_MSIO_dict.sel_listname", mod_MSIO_dict.sel_listname)
+        console.log("this_list_dict", this_list_dict)
+        console.log("mod_MSIO_dict.allorders", mod_MSIO_dict.allorders)
         let base_name = loc.List, new_listname = null;
-        if (this_list){
-            const cust_len = (this_list.sel_customers) ? this_list.sel_customers.length : 0;
-            const ordr_len = (this_list.sel_orders) ? this_list.sel_orders.length : 0;
+        if (this_list_dict){
+            const cust_len = (this_list_dict.cl) ? this_list_dict.cl.length : 0;
+            const ordr_len = (this_list_dict.ol) ? this_list_dict.ol.length : 0;
+        console.log("cust_len", cust_len)
+        console.log("ordr_len", ordr_len)
             if(cust_len === 0 && ordr_len === 1){
-                base_name = ordr_code;
-            } else if(cust_len === 1 && ordr_len === 0){
-                base_name = cust_code;
+                const order_pk_int = this_list_dict.ol[0];
+                const order_dict = mod_MSIO_dict.allorders[order_pk_int];
+                if(order_dict.order_code){ base_name = order_dict.order_code };
+            } else if(cust_len === 1){
+                const customer_pk_int = this_list_dict.cl[0];
+                let customer_code = null;
+                // check if orders fronm other customers exist
+                let has_orders_from_other_cust = false;
+                for (let i = 0, sel_pk_int; sel_pk_int = this_list_dict.ol[i]; i++) {
+            // ---  skip orders of customers that are in customer list
+                    const order_dict = mod_MSIO_dict.allorders[sel_pk_int];
+                    const dict_cust_pk_int = order_dict.customer_pk_int;
+                    const dict_cust_code = order_dict.customer_code;
+                    if (dict_cust_pk_int !== customer_pk_int) {
+                        has_orders_from_other_cust = true
+                    } else {
+                        customer_code = dict_cust_code
+                    }
+                }
+                if(!has_orders_from_other_cust){
+                    if (customer_code) {base_name = customer_code};
+                }
             }
         }
         // mod_MSIO_dict.lists includes hidden 'no_list_sys', this is not necessary: sequence = 1 + listname_arr.length
@@ -3374,13 +3393,16 @@ function HandleExpand(mode){
                  no_sequence = false;
                  sequence = 1;
             } else {
-                new_listname = loc.base_name + " " + sequence;
+                new_listname = base_name + " " + sequence;
+
             }
             sequence++;
             // prevent infinitive loop
         } while (sequence < 100 && listname_arr.includes(new_listname));
 
-        mod_MSIO_dict.lists[new_listname] = deepcopy_dict(mod_MSIO_dict.lists.no_list_sys);
+        console.log("new_listname", new_listname)
+
+        mod_MSIO_dict.lists[new_listname] = deepcopy_dict(this_list_dict);
         mod_MSIO_dict.lists[new_listname].haschanged = true;
 
         mod_MSIO_dict.lists.no_list_sys = { cl: [], ol: []};

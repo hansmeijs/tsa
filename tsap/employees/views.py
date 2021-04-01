@@ -4736,15 +4736,16 @@ class ReviewlAfasInvoiceXlsxView(View):
                     if logging_on:
                         logger.debug('stored_setting:  ' + str(stored_setting))
 
+                    if deleted_arr:
+                        # deleted_arr: ['MCB bank']
+                        for listname in deleted_arr:
+                            stored_setting.pop(listname)
+
                     if modified_dict:
                         # modified_dict: {'MCB bank 2': {'cl': [1], 'ol': [9]}}
                         for listname, dict in modified_dict.items():
                             stored_setting[listname] = dict
 
-                    if deleted_arr:
-                        # deleted_arr: ['MCB bank']
-                        for listname in deleted_arr:
-                            stored_setting.pop(listname)
 
                     new_setting_json = json.dumps(stored_setting)
                     request.user.company.set_companysetting(c.KEY_COMP_PRINTLIST_INVOICE, new_setting_json)
