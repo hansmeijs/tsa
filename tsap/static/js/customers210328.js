@@ -193,7 +193,6 @@ let planning_list = [] // for export and printing - can replace map?
         const el_MFO_btn_save = document.getElementById("id_MFO_btn_save")
             el_MFO_btn_save.addEventListener("click", function() {MFO_Save("save")}, false )
 
-
 // ---  MOD SHIFT ------------------------------------
         let el_modshift_btn_save = document.getElementById("id_MOS_btn_save");
             el_modshift_btn_save.addEventListener("click", function() {MSO_Save("save")}, false );

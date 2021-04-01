@@ -64,7 +64,7 @@ logging.disable(log_level)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request):
-        logging_on = s.LOGGING_ON
+        logging_on = False
         if logging_on:
             logger.debug(' ')
             logger.debug(' ++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++ ')
@@ -104,12 +104,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                     sel_page = new_setting_dict.get('sel_page')
                     saved_btn = new_setting_dict.get('sel_btn')
-                    saved_customer_pk = new_setting_dict.get('sel_customer_pk')
                     saved_order_pk = new_setting_dict.get('sel_order_pk')
                     saved_scheme_pk = new_setting_dict.get('sel_scheme_pk')
-                    saved_employee_pk = new_setting_dict.get('sel_employee_pk')
-                    sel_paydatecode_pk = new_setting_dict.get('sel_paydatecode_pk')
-                    sel_paydate_iso = new_setting_dict.get('sel_paydate_iso')
 
                     if logging_on:
                         logger.debug('new_setting_dict: ' + str(new_setting_dict))
@@ -724,8 +720,10 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
                 comp_timezone=comp_timezone,
                 user_lang=user_lang)
 
-        #logger.debug('checked_customer_pk' + str(checked_customer_pk))
-        #logger.debug('checked_order_pk' + str(checked_order_pk))
+        if logging_on:
+            logger.debug('checked_customer_pk' + str(checked_customer_pk))
+            logger.debug('checked_order_pk' + str(checked_order_pk))
+
         if is_template or is_absence:
             # in template mode or absence mode: don't save setting
             selected_pk_dict = {'sel_customer_pk': checked_customer_pk,
@@ -742,7 +740,9 @@ def download_page_scheme_list(request_item, datalists, saved_order_pk, saved_sch
                            'sel_scheme_pk': 0}
 
             selected_pk_dict = request.user.get_usersetting('selected_pk')
-           #logger.debug('selected_pk_dict' + str(selected_pk_dict))
+            if logging_on:
+                logger.debug('selected_pk_dict' + str(selected_pk_dict))
+
             # don't replace setting_dict, you will lose page info. Add key 'selected_pk' instead
             datalists_setting_dict = datalists.get('setting_dict')
             if datalists_setting_dict:
@@ -953,7 +953,9 @@ class SchemesView(View):
 @method_decorator([login_required], name='dispatch')
 class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ====== SchemeTemplateUploadView ============= ')
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug(' ====== SchemeTemplateUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None and request.user.is_perm_planner:
@@ -970,16 +972,25 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: { Note: 'pk' is pk of scheme that will be copied to template
-                # 'copytotemplate': {'id': {'pk': 1482, 'ppk': 1270, 'istemplate': True, 'table': 'scheme', 'mode': 'copyto'},
-                # 'code': {'value': '4 daags SJABLOON', 'update': True}}}
+
+                if logging_on:
+                    logger.debug('upload_dict: ' + str(upload_dict))
+
 
                 copyto_order_pk, copyto_customer_pk, new_scheme_pk = None, None,  None
+                template_customer_pk = None
                 dict = upload_dict.get('copytotemplate')
                 if dict:
+                    # upload_dict: { Note: 'pk' is pk of scheme that will be copied to template
+                    # 'copytotemplate': {'id': {'pk': 1482, 'ppk': 1270, 'istemplate': True, 'table': 'scheme', 'mode': 'copyto'},
+                    #                     'code': {'value': '4 daags SJABLOON', 'update': True}}}
+
                     template_customer_pk = copy_to_template(upload_dict['copytotemplate'], request)
                 else:
+                    # 'copyfromtemplate': {'id': {'pk': 54, 'ppk': 30, 'istemplate': True, 'table': 'scheme', 'mode': 'copyfrom'},
+                    #                       'copyto_order': {'pk': 9, 'ppk': 3},
+                    #                       'code': {'value': 'TEST', 'update': True}}
+
                     dict = upload_dict.get('copyfromtemplate')
                     if dict:
                         template_scheme_pk = f.get_dict_value(dict, ('id', 'pk'), 0)
@@ -998,7 +1009,6 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                 # 'code': {'value': 'grgrgrg=========', 'update': True}}
 
 # - get template_custome, needed to refresh scheme_list after update
-                """
                 customer = None
                 if template_customer_pk:
                     customer = m.Customer.objects.get_or_none(
@@ -1006,9 +1016,11 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                         company=request.user.company
                     )
 
+                if logging_on:
+                    logger.debug('template_customer_pk: ' + str(template_customer_pk))
+                    logger.debug('customer: ' + str(customer))
+
                 if customer:
-                """
-                if True:
 # 8. update scheme_list
                     # templates and normal schemes are in one table, so dont filter on customer_pk
                     # filters by customer, therefore no need for istemplate or inactve filter
@@ -1026,7 +1038,6 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                         'scheme_pk': new_scheme_pk,
                         'is_template_mode': False}  # leave templates and go back to normal schemes
 
-                    """
                     scheme_list = d.create_scheme_list(
                         filter_dict={'customer_pk': None},
                         company=request.user.company,
@@ -1037,8 +1048,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
 
                     shift_list = d.create_shift_rows(
                         filter_dict={'customer_pk': None},
-                        company=request.user.company,
-                        user_lang=user_lang)
+                        company=request.user.company)
                     if shift_list:
                         update_wrap['shift_list'] = shift_list
 
@@ -1060,19 +1070,16 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20 PR2020-07-02
                         update_wrap['schemeitem_list'] = schemeitem_list
 
                     update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
-                    """
+
         update_dict_json = json.dumps(update_wrap, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
-        #datalists_json = json.dumps(datalists, cls=LazyEncoder)
-        #return HttpResponse(datalists_json)
 
-
-
-
-def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
-    #logger.debug(' ====== copy_to_template ============= ')
-    #logger.debug(upload_dict)
+def copy_to_template(upload_dict, request):  # PR2019-08-24 PR2020-03-11 PR2021-03-28
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ====== copy_to_template ============= ')
+        logger.debug(upload_dict)
 
     newtemplate_customer_pk, copyfrom_scheme, newtemplate_order = None, None, None
 
@@ -1083,7 +1090,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
     newtemplate_code = f.get_dict_value(upload_dict, ('code','value'))
 
     if copyfrom_scheme_pk and copyfrom_scheme_ppk and newtemplate_code:
-        table = 'scheme'
+
 # - check if copyfrom_order exists (order is parent of scheme)
         copyfrom_order = m.Order.objects.get_or_none(id=copyfrom_scheme_ppk, customer__company=request.user.company)
         if copyfrom_order:
@@ -1099,38 +1106,33 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
     newtemplate_scheme = None
     if copyfrom_scheme and newtemplate_order:
 
-        #logger.debug('copyfrom_scheme: ' + str(copyfrom_scheme))
-        #logger.debug('newtemplate_order: ' + str(newtemplate_order))
-        #logger.debug('newtemplate_code: ' + str(newtemplate_code))
-        #logger.debug('len: ' + str(len(newtemplate_code)))
+        if logging_on:
+            logger.debug('copyfrom_scheme:   ' + str(copyfrom_scheme))
+            logger.debug('newtemplate_order: ' + str(newtemplate_order))
+            logger.debug('newtemplate_code:  ' + str(newtemplate_code))
+            logger.debug('len: ' + str(len(newtemplate_code)))
+
         if len(newtemplate_code) > c.CODE_MAX_LENGTH:
             newtemplate_code = newtemplate_code[:c.CODE_MAX_LENGTH]
         try:
             newtemplate_scheme = m.Scheme(
                 order=newtemplate_order,
-                code=newtemplate_code,
                 # dont copy: cat=template_cat,
-                # dont copy: isabsence=template_isabsence,
+                code=newtemplate_code,
+                # dont copy: isabsence=template_isabsence, (isabsence is always False)
                 istemplate=True,
                 cycle=copyfrom_scheme.cycle,
-                # dont copy: billable=template_billable,
                 excludecompanyholiday=copyfrom_scheme.excludecompanyholiday,
                 divergentonpublicholiday=copyfrom_scheme.divergentonpublicholiday,
                 excludepublicholiday=copyfrom_scheme.excludepublicholiday,
-                nohoursonsaturday=copyfrom_scheme.nohoursonsaturday,
-                nohoursonsunday=copyfrom_scheme.nohoursonsunday,
-                nohoursonpublicholiday=copyfrom_scheme.nohoursonpublicholiday,
-                # dont copy: pricecode=template_pricecode,
-                # dont copy: additioncode=template_additioncode,
-                # dont copy: taxcode=template_taxcode
             )
             newtemplate_scheme.save(request=request)
             is_ok = True
-        except:
-            pass
-            #logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
+            if logging_on:
+                logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
 
-    #logger.debug('newtemplate_scheme: ' + str(newtemplate_scheme))
     mapping_shifts = {}
     if is_ok and newtemplate_scheme:
 # - copy shifts to template
@@ -1139,26 +1141,40 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                 newtemplate_shift = m.Shift(
                     scheme=newtemplate_scheme,
                     code=shift.code,
+
+                    # dont copy: cat=shift.cat,
                     isrestshift=shift.isrestshift,
                     istemplate=True,
+                    # dont copy: billable=shift.billable,
+
                     offsetstart=shift.offsetstart,
                     offsetend=shift.offsetend,
                     breakduration=shift.breakduration,
                     timeduration=shift.timeduration,
-                    # dont copy: cat=shift.cat,
-                    # dont copy: billable=shift.billable,
+
+                    nohoursonweekday=shift.nohoursonweekday,
+                    nohoursonsaturday=shift.nohoursonsaturday,
+                    nohoursonsunday=shift.nohoursonsunday,
+                    nohoursonpublicholiday=shift.nohoursonpublicholiday,
+
+                    # dont copy: pricecodeoverride=shift.pricecodeoverride,
                     # dont copy: pricecode=shift.pricecode,
                     # dont copy: additioncode=shift.additioncode,
                     # dont copy: taxcode=shift.taxcode,
+
                     # dont copy: wagefactorcode=shift.wagefactorcode
+                    # dont copy: wagefactoronsat=shift.wagefactoronsat
+                    # dont copy: wagefactoronsun=shift.wagefactoronsun
+                    # dont copy: wagefactoronph=shift.wagefactoronph
                 )
                 newtemplate_shift.save(request=request)
                 # make dict with mapping of old and new shift_id
                 mapping_shifts[shift.pk] = newtemplate_shift.pk
-        except:
+            if logging_on:
+                logger.debug('mapping_shifts: ' + str(mapping_shifts))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
-            #logger.debug('Error copy_to_template create newtemplate_shift: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' +str(type(newtemplate_scheme)))
-
     #logger.debug('mapping_shifts: ' + str(mapping_shifts))
 # - copy teams to template
     mapping_teams = {}
@@ -1176,25 +1192,35 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                 # make dict with mapping of old and new team_id
                 mapping_teams[team.pk] = newtemplate_team.pk
 
+                if logging_on:
+                    logger.debug('saved newtemplate_team: ' + str(newtemplate_team))
 # - copy teammembers of this team to template
                 teammembers = m.Teammember.objects.filter(team=team)
                 for teammember in teammembers:
-                    # dont copy employee, replacement and datfirst datelast
+                    # dont copy employee, replacement and datefirst datelast
                     newtemplate_teammember = m.Teammember(
                         team=newtemplate_team,
-                        istemplate=True
+                        # dont copy: employee=teammember.employee,
+                        # dont copy: employee=replacement.replacement,
+                        # dont copy: switch=replacement.switch,
+
                         # dont copy: cat=teammember.cat,
                         # dont copy: isabsence=teammember.isabsence,
+                        # dont copy: isswitchedshift=teammember.isswitchedshift,
+                        istemplate=True
+
                         # dont copy: wagefactorcode=teammember.wagefactorcode,
-                        # dont copy: pricecode=teammember._pricecode,
-                        # dont copy: additioncode=teammember.additioncode,
-                        # dont copy: override=teammember.override
                     )
                     newtemplate_teammember.save(request=request)
-        except:
+                    if logging_on:
+                        logger.debug('saved newtemplate_teammember: ' + str(newtemplate_teammember))
+
+            if logging_on:
+                logger.debug('mapping_teams: ' + str(mapping_teams))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
-            #logger.debug('Error copy_to_template create newtemplate_team: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
-    #logger.debug('mapping_teams: ' + str(mapping_teams))
+
 # - copy schemeitems to template
     if is_ok:
         try:
@@ -1222,55 +1248,63 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
                     # dont copy: isabsence=schemeitem.isabsence,
                 )
                 newtemplate_schemeitem.save(request=request)
-        except:
+
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
-            #logger.debug('Error copy_to_template create newtemplate_schemeitem: newtemplate_scheme: ' + str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
+
     if not is_ok:
         newtemplate_customer_pk = None
     return newtemplate_customer_pk
 
 
 def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto_order_pk, request):  # PR2019-07-26 PR2020-07-02
-    #logger.debug(' ====== copyfrom_template ============= ')
-    # thids function copies the template scheme plus shifts, teams, teammembers, schemeitems
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ====== copyfrom_template ============= ')
+        logger.debug('template_scheme_pk: ' + str(template_scheme_pk))
+        logger.debug('template_order_pk: ' + str(template_order_pk))
+        logger.debug('copyto_order_pk: ' + str(copyto_order_pk))
+        logger.debug('scheme_code: ' + str(scheme_code))
+    # this function copies the template scheme plus shifts, teams, teammembers, schemeitems
     # and saves it as a new scheme of order with 'copyto_order_pk'
     # return value is new_scheme_pk
 
     new_scheme_pk = 0
 
     template_scheme, new_scheme_order, new_scheme, is_ok = None, None, None, False
+
     if template_scheme_pk and template_order_pk and copyto_order_pk and scheme_code:
 # - check if template_scheme and template_scheme exist (order is parent of scheme)
         template_order = m.Order.objects.get_or_none(id=template_order_pk, customer__company=request.user.company)
         template_scheme = m.Scheme.objects.get_or_none(id=template_scheme_pk, order=template_order)
 
+        if logging_on:
+            logger.debug('template_order: ' + str(template_order))
+            logger.debug('template_scheme: ' + str(template_scheme))
 # - check if the order exists to which the template will be copied
         new_scheme_order = m.Order.objects.get_or_none(id=copyto_order_pk, customer__company=request.user.company)
+        if logging_on:
+            logger.debug('new_scheme_order: ' + str(new_scheme_order))
 
     if template_scheme and new_scheme_order:
         try:
 # - copy template_scheme to new_scheme (don't copy datefirst, datelast)
             new_scheme = m.Scheme(
                 order=new_scheme_order,
+                # dont copy: cat=template_scheme.cat
                 code=scheme_code,
                 istemplate=False,
                 cycle=template_scheme.cycle,
-                # dont copy: billable=template_scheme.billable,
                 excludecompanyholiday=template_scheme.excludecompanyholiday,
                 divergentonpublicholiday=template_scheme.divergentonpublicholiday,
                 excludepublicholiday=template_scheme.excludepublicholiday,
-                nohoursonsaturday=template_scheme.nohoursonsaturday,
-                nohoursonsunday=template_scheme.nohoursonsunday,
-                nohoursonpublicholiday=template_scheme.nohoursonpublicholiday,
-                # dont copy: cat=template_scheme.cat,
-                # dont copy: isabsence=template_scheme.isabsence,
-                # dont copy: pricecode=template_scheme.pricecode,
-                # dont copy: additioncode=template_scheme.additioncode,
-                # dont copy: taxcode=template_scheme.taxcode
             )
             new_scheme.save(request=request)
-        except:
-            pass
+            if logging_on:
+                logger.debug('new_scheme: ' + str(new_scheme))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
     is_ok = True
@@ -1284,26 +1318,40 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                 new_shift = m.Shift(
                     scheme=new_scheme,
                     code=template_shift.code,
+
+                    # dont copy: cat=template_shift.cat,
                     isrestshift=template_shift.isrestshift,
                     istemplate=False,
+                    # dont copy: billable=template_shift.billable,
+
                     offsetstart=template_shift.offsetstart,
                     offsetend=template_shift.offsetend,
                     breakduration=template_shift.breakduration,
                     timeduration=template_shift.timeduration,
-                    # dont copy: cat=template_shift.cat,
-                    # dont copy: billable=template_shift.billable,
+
+                    nohoursonweekday=template_shift.nohoursonweekday,
+                    nohoursonsaturday=template_shift.nohoursonsaturday,
+                    nohoursonsunday=template_shift.nohoursonsunday,
+                    nohoursonpublicholiday=template_shift.nohoursonpublicholiday,
+
+                    # dont copy: pricecodeoverride=template_shift.pricecodeoverride,
                     # dont copy: pricecode=template_shift.pricecode,
                     # dont copy: additioncode=template_shift.additioncode,
                     # dont copy: taxcode=template_shift.taxcode,
+
                     # dont copy: wagefactorcode=template_shift.wagefactorcode
+                    # dont copy: wagefactoronsat=template_shift.wagefactoronsat
+                    # dont copy: wagefactoronsun=template_shift.wagefactoronsun
+                    # dont copy: wagefactoronph=template_shift.wagefactoronph
                 )
                 new_shift.save(request=request)
                 # make dict with mapping of old and new team_id
                 shift_mapping[template_shift.pk] = new_shift.pk
-            #logger.debug('template_shifts mapping: ' + str(shift_mapping))
-        except:
+            if logging_on:
+                logger.debug('template_shifts mapping: ' + str(shift_mapping))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
-            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
 # - copy template_teams to scheme
     team_mapping = {}
@@ -1321,6 +1369,8 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                 new_team.save(request=request)
                 # make dict with mapping of old and new team_id
                 team_mapping[template_team.pk] = new_team.pk
+                if logging_on:
+                    logger.debug('team_mapping mapping: ' + str(team_mapping))
 
 # - copy teammembers of this team to template
                 template_teammembers = m.Teammember.objects.filter(team=template_team)
@@ -1331,7 +1381,10 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                         istemplate=False
                     )
                     new_teammember.save(request=request)
-        except:
+                if logging_on:
+                    logger.debug('template_teammembers: ' + str(template_teammembers))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
             #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
                          #' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
@@ -1364,12 +1417,13 @@ def copyfrom_template(template_scheme_pk, template_order_pk, scheme_code, copyto
                     istemplate=False
                     # dont copy: cat=template_schemeitem.cat,
                     # dont copy: isabsence=template_schemeitem.isabsence,
-                    # don't copy these fields: billable, pricerate, priceratejson, additionjson
                 )
                 new_schemeitem.save(request=request)
-        except:
+                if logging_on:
+                    logger.debug('new_schemeitem: ' + str(new_schemeitem))
+        except Exception as e:
+            logger.error('Error: ' + getattr(e, 'message', str(e)))
             is_ok = False
-            #logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) + ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
     if not is_ok:
         new_scheme_pk = None
     return new_scheme_pk
@@ -2647,11 +2701,13 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
                         check_overlap_list.append(new_employee_pk)
 
                     emplhour, orderhour = None, None
+
     # - Create new orderhour / emplhour if is_create:
                     # update_emplhour is also called when emplhour is_created, save_to_log is called in update_emplhour
                     if is_create:
                         emplhour, orderhour = create_orderhour_emplhour(upload_dict, error_list, logging_on, request)
                     else:
+
     # - else: get orderhour and emplhour (orderhour is orderhour of emplhour)
                         orderhour = m.Orderhour.objects.get_or_none(
                             id=ppk_int,
@@ -2663,6 +2719,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
                         logger.debug('emplhour: ' + str(emplhour))
 
                     if emplhour:
+
     # - add emplhour to eplh_update_list, list of emplhour.pk's to be added to emplhour_updates
                         eplh_update_list.append(emplhour.pk)
 
@@ -2946,7 +3003,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
         abscat_order = m.Order.objects.get_or_none(
             id=abscat_order_pk,
             customer__company=request.user.company,
-            isabsence=True)
+            customer__isabsence=True)
 
 # - if abscat_order not found: set default abscat if category not entered (default abscat has lowest sequence)
     if abscat_order is None:
@@ -2956,7 +3013,7 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
             # get abscat_order with lowest sequence
             abscat_order = m.Order.objects.filter(
                 customer=abscat_cust,
-                isabsence=True
+                customer__isabsence=True
             ).order_by('sequence').first()
 
 # - lookup current employee from emplhour
@@ -3189,8 +3246,10 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
 
 
 def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone, request):  # PR2020-04-13 PR2021-02-18
-    #logger.debug(' --- change_absence_shift --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' --- change_absence_shift --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
     # this function changes the absence order in the orderhour.
     # it also chenges the wagefactor and 'nohours' in emplhour
 
@@ -3210,7 +3269,12 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
         abscat_order = m.Order.objects.get_or_none(
             id=abscat_order_pk,
             customer__company=request.user.company,
-            isabsence=True)
+            customer__isabsence=True)
+
+        if logging_on:
+            logger.debug('abscat_order: ' + str(abscat_order))
+            logger.debug('cur_order: ' + str(cur_order))
+
         if abscat_order and abscat_order != cur_order:
             # change order in orderhour PR2020-07-21
             #  remove tilde from absence category (tilde is used for line break in payroll tables) PR2020-08-31
@@ -3221,6 +3285,10 @@ def change_absence_shift(emplhour, upload_dict, eplh_update_list, comp_timezone,
             orderhour.order = abscat_order
             orderhour.customercode = new_customer_code
             orderhour.ordercode = new_order_code
+
+            if logging_on:
+                logger.debug('new_customer_code: ' + str(new_customer_code))
+                logger.debug('new_order_code: ' + str(new_order_code))
 
 # - when abscat changes ,wagefactor and 'no hours on saturday' etc can also change. Hours must be recalculated as well PR2020-09-21
             # get is_publicholiday, is_companyholiday of this rosterdate from Calendar

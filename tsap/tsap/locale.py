@@ -681,8 +681,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Add_scheme'] = TXT_Add_scheme
         dict['to'] = TXT_to
-        dict['Delete_scheme'] = TXT_Delete_scheme
-        dict['No_scheme_selected'] = TXT_No_scheme_selected
+        dict['Delete_scheme'] = _('Delete scheme')
+        dict['No_scheme_selected'] = _('There is no scheme selected.')
+
+        dict['Delete_template'] = _('Delete template')
+        dict['No_template_selected'] = _('There is no template selected.')
 
         dict['Edit_scheme'] = TXT_Edit_scheme
         dict['Select_scheme'] = _('Select scheme')
@@ -1211,6 +1214,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Billable'] = TXT_Billable
 
         dict['Export_invoices_toAFAS'] = _("Export invoices to AFAS")
+        dict['List'] = _('List')
 
         # mod select price
         dict['Select_hourly_rate_or_enter_new'] = _('Select an hourly rate in the list or enter a new rate')
@@ -1414,8 +1418,6 @@ TXT_Add_scheme = _('Add scheme')
 TXT_Edit_scheme = _('Edit scheme')
 TXT_Select_scheme = _('Select scheme')
 TXT_This_scheme = _('This scheme')
-TXT_Delete_scheme = _('Delete scheme')
-TXT_No_scheme_selected = _('There is no scheme selected.')
 
 TXT_Create_roster = _('Create roster')
 TXT_Delete_roster = _('Delete roster')

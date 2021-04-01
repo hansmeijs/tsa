@@ -362,7 +362,7 @@ def create_order_list(request, order_pk=None, is_absence=None, is_template=None,
                 sql_list.append("AND NOT c.inactive AND NOT o.inactive")
             sql_keys['inactive'] = is_inactive
 
-        sql_list.append("ORDER BY LOWER(c.code), LOWER(o.code)")
+    sql_list.append("ORDER BY LOWER(c.code), LOWER(o.code)")
     sql = ' '.join(sql_list)
     #logger.debug('sql: ' + str(sql))
     newcursor = connection.cursor()
@@ -378,7 +378,8 @@ def create_order_list(request, order_pk=None, is_absence=None, is_template=None,
 
     order_list = []
     for order_row in order_rows:
-        #logger.debug('order_row: ' + str(order_row))
+        #logger.debug(' ')
+        #logger.debug(str(order_row))
         item_dict = {}
         create_order_dict_from_sql(order_row, item_dict)
 
@@ -669,7 +670,7 @@ def create_abscat_order_list(request):
     get_or_create_absence_customer(logging_on, request)
     #logger.debug(" --- get_or_create_absence_customer ---")
     # order by priority: which is sequence desc
-    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True)
+    orders = m.Order.objects.filter(customer__company=request.user.company, customer__isabsence=True)
 
     for order in orders:
         #logger.debug(" --- for order in orders ---")

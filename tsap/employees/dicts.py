@@ -5,6 +5,7 @@ from django.http import HttpResponse
 
 from datetime import date, datetime, timedelta
 
+from decimal import Decimal, getcontext
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -233,7 +234,8 @@ def ed_create_teammember_list(filter_dict, company, user_lang):
         if order_pk is None:
             customer_pk = filter_dict.get('customer_pk')
 
-    employee_nonull = filter_dict.get('employee_nonull',False)
+    employee_nonull = filter_dict.get('employee_nonull', False)
+    # PR2021-03-28 debug. Don't filter on is_template. Since order_pk is the template order, no need to filter on is_template
     is_template = filter_dict.get('is_template')
 
     # not in use (yet?):
@@ -297,10 +299,11 @@ def ed_create_teammember_list(filter_dict, company, user_lang):
         "WHERE c.company_id = %(comp_id)s::INT"]
 
     sql_keys = {'comp_id': company.id}
-    if is_template:
-        sql_list.append('AND c.istemplate')
-    else:
-        sql_list.append('AND NOT c.istemplate')
+    #if is_template:
+    #    sql_list.append('AND c.istemplate')
+    # else:
+    #   sql_list.append('AND NOT c.istemplate')
+
     if employee_nonull:
         sql_list.append('AND e.id IS NOT NULL')
     if teammember_pk:
@@ -2325,140 +2328,109 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-def create_afas_invoice_rows(period_dict, user_lang, request):
-    # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
-    #     add messages to wagecode_rows
-    logging_on = s.LOGGING_ON
+def create_afas_invoice_rows(period_dict, customer_list, order_list, user_lang, request):
+    # --- create_afas_invoice_rows PR2021-01-30 PR2021-03-31
+    logging_on = False # s.LOGGING_ON
+    if logging_on:
+        logger.debug('===== create_afas_invoice_rows ===== ')
+
+    rows = []
 
     company_pk = request.user.company.pk
-    rosterdatefirst, rosterdatelast = None, None
+    if company_pk and period_dict and (customer_list or order_list):
+        rosterdatefirst = period_dict.get('period_datefirst')
+        rosterdatelast = period_dict.get('period_datelast')
 
-    if period_dict:
-        rosterdatefirst = period_dict.get('paydateitem_datefirst')
-        rosterdatelast = period_dict.get('paydateitem_datelast')
+        sql_keys = {'compid': company_pk, 'df': rosterdatefirst, 'dl': rosterdatelast}
 
+        if logging_on:
+            logger.debug(' --- create_ehal_afas_rows --- ')
+            logger.debug('rosterdatefirst: ' + str(rosterdatefirst))
+            logger.debug('rosterdatelast:  ' + str(rosterdatelast))
+            logger.debug('customer_list:   ' + str(customer_list))
+            logger.debug('order_list:   ' + str(order_list))
 
-    sql_keys = {'compid': company_pk,
-                'rdf': rosterdatefirst, 'rdl': rosterdatelast}
+        # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+        sql_list = ["WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id,",
+                                                    "ARRAY_AGG(eh.id) AS eh_id_agg,",
+                                                    "ARRAY_AGG(eh.employee_id) AS e_id,",
+                                                    "COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,",
+                                                    "ARRAY_AGG(DISTINCT e.code) AS e_code_agg,",
+                                                    "ARRAY_AGG(eh.timeduration) AS eh_timedur_agg,",
+                                                    "ARRAY_AGG(eh.pricerate) AS eh_pricerate_agg,",
 
-    if logging_on:
-        logger.debug(' --- create_ehal_afas_rows --- ')
-        #logger.debug('period_dict: ' + str(period_dict))
-        logger.debug('rosterdatefirst: ' + str(rosterdatefirst))
-        logger.debug('rosterdatelast: ' + str(rosterdatelast))
-        logger.debug('sql_keys: ' + str(sql_keys))
+                                                    "SUM(eh.plannedduration) AS eh_plandur_sum,",
+                                                    "SUM(eh.timeduration) AS eh_timedur_sum,",
+                                                    "SUM(eh.billingduration) AS eh_billdur_sum,",
+                                                    "SUM(eh.amount) AS eh_amount_sum,",
+                                                    "SUM(eh.addition) AS eh_add_sum,",
+                                                    "SUM(eh.tax) AS eh_tax_sum,",
+                                                    "CASE WHEN SUM(eh.billingduration) = 0 THEN 0 ELSE (SUM(eh.amount) + SUM(eh.addition)) / (SUM(eh.billingduration) / 60) END AS oh_pricerate_calc",
+                                                    "FROM companies_emplhour AS eh",
+                                                    "LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id)",
+                                                    "GROUP BY oh_id)",
 
-    sql_list = [
-        "SELECT eh.id, c.company_id AS comp_id,"
-        "eh.pricecode_id, eh.rosterdate::TEXT AS eh_rosterdate, eh.billingduration AS eh_billingduration,",
-        "e.payrollcode AS e_payrollcode, CONCAT(e.namelast, ', ', e.namefirst) AS e_name,",
-        "o.identifier AS o_identifier, CONCAT(o.code, ' - ', c.code) AS c_o_code",
+                                           "SELECT COALESCE(c.code,'-') AS c_code,  COALESCE(o.code,'-') AS o_code,",
+                                           "c.identifier AS c_identifier, eh_sub.e_code AS e_code, ",
+                                           #"to_json(oh.rosterdate) AS rosterdate_str,",
+                                           "oh.rosterdate AS oh_rosterdate, ",
+                                           "oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, c.company_id AS comp_id,",
+                                           "eh_sub.e_code_agg AS e_code_agg, eh_sub.eh_id_agg AS eh_id_agg,",
+                                            "eh_sub.e_id AS e_id_arr, eh_sub.eh_pricerate_agg,",
 
-        "FROM companies_emplhour AS eh",
-        "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
-        "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
-        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                                           "oh.shiftcode AS oh_shiftcode, oh.isbillable AS oh_bill,",
+                                           "oh.additionrate AS oh_addrate, oh.taxrate AS oh_taxrate, oh_pricerate_calc,",
 
-        "INNER JOIN companies_employee AS e ON (e.id = eh.employee_id)",
-        "LEFT JOIN companies_pricecode AS prc ON (prc.id = eh.pricecode_id)",
+                                           "eh_sub.eh_plandur_sum, eh_sub.eh_timedur_sum, eh_sub.eh_billdur_sum,",
+                                           "eh_sub.eh_amount_sum, eh_sub.eh_add_sum, eh_sub.eh_tax_sum, eh_sub.eh_timedur_agg",
 
-        "WHERE c.company_id = %(compid)s::INT",
-        #"AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE",
-        "ORDER BY LOWER(c.code), LOWER(o.code), eh.rosterdate"
-    ]
-    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
-    is_restshift = False  # None = show all, False = no restshifts, True = restshifts only
-    sql_list = ["WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id,",
-                                                "ARRAY_AGG(eh.id) AS eh_id_agg,",
-                                                "ARRAY_AGG(eh.employee_id) AS e_id,",
-                                                "COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,",
-                                                "ARRAY_AGG(DISTINCT e.code) AS e_code_agg,",
-                                                "ARRAY_AGG(eh.timeduration) AS eh_timedur_agg,",
-                                                "ARRAY_AGG(eh.pricerate) AS eh_pricerate_agg,",
-                                                #"ARRAY_AGG(eh.wage) AS eh_wage_agg,",
-                                                #"ARRAY_AGG(eh.wagerate) AS eh_wagerate_agg,",
-                                                #"ARRAY_AGG(eh.wagefactor) AS eh_wagefactor_agg,",
-                                                "SUM(eh.plannedduration) AS eh_plandur_sum,",
-                                                "SUM(eh.timeduration) AS eh_timedur_sum,",
-                                                "SUM(eh.billingduration) AS eh_billdur_sum,",
-                                                "SUM(eh.amount) AS eh_amount_sum,",
-                                                "SUM(eh.addition) AS eh_add_sum,",
-                                                "SUM(eh.tax) AS eh_tax_sum,",
-                                                #"SUM(eh.wage) AS eh_wage_sum",
-                                                "FROM companies_emplhour AS eh",
-                                                "LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id)", 
-                                                "GROUP BY oh_id)", 
-                                       "SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ordr_code,",
-                                       "eh_sub.e_code AS e_code, ",
-                                       "oh.rosterdate AS oh_rd, ",
-                                       "to_json(oh.rosterdate) AS rosterdate,", 
-                                       "oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, c.company_id AS comp_id,",
-                                       "eh_sub.e_code_agg AS e_code_agg,",
-                                       "oh.isbillable AS oh_bill, ",
-                                       "eh_sub.eh_id_agg AS eh_id_agg, ",
-                                       "eh_sub.e_id AS e_id_arr,",
+                                           "FROM companies_orderhour AS oh",
+                                           "INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)",
+                                           "INNER JOIN companies_order AS o ON (oh.order_id=o.id)",
+                                           "INNER JOIN companies_customer AS c ON (o.customer_id=c.id)",
 
-                                       "c.isabsence AS c_isabsence, oh.isrestshift AS oh_isrestshift, oh.shiftcode AS oh_shiftcode,",
+                                           "WHERE (c.company_id = %(compid)s) AND NOT c.isabsence AND NOT oh.isrestshift",
+                                           "AND (oh.rosterdate >= %(df)s) AND (oh.rosterdate <= %(dl)s)",
+                                   ]
+        if customer_list and order_list:
+            sql_keys['cid_arr'] = customer_list
+            sql_keys['oid_arr'] = order_list
+            sql_list.append("AND ( c.id IN (SELECT UNNEST( %(cid_arr)s::INT[])) OR o.id IN (SELECT UNNEST( %(oid_arr)s::INT[])) )")
+        elif customer_list:
+            sql_keys['cid_arr'] = customer_list
+            sql_list.append("AND c.id IN (SELECT UNNEST( %(cid_arr)s::INT[]))")
+        elif order_list:
+            sql_keys['oid_arr'] = order_list
+            sql_list.append("AND o.id IN (SELECT UNNEST( %(oid_arr)s::INT[]))")
 
-                                       "eh_sub.eh_pricerate_agg,",
-                                       "oh.additionrate AS oh_addrate, oh.taxrate AS oh_taxrate,",
+        sql_list.append("ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)")
+        sql = ' '.join(sql_list)
 
-                                       "eh_sub.eh_plandur_sum, eh_sub.eh_timedur_sum, eh_sub.eh_billdur_sum,",
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+            rows = f.dictfetchall(cursor)
 
-                                       "eh_sub.eh_amount_sum, eh_sub.eh_add_sum, eh_sub.eh_tax_sum, eh_sub.eh_timedur_agg",
-                                       #"eh_sub.eh_wage_sum, eh_sub.eh_wage_agg, eh_sub.eh_wagerate_agg, eh_sub.eh_wagefactor_agg",
+        if logging_on:
+            logger.debug('sql: ' + str(sql))
+            logger.debug('rows: ' + str(rows))
 
-                                       "FROM companies_orderhour AS oh",
-                                       "INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)",
-                                       "INNER JOIN companies_order AS o ON (oh.order_id=o.id)",
-                                       "INNER JOIN companies_customer AS c ON (o.customer_id=c.id)",
-
-                                       "WHERE (c.company_id = %(compid)s)",
-                                       #"AND (oh.rosterdate >= %(df)s)",
-                                      # "AND (oh.rosterdate <= %(dl)s)",
-                                      # "AND (c.id = %(custid)s OR %(custid)s IS NULL)",
-                                      # "AND (o.id = %(ordid)s OR %(ordid)s IS NULL)",
-                                       "AND NOT o.isabsence AND NOT oh.isrestshift",
-                                       #"AND ( (%(emplid)s = -1) OR ( ARRAY[ %(emplid)s ] <@ e_id ) )",
-
-                                       "ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)",
-                               ]
-    sql = ' '.join(sql_list)
-
-    newcursor = connection.cursor()
-    newcursor.execute(sql, sql_keys)
-    afas_ehal_rows = f.dictfetchall(newcursor)
-
-    if logging_on:
-        for row in afas_ehal_rows:
-            logger.debug('row: ' + str(row))
-
-    response = create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request)
+    response = create_afas_invoice_xlsx(period_dict, rows, user_lang, request)
     return response
 # --- end of create_afas_invoice_rows
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # PR2021-02-13
-    logger.debug(' ----- create_afas_invoice_xlsx -----')
+def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # PR2021-02-13 PR2021-03-31
+    logging_on = False # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- create_afas_invoice_xlsx -----')
 
     # from https://stackoverflow.com/questions/16393242/xlsxwriter-object-save-as-http-response-to-create-download-in-django
 
-    logger.debug('period_dict: ' + str(period_dict))
-    """
-    period_dict: {'sel_btn': 'payroll_detail', 
-    'order_pk': None, 'sel_view': 'payroll_period',
-     'isabsence': None, 'col_hidden': ['functioncode'], 
-     'period_tag': 'lweek', 'customer_pk': None, 
-     'employee_pk': None, 'isallowance': True, 
-     'isrestshift': None, 'daynightshift': None, 
-     'paydatecode_pk': 6, 
-     'paydatecode_code': 'Maandelijks t/m de 31e', 
-     'paydateitem_year': 2021, 
-    'paydateitem_period': 2,
-     'paydateitem_datelast': '2021-02-28', 'paydateitem_datefirst': '2021-02-01'}
-    """
+    # To change the decimal precision, you call decimal.getcontext() and set the .prec attribute.
+    getcontext().prec = 10
+
 # ---  create file Name and worksheet Name
     company_name = request.user.company.name
     today_dte = f.get_today_dateobj()
@@ -2472,17 +2444,15 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = "attachment; filename=" + file_name
 
-    field_captions = (str(_('Invoice period')), str(_('Year')), str(_('Period')), str(_('Date')),
-                      str(_('Employee code')), str(_('Employee')), str(_('Company')),
-                      str(_('Order code')), str(_('Order')),
-                      str(_('Wage component')), str(_('Description')),
-                      str(_('Hours')))
+    field_captions = (str(_('Customer code')), str(_('Customer')), str(_('Order')), str(_('Roster date')),
+                      str(_('Planned hours')), str(_('Worked hours')), str(_('Billing hours')),
+                      str(_('Hourly rate')), str(_('Amount')), str(_('Shift')), str(_('Employee')))
 
-    field_names = ('pdc_code', 'pdi_year', 'pdi_period', 'eh_rosterdate', 'e_payrollcode', 'e_name',
-                   'comp_id', 'o_identifier', 'c_o_code', 'alw_code', 'alw_description',
-                   'billingduration')
+    field_names = ('c_identifier', 'c_code', 'o_code', 'oh_rosterdate',
+                   'eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum',
+                   'oh_pricerate_calc', 'eh_amount_sum', 'oh_shiftcode', 'e_code' )
 
-    field_width = (25, 10, 10, 10,   15, 30,   10, 15, 25, 15, 25,    10)
+    field_width = (15, 25, 25, 15,   15, 15, 15,   15, 15, 15 , 40)
 
 
 # .. and pass it into the XLSXWriter
@@ -2502,43 +2472,120 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
 # --- title row
     sheet.write(0, 0, str(_('Report')) + ':', bold)
     sheet.write(1, 0, str(_('Company')) + ':', bold)
-    sheet.write(2, 0, str(_('Date')) + ':', bold)
+    sheet.write(2, 0, str(_('Report date')) + ':', bold)
     sheet.write(0, 1, title, bold)
     sheet.write(1, 1, company_name, bold)
     sheet.write(2, 1, today_formatted, bold)
+
 # ---  period row
-    paydatecode_code = period_dict.get('paydatecode_code')
     dates_display_short = period_dict.get('dates_display_short')
-    paydateitem_period = str(period_dict.get('paydateitem_period'))
-    paydateitem_year = str(period_dict.get('paydateitem_year', ''))
 
-    sheet.write(4, 0, str(_('Payroll period')) + ":")
-    sheet.write(5, 0,  str(_('Year')) + ":")
-    sheet.write(6, 0,  str(_('Period')) + ":")
-    sheet.write(7, 0,  str(_('Date')) + ":")
+    sheet.write(5, 0,  str(_('Period')) + ":")
+    sheet.write(5, 1, dates_display_short)
 
-    sheet.write(4, 1, paydatecode_code)
-    sheet.write(5, 1, paydateitem_year)
-    sheet.write(6, 1, paydateitem_period)
-    sheet.write(7, 1, dates_display_short)
-
-    row_index = 9
+    row_index = 7
     for i, caption in enumerate(field_captions):
         sheet.write(row_index, i, caption, tblHead_format)
 
+    total_plandur = 0
+    total_timedur = 0
+    total_billdur = 0
+    total_amount = 0
 
     if len(afas_ehal_rows):
         for row in afas_ehal_rows:
-            row_index +=1
+            row_index += 1
+
+            billdur_sum = row.get('eh_billdur_sum', 0)
+            amount_sum = row.get('eh_amount_sum', 0)
+            addition_sum = row.get('eh_add_sum', 0)
+
+            total_plandur += row.get('eh_plandur_sum', 0)
+            total_timedur += row.get('eh_timedur_sum', 0)
+            total_billdur += billdur_sum
+            total_amount += (amount_sum + addition_sum)
+
+            hours_decimal = Decimal(str(billdur_sum)) / Decimal("60")
+            total_decimal = ( Decimal(str(amount_sum)) +  Decimal(str(addition_sum)) ) / Decimal('100')
+
+            if logging_on:
+                logger.debug('------------- ')
+                logger.debug('billdur_sum: ' + str(billdur_sum) + ' ' + str(type(billdur_sum)))
+                logger.debug('amount_sum: ' + str(amount_sum) + ' ' + str(type(amount_sum)))
+                logger.debug('addition_sum: ' + str(addition_sum) + ' ' + str(type(addition_sum)))
+                logger.debug('total_decimal: ' + str(total_decimal) + ' ' + str(type(total_decimal)))
+                logger.debug('hours_decimal: ' + str(hours_decimal) + ' ' + str(type(hours_decimal)))
+
             for i, field_name in enumerate(field_names):
-                value = row.get(field_name)
-                logger.debug(field_name + str(value))
-                if value is not None:
-                    if field_name in ('ehal_rate', 'ehal_amount'):
-                        value = str(value / 100)
-                    elif field_name =='ehal_quantity':
-                        value = str(value / 10000)
-                    sheet.write(row_index, i, value)
+
+                if field_name == 'oh_rosterdate':
+                    value = row.get(field_name)
+                    display = '-'.join((('0' + str(value.day))[-2:], ('0' + str(value.month))[-2:], str(value.year)))
+                elif field_name in ('eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum'):
+                    value = row.get(field_name)
+                    if value:
+                        value_decimal = Decimal(str(value / 60)).quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(value_decimal).replace(',', '.')
+                    else:
+                        display = '0'
+                elif field_name == 'eh_amount_sum':
+                    if amount_sum or addition_sum:
+                        total_rounded = total_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(total_rounded).replace(',', '.')
+                    else:
+                        display = '0'
+
+                elif field_name == 'oh_pricerate_calc':
+
+                    if billdur_sum:
+                        rate = total_decimal / hours_decimal
+                        rate_decimal = rate.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(rate_decimal).replace(',', '.')
+                    else:
+                        display = '0'
+                else:
+                    display = row.get(field_name)
+                sheet.write(row_index, i, display)
+
+# print total row
+    row_index += 2
+    for i, field_name in enumerate(field_names):
+        display = ''
+        if field_name == 'c_identifier':
+            display = str(_('Total'))
+        elif field_name in ('eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum'):
+            total_dur = 0
+            if field_name == 'eh_plandur_sum':
+                total_dur = total_plandur
+            elif field_name == 'eh_timedur_sum':
+                total_dur = total_timedur
+            elif field_name == 'eh_billdur_sum':
+                total_dur = total_billdur
+            if total_dur:
+                dur_decimal = Decimal(str(total_dur)) / Decimal("60")
+                dur_rounded = dur_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                display = str(dur_rounded).replace(',', '.')
+            else:
+                display = '0'
+        elif field_name == 'oh_pricerate_calc':
+            if total_billdur:
+                amount_decimal = Decimal(str(total_amount)) / Decimal("100")
+                billdur_decimal = Decimal(str(total_billdur)) / Decimal("60")
+                rate_decimal = amount_decimal / billdur_decimal
+                rate_rounded = rate_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                display = str(rate_rounded).replace(',', '.')
+            else:
+                display = '0'
+        elif field_name == 'eh_amount_sum':
+            if total_amount :
+                amount_decimal = Decimal(str(total_amount)) / Decimal("100")
+                amount_rounded = amount_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                display = str(amount_rounded).replace(',', '.')
+            else:
+                display = '0'
+
+        sheet.write(row_index, i, display, tblHead_format)
+
     book.close()
     return response
 

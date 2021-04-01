@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 # ===============================
-def get_companysetting(table_dict, user_lang, request):  # PR2020-04-17
+def get_companysetting(table_dict, user_lang, request):  # PR2020-04-17 PR2021-03-30
     #logger.debug(' ---------------- get_companysetting ---------------- ')
     # only called by DatalistDownloadView
     # companysetting: {coldefs: "order"}
@@ -21,6 +21,14 @@ def get_companysetting(table_dict, user_lang, request):  # PR2020-04-17
         coldefs_dict = get_stored_coldefs_dict(tblName, user_lang, request)
         if coldefs_dict:
             companysetting_dict['coldefs'] = coldefs_dict
+
+    if c.KEY_COMP_PRINTLIST_INVOICE in table_dict:
+        settings_key = c.KEY_COMP_PRINTLIST_INVOICE
+        stored_json = request.user.company.get_companysetting(settings_key)
+        if stored_json:
+            stored_setting = json.loads(stored_json)
+            if stored_setting:
+                companysetting_dict[c.KEY_COMP_PRINTLIST_INVOICE] = stored_setting
 
     return companysetting_dict
 

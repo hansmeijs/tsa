@@ -224,6 +224,6 @@ urlpatterns = [
         path('view', planning_views.ReviewView.as_view(), name='review_url'),
         path('fill', rosterfill_views.FillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
 
-        path('afas_invoice_xlsx', employee_views.ReviewlAfasInvoiceXlsxView.as_view(), name='afas_invoice_xlsx_url'),
+        path('afas_invoice_xlsx/<list>/', employee_views.ReviewlAfasInvoiceXlsxView.as_view(), name='afas_invoice_xlsx_url'),
     ])),
 ]

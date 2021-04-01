@@ -2613,6 +2613,14 @@ def calc_amount_addition_tax_rounded(billing_duration, is_absence, is_restshift,
             
             >>> Decimal("-1.32").quantize(Decimal("1.0"))
             Decimal('-1.3')
+        
+            decimal_notrounded = Decimal(pece_grade_dot)
+            output_decimal = decimal_notrounded.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+
+            
+            output_decimal = Decimal(pece_grade_dot).quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+            
+            
             """
             amount = math.floor(0.5 + amount_not_rounded)  # This rounds to an integer
 
@@ -3673,7 +3681,7 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
 
 
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
-    logging_on = s.LOGGING_ON
+    logging_on = False
     if logging_on:
         logger.debug(' =============== check_emplhour_overlap ============= ')
 

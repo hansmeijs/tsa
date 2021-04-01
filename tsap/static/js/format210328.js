@@ -1474,7 +1474,10 @@
             }
             const decimal_separator = (user_lang === "en") ? "." : ",";
             const thousand_separator = (user_lang === "en") ? "," : ".";
-            const divisor = is_percentage ? 10000 : 100;
+            // PR2021-03-29 debug. Divisor is also 100 when percentage
+            // was: const divisor = is_percentage ? 10000 : 100;
+            const divisor =  100;
+
 // --- calculate whole number ('dollar' when currency)
     // --- divide by 100 when number, by 10,000 when percentage
             // PR2019-08-22 debug: dont use Math.floor, gives wrong value when negative. Was: const hours = Math.floor(value_int/60);
@@ -1495,6 +1498,7 @@
                     dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
                 }
             }
+
 // --- create cents text
             let cent_text = "";
             if(is_percentage && !cents_int){
@@ -1515,9 +1519,11 @@
                 }
                 cent_text = decimal_separator + cent_text;
             }
+
             display_text = minus_sign + dollar_text + cent_text;
         }  // if (!!value_int)
         if (display_text && is_percentage) {display_text += "%" }
+
         return display_text
     }  // format_pricerate
 

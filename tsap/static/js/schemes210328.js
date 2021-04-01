@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let mod_MGS_dict = {};  // used to keep track op changes in mod_shift_team
         let mod_MSCH_dict = {};  // used to keep track op changes in mod_scheme
         let mod_MSE_dict = {};  // used to keep track op changes in mod select e,ployee / replacement
-        let mod_MSCO_dict = {};
+        let mod_MSCO_MCFT_dict = {};
         let mod_MAB_dict = {};
 
 // ---  id_new assigns fake id to new records
@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!selected_item_exists_in_map(order_map, "order", selected.order_pk)){
                 selected.customer_pk = 0;
                 selected.order_pk = 0;
-                selected.scheme_pk = 0;
+                selected.scheme_pk = null;
                 selected.shift_pk = 0;
                 selected.team_pk = 0;
                 selected.tblRow_rowIndex = null;  // to be used in HandleEventKey
@@ -565,11 +565,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 selected.customer_pk = settings.customer_pk;
                 selected.order_pk = settings.order_pk;
-                selected.scheme_pk =  settings.scheme_pk;
+
+                selected.scheme_pk = settings.scheme_pk;
+        console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
                 is_template_mode = false;
                 selected_btn = "btn_grid" // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
-
             }
         }
 
@@ -616,8 +617,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 
-//=========  RefreshSubmenuButtons  ================ PR2020-03-12
-    function RefreshSubmenuButtons(is_absence_mode, is_template_mode) {
+//=========  RefreshSubmenuButtons  ================ PR2020-03-12 PR2021-03-28
+    function RefreshSubmenuButtons() {
+        //console.log("===  RefreshSubmenuButtons == ");
+        //console.log("is_absence_mode", is_absence_mode);
+        //console.log("is_template_mode", is_template_mode);
+
         let btn_add_scheme = document.getElementById("id_menubtn_add_scheme");
         let btn_delete_scheme = document.getElementById("id_menubtn_delete_scheme");
         let btn_copy_template = document.getElementById("id_menubtn_copy_template");
@@ -655,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSubmenubtnTemplateShow  ================ PR2019-09-15 PR2020-05-28
     function HandleSubmenubtnTemplateShow() {
-        //console.log("--- HandleSubmenubtnTemplateShow")
+        console.log("--- HandleSubmenubtnTemplateShow")
         // template order will be retrieved from database in function HandleSelectOrder
         is_template_mode = !is_template_mode
         let sel_customer_pk = null, sel_order_pk = null, sel_scheme_pk = null;
@@ -674,26 +679,34 @@ document.addEventListener('DOMContentLoaded', function() {
             settings.customer_pk = 0;
             settings.order_pk = 0;
             settings.scheme_pk = 0;
-            settings.template_pk = 0;
+            // NIU settings.template_pk = 0;
 
             selected.customer_pk = 0;
             selected.order_pk = 0;
-            selected.scheme_pk = 0;
-            selected.template_pk = 0;
+            selected.scheme_pk = null;
+            // NIU selected.template_pk = 0;
 
 // lookup template order in order_map
-            if(!!order_map.size){
+        console.log("order_map", order_map);
+        console.log("order_map.size", order_map.size, !!order_map.size)
+            if(order_map.size){
                 for (const [map_id, item_dict] of order_map.entries()) {
                     const is_template = get_dict_value(item_dict, [ "id", "istemplate"], false)
                     if (is_template) {
                         sel_order_pk = get_dict_value(item_dict, [ "id", "pk"], 0)
                         sel_customer_pk = get_dict_value(item_dict, [ "id", "ppk"], 0)
+        console.log("item_dict", item_dict)
                         break;
             }}};
+
+        console.log("sel_order_pk", sel_order_pk)
+        console.log("sel_customer_pk", sel_customer_pk)
+
         } else {
             selected.customer_pk = settings.customer_pk;
             selected.order_pk = settings.order_pk;
-            selected.scheme_pk =  settings.scheme_pk;
+            selected.scheme_pk = settings.scheme_pk;
+console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
             sel_customer_pk = selected.customer_pk
             sel_order_pk = selected.order_pk
         }
@@ -734,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
         is_absence_mode = (selected_btn === "btn_absence");
         if (is_absence_mode){is_template_mode = false};
 // ---  set btntext 'Add scheme / Delete scheme', enable/disable delete btn
-        RefreshSubmenuButtons(is_absence_mode, is_template_mode);
+        RefreshSubmenuButtons();
 // ---  highlight selected button
         highlight_BtnSelect(document.getElementById("id_btn_container"), selected_btn);
 // ---  show / hide tblBody_datatable or el_div_gridlayout
@@ -769,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  HandleSelectOrder  ================ PR2019-03-24 PR2020-05-21
     function HandleSelectOrder(sel_customer_pk, sel_order_pk ) {
         //console.log("=====  HandleSelectOrder =========");
-        //console.log("mod_MSCO_dict: ", mod_MSCO_dict)
+        //console.log("mod_MSCO_MCFT_dict: ", mod_MSCO_MCFT_dict)
         //console.log( "sel_customer_pk", sel_customer_pk);
         //console.log( "sel_order_pk", sel_order_pk);
         //called by MSCO_Save, HandleSelectCustomer select_order.Event.Change, MSCH_Validate
@@ -787,11 +800,11 @@ document.addEventListener('DOMContentLoaded', function() {
         settings.customer_pk = 0;
         settings.order_pk = 0;
         settings.scheme_pk = 0;
-        settings.template_pk = 0;
+        // NIU settings.template_pk = 0;
 
         selected.customer_pk = 0;
         selected.order_pk = 0;
-        selected.scheme_pk = 0;
+        selected.scheme_pk = null;
         selected.team_pk = 0;
         selected.shift_pk = 0;
 
@@ -821,13 +834,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // if no order selected: check if there is an order_pk in settings
         if (sel_order_pk){
 // --- save selected.order_pk in Usersettings, not in template mode
-            // PR20202-07-15 debug: must set sel_scheme_pk: 0, otherwise wrong scheme can be shown
+            // PR2020-07-15 debug: must set sel_scheme_pk: 0, otherwise wrong scheme can be shown
             if(!is_template_mode){
                 const upload_dict = {selected_pk: {
                     sel_customer_pk: sel_customer_pk,
                     sel_order_pk: sel_order_pk,
-                    sel_scheme_pk: 0
-                    }
+                    sel_scheme_pk: 0 }
                     };
                 UploadSettings (upload_dict, url_settings_upload);
             }
@@ -2716,7 +2728,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ++++ deleted ++++
             if(is_deleted) {
 // ---  reset selected scheme/shift/team when deleted
-                //if (tblName === "scheme"){selected.scheme_pk = 0};
+                if (tblName === "scheme"){selected.scheme_pk = null};
                 if (["scheme", "shift"].indexOf(tblName) > -1 ){selected.shift_pk = 0};
                 //if (["scheme", "team"].indexOf(tblName) > -1 ){selected.team_pk = 0};
 // ---  delete tblRow from datatable
@@ -2784,7 +2796,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ++++ deleted ++++
         if(is_deleted){
 // ---  reset selected scheme/shift/team when deleted
-            if (tblName === "scheme"){selected.scheme_pk = 0};
+            if (tblName === "scheme"){selected.scheme_pk = null};
             if (["scheme", "shift"].indexOf(tblName) > -1 ){selected.shift_pk = 0};
             if (["scheme", "team"].indexOf(tblName) > -1 ){selected.team_pk = 0};
 // ---  delete tblRow from datatable
@@ -2796,7 +2808,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             if (tblName === "scheme"){
         // ---  reset tblBody of schemeitem, shift, teammember, and set el_input_team_code = null
                 tblBody_datatable.innerText = null;
-                selected.scheme_pk = 0
+                selected.scheme_pk = null;
             }
 
 // ++++ created ++++
@@ -4596,9 +4608,11 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 // +++++++++ END OF MOD CONFIRM DELETE TABLEROW++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++++++ MOD CONFRIM ++++++++++++++++++++++++++++++++++++++++++++++++++++
-//=========  ModConfirmOpen  ================ PR2019-10-23 PR2020-05-03
+//=========  ModConfirmOpen  ================ PR2019-10-23 PR2020-05-03 PR2021-03-28
     function ModConfirmOpen(shiftoption, el_input, get_header_text) {
-        console.log(" -----  ModConfirmOpen   ----", shiftoption)
+        console.log(" -----  ModConfirmOpen   ----")
+        console.log("shiftoptions", shiftoption)
+        console.log("mod_MSCH_dict", mod_MSCH_dict)
 
         // shiftoptions are: delete, inactive, schemeitem_delete, scheme_delete, scheme_inactive, absence_delete,
         //                   gridrow_shift_save, gridrow_shift_delete, grid_team, grid_si
@@ -4610,23 +4624,24 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
         // el_input only has vaue when caled by HandleSelectRowButtonInactive, UploadDeleteInactive
 
-let btn_save_caption = loc.Save, btn_save_style = "btn-primary", btn_save_hidden = false, btn_save_focus = false;
-let btn_cancel_caption = loc.Cancel, btn_cancel_style = "btn-outline-secondary";
-let header_text = null, msg_01_txt = null, msg_02_txt = null, msg_03_txt = null;
-let tblName = null;
+        let btn_save_caption = loc.Save, btn_save_style = "btn-primary", btn_save_hidden = false, btn_save_focus = false;
+        let btn_cancel_caption = loc.Cancel, btn_cancel_style = "btn-outline-secondary";
+        let header_text = null, msg_01_txt = null, msg_02_txt = null, msg_03_txt = null;
+        let tblName = null;
 
-if(shiftoption === "scheme_delete"){
-    mod_dict = {mode: shiftoption,
-                pk: mod_MSCH_dict.pk,
-                ppk: mod_MSCH_dict.ppk,
-                table: mod_MSCH_dict.table};
+        if(shiftoption === "scheme_delete"){
+            mod_dict = {mode: shiftoption,
+                        pk: mod_MSCH_dict.pk,
+                        ppk: mod_MSCH_dict.ppk,
+                        table: mod_MSCH_dict.table};
 
-    header_text = loc.Delete_scheme;
-    msg_01_txt = loc.Scheme + ": '" + mod_MSCH_dict.code + "'" + loc.will_be_deleted;
-    msg_02_txt = loc.Do_you_want_to_continue;
-    btn_save_caption = loc.Yes_delete
-    btn_cancel_caption = loc.No_cancel
-    btn_save_style = "btn-outline-danger";
+            header_text = (is_template_mode) ? loc.Delete_template : loc.Delete_scheme;
+            const item_text = (is_template_mode) ? loc.Template : loc.Scheme;
+            msg_01_txt = item_text + ": '" + mod_MSCH_dict.code + "'" + loc.will_be_deleted;
+            msg_02_txt = loc.Do_you_want_to_continue;
+            btn_save_caption = loc.Yes_delete
+            btn_cancel_caption = loc.No_cancel
+            btn_save_style = "btn-outline-danger";
 
 } else if(shiftoption === "scheme_inactive"){
     // called by sbr_scheme_select
@@ -5006,9 +5021,9 @@ if(shiftoption === "scheme_delete"){
         console.log("selected.order_pk:", selected.order_pk) ;
 
         // do not update selected_period.order_pk until MSCO_Save
-// ---  reset mod_MSCO_dict
-        // selected.order_pk is stored in mod_MSCO_dict in fucntion MSCO_FillSelectTableCustOrder
-        mod_MSCO_dict = {customer_pk: 0, order_pk: 0};
+// ---  reset mod_MSCO_MCFT_dict
+        // selected.order_pk is stored in mod_MSCO_MCFT_dict in fucntion MSCO_FillSelectTableCustOrder
+        mod_MSCO_MCFT_dict = {customer_pk: 0, order_pk: 0};
         el_MSCO_input_custorder.value = null;
 // ---  fill SelectTable Custorder
         MSCO_FillSelectTableCustOrder("msco")
@@ -5048,10 +5063,10 @@ if(shiftoption === "scheme_delete"){
                 } else if(row_count === 1){
                     let tblRow = tableBody.rows[0]
                     if(!!tblRow) {
-        // ---  put order_pk in mod_MSCO_dict
+        // ---  put order_pk in mod_MSCO_MCFT_dict
                         if  (mod_name === "msco"){
-                            mod_MSCO_dict.order_pk = get_attr_from_el(tblRow, "data-pk");
-                            mod_MSCO_dict.customer_pk = get_attr_from_el(tblRow, "data-ppk");
+                            mod_MSCO_MCFT_dict.order_pk = get_attr_from_el(tblRow, "data-pk");
+                            mod_MSCO_MCFT_dict.customer_pk = get_attr_from_el(tblRow, "data-ppk");
                         }
         // ---  highlight first row
                         tblRow.classList.add(cls_selected);
@@ -5093,13 +5108,13 @@ if(shiftoption === "scheme_delete"){
                 tblRow.setAttribute("data-value", code_value);
             };
 //- add EventListener to tblRow
-            tblRow.addEventListener("click", function() {MSCO_SelecttableClicked(tblRow, mod_name)}, false )
+            tblRow.addEventListener("click", function() {MSCO_MCFT_SelecttableClicked(tblRow, mod_name)}, false )
 // ---  add hover to tblRow
             add_hover(tblRow);
-// ---  check if row is selected.order_pk, put order_pk in mod_MSCO_dict
+// ---  check if row is selected.order_pk, put order_pk in mod_MSCO_MCFT_dict
             if (!!selected.order_pk &&  ppk_int === selected.order_pk){
-                mod_MSCO_dict.order_pk = selected.order_pk;
-                mod_MSCO_dict.customer_pk = selected.customer_pk;
+                mod_MSCO_MCFT_dict.order_pk = selected.order_pk;
+                mod_MSCO_MCFT_dict.customer_pk = selected.customer_pk;
 // ---  highlight clicked row
                 tblRow.classList.add(cls_selected);
             }
@@ -5114,10 +5129,10 @@ if(shiftoption === "scheme_delete"){
         return add_to_list;
     }  // MSCO_FillSelectRow
 
-//=========  MSCO_SelecttableClicked  ================ PR2020-05-21 cleaned
-    function MSCO_SelecttableClicked(tblRow, mod_name) {
-        //console.log( "===== MSCO_SelecttableClicked ========= ");
-        //console.log( "mod_name", mod_name);
+//=========  MSCO_MCFT_SelecttableClicked  ================ PR2020-05-21 cleaned
+    function MSCO_MCFT_SelecttableClicked(tblRow, mod_name) {
+        console.log( "===== MSCO_MCFT_SelecttableClicked ========= ");
+        console.log( "mod_name", mod_name);
 
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -5127,19 +5142,21 @@ if(shiftoption === "scheme_delete"){
             tblRow.classList.add(cls_selected)
 // ---  get pk from id of select_tblRow
             if (mod_name === "mcft"){
-                mod_dict.copyto_order_pk = get_attr_from_el_int(tblRow, "data-pk");
-                mod_dict.copyto_order_ppk = get_attr_from_el_int(tblRow, "data-ppk");
-                mod_dict.copyto_order_code = get_attr_from_el(tblRow, "data-value");
-                el_MCFT_input_order.value = mod_dict.copyto_order_code;
+                mod_MSCO_MCFT_dict.copyto_order_pk = get_attr_from_el_int(tblRow, "data-pk");
+                mod_MSCO_MCFT_dict.copyto_order_ppk = get_attr_from_el_int(tblRow, "data-ppk");
+
+                el_MCFT_input_order.value = get_attr_from_el(tblRow, "data-value");
                 set_focus_on_el_with_timeout(el_MCFT_btn_save, 50);
+
             } else {
-                mod_MSCO_dict.order_pk = get_attr_from_el_int(tblRow, "data-pk");
-                mod_MSCO_dict.customer_pk = get_attr_from_el_int(tblRow, "data-ppk");
+                mod_MSCO_MCFT_dict.order_pk = get_attr_from_el_int(tblRow, "data-pk");
+                mod_MSCO_MCFT_dict.customer_pk = get_attr_from_el_int(tblRow, "data-ppk");
 
                 MSCO_Save();
             }
+        console.log( "mod_MSCO_MCFT_dict", mod_MSCO_MCFT_dict);
         }
-    }  // MSCO_SelecttableClicked
+    }  // MSCO_MCFT_SelecttableClicked
 
 //=========  MSCO_FilterCustOrder  ================ PR2020-05-21 cleaned
     function MSCO_FilterCustOrder() {
@@ -5156,9 +5173,9 @@ if(shiftoption === "scheme_delete"){
 // ---  if filter results have only one unique record: put selected order in el_MSCO_input_custorder
             if (filter_dict.selected_pk) {
                 el_MSCO_input_custorder.value = filter_dict.selected_value;
-// ---  put selected order_pk in mod_MSCO_dict
-                mod_MSCO_dict.order_pk = Number(filter_dict.selected_pk);
-                mod_MSCO_dict.customer_pk = Number(filter_dict.selected_ppk);
+// ---  put selected order_pk in mod_MSCO_MCFT_dict
+                mod_MSCO_MCFT_dict.order_pk = Number(filter_dict.selected_pk);
+                mod_MSCO_MCFT_dict.customer_pk = Number(filter_dict.selected_ppk);
 // ---  highlight selected row
                 let tblRow = document.getElementById("sel_order_" + filter_dict.selected_pk );
                 if(!!tblRow) {tblRow.classList.add(cls_selected)}
@@ -5172,9 +5189,9 @@ if(shiftoption === "scheme_delete"){
 //=========  MSCO_Save  ================ PR2020-05-21 cleaned
     function MSCO_Save() {
         //console.log("=====  MSCO_Save =========");
-        //console.log("mod_MSCO_dict", mod_MSCO_dict);
+        //console.log("mod_MSCO_MCFT_dict", mod_MSCO_MCFT_dict);
         // don't update selected.customer_pk and selected.order_pk until response
-        HandleSelectOrder(mod_MSCO_dict.customer_pk, mod_MSCO_dict.order_pk );
+        HandleSelectOrder(mod_MSCO_MCFT_dict.customer_pk, mod_MSCO_MCFT_dict.order_pk );
 // hide modal
         $("#id_mod_select_custorder").modal("hide");
     }  // MSCO_Save
@@ -5551,7 +5568,6 @@ if(shiftoption === "scheme_delete"){
 
 // +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 //=========  MOD SCHEME  ================ PR2020-04-19
     function MSCH_Open(el_clicked) {
         //console.log("=========  MSCH_Open ========= ");
@@ -5559,7 +5575,7 @@ if(shiftoption === "scheme_delete"){
         //console.log("selected.order_pk:", selected.order_pk);
 
         // el_clicked is undefined when clicked on menubtn add_new
-        if(!el_clicked){selected.scheme_pk = 0}
+        if(!el_clicked){selected.scheme_pk = null}
 
 // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
         MSCH_get_scheme_dict();
@@ -5696,7 +5712,7 @@ if(shiftoption === "scheme_delete"){
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
         //console.log( "map_dict", map_dict)
             if (isEmpty(map_dict)) {
-                selected.scheme_pk = null
+                selected.scheme_pk = null;
     // ---  create new scheme_dict if map_dict is empty, with default cycle = 7
                 const new_code = get_schemecode_with_sequence(scheme_map, selected.order_pk, loc.Scheme);
                 mod_MSCH_dict = {
@@ -6513,7 +6529,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             ModCopytoTemplateOpen ();
         }
     }
-//========= MOD COPY FROM TEMPLATE Open====================================
+//========= MOD COPY FROM TEMPLATE ====================================
     function MCFT_Open () {
         console.log("===  MCFT_Open  =====") ;
 
@@ -6528,26 +6544,26 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             const template_scheme_pk = get_dict_value(map_dict, ["id", "pk"])
             const template_scheme_ppk = get_dict_value(map_dict, ["id", "ppk"])
             const template_scheme_code = get_dict_value(map_dict, ["code", "value"])
-        console.log("template_scheme_code", template_scheme_code)
 
-// remove 'template' from the scheme name
-            const template_str = loc.Template;
-            let new_code = null
-            // The gi modifier is used to do a case insensitive search of all occurrences of a regular expression in a string.
-            if(template_scheme_code){
-                const pattern = new RegExp(template_str, "gi");
-                new_code = template_scheme_code.replace(pattern, "").trim();
-            }
-            mod_dict = {
+            mod_MSCO_MCFT_dict = {
                 template_scheme_pk: template_scheme_pk,
                 template_scheme_ppk: template_scheme_ppk,
-                scheme_code: new_code,
                 copyto_order_pk: null,
                 copyto_order_ppk: null
                 };
+
+// remove 'template' from the scheme name
+            const template_str = loc.Template;
+            let new_scheme_code = null
+            // The gi modifier is used to do a case insensitive search of all occurrences of a regular expression in a string.
+            if(template_scheme_code){
+                const pattern = new RegExp(template_str, "gi");
+                new_scheme_code = template_scheme_code.replace(pattern, "").trim();
+            }
+
         // reset input elements
             el_MCFT_input_order.value = null;
-            el_MCFT_input_code.value = new_code
+            el_MCFT_input_code.value = new_scheme_code
             const template_text = (template_scheme_code) ? "'" + template_scheme_code + "'" : loc.Template.toLowerCase();
             const header_text = loc.Copy + template_text + loc.to_order;
             document.getElementById("id_mod_copyfrom_header").innerText = header_text
@@ -6564,13 +6580,13 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 //=========  ModCopyfromTemplateSave  ================ PR2019-07-24
     function MCFT_Save() {
         console.log("=========  MCFT_Save =========");
-        let newscheme_code = document.getElementById("id_mod_copyfrom_code").value;
-        const dict = {id: {pk: mod_dict.template_scheme_pk,
-                           ppk: mod_dict.template_scheme_ppk,
+        let new_scheme_code = document.getElementById("id_mod_copyfrom_code").value;
+        const dict = {id: {pk: mod_MSCO_MCFT_dict.template_scheme_pk,
+                           ppk: mod_MSCO_MCFT_dict.template_scheme_ppk,
                            istemplate: true, table: "scheme", mode: "copyfrom"},
-                      copyto_order: {pk: mod_dict.copyto_order_pk,
-                                     ppk: mod_dict.copyto_order_ppk},
-                      code: {value: newscheme_code, update: true}
+                      copyto_order: {pk: mod_MSCO_MCFT_dict.copyto_order_pk,
+                                     ppk: mod_MSCO_MCFT_dict.copyto_order_ppk},
+                      code: {value: new_scheme_code, update: true}
                      }
         const upload_dict = {"copyfromtemplate": dict};
         UploadChanges(upload_dict, url_scheme_template_upload)
@@ -6586,21 +6602,23 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             tr_clicked.classList.remove("tsa_bc_transparent")
             tr_clicked.classList.add(cls_selected)
 
-    // add pk_int to mod_dict
+    // add pk_int to mod_MSCO_MCFT_dict
             const map_id = get_attr_from_el(tr_clicked, "data-map_id");
             const item_dict = scheme_map.get(map_id);
             const pk_int = get_dict_value(item_dict, ["id", "pk"])
             const ppk_int = get_dict_value(item_dict, ["id", "ppk"])
             const code = get_dict_value(item_dict, ["code", "value"])
-            //console.log( "item_dict", item_dict);
+        console.log( "item_dict", item_dict);
 
             const template_txt = " " + loc.Template.toLowerCase();
             let code_txt = code.replace(template_txt,"");
             document.getElementById("id_mod_copyfrom_code").value = code_txt
 
-            mod_dict.copyto_order_pk = pk_int;
-            mod_dict.copyto_order_ppk = pppk_int;
+            mod_MSCO_MCFT_dict.copyto_order_pk = pk_int;
+            mod_MSCO_MCFT_dict.copyto_order_ppk = pppk_int;
 
+        console.log( "mod_MSCO_MCFT_dict.copyto_order_pk", mod_MSCO_MCFT_dict.copyto_order_pk);
+        console.log( "mod_MSCO_MCFT_dict.copyto_order_ppk", mod_MSCO_MCFT_dict.copyto_order_ppk);
             // Set focus to el_MCFT_input_code
         //Timeout function necessary, otherwise focus wont work because of fade(300)
             setTimeout(function (){
@@ -6613,7 +6631,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 //=========  MCFT_InputElementKeyup  ================ PR2020-05-15
     function MCFT_InputElementKeyup(el_input) {
         console.log( "=== MCFT_InputElementKeyup  ")
-        console.log( "mod_dict", mod_dict)
+        console.log( "mod_MSCO_MCFT_dict", mod_MSCO_MCFT_dict)
 
         const new_filter = el_input.value
         let tblBody_select = document.getElementById("id_mod_copyfrom_tblbody");
@@ -6837,7 +6855,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 //========= ModCopytoTemplateOpen====================================
     function ModCopytoTemplateOpen () {
        console.log("===  ModCopytoTemplateOpen  =====") ;
-       //console.log("selected.scheme_pk: ", selected.scheme_pk) ;
+       console.log("selected.scheme_pk: ", selected.scheme_pk) ;
 
         // disable btn when templates are shown
         if(!is_template_mode){
@@ -6864,7 +6882,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  ModCopytoTemplateEdit  ================ PR2019-07-20
     function ModCopytoTemplateEdit() {
-        //console.log("=========  ModCopytoTemplateEdit =========");
+        console.log("=========  ModCopytoTemplateEdit =========");
 
         let el_input = document.getElementById("id_mod_copyto_code");
         let value = el_input.value
@@ -7532,7 +7550,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         // settings.customer_pk only contains normal customers
         selected.customer_pk = settings.customer_pk;
         selected.order_pk = settings.order_pk;
-        selected.scheme_pk = settings.scheme_pk;
+        // don't set value of selected.scheme_pk after update in template_mode
+        selected.scheme_pk = (!is_template_mode) ? settings.scheme_pk : null
+console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
 // put grid_range in selected, default = 1 (1 week)
         // PR2021-01-02 selected.grid_range gets value after downloading setting_dict and after btn_goto clicked
@@ -7568,7 +7588,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             if (!pk_int) {
                 selected.order_pk = 0
                 selected.customer_pk = 0
-                selected.scheme_pk = 0
+                selected.scheme_pk = null;
 
                 // check if any orders
                 let has_records = false;
@@ -7847,7 +7867,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  Grid_FillTblTeams  === PR2020-03-13 PR2021-01-08
     function Grid_FillTblTeams() {
-        console.log("===  Grid_FillTblTeams == ");
+        //console.log("===  Grid_FillTblTeams == ");
         // called by Grid_FillGrid, Grid_UpdateFromResponse_team, Grid_UpdateFromResponse_teammember
         // functions also fills grid_teams_dict
         // fills  scheme with grid_dict.scheme_pk
@@ -8030,8 +8050,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //=========  Grid_FillTblShifts  === PR2020-03-13 PR2020-07-08 PR2021-01-05
     function Grid_FillTblShifts(col_index) {
-        console.log("===  Grid_FillTblShifts == ")
-        console.log("grid_dict ", deepcopy_dict(grid_dict))
+        //console.log("===  Grid_FillTblShifts == ")
+        //console.log("grid_dict ", deepcopy_dict(grid_dict))
 
         /* PR2021-01-02 structure of grid_dict:
         grid_dict: {
@@ -8313,7 +8333,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     // shift_offsetstart is for sorting shift rows
                     //let shift_offsetstart = get_dict_value(shift_dict, ["offsetstart", "value"], 0);
 
-                console.log("--- shift_dict", shift_dict)
+               // console.log("--- shift_dict", shift_dict)
                     const shift_pk_int = shift_dict.id;
                     const is_restshift = shift_dict.isrestshift;
                     let shift_code = (shift_dict.code) ? shift_dict.code : "---";
@@ -8374,7 +8394,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
                     }
                  }
             }  // for (const [map_id, shift_dict] of shift_map.entries()) {
-    console.log("grid_dict", grid_dict)
+    //console.log("grid_dict", grid_dict)
 
 // +++++++++++++++  add footer row +++++++++++++++
             const td_foot = document.createElement("th");
@@ -8456,7 +8476,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             }  //  if (!!ppk_int && scheme_pk === ppk_int) {
         }  // for (const [map_id, si_dict] of schemeitem_map.entries())
 
-console.log("grid_dict", deepcopy_dict(grid_dict))
+    //console.log("grid_dict", deepcopy_dict(grid_dict))
     }  //  Grid_FillTblShifts
 
 //=========  Grid_UpdateFromResponse_si  ================ PR2020-03-15

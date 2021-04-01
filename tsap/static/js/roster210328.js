@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         //let payroll_header_row = [];
 
-// --- field settings used in CreateTblRow and CreateTblHeader
+// --- field settings used in  CreateTblRow and CreateTblHeader
         const field_settings = {
             //PR2020-06-02 dont use loc.Employee here, has no value yet. Use "Employee" here and loc in CreateTblHeader
             field_caption: ["", "Date", "-", "Order", "Shift", "-", "Employee", "-", "Start_time", "-", "End_time", "Break", "Hours", "-", "-", "-"],
@@ -732,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow_filter.setAttribute("data-filterrow", "1")
 
 // - insert th's into header row
-        const column_count = field_setting.field_names.length;
+        const column_count = field_settings.field_names.length;
         for (let j = 0; j < column_count; j++) {
             const key = field_settings.field_caption[j];
             const caption = (loc[key]) ? loc[key] : key;
@@ -749,11 +749,11 @@ document.addEventListener('DOMContentLoaded', function() {
             let th = document.createElement("th");
     // --- add div to th, margin not working with th
                 let el = document.createElement("div");
-                    if ( ["ordernote", "employeenote", "stat_start_conf", "stat_end_conf", "status", "hasallowance", "hasnote"].indexOf(field_name) > -1) {
+                    if ( ["ordernote", "employeenote", "stat_start_conf", "stat_end_conf", "status", "hasallowance", "hasnote"].includes(field_name)) {
                         const class_name = (field_name === "stat_start_conf") ? "stat_0_2" :
                                            (field_name === "stat_end_conf") ? "stat_0_3" :
                                            (field_name === "hasallowance") ? "edit_0_7" :
-                                           ( ["ordernote", "employeenote", "hasnote"].indexOf(field_name) > -1) ? "edit_0_1" :
+                                           ( ["ordernote", "employeenote", "hasnote"].includes(field_name)) ? "edit_0_1" :
                                            (field_name === "status") ? "stat_0_4" : "";
                         el.classList.add(class_name)
                     } else {
@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.setAttribute("data-field", field_name);
                     el.setAttribute("data-filtertag", filter_tag);
     // --- add EventListener to el_filter
-                    if ( ["status"].indexOf(field_name) > -1) {
+                    if ( ["status"].includes(field_name)) {
                         el.addEventListener("click", function(event){HandleFilterImage(el, j)});
                         el.classList.add("stat_0_0")
                         el.classList.add("pointer_show");
@@ -823,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const field_name = field_settings.field_names[j];
             el.setAttribute("data-field", field_name);
     // --- add img to confirm_start, confirm_end and status elements
-            if (["stat_start_conf", "stat_end_conf", "status"].indexOf(field_name) > -1){
+            if (["stat_start_conf", "stat_end_conf", "status"].includes(field_name)){
                 if(permit_lock_rows || permit_unlock_rows){
                     el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
                     el.classList.add("stat_0_0")
@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.addEventListener("click", function() {MAL_Open(el)}, false)
                     el.classList.add("edit_0_0", "pointer_show")
                     add_hover(el)
-            } else if ( ["ordernote", "employeenote", "hasnote"].indexOf(field_name) > -1){
+            } else if ( ["ordernote", "employeenote", "hasnote"].includes(field_name)){
                     // everybody may see notes, permit_add_notes is used in MNO_open
                     el.addEventListener("click", function() {MNO_Open(el)}, false)
                     el.classList.add("edit_0_0", "pointer_show")
@@ -848,13 +848,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 //el.classList.add("input_text"); // makes background transparent
     // --- add EventListeners, only when has PERMITS supervisor
                 if(permit_edit_rows){
-                    if (["rosterdate", "shiftcode"].indexOf(field_name) > -1){
+                    if (["rosterdate", "shiftcode"].includes(field_name)){
                         el.disabled = true;
                         el.classList.add("tsa_color_darkgrey");
-                    } else if (["c_o_code", "employeecode"].indexOf(field_name) > -1){
+                    } else if (["c_o_code", "employeecode"].includes(field_name)){
                         el.addEventListener("click", function() {MRE_Open(el)}, false )
                         add_hover(el)
-                    } else if (["offsetstart", "offsetend", "breakduration", "timeduration"].indexOf(field_name) > -1){
+                    } else if (["offsetstart", "offsetend", "breakduration", "timeduration"].includes(field_name)){
                         el.addEventListener("click", function() {MRE_MRO_TimepickerOpen(el, "tblRow", "tblRow")}, false)
                         add_hover(el)
                     };
@@ -964,7 +964,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const title = (map_dict.employeecode && map_dict.employeecode.length > 20) ? map_dict.employeecode : null;
                 add_or_remove_attr (el, "title", (!!title), title);
 
-            } else if (["offsetstart", "offsetend"].indexOf( fldName ) > -1){
+            } else if (["offsetstart", "offsetend"].includes( fldName )){
                 const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
                 const offset_enabled = (!is_locked && !confirmed_any && permit_edit_rows);
                 const offset = (fldName === "offsetstart") ? map_dict.offsetstart : map_dict.offsetend;
@@ -976,7 +976,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hover doesn't show when el is disabled PR2020-07-22
                 add_or_remove_class (el, "pointer_show", offset_enabled)
 
-            } else if (["timeduration", "breakduration"].indexOf( fldName ) > -1){
+            } else if (["timeduration", "breakduration"].includes( fldName )){
                 const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
                 const offset_enabled = (!is_locked && !confirmed_any && permit_edit_rows);
                 const duration = (fldName === "timeduration") ? map_dict.timeduration : map_dict.breakduration;
@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hover doesn't show when el is disabled PR2020-07-22
                 add_or_remove_class (el, "pointer_show", offset_enabled)
 
-            } else if (["stat_start_conf", "stat_end_conf"].indexOf( fldName ) > -1){
+            } else if (["stat_start_conf", "stat_end_conf"].includes( fldName )){
                 // keep value of haschanged = false, don't show haschanged in these columns
                 const arr = b_get_status_class(loc, fldName, map_dict.status, is_pay_or_inv_locked, false);
                 const icon_class = arr[0];
@@ -1012,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 add_hover(el);
 
-            } else if (["status"].indexOf(fldName ) > -1){
+            } else if (["status"].includes(fldName )){
                 const modified_dateJS = parse_dateJS_from_dateISO(map_dict.eh_modat);
                 const modified_date_formatted = format_datetime_from_datetimeJS(loc, modified_dateJS)
                 const modified_by = (map_dict.u_usr) ? map_dict.u_usr : "-";
@@ -2317,12 +2317,12 @@ rowcount: 11
                     if(!!el_input){
                         const fldName = get_attr_from_el(el_input, "data-field")
                         const value = get_dict_value(alw_dict, [fldName]);
-                        if (["code", "description"].indexOf( fldName ) > -1){
+                        if (["code", "description"].includes( fldName )){
                             el_input.innerText = (value || "---");
                         } else if (fldName === "quantity"){
                             el_input.value = (value) ? value / 10000 : 0;
 
-                        } else if (["amount", "wagerate"].indexOf( fldName ) > -1){
+                        } else if (["amount", "wagerate"].includes( fldName )){
                             el_input.innerText = format_pricerate (loc.user_lang, value, false , true) // false = is_percentage , true = show_zero
 
                         }
@@ -3532,10 +3532,10 @@ rowcount: 11
             if(tblRow){
                 const el_div = tblRow.querySelector("[data-field=" + fldName + "]");
                 if(el_div) {
-                    if (["offsetstart", "offsetend"].indexOf(fldName) > -1) {
+                    if (["offsetstart", "offsetend"].includes(fldName)) {
                         el_div.innerText = format_time_from_offset_JSvanilla( loc, tp_dict.rosterdate, tp_dict.offset,
                             true, false, false)  // true = display24, true = only_show_weekday_when_prev_next_day, false = skip_hour_suffix
-                    } else if (["breakduration", "breakduration"].indexOf(fldName) > -1) {
+                    } else if (["breakduration", "breakduration"].includes(fldName)) {
                         el_div.innerText = display_duration (tp_dict.offset, loc.user_lang)
                     }
                 }
@@ -3592,8 +3592,8 @@ rowcount: 11
 // It also has a DOM property 'value' that holds the current value of the input  - get it with elem.value
 // see https://javascript.info/dom-attributes-and-properties
     function UploadChanges(upload_dict, url_str) {
-        //console.log("=== UploadChanges");
-        //console.log("url_str: ", url_str);
+        console.log("=== UploadChanges");
+        console.log("url_str: ", url_str);
 
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)};
@@ -3613,9 +3613,8 @@ rowcount: 11
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log("response");
-                    //console.log(response);
-
+                    console.log("response");
+                    console.log(response);
 
                     // update EmplhourNotes must come before refresh_updated_emplhour_rows
                     if ("emplhournote_updates" in response) {
@@ -4556,7 +4555,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                                      (tblName === "order") ? loc.Select_order :
                                      (tblName === "shift") ?  loc.Select_shift :
                                      (tblName === "abscat") ?  loc.Select_abscat :
-                                     (tblName === "employee") ? ( (["tab_absence", "tab_abs_split"].indexOf(mod_dict.btn_select) > -1) ? loc.Select_replacement_employee  : loc.Select_employee )  : "" ) + ":";
+                                     (tblName === "employee") ? ( (["tab_absence", "tab_abs_split"].includes(mod_dict.btn_select)) ? loc.Select_replacement_employee  : loc.Select_employee )  : "" ) + ":";
 
         const el_header = document.getElementById("id_" + pgeName + "_select_header")
         if(el_header){ el_header.innerText = select_header_text };
@@ -4613,7 +4612,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             }
         } else {
 // ---  add 'all' at the beginning of the list, only when multiple items found
-            if (["MSE", "MSO"].indexOf(pgeName) > -1) {
+            if (["MSE", "MSO"].includes(pgeName)) {
                 // row 'AddAllToList' does not count in rowcount_customer / order
                 MSE_MSO_MRE_MRO_AddAllToList(tblBody_select, pgeName, tblName);
             }
@@ -5010,7 +5009,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ---  create st_dict
         const txt_dateheader = (fldName === "breakduration") ? loc.Break :
                                (fldName === "timeduration") ? loc.Working_hours : null;
-                               //(["offset_split_before", "offset_split_after"].indexOf(fldName) > -1) ? loc.Split_time : "";
+                               //(["offset_split_before", "offset_split_after"].includes(fldName)) ? loc.Split_time : "";
         let st_dict = { url_settings_upload: url_settings_upload,
                         txt_dateheader: txt_dateheader,
                         txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
@@ -5113,7 +5112,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                                                 mod_dict.timeduration)
 
     // ---  put new value in variable
-                if (["offset_split_before", "offset_split_after"].indexOf(fldName) > -1) {
+                if (["offset_split_before", "offset_split_after"].includes(fldName)) {
                     mod_dict.offsetsplit = new_offset;
                     const display_offset = display_offset_time (loc, new_offset, false, false);
                     el_MRE_split_time.innerText = display_offset;    // set focus to save button
@@ -5151,7 +5150,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
     // ---  create header text
         if(pgeName === "MRE") {
         // ---  give modconfirm message when restshift  -  skip MRE form, rest shift cannot open this form
-            //happens in MRE_open
+            //happens in  MRE_open
         } else if(pgeName === "MRO") {
             header_text = loc.Add_shift;
             if(mod_dict.order_pk){
@@ -5256,7 +5255,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         let tblBody_select = document.getElementById("id_" + pgeName + "_tblbody_select");
         tblBody_select.innerText = null;
 
-        if (["MRO", "MSS"].indexOf(pgeName) > -1 ){
+        if (["MRO", "MSS"].includes(pgeName)){
             document.getElementById("id_" + pgeName + "_select_header").innerText = select_header_text;
         }
         let row_count = 0, has_selected_pk = false;
@@ -5404,7 +5403,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ++++ MOD ROSTER EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // =========  MRE_Open  ================ PR2019-06-23 PR2020-08-22
     function MRE_Open(el_input) {
-        //console.log(" =========  MRE_Open  ==========")
+        console.log(" =========  MRE_Open  ==========")
 
 // reset mod_dict
         mod_dict = {};
@@ -5498,7 +5497,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             //Timeout function necessary, otherwise focus wont work because of fade(300)
             if (mod_dict.is_add_employee){
                 setTimeout(function (){el_MRE_input_replacement.focus()}, 50);
-            } else if (["tab_absence", "tab_abs_split"].indexOf(mod_dict.btn_select) > -1){
+            } else if (["tab_absence", "tab_abs_split"].includes(mod_dict.btn_select)){
                 setTimeout(function (){ el_MRE_input_abscat.focus()}, 50);
             }
 
@@ -5511,8 +5510,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //=========  MRE_Save  ================ PR2019-06-23 PR2020-08-22
     function MRE_Save(crud_mode) {
-        //console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
-        //console.log("mod_dict", deepcopy_dict(mod_dict));
+        console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
+        console.log("mod_dict", deepcopy_dict(mod_dict));
         // crud_mode = 'delete' when clicked on MRE delete btn. Deletes absence emplhour or removes employee from emplhour
         // crud_mode = 'save' otherwise
         // selected_btn are: tab_absence, tab_move, tab_split, tab_switch --- or values: tab_abs_split, add_employee
@@ -5546,7 +5545,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         } else if (mod_dict.btn_select === "tab_switch"){
             shift_option = "switch_shift";
         }
-        //console.log("shift_option", shift_option);
+        console.log("shift_option", shift_option);
 
 // ---  create id_dict of current emplhour record
         let upload_dict = { id: {pk: mod_dict.emplhour_pk,
@@ -5569,14 +5568,14 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ---  when absence shift: delete emplhour row
                 // add 'delete' to id_dict, dont add employee dict or abscat dict
                 upload_dict.id["delete"] = true;
-        // ---  make tblRow red
+// ---  make tblRow red
                 // happens in UploadChanges
             }
         } else {
 
 // ---  create employee_dict
             // when make_absent or split_shift: selected_employee is replacement employee
-            if(["enter_employee", "make_absent", "make_absent_and_split", "split_shift"].indexOf(shift_option) > -1)
+            if(["enter_employee", "make_absent", "make_absent_and_split", "split_shift"].includes(shift_option)) {
                 if(mod_dict.selected_employee_pk){
                      upload_dict.employee = {field: "employee",
                                                 pk: mod_dict.selected_employee_pk,
@@ -5588,12 +5587,13 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                                                 pk: null,
                                                 code: null, // necessary to make tblRow field blank
                                                 update: true}
+                }
             }
 
 // ---  put new selected_employee_code in tblRow,
             // - only when  selected_employee_pk has value
             // - not when split_shift or switch_shift (in that case selected_employee is added in new row)
-            if(["enter_employee", "make_absent"].indexOf(shift_option) > -1){
+            if(["enter_employee", "make_absent"].includes(shift_option)){
                 if(mod_dict.selected_employee_pk){
                     MRE_set_fieldvalue_in_tblrow(tr_changed, "employeecode", mod_dict.selected_employee_code)
                 }
@@ -5602,7 +5602,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ---  create abscat_dict
             // PR2021-01-09 debug: mail Romy: puts default abscat when spli, forgot to add ""make_absent_and_split",
             // was: if(["make_absent", "change_absence"].indexOf(shift_option) > -1){
-            if(["make_absent", "change_absence", "make_absent_and_split"].indexOf(shift_option) > -1){
+            if(["make_absent", "change_absence", "make_absent_and_split"].includes(shift_option)){
                 // when abcat has no pk, the default abscat will be saved. abscat_dict = {} gives error.
                 upload_dict.abscat = { pk: mod_dict.abscat_pk,
                                         ppk: mod_dict.abscat_ppk,
@@ -5613,7 +5613,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             }
 
 // ---  set offset split
-            if ( ["tab_abs_split", "tab_split"].indexOf(mod_dict.btn_select) > -1){
+            if ( ["tab_abs_split", "tab_split"].includes(mod_dict.btn_select)){
                 if(mod_dict.offsetsplit != null){  // offsetsplit = 0 is midnight
                     if(el_MRE_split_before.checked){
                         upload_dict.split = "split_before";
@@ -5626,6 +5626,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             }
         }
 
+        console.log("url_emplhour_upload", url_emplhour_upload);
+        console.log("upload_dict", upload_dict);
         UploadChanges(upload_dict, url_emplhour_upload);
 
         $('#id_modroster_employee').modal('hide');
@@ -5774,7 +5776,7 @@ if(!skip_when_split_checked){
                 el_MRE_label_split_time.innerText = loc.Split_time + ":"
                 el_MRE_input_replacement.focus()
             }
-            const is_disabled = (["tab_absence", "tab_abs_split"].indexOf(mod_dict.btn_select) > -1) && (!mod_dict.abscat_pk)
+            const is_disabled = (["tab_absence", "tab_abs_split"].includes(mod_dict.btn_select)) && (!mod_dict.abscat_pk)
             el_MRE_btn_save.disabled = is_disabled;
         }
     }  // MRE_btn_SelectAndDisable
@@ -5817,7 +5819,7 @@ if(!skip_when_split_checked){
                 } else {
                     row_value = get_attr_from_el(tblRow, "data-value");
                     if (!!row_value){
-                        show_row = (row_value.toLowerCase().indexOf(filter_mod_employee) !== -1)
+                        show_row = (row_value.toLowerCase().includes(filter_mod_employee))
                     }
                 }
                 if (show_row) {
@@ -6222,9 +6224,9 @@ if(!skip_when_split_checked){
                     ws[cell_index] = {v: cell_values[j], t: cell_types[j]};
                     if ( j === 0){
                         ws[cell_index]["z"] = "dd mmm yyyy"
-                    //} else if ([5, 6].indexOf(j) > -1){
+                    //} else if ([5, 6].includes(j)){
                     //    ws[cell_index]["z"] = "dd mmm yyyy hh:mm"
-                    } else if ([7, 8].indexOf(j) > -1){
+                    } else if ([7, 8].includes(j)){
                         ws[cell_index]["z"] = "0.00"
                     }
                 }

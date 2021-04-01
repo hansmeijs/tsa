@@ -184,15 +184,31 @@ h4 h5 {
     border-radius: .25rem;
     background-color: transparent;
 
-    margin: 8px;
-    padding: 8px;
+    /*margin: 8px;  /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */
+    /*padding: 8px; */
 }
 .border_bg_message {
     border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */
     border-radius: .25rem;
     background-color: #f5f5f5;  /* licht licht licht grijs 245 245 245 */
 }
-
+.border_bg_lightblue {
+    /* border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */
+    border: 1px solid #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
+    border-radius: .25rem;
+    /*background-color: #2d4e77;  /* HeaderBackColor Default Schema Blauw donkerblauw RGB 45,78,119 */
+   /* background-color: #376191;  /*  FooterBackColor Default Schema Blauw medium blauw  RGB 55,97,145)  */
+    background-color: #b8cce4;  /* AWP lichtblauw RGB 184,204,228  */
+}
+.bg_selected_blue {
+    background-color: #376191;  /*  FooterBackColor Default Schema Blauw medium blauw  RGB 55,97,145)  */
+    color: #ffffff; /* #ffffff is white; #edf2f8; is light light blue*/
+/*
+    -webkit-transition: background-color 0.25s ease;
+    -o-transition: background-color 0.25s ease;
+    transition: background-color 0.25s ease;
+*/
+}
 
 .border_calendarshift {
     border: 1px solid #808080 !important; /* Dark grey; */

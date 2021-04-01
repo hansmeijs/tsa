@@ -589,6 +589,10 @@
     overflow-y: auto;
 }
 
+.tbl_div_390_360 {
+    height: 390px;
+    width: 360px;
+}
 .tbl_div_390_280 {
     height: 390px;
     width: 280px;
@@ -597,10 +601,11 @@
     height: 390px;
     width: 220px;
 }
-.tbl_div_390_360 {
-    height: 390px;
-    width: 360px;
+.tbl_div_320_280 {
+    height: 320px;
+    width: 280px;
 }
+
 .tbl_div_50vh_200 {
     max-height: 50vh;
     width: 200px;

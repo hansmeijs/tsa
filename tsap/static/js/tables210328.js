@@ -732,9 +732,9 @@
 //========= t_ShowTableRowExtended  ==================================== PR2020-07-12 PR2020-09-12
     function t_ShowTableRowExtended(filter_row, filter_dict, tblRow) {
         // only called by FillPayrollRows,
-        console.log( "===== t_ShowTableRowExtended  ========= ");
-        console.log( "filter_dict", filter_dict);
-        console.log( "filter_row", filter_row);
+        //console.log( "===== t_ShowTableRowExtended  ========= ");
+        //console.log( "filter_dict", filter_dict);
+        //console.log( "filter_row", filter_row);
         // filter_dict = {2: ["text", "r", ""], 4: ["text", "y", ""] }
         //  filter_row = [empty × 2, "acu - rif", empty, "agata mm"]
 

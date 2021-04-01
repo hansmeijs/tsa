@@ -217,7 +217,7 @@ def check_rosterdate_emplhours(upload_dict, user_lang, request):  # PR2019-11-11
 
 
 def check_rosterdate_count(rosterdate_iso, request):  # PR2021-02-20
-    # logger.debug(' ============= check_rosterdate_count ============= ')
+    #logger.debug(' ============= check_rosterdate_count ============= ')
     # if any: count emplhour records that are confirmed or locked
     sql_keys = {'compid': request.user.company.pk, 'rd': rosterdate_iso}
     sql_list = ["SELECT COUNT(eh.id) AS row_count",
@@ -241,8 +241,8 @@ def check_rosterdate_count(rosterdate_iso, request):  # PR2021-02-20
 
 
 def count_rosterdate_may_be_deleted(rosterdate_iso, request):  # PR2021-02-20
-    # logger.debug(' ============= count_rosterdate_may_be_deleted ============= ')
-    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    #logger.debug(' ============= count_rosterdate_may_be_deleted ============= ')
+    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # check if rosterdate is not locked, not confirmed and not added row
     # added row has status = even number, confirmed / locked row has status >= 4 (c.STATUS_02_START_CONFIRMED)
     # if any: count emplhour records that are confirmed or locked
@@ -1211,7 +1211,7 @@ def create_shift_dict_from_sqlXXX(shift, update_dict, user_lang):  # PR2020-05-2
 
 
 def create_shift_dict(shift, update_dict):  # PR2021-01-04
-    logger.debug(' ----- create_shift_dict ----- ')
+    #logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     if shift:
@@ -1254,7 +1254,7 @@ def create_shift_dict(shift, update_dict):  # PR2021-01-04
 
         update_dict['shift'] = shift_dict
 
-    logger.debug('update_dict: ' + str(update_dict))
+    #logger.debug('update_dict: ' + str(update_dict))
     return update_dict
 # ----------- end of create_shift_dict -----------
 
@@ -1414,10 +1414,13 @@ def get_teamcode_abbrev(team_code):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, user_lang, request):   # PR2019-11-16 PR2020-07-15 PR2020-09-02
-    #logger.debug(' ============== period_get_and_save ================ ')
-    #logger.debug(' key: ' + str(key))
-    #logger.debug(' request_item: ' + str(request_item))
+def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, user_lang, request):
+    # PR2019-11-16 PR2020-07-15 PR2020-09-02 PR2021-03-30
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ============== period_get_and_save ================ ')
+        logger.debug(' key: ' + str(key))
+        logger.debug(' request_item: ' + str(request_item))
 
     # rosterdatefirst / rosterdatelast are used in filter: create_employee_planning / create_customer_planning / review_list
     # periodstart (= periodstart_local_withtimezone) / 'periodend'  is used in: emplhour_list
@@ -1430,7 +1433,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
 
 # - get saved period_dict
     saved_period_dict = request.user.get_usersetting(key)
-    #logger.debug(' saved_period_dict: ' + str(saved_period_dict))
+    if logging_on:
+        logger.debug(' saved_period_dict: ' + str(saved_period_dict))
 
 # - get customer_pk, order_pk or employee_pk
     # if key exists in dict: use that value (can be null), get saved otherwise
@@ -1784,7 +1788,8 @@ def period_get_and_save(key, request_item, comp_timezone, timeformat, interval, 
         update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
                                                                        user_lang)
 
-    #logger.debug('update_dict: ' + str(update_dict))
+    if logging_on:
+        logger.debug('update_dict: ' + str(update_dict))
     return update_dict
 # ---  end of period_get_and_save
 
@@ -1795,7 +1800,7 @@ def calc_periodstart_datetimelocal_periodend_datetimelocal(period_dict, saved_pe
     # get now_usercomp_dtm from now_arr
     # now is the time of the computer of the current user. May be different from company local
     today_dte, now_usercomp_dtm = f.get_today_usertimezone(period_dict)
-    logging_on = s.LOGGING_ON
+    logging_on =False
     if logging_on:
         logger.debug('===== calc_periodstart_datetimelocal_periodend_datetimelocal ===== ')
         logger.debug('period_tag: ' + str(period_tag))
@@ -2735,6 +2740,8 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
         if period_datelast is None:
             period_datelast = '2500-01-01'
 
+
+
         employee_pk = period_dict.get('employee_pk')
         customer_pk = period_dict.get('customer_pk')
         order_pk = period_dict.get('order_pk')
@@ -2761,80 +2768,95 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
 
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
         is_restshift = False # None = show all, False = no restshifts, True = restshifts only
-        cursor.execute("""WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id, 
-                                                ARRAY_AGG(eh.id) AS eh_id,
-                                                ARRAY_AGG(eh.employee_id) AS e_id,
-                                                COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,
-                                                ARRAY_AGG(DISTINCT e.code) AS e_code_arr,
-                                                ARRAY_AGG(eh.timeduration) AS e_dur,
-                                                ARRAY_AGG(eh.wage) AS e_wage,
-                                                ARRAY_AGG(eh.wagerate) AS e_wr,
-                                                ARRAY_AGG(eh.wagefactor) AS e_wf,
-                                                SUM(eh.plannedduration) AS eh_plandur, 
-                                                SUM(eh.timeduration) AS eh_timedur, 
-                                                SUM(eh.billingduration) AS eh_billdur, 
-                                                SUM(eh.amount) AS eh_amount_sum,
-                                                SUM(eh.addition) AS eh_add_sum,
-                                                SUM(eh.tax) AS eh_tax_sum,
-                                                SUM(eh.wage) AS eh_wage_sum 
-                                                FROM companies_emplhour AS eh
-                                                LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
-                                                GROUP BY oh_id) 
-                                       SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ordr_code,
-                                       eh_sub.e_code AS e_code, 
-                                       oh.rosterdate AS oh_rd, 
-                                       to_json(oh.rosterdate) AS rosterdate, 
-                                       oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, c.company_id AS comp_id,
-                                       eh_sub.e_code_arr AS e_code_arr,
-                                       oh.isbillable AS oh_bill, 
-                                       eh_sub.eh_id AS eh_id_arr, 
-                                       eh_sub.e_id AS e_id_arr, 
+        sql_list = ["WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id,",
+                                                "ARRAY_AGG(eh.id) AS eh_id,",
+                                                "ARRAY_AGG(eh.employee_id) AS e_id,",
+                                                "COALESCE(STRING_AGG(DISTINCT e.code, '; '),'---') AS e_code,",
+                                                "ARRAY_AGG(DISTINCT e.code) AS e_code_arr,",
+                                                "ARRAY_AGG(eh.timeduration) AS e_dur,",
+                                                "ARRAY_AGG(eh.wage) AS e_wage,",
+                                                "ARRAY_AGG(eh.wagerate) AS e_wr,",
+                                                "ARRAY_AGG(eh.wagefactor) AS e_wf,",
+                                                "SUM(eh.plannedduration) AS eh_plandur,",
+                                                "SUM(eh.timeduration) AS eh_timedur,",
+                                                "SUM(eh.billingduration) AS eh_billdur,",
+                                                "SUM(eh.amount) AS eh_amount_sum,",
+                                                "SUM(eh.addition) AS eh_add_sum,",
+                                                "SUM(eh.tax) AS eh_tax_sum,",
+                                                "SUM(eh.wage) AS eh_wage_sum",
 
-                                       c.isabsence AS c_isabsence,
-                                       oh.isrestshift AS oh_isrestshift, 
-                                       oh.shiftcode AS oh_shiftcode,
+                                                "FROM companies_emplhour AS eh",
+                                                "LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id)",
+                                                "GROUP BY oh_id)",
+                                       "SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ordr_code,",
+                                       "eh_sub.e_code AS e_code,",
+                                       "oh.rosterdate AS oh_rd,",
+                                       "to_json(oh.rosterdate) AS rosterdate,",
+                                       "oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, c.company_id AS comp_id,",
+                                       "eh_sub.e_code_arr AS e_code_arr,",
+                                       "oh.isbillable AS oh_bill,",
+                                       "eh_sub.eh_id AS eh_id_arr,",
+                                       "eh_sub.e_id AS e_id_arr,",
+
+                                       "c.isabsence AS c_isabsence,",
+                                       "oh.isrestshift AS oh_isrestshift,",
+                                       "oh.shiftcode AS oh_shiftcode,",
                                        
-                                       eh.pricerate AS eh_pricerate,
-                                       oh.additionrate AS oh_addrate,
-                                       oh.taxrate AS oh_taxrate,
+                                       "eh.pricerate AS eh_pricerate,",
+                                       "oh.additionrate AS oh_addrate,",
+                                       "oh.taxrate AS oh_taxrate,",
                    
-                                       CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_plandur END AS eh_plandur,
-                                       CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_timedur END AS eh_timedur,
-                                       CASE WHEN o.isabsence THEN eh_sub.eh_timedur ELSE 0 END AS eh_absdur,
-                                       CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_billdur END AS eh_billdur,
+                                       "CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_plandur END AS eh_plandur,",
+                                       "CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_timedur END AS eh_timedur,",
+                                       "CASE WHEN o.isabsence THEN eh_sub.eh_timedur ELSE 0 END AS eh_absdur,",
+                                       "CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_billdur END AS eh_billdur,",
       
-                                       eh_sub.eh_amount_sum,
-                                       eh_sub.eh_add_sum,
-                                       eh_sub.eh_tax_sum,
+                                       "eh_sub.eh_amount_sum,",
+                                       "eh_sub.eh_add_sum,",
+                                       "eh_sub.eh_tax_sum,",
                                        
-                                       eh_sub.eh_wage_sum, 
-                                       eh_sub.e_dur AS e_dur, 
-                                       eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf
+                                       "eh_sub.eh_wage_sum,",
+                                       "eh_sub.e_dur AS e_dur,",
+                                       "eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf",
        
-                                       FROM companies_orderhour AS oh
-                                       INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
-                                       INNER JOIN companies_order AS o ON (oh.order_id=o.id)
-                                       INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
+                                       "FROM companies_orderhour AS oh",
+                                       "INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)",
+                                       "INNER JOIN companies_order AS o ON (oh.order_id=o.id)",
+                                       "INNER JOIN companies_customer AS c ON (o.customer_id=c.id)",
                                        
-                                       WHERE (c.company_id = %(comp_id)s) 
-                                       AND (oh.rosterdate IS NOT NULL) 
-                                       AND (oh.rosterdate >= %(df)s)
-                                       AND (oh.rosterdate <= %(dl)s)
-                                       AND (c.id = %(custid)s OR %(custid)s IS NULL)
-                                       AND (o.id = %(ordid)s OR %(ordid)s IS NULL)
-                                       AND (o.isabsence = FALSE)
-                                       AND (oh.isrestshift = FALSE)
-                                       AND ( (%(emplid)s = -1) OR ( ARRAY[ %(emplid)s ] <@ e_id ) )
+                                       "WHERE (c.company_id = %(comp_id)s)",
+                                       "AND (oh.rosterdate IS NOT NULL) ",
+                                       "AND (oh.rosterdate >= %(df)s)",
+                                      " AND (oh.rosterdate <= %(dl)s)",
+                                       "AND (c.id = %(custid)s OR %(custid)s IS NULL)",
+                                       "AND (o.id = %(ordid)s OR %(ordid)s IS NULL)",
+                                       "AND (o.isabsence = FALSE)",
+                                       "AND (oh.isrestshift = FALSE)",
+                                       "AND ( (%(emplid)s = -1) OR ( ARRAY[ %(emplid)s ] <@ e_id ) )",
                                        
-                                       ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)
-                               """,
-                               {'comp_id': company_id,
-                                'emplid': employee_pk,
-                                'custid': customer_pk,
-                                'ordid': order_pk,
-                                'df': period_datefirst,
-                                'dl': period_datelast
-                                })
+                                       "ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)"]
+        sql = ' '.join(sql_list)
+        sql_keys = {'comp_id': company_id,
+                    'emplid': employee_pk,
+                    'custid': customer_pk,
+                    'ordid': order_pk,
+                    'df': period_datefirst,
+                    'dl': period_datelast
+                    }
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+        # dictfetchall returns a list with dicts for each emplhour row
+            review_list = f.dictfetchall(cursor)
+
+
+
+    """
+                if permitorders_list:
+                sql_list.append("AND o.id IN ( SELECT UNNEST( %(oid_arr)s::INT[]))")
+                sql_keys['oid_arr'] = permitorders_list
+    """
+
 
 # string aggregate:  COALESCE(STRING_AGG(DISTINCT e.code, '; '),'-') AS e_code,
 
@@ -2848,8 +2870,6 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
         #   array[1,2,3] @> array[5,9]; = False
         #   array[1,3] <@ array[1,2,3,4]; = True
 
-        # dictfetchall returns a list with dicts for each emplhour row
-        review_list = f.dictfetchall(cursor)
 
     return review_list
 
@@ -3601,8 +3621,11 @@ def get_team_code(team):
 
 def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user_lang):
     # PR2020-05-23 used in scheme page, to retrieve schemes, etc from selected order
-    logger.debug(' ================ create_page_scheme_list ================ ')
-    logger.debug('filter_dict: ' + str(filter_dict))
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ================ create_page_scheme_list ================ ')
+        logger.debug('filter_dict: ' + str(filter_dict))
+
     # customer_pk is only used when is_absence
     checked_customer_pk = None
     checked_order_pk = None
@@ -3627,8 +3650,9 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
     elif checked_customer_pk is not None:
         new_filter_dict['customer_pk'] = checked_customer_pk
 
-    logger.debug('is_absence: ' + str(is_absence))
-    logger.debug('new_filter_dict: ' + str(new_filter_dict))
+    if logging_on:
+        logger.debug('is_absence: ' + str(is_absence))
+        logger.debug('new_filter_dict: ' + str(new_filter_dict))
 
     if checked_order_pk is not None or checked_customer_pk is not None:
         #logger.debug('new_filter_dict: ' + str(new_filter_dict))
@@ -3648,29 +3672,41 @@ def create_page_scheme_list(filter_dict, datalists, company, comp_timezone, user
                 user_lang=user_lang)
             if scheme_list:
                 datalists['scheme_list'] = scheme_list
-            #logger.debug('scheme_list: ' + str(scheme_list))
+
+            if logging_on:
+                logger.debug('scheme_list length: ' + str(len(scheme_list)))
 # ----- shift_rows
             shift_rows = create_shift_rows( filter_dict=new_filter_dict, company=company)
             if shift_rows:
                 datalists['shift_rows'] = shift_rows
-            #logger.debug('shift_rows: ' + str(shift_rows))
+
+            if logging_on:
+                logger.debug('shift_rows length: ' + str(len(shift_rows)))
 # ----- team_rows
             team_rows = create_team_rows( filter_dict=new_filter_dict, company=company)
             if team_rows:
                 datalists['team_rows'] = team_rows
-            #logger.debug('team_rows: ' + str(team_rows))
+
+            if logging_on:
+                logger.debug('team_rows length: ' + str(len(team_rows)))
+
 # ----- teammember_list
             teammember_list, teammember_rows = ed.ed_create_teammember_list( filter_dict=new_filter_dict, company=company, user_lang=user_lang)
-            logger.debug('teammember_rows: ' + str(teammember_rows))
             if teammember_list:
                 datalists['teammember_list'] = teammember_list
             if teammember_rows:
                 datalists['teammember_rows'] = teammember_rows
+
+            if logging_on:
+                logger.debug('teammember_list length: ' + str(len(teammember_list)))
+                logger.debug('teammember_rows length: ' + str(len(teammember_rows)))
 # ----- schemeitem_list
             schemeitem_list = create_schemeitem_list(filter_dict=new_filter_dict, company=company)
-            #logger.debug('schemeitem_list: ' + str(schemeitem_list))
             if schemeitem_list:
                 datalists['schemeitem_list'] = schemeitem_list
+
+            if logging_on:
+                logger.debug('schemeitem_list length: ' + str(len(schemeitem_list)))
 
     return checked_customer_pk, checked_order_pk
 #  --- end of create_schemes_extended_dict ---

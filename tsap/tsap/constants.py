@@ -224,6 +224,7 @@ ABSENCE_CATEGORY = {LANG_EN: (
 
 KEY_COMP_REPLACEMENT_PERIOD = 'repl_period' # # this period is rosterdate_min till rosterdate_min + REPLACEMENT_PERIOD_DEFAULT (days)
 KEY_COMP_ALIAS = 'alias'
+KEY_COMP_PRINTLIST_INVOICE = 'printlist_invoice'
 
 KEY_USER_QUICKSAVE = 'quicksave'
 # used to saved period setting of each page sepeartely PR2019-11-15

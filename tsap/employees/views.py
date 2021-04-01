@@ -4673,10 +4673,12 @@ class PayrollAfasEhalXlsxView(View):
 # === ReviewlAfasInvoiceXlsxView ===================================== PR2021-02-13
 @method_decorator([login_required], name='dispatch')
 class ReviewlAfasInvoiceXlsxView(View):
-    #logger.debug('===== ReviewlAfasInvoiceXlsxView ===== ')
 
-    def get(self, request):
-        param = {}
+    def get(self, request, list):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('===== ReviewlAfasInvoiceXlsxView ===== ')
+
         has_permit = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_accman)
@@ -4686,13 +4688,77 @@ class ReviewlAfasInvoiceXlsxView(View):
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
+            customer_pk_list = []
+            order_pk_list = []
+
+# - get order_pk_list from parameter 'list
+            if list:
+                # list:  {"pr":{"MCB bank":{"cl":[1,8],"ol":[]}},"mod":{"MCB bank":{"cl":[1,8],"ol":[]}},"del":[]}
+                # format list:  pr: list tobe printed,
+                #               mod: modified list,
+                #               del: deleted list
+                #               cl: customer list,
+                #               ol: order list
+
+                list_dict = json.loads(list)
+                logger.debug('list_dict: ' + str(list_dict))
+# list_dict: {'pr': {'name': 'MCB bank 2', 'cl': [1], 'ol': [9]}, 'mod': {'MCB bank 2': {'cl': [1], 'ol': [9]}}, 'del': ['MCB bank']}
+                arr_list = list.split("|")
+                # arr_list: ['no_list_sys~1;2;8~', 'changed_lists', 'List 2~msb%List 1~null']
+
+                print_dict = list_dict.get('pr')
+                # print_dict: {'name': 'MCB bank 2', 'cl': [1], 'ol': [9]}
+                modified_dict = list_dict.get('mod')
+                # modified_dict: {'MCB bank 2': {'cl': [1], 'ol': [9]}}
+                deleted_arr = list_dict.get('del')
+                # deleted_arr: ['MCB bank']
+
+
+                listname = print_dict.get('name')
+                customer_pk_list = print_dict.get('cl', [])
+                order_pk_list = print_dict.get('ol', [])
+                if logging_on:
+                    logger.debug('list_dict:        ' + str(list_dict))
+                    logger.debug('print_dict: ' + str(print_dict))
+                    logger.debug('modified_dict: ' + str(modified_dict))
+                    logger.debug('deleted_arr: ' + str(deleted_arr))
+                    logger.debug('listname:         ' + str(listname))
+                    logger.debug('customer_pk_list: ' + str(customer_pk_list))
+                    logger.debug('order_pk_list:    ' + str(order_pk_list))
+
+# - save modified lists to companysetting, delete deleted lists
+                if modified_dict or deleted_arr:
+                    settings_key = c.KEY_COMP_PRINTLIST_INVOICE
+                    stored_json = request.user.company.get_companysetting(settings_key)
+                    stored_setting = {}
+                    if stored_json:
+                        stored_setting = json.loads(stored_json)
+                    if logging_on:
+                        logger.debug('stored_setting:  ' + str(stored_setting))
+
+                    if modified_dict:
+                        # modified_dict: {'MCB bank 2': {'cl': [1], 'ol': [9]}}
+                        for listname, dict in modified_dict.items():
+                            stored_setting[listname] = dict
+
+                    if deleted_arr:
+                        # deleted_arr: ['MCB bank']
+                        for listname in deleted_arr:
+                            stored_setting.pop(listname)
+
+                    new_setting_json = json.dumps(stored_setting)
+                    request.user.company.set_companysetting(c.KEY_COMP_PRINTLIST_INVOICE, new_setting_json)
+
+                    if logging_on:
+                        logger.debug('new_setting_json: ' + str(new_setting_json))
+
 # - get saved review_period period_dict
             comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
             timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             interval = request.user.company.interval if request.user.company.interval else 15
             period_dict = pld.period_get_and_save('review_period', None, comp_timezone, timeformat, interval, user_lang, request)
 
-            response = ed.create_afas_invoice_rows(period_dict, user_lang, request)
+            response = ed.create_afas_invoice_rows(period_dict, customer_pk_list, order_pk_list, user_lang, request)
 
             return response
 # - end of ReviewlAfasInvoiceXlsxView
