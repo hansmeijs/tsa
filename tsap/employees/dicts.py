@@ -2364,9 +2364,10 @@ def create_afas_invoice_rows(period_dict, customer_list, order_list, user_lang, 
                                                     "SUM(eh.billingduration) AS eh_billdur_sum,",
                                                     "SUM(eh.amount) AS eh_amount_sum,",
                                                     "SUM(eh.addition) AS eh_add_sum,",
-                                                    "SUM(eh.tax) AS eh_tax_sum,",
-                                                    "CASE WHEN SUM(eh.billingduration) = 0 OR SUM(eh.billingduration) = null THEN 0 ELSE",
-                                                        "(SUM(eh.amount) + SUM(eh.addition)) / (SUM(eh.billingduration) / 60) END AS oh_pricerate_calc",
+                                                    "SUM(eh.tax) AS eh_tax_sum",
+                                                    # TODO check if this can replace python aclculation, if not: delete
+                                                    #"(SUM(eh.amount) + SUM(eh.addition)) / NULLIF( (SUM(eh.billingduration) / 60) , 0 ) AS oh_pricerate_calc",
+
                                                     "FROM companies_emplhour AS eh",
                                                     "LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id)",
                                                     "GROUP BY oh_id)",
@@ -2380,7 +2381,8 @@ def create_afas_invoice_rows(period_dict, customer_list, order_list, user_lang, 
                                             "eh_sub.e_id AS e_id_arr, eh_sub.eh_pricerate_agg,",
 
                                            "oh.shiftcode AS oh_shiftcode, oh.isbillable AS oh_bill,",
-                                           "oh.additionrate AS oh_addrate, oh.taxrate AS oh_taxrate, oh_pricerate_calc,",
+                                           "oh.additionrate AS oh_addrate, oh.taxrate AS oh_taxrate, ",
+                                           # "oh_pricerate_calc,",
 
                                            "eh_sub.eh_plandur_sum, eh_sub.eh_timedur_sum, eh_sub.eh_billdur_sum,",
                                            "eh_sub.eh_amount_sum, eh_sub.eh_add_sum, eh_sub.eh_tax_sum, eh_sub.eh_timedur_agg",
@@ -2537,7 +2539,7 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
                         display = '0'
 
                 elif field_name == 'oh_pricerate_calc':
-
+                    # can be replaced by vaulue of oh_pricerate_calc
                     if billdur_sum:
                         rate = total_decimal / hours_decimal
                         rate_decimal = rate.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
