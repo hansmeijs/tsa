@@ -117,6 +117,12 @@
     Please see the align-items explanation to understand the available values. */
 
 .flex_content {
+/*
+    PR2021-04-01 test on modselectinvoiceorder:
+     - modal_container not good:  keeps 3 items on one line, will go outside modal form
+     - flex_container  not good: has a lot of space between items, will dislay in 2 lines
+     - flex_content  is the right choice
+*/
 
 /*
     -webkit-box-flex: 1;
@@ -157,12 +163,6 @@
         flex-shrink: 0;   /* do not shrink - initial value: 1
         flex-basis: 25em; /* width/height  - initial value: auto */
 
-    padding: 0px;
-    /*border: 2px solid purple;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
-    margin: 0px;
-
-    background-color:  #e0e0e0;
-    border-color: #c4c4c4;
 }
 
 

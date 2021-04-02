@@ -2853,11 +2853,9 @@ function HandleExpand(mode){
             sel_listname: listname,
             deleted: []
         }
-        MSIO_FillDictAllorders();
 
-        for (const [listname, list_dict] of Object.entries(printlist_invoice)) {
-            MSIO_FillDictSelected(listname, list_dict);
-        }
+        MSIO_FillDictAllorders();
+        MSIO_FillDictSelected();
 
         MSIO_FillTblLists()
         MSIO_FillTbls(listname);
@@ -2897,50 +2895,59 @@ function HandleExpand(mode){
     }  // MSIO_FillDictAllorders
 
 //========= MSIO_FillDictSelected  ============= PR2021-03-31
-    function MSIO_FillDictSelected(listname, list_dict) {
+    function MSIO_FillDictSelected() {
         //console.log("===== MSIO_FillDictSelected ===== ");
-        //console.log("listname", listname);
+        // loop through printlist_invoice and put items in dict sel_customers or sel_orders
+        // and add listname to mod_MSIO_dict.lists
+        for (const [listname, list_dict] of Object.entries(printlist_invoice)) {
 
-        const sel_customers = [];
-        const sel_orders = [];
+            const sel_customers = [], sel_orders = [];
 
-        const arr_customers = list_dict.cl;
-        if(arr_customers && arr_customers.length){
-            for (let i = 0, cust_pk_int; cust_pk_int = arr_customers[i]; i++) {
-                // add  this customer to mod_MSIO_dict.sel_customers
-                // also add all orders from this customer to mod_MSIO_dict.sel_orders
-                MSIO_AddCustomerToSel_customers(sel_customers, sel_orders, cust_pk_int);
-            }
-        }
-        const arr_orders = list_dict.ol;
-        if(arr_orders && arr_orders.length){
-            for (let i = 0, order_pk_int; order_pk_int = arr_orders[i]; i++) {
-                // add  this order to sel_orders
-                if (!sel_orders.includes(order_pk_int)){
-                    sel_orders.push(order_pk_int);
+            const arr_customers = list_dict.cl;
+            if(arr_customers && arr_customers.length){
+                for (let i = 0, cust_pk_int; cust_pk_int = arr_customers[i]; i++) {
+                    // add  this customer to mod_MSIO_dict.sel_customers
+                    // also add all orders from this customer to mod_MSIO_dict.sel_orders
+                    MSIO_AddCustomerToSel_customers(sel_customers, sel_orders, cust_pk_int);
                 }
             }
-        }
 
-        mod_MSIO_dict.lists[listname] = {cl: sel_customers, ol: sel_orders};
+            const arr_orders = list_dict.ol;
+            if(arr_orders && arr_orders.length){
+                for (let i = 0, order_pk_int; order_pk_int = arr_orders[i]; i++) {
+                    // add  this order to sel_orders
+                    if (!sel_orders.includes(order_pk_int)){
+                        sel_orders.push(order_pk_int);
+                    }
+                }
+            }
+            if (listname === "no_list_sys") {
+                mod_MSIO_dict.lists[listname] = {cl: [], ol: []};
+            } else {
+                mod_MSIO_dict.lists[listname] = {cl: sel_customers, ol: sel_orders};
+            }
+       }
 
     } // MSIO_FillDictSelected
 
 //========= MSIO_FillTbls  ============= PR2021-03-31
     function MSIO_FillTbls(listname) {
-        //console.log("===== MSIO_FillTbls ===== ");
+        console.log("===== MSIO_FillTbls ===== ");
+        console.log("listname", listname);
 
         el_MSIO_tblBody_available.innerText = null;
         el_MSIO_tblBody_selected.innerText = null;
 
 // ---  loop through mod_MSIO_dict.allorders
         for (const [order_pk_str, dict] of Object.entries(mod_MSIO_dict.allorders)) {
+        console.log("dict", dict);
             const order_pk_int = Number(order_pk_str);
             const customer_pk_int = Number(dict.customer_pk_int);
             if(order_pk_int && customer_pk_int){
             // add to selected list when customer_pk or order_pk in selected list
                 const is_selected = (mod_MSIO_dict.lists[listname].cl.includes(customer_pk_int) ||
                                    mod_MSIO_dict.lists[listname].ol.includes(order_pk_int))
+        console.log("is_selected", is_selected);
                 if (is_selected){
                     MSIO_FillSelectRow("tbl_selected", el_MSIO_tblBody_selected, dict);
                 } else {
@@ -3205,14 +3212,16 @@ function HandleExpand(mode){
             sel_orders_arr.sort(function(a, b){return a - b});
 
             if(is_sel_listname){
-                if (new_listname && (sel_customers_arr.length || sel_customers_arr.length)) {
+                if (new_listname && (sel_customers_arr.length || sel_orders_arr.length)) {
                     list_dict.pr = {name: new_listname, cl: sel_customers_arr, ol: sel_orders_arr};
                 } else {
                     list_dict.pr = {};
                 }
             }
             if ("haschanged" in dict) {
-                list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr};
+                if(new_listname !== "no_list_sys") {
+                    list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr};
+                }
             }
 
         }
