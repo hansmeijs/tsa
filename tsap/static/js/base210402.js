@@ -411,14 +411,11 @@ PR2021-03-09 error after switching to Django 3.1:
 
          // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
-        let elements = el_container.querySelectorAll(filter_class)
-
-        for (let i = 0, len = elements.length; i < len; i++) {
-            add_or_remove_class (elements[i], classname, is_add)
-//console.log(elements[i])
+        const elements = el_container.querySelectorAll(filter_class)
+        for (let i = 0, el; el = elements[i]; i++) {
+            add_or_remove_class (el, classname, is_add)
         };
-//console.log(" --- end of add_or_remove_class_with_qsAll --- ")
-    }
+    }  // add_or_remove_class_with_qsAll
 
 //========= function add_or_remove_class  ========================  PR2020-06-20
     function add_or_remove_class (el, classname, is_add, default_class) {
@@ -436,19 +433,17 @@ PR2021-03-09 error after switching to Django 3.1:
 //========= function add_or_remove_attr_with_qsAll  ======== PR2020-05-01
     function add_or_remove_attr_with_qsAll(el_container, filter_str, atr_name, is_add, atr_value){
         // add or remove attribute from all elements with filter 'filter_str' PR2020-04-29
-    //console.log(" --- add_or_remove_attr_with_qsAll --- ")
-    //console.log("is_add: ", is_add)
-    //console.log("filter_str: ", filter_str)
+        //console.log(" --- add_or_remove_attr_with_qsAll --- ")
+        //console.log("is_add: ", is_add)
+        //console.log("filter_str: ", filter_str)
+
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
 
-         // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_str)
-        let elements = el_container.querySelectorAll(filter_str)
-        for (let i = 0, len = elements.length; i < len; i++) {
-            add_or_remove_attr(elements[i], atr_name, is_add, atr_value)
-    //console.log(elements[i])
+        const elements = el_container.querySelectorAll(filter_str)
+        for (let i = 0, el; el = elements[i]; i++) {
+            add_or_remove_attr(el, atr_name, is_add, atr_value)
         };
     }  // add_or_remove_attr_with_qsAll
 
@@ -697,8 +692,8 @@ PR2021-03-09 error after switching to Django 3.1:
             for (let i = 0; i < data_list_length; i++) {
                 const item_dict = data_list[i];
                 let pk_str = get_dict_value(item_dict, ["id", "pk"]);
-                // for list that comes from dict_fetchall. Must have  key'id' in .For user_list PR2020-07-31
-                if(!pk_str) {pk_str = get_dict_value(item_dict, ["id"]);}
+                // for list that comes from dict_fetchall. Must have  key 'id' in .For user_list PR2020-07-31
+                if(!pk_str) { pk_str = (item_dict.id) ? item_dict.id : null }
                 let map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
             }

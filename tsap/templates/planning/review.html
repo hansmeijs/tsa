@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Billing' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/review210328.js' %}"></script>
+    <script src="{% static 'js/review210402.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -21,14 +21,14 @@
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-        <div class="tw_200 mx-2 mt-2 mb-4">
+        <div class="tw_200 mx-2 mt-2 mb-4 display_hide">
             <h6 id="id_label_sidebar_select_orderXX" class="tw_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
             <input id="id_SBR_select_order"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
                 readonly>
         </div>
-        <div class="tw_200 m-2">
+        <div class="tw_200 m-2 display_hide">
             <h6 id="id_SBR_select_showall" class="tw_200 pointer_show line_height_normal px-2 py-1">{% trans 'Show all from this period' %}</h6>
         </div>
     </nav>

@@ -731,7 +731,12 @@
 
 //========= t_ShowTableRowExtended  ==================================== PR2020-07-12 PR2020-09-12
     function t_ShowTableRowExtended(filter_row, filter_dict, tblRow) {
-        // only called by FillPayrollRows,
+        // called by  employees: HandleFilterField, FillPlanningRows
+        // payroll: FillPayrollRows, HandleFilter_Tickmark
+        // review:  FillBillingRows
+        // roster: Filter_TableRows
+        // schemes: FillPlanningRows
+
         //console.log( "===== t_ShowTableRowExtended  ========= ");
         //console.log( "filter_dict", filter_dict);
         //console.log( "filter_row", filter_row);
@@ -783,8 +788,6 @@
                                         if (cell_value) { hide_row = true}
                                     }
                                 } else if (filter_tag === "inactive"){
-        //console.log( "filter_value", filter_value);
-        //console.log( "cell_value", cell_value);
                                     // if inactive sign is visible: show all, else: show active only
                                     if (filter_value !== 1){
                                         if(cell_value === 1) {
@@ -815,6 +818,7 @@
                         } else if(filter_mode === "no_blanks"){  // # : show only non-blank cells
                             if(!cell_value){hide_row = true};
                         } else if( filter_tag === "text") {
+
                         // employee / rosterdate and order column
                             // filter_row text is already trimmed and lowercase
                             const cell_value = filter_row[col_index];
@@ -839,6 +843,7 @@
                             } else {
                                 if (cell_value !== filter_value) {hide_row = true};
                             }
+
        //console.log( "duration cell_value", cell_value, "filter_value", filter_value, "hide_row", hide_row);
                         } else if( filter_tag === "status") {
                             if(filter_value === 1) {

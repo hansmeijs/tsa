@@ -306,7 +306,39 @@ def create_order_list(request, order_pk=None, is_absence=None, is_template=None,
                 "FROM companies_order AS o",
                 "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
                 "WHERE c.company_id = %(compid)s"]
+    # from create_order_rows
+    sql_list = ["SELECT o.id, c.id AS c_id, c.company_id AS comp_id,",
+        "CONCAT(CASE WHEN c.isabsence THEN 'abscat_' ELSE 'order_' END, o.id::TEXT) AS mapid,",
+        "COALESCE(REPLACE (o.code, '~', ''),'') AS o_code_notilde, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code_notilde,",
+        "COALESCE(CONCAT(REPLACE (c.code, '~', ''), ' - ', REPLACE (o.code, '~', '')),'') AS c_o_code,",
 
+        "c.code AS c_code, c.name AS c_name, c.identifier AS c_identifier,",
+        "c.isabsence AS c_isabsence, c.istemplate AS c_istemplate, c.inactive AS c_inactive,",
+
+        "o.code AS o_code, o.name AS o_name, o.identifier AS o_identifier, o.sequence AS o_sequence,",
+
+        "o.datefirst AS o_datefirst, o.datelast AS o_datelast, o.inactive AS o_inactive,",
+
+        "o.wagefactorcode_id AS wfc_onwd, o.wagefactoronsat_id AS wfc_onsat,",
+        "o.wagefactoronsun_id AS wfc_onsun, o.wagefactoronph_id AS wfc_onph,",
+
+        "wfc_onwd.code AS wfc_onwd_code, wfc_onsat.code AS wfc_onsat_code,",
+        "wfc_onsun.code AS wfc_onsun_code, wfc_onph.code AS wfc_onph_code,",
+
+        "wfc_onwd.wagerate AS wfc_onwd_rate, wfc_onsat.wagerate AS wfc_onsat_rate,",
+        "wfc_onsun.wagerate AS wfc_onsun_rate, wfc_onph.wagerate AS wfc_onph_rate,",
+
+        "o.nohoursonweekday AS o_nowd, o.nohoursonsaturday AS o_nosat,",
+        "o.nohoursonsunday AS o_nosun, o.nohoursonpublicholiday AS o_noph",
+
+        "FROM companies_order AS o",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onwd ON (wfc_onwd.id = o.wagefactorcode_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onsat ON (wfc_onsat.id = o.wagefactoronsat_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onsun ON (wfc_onsun.id = o.wagefactoronsun_id)",
+        "LEFT JOIN companies_wagecode AS wfc_onph ON (wfc_onph.id = o.wagefactoronph_id)",
+       " WHERE c.company_id = %(compid)s::INT"
+       ]
 # +++ filter allowed orders when user has 'permitcustomers' or 'permitorders'
     # <PERMITS> PR2020-11-02
     #     # show only customers in request.user.permitcustomers or request.user.permitorders, show all when empty
@@ -593,11 +625,11 @@ def create_customer_rows(request, request_item=None, customer_pk=None):
     customer_rows = f.dictfetchall(newcursor)
 
     return customer_rows
-# - end of create_order_rows
+# - end of create_customer_rows
 
 
 ##########################################
-def create_order_rows(request, is_absence, request_item=None, order_pk=None):
+def create_order_rows(request, is_absence, is_inactive=None, order_pk=None):
     # --- create list of all active absence categories of this company PR2019-06-25
     # each absence category contains abscat_customer, abscat_order
 
@@ -605,8 +637,7 @@ def create_order_rows(request, is_absence, request_item=None, order_pk=None):
     # PR2021-03-21 also used in page customer - to get orders
     #  TODO in scheme page  replace abscat_order_list by abscat_order_rows
     # Note: order_id must not have alias: 'id' is used in refresh_datamap
-    #logger.debug('request_item: ' + str(request_item))
-    inactive = request_item.get('inactive') if request_item else None
+
     #logger.debug('inactive: ' + str(inactive))
 
     sql_keys = {'compid': request.user.company.pk}
@@ -616,6 +647,8 @@ def create_order_rows(request, is_absence, request_item=None, order_pk=None):
         "COALESCE(REPLACE (o.code, '~', ''),'') AS o_code_notilde, COALESCE(REPLACE (c.code, '~', ''),'') AS c_code_notilde,",
         "c.code AS c_code, c.name AS c_name, c.identifier AS c_identifier, c.inactive AS c_inactive, c.isabsence AS c_isabsence,",
         "o.code AS o_code, o.name AS o_name, o.identifier AS o_identifier, o.sequence AS o_sequence, o.inactive AS o_inactive,",
+        "o.datefirst AS o_datefirst, o.datelast AS o_datelast,",
+
         "o.wagefactorcode_id AS wfc_onwd, o.wagefactoronsat_id AS wfc_onsat,",
         "o.wagefactoronsun_id AS wfc_onsun, o.wagefactoronph_id AS wfc_onph,",
 
@@ -646,7 +679,7 @@ def create_order_rows(request, is_absence, request_item=None, order_pk=None):
         else:
             sql_list.append("AND NOT c.isabsence")
 
-        if inactive is not None and not inactive:
+        if is_inactive is not None and not is_inactive:
             sql_list.append('AND NOT o.inactive')
 
         sql_list.append("ORDER BY LOWER(REPLACE (o.code, '~', ''))")
@@ -980,54 +1013,49 @@ def create_billing_agg_list(period_dict, request):
     #logger.debug('period_datefirst:  ' + str(period_datefirst))
     #logger.debug('period_datelast:  ' + str(period_datelast))
     #logger.debug('order_pk:  ' + str(order_pk))
+    sql_keys = {'compid': request.user.company_id}
+    sql_list = ["SELECT o.id AS o_id, COALESCE(oh.customercode,'-') AS c_code, COALESCE(oh.ordercode,'-') AS o_code,",
+        "SUM(eh.plannedduration) AS eh_plandur, SUM(eh.timeduration) AS eh_timedur, SUM(eh.billingduration) AS eh_billdur,",
+        "ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate_arr,",
+        "ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_additionrate_arr,",
+        "ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate_arr,",
 
-    sql_billing = """
-        SELECT o.id AS o_id, 
-        COALESCE(oh.customercode,'-') AS c_code,
-        COALESCE(oh.ordercode,'-') AS o_code,
-        
-        SUM(eh.plannedduration) AS eh_plandur,
-        SUM(eh.timeduration) AS eh_timedur, 
-        SUM(eh.billingduration) AS eh_billdur,
+        "SUM(eh.amount) AS eh_amount_sum, SUM(eh.addition) AS eh_add_sum,",
+        "SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum, SUM(eh.tax) AS eh_tax_sum,",
 
-        ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,
-        oh.additionrate AS oh_addrate,
-        oh.taxrate AS oh_taxrate,
-        
-        SUM(eh.amount) AS eh_amount_sum,
-        SUM(eh.addition) AS eh_add_sum,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
-        SUM(eh.tax) AS eh_tax_sum,
+        "SUM(oh.isbillable::int) AS is_billable,",
+        "SUM((NOT oh.isbillable)::int) AS not_billable,",
+        "SUM(oh.nobill::int) AS is_nobill,",
+        "SUM((NOT oh.nobill)::int) AS not_nobill",
 
-        SUM(oh.isbillable::int) AS is_billable,
-        SUM((NOT oh.isbillable)::int) AS not_billable,
-        SUM(oh.nobill::int) AS is_nobill,
-        SUM((NOT oh.nobill)::int) AS not_nobill
+        "FROM companies_emplhour AS eh",
+        "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+        "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
 
-        FROM companies_emplhour AS eh
-        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        "WHERE c.company_id = %(compid)s AND NOT c.isabsence AND NOT oh.isrestshift"
+        ]
 
-        WHERE c.company_id = %(compid)s 
-        AND NOT o.isabsence AND NOT oh.isrestshift
-        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
-        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
-        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
-        GROUP BY o.id, oh.customercode, oh.ordercode, oh.additionrate, oh.taxrate
-        ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode)
-        """
+    if period_datefirst:
+        sql_keys['df'] = period_datefirst
+        sql_list.append("AND eh.rosterdate >= %(df)s::DATE")
+    if period_datelast:
+        sql_keys['dl'] = period_datelast
+        sql_list.append("AND eh.rosterdate <= %(dl)s::DATE")
+    if order_pk:
+        sql_keys['oid'] = order_pk
+        sql_list.append("AND o.id = %(oid)s::INT")
+    if customer_pk:
+        sql_keys['cid'] = customer_pk
+        sql_list.append("AND c.id = %(cid)s::INT")
+    sql_list.append("GROUP BY o.id, oh.customercode, oh.ordercode")
+    sql_list.append("ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode)")
+    sql = ' '.join(sql_list)
 
-    newcursor = connection.cursor()
-    newcursor.execute(sql_billing, {
-        'compid': request.user.company_id,
-        'cid': customer_pk,
-        'oid': order_pk,
-        'df': period_datefirst,
-        'dl': period_datelast
-    })
-    billing_agg_list = f.dictfetchall(newcursor)
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_keys)
+        billing_agg_list = f.dictfetchall(cursor)
+
     return billing_agg_list
 # - end of billing_agg_list
 
@@ -1047,29 +1075,18 @@ def create_billing_rosterdate_list(period_dict, request):
             customer_pk = period_dict.get('customer_pk')
             customer_pk = customer_pk if customer_pk else None  # this changes '0' into 'None'
 
-    #logger.debug('period_datefirst:  ' + str(period_datefirst))
-    #logger.debug('period_datelast:  ' + str(period_datelast))
-    #logger.debug('order_pk:  ' + str(order_pk))
-
-#         COALESCE(c.code,'-') AS c_code,
-    #         COALESCE(o.code,'-') AS o_code,
-    sql_list = ["SELECT o.id AS o_id,",
-
-        "CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
+    sql_keys = {'compid': request.user.company_id}
+    sql_list = ["SELECT o.id AS o_id, CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
         "oh.rosterdate AS oh_rosterdate,",
         
-        "SUM(eh.plannedduration) AS eh_plandur,",
-        "SUM(eh.timeduration) AS eh_timedur,",
-        "SUM(eh.billingduration) AS eh_billdur,",
+        "SUM(eh.plannedduration) AS eh_plandur, SUM(eh.timeduration) AS eh_timedur, SUM(eh.billingduration) AS eh_billdur,",
         
-        "ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,",
-        "oh.additionrate AS oh_addrate,",
-        "oh.taxrate AS oh_taxrate,",
+        "ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate_arr,",
+        "ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_additionrate_arr,",
+        "ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate_arr,",
         
-        "SUM(eh.amount) AS eh_amount_sum,",
-        "SUM(eh.addition) AS eh_add_sum,",
-        "SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,",
-        "SUM(eh.tax) AS eh_tax_sum,",
+        "SUM(eh.amount) AS eh_amount_sum, SUM(eh.addition) AS eh_add_sum,",
+        "SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum, SUM(eh.tax) AS eh_tax_sum,",
 
         "SUM(oh.isbillable::int) AS is_billable,",
         "SUM((NOT oh.isbillable)::int) AS not_billable,",
@@ -1081,28 +1098,31 @@ def create_billing_rosterdate_list(period_dict, request):
         "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
         "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
 
-        "WHERE c.company_id = %(compid)s",
-        "AND NOT o.isabsence AND NOT oh.isrestshift",
-        "AND ( c.id = %(cid)s OR %(cid)s IS NULL )",
-        "AND ( o.id = %(oid)s OR %(oid)s IS NULL )",
-        "AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )",
-        "AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )",
+        "WHERE c.company_id = %(compid)s AND NOT c.isabsence AND NOT oh.isrestshift"
+        ]
 
-        "GROUP BY o.id, oh.customercode, oh.ordercode, oh.rosterdate, oh.additionrate, oh.taxrate",
-        "ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate"]
+    if period_datefirst:
+        sql_keys['df'] = period_datefirst
+        sql_list.append("AND eh.rosterdate >= %(df)s::DATE")
+    if period_datelast:
+        sql_keys['dl'] = period_datelast
+        sql_list.append("AND eh.rosterdate <= %(dl)s::DATE")
+    if order_pk:
+        sql_keys['oid'] = order_pk
+        sql_list.append("AND o.id = %(oid)s::INT")
+    if customer_pk:
+        sql_keys['cid'] = customer_pk
+        sql_list.append("AND c.id = %(cid)s::INT")
+    sql_list.append("GROUP BY o.id, oh.customercode, oh.ordercode, oh.rosterdate")
+    sql_list.append("ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate")
     sql = ' '.join(sql_list)
-    sql_keys = {'compid': request.user.company_id,
-        'cid': customer_pk,
-        'oid': order_pk,
-        'df': period_datefirst,
-        'dl': period_datelast
-    }
 
-    newcursor = connection.cursor()
-    newcursor.execute(sql, sql_keys)
-    billing_rosterdate_list = f.dictfetchall(newcursor)
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_keys)
+        billing_rosterdate_list = f.dictfetchall(cursor)
+
     return billing_rosterdate_list
-# - end of billing_agg_list
+# - end of create_billing_rosterdate_list
 
 
 def create_billing_detail_list(period_dict, request):
@@ -1120,65 +1140,60 @@ def create_billing_detail_list(period_dict, request):
             customer_pk = period_dict.get('customer_pk')
             customer_pk = customer_pk if customer_pk else None  # this changes '0' into 'None'
 
-    #logger.debug('period_datefirst:  ' + str(period_datefirst))
-    #logger.debug('period_datelast:  ' + str(period_datelast))
-    #logger.debug('order_pk:  ' + str(order_pk))
-
-    sql_billing = """
-        SELECT oh.id AS oh_id, o.id AS o_id, 
+    sql_keys = {'compid': request.user.company_id}
+    sql_list = [
+        "SELECT oh.id AS oh_id, o.id AS o_id, ",
         
-        ARRAY_AGG(DISTINCT eh.employeecode ORDER BY eh.employeecode) AS e_code,
-        oh.rosterdate AS oh_rosterdate,
+        "ARRAY_AGG(DISTINCT eh.employeecode ORDER BY eh.employeecode) AS e_code,",
+        "oh.rosterdate AS oh_rosterdate,",
 
-        CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,
-        oh.shiftcode AS oh_shiftcode,
-        SUM(eh.plannedduration) AS eh_plandur, 
-        SUM(eh.timeduration) AS eh_timedur, 
-        SUM(eh.billingduration) AS eh_billdur,
+        "CONCAT(oh.customercode, ' - ', oh.ordercode) AS c_o_code,",
+        "oh.shiftcode AS oh_shiftcode,",
+        "SUM(eh.plannedduration) AS eh_plandur, ",
+        "SUM(eh.timeduration) AS eh_timedur, ",
+        "SUM(eh.billingduration) AS eh_billdur,",
          
-        ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate,
-        oh.additionrate AS oh_addrate,
-        oh.taxrate AS oh_taxrate,
+        "ARRAY_AGG(DISTINCT eh.pricerate ORDER BY eh.pricerate) AS eh_pricerate_arr,",
+        "ARRAY_AGG(DISTINCT oh.additionrate ORDER BY oh.additionrate) AS oh_additionrate_arr,",
+        "ARRAY_AGG(DISTINCT oh.taxrate ORDER BY oh.taxrate) AS oh_taxrate_arr,",
         
-        SUM(eh.amount) AS eh_amount_sum,
-        SUM(eh.addition) AS eh_add_sum,
-        SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum,
-        SUM(eh.tax) AS eh_tax_sum,
+        "SUM(eh.amount) AS eh_amount_sum, SUM(eh.addition) AS eh_add_sum,",
+        "SUM(eh.amount) + SUM(eh.addition) AS eh_total_sum, SUM(eh.tax) AS eh_tax_sum,",
         
-        SUM(oh.isbillable::int) AS is_billable,
-        SUM((NOT oh.isbillable)::int) AS not_billable,
-        SUM(oh.nobill::int) AS is_nobill,
-        SUM((NOT oh.nobill)::int) AS not_nobill
+        "SUM(oh.isbillable::int) AS is_billable,",
+        "SUM((NOT oh.isbillable)::int) AS not_billable,",
+        "SUM(oh.nobill::int) AS is_nobill,",
+        "SUM((NOT oh.nobill)::int) AS not_nobill",
 
-        FROM companies_emplhour AS eh
-        INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-        INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        "FROM companies_emplhour AS eh",
+        "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+        "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+        "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
 
-        WHERE c.company_id = %(compid)s 
-        AND NOT o.isabsence AND NOT oh.isrestshift
-        AND ( c.id = %(cid)s OR %(cid)s IS NULL )
-        AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-        AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
-        AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
+        "WHERE c.company_id = %(compid)s AND NOT c.isabsence AND NOT oh.isrestshift"
+    ]
 
-        GROUP BY oh.id, o.id, c.id, oh.rosterdate, oh.shiftcode, oh.additionrate, oh.taxrate
-        ORDER BY oh.rosterdate, LOWER(oh.shiftcode)
-        """
-    #             AND NOT o.isabsence AND NOT oh.isrestshift
-    #             AND ( o.id = %(oid)s OR %(oid)s IS NULL )
-    #             AND ( (eh.rosterdate >= CAST(%(df)s AS DATE) ) OR ( %(df)s IS NULL) )
-    #             AND ( (eh.rosterdate <= CAST(%(dl)s AS DATE) ) OR ( %(dl)s IS NULL) )
 
-    newcursor = connection.cursor()
-    newcursor.execute(sql_billing, {
-        'compid': request.user.company_id,
-        'cid': customer_pk,
-        'oid': order_pk,
-        'df': period_datefirst,
-        'dl': period_datelast
-    })
-    billing_detail_list = f.dictfetchall(newcursor)
+    if period_datefirst:
+        sql_keys['df'] = period_datefirst
+        sql_list.append("AND eh.rosterdate >= %(df)s::DATE")
+    if period_datelast:
+        sql_keys['dl'] = period_datelast
+        sql_list.append("AND eh.rosterdate <= %(dl)s::DATE")
+    if order_pk:
+        sql_keys['oid'] = order_pk
+        sql_list.append("AND o.id = %(oid)s::INT")
+    if customer_pk:
+        sql_keys['cid'] = customer_pk
+        sql_list.append("AND c.id = %(cid)s::INT")
+    sql_list.append("GROUP BY oh.id, o.id, c.id, oh.rosterdate, oh.shiftcode")
+    sql_list.append("ORDER BY LOWER(oh.customercode), LOWER(oh.ordercode), oh.rosterdate, LOWER(oh.shiftcode)")
+    sql = ' '.join(sql_list)
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_keys)
+        billing_detail_list = f.dictfetchall(cursor)
+
     return billing_detail_list
 # - end of create_billing_detail_list
 

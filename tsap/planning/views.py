@@ -182,11 +182,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- abscat_rows
                     request_item = datalist_request.get('abscat_rows')
                     if request_item:
-                        is_absence = True
                         datalists['abscat_rows'] = cust_dicts.create_order_rows(
                             request=request,
-                            is_absence=is_absence,
-                            request_item=request_item)
+                            is_absence=True
+                            )
 
 # ----- absence_rows used in scheme and employee
                     request_item = datalist_request.get('absence_rows')

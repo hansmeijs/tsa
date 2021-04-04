@@ -100,6 +100,8 @@ let planning_list = [] // for export and printing - can replace map?
         let filter_inactive = true;
         let filter_mod_employee = "";
 
+        const db_fields_order = {o_code: "code", o_name: "name", o_identifier: "identifier",
+                                o_datefirst: "datefirst", o_datelast: "datelast", o_inactive: "inactive"}
         const field_settings = {
             customer: { tbl_col_count: 5,
                 field_caption: ["", "Short_name", "Customer_name", "Identifier", ""],
@@ -110,7 +112,7 @@ let planning_list = [] // for export and printing - can replace map?
                 },
             order: { tbl_col_count: 8,
                 field_caption: ["", "Customer", "Order_code", "Order_name", "Start_date", "End_date", "Identifier", ""],
-                field_names: ["select", "c_code", "code", "name", "datefirst", "datelast", "identifier", "inactive"],
+                field_names: ["select", "c_code", "o_code", "o_name", "o_datefirst", "o_datelast", "o_identifier", "o_inactive"],
                 filter_tags: ["select","input", "input", "input", "input", "input", "input", "inactive"],
                 field_width: ["016", "180", "180", "180", "120", "120", "120", "032"],
                 field_align: ["c", "l", "l","l", "l", "l", "l", "r", "r"]
@@ -1061,10 +1063,8 @@ let planning_list = [] // for export and printing - can replace map?
         if(data_map){
 // --- loop through data_map
             for (const [map_id, map_dict] of data_map.entries()) {
-                    const row_tblName = get_dict_value(map_dict, ["id", "table"]);
-                    const pk_int = map_dict.id;
-                    const ppk_int = get_dict_value(map_dict, ["id", "ppk"], 0);
-                    const data_customer_pk = get_dict_value(map_dict, ["customer", "pk"])
+                const pk_int = map_dict.id;
+
 // --- insert tblRow into tblBody
                 // in table order: show only rows of selected_customer_pk, show all if null
                 let add_Row = true;
@@ -1085,8 +1085,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  CreateTblRow  ================ PR2019-09-04 PR2020-08-25
     function CreateTblRow(tblName, map_id, map_dict, row_index) {
-       console.log("=========  CreateTblRow =========");
-       console.log("tblName: ", tblName);
+       //console.log("=========  CreateTblRow =========");
+       //console.log("tblName: ", tblName);
 
         let tblRow = null;
         if(field_settings[tblName]){
@@ -1114,17 +1114,18 @@ let planning_list = [] // for export and printing - can replace map?
 // --- add text_align
                 el_td.classList.add("ta_" + field_settings[tblName].field_align[j])
 // --- add background image 'inactive_0_2' to element 'inactive'
-                if(field_name === "inactive"){
+       //console.log("field_name: ", field_name);
+                if(["inactive", "o_inactive"].includes(field_name)){
                     el_div.classList.add("inactive_0_2")
                     el_div.classList.add("pointer_show")
                 }
 // --- add event listeners
                 if (field_name === "select") {
                     // TODO add select multiple users option PR2020-08-18
-                } else if(field_name === "inactive"){
+                } else if(["inactive", "o_inactive"].includes(field_name)){
                     if( (tblName === "customer" && permit_add_edit_delete_import_customers) ||
                         (tblName === "order" && permit_add_edit_delete_orders) ) {
-                            el_td.addEventListener("click", function() {ModConfirmOpen(field_name, tblName, el_td)}, false );
+                            el_td.addEventListener("click", function() {ModConfirmOpen("inactive", tblName, el_td)}, false );
                     }
                 } else if(tblName === "customer" && permit_add_edit_delete_import_customers){
                     el_td.addEventListener("click", function() {MFC_Open(el_td)}, false )
@@ -1145,9 +1146,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateTableRow  =============  PR2020-08-25
     function UpdateTableRow(tblRow, map_dict){
-        console.log(" =====  UpdateTableRow  =====");
-        console.log("map_dict", map_dict);
-        console.log("tblRow", tblRow);
+        //console.log(" =====  UpdateTableRow  =====");
+        //console.log("map_dict", map_dict);
+        //console.log("tblRow", tblRow);
 
         if (tblRow && !isEmpty(map_dict)) {
         // ---  set tblRow attr data-inactive, hide tblRow when inactive and filter_inactive
@@ -1167,9 +1168,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateField  ============= PR2019-10-09 PR2020-08-25
     function UpdateField(el_div, map_dict) {
-        console.log("========= UpdateField  ========= ");
-        console.log("el_div ", el_div);
-        console.log("map_dict ", map_dict);
+        //console.log("========= UpdateField  ========= ");
+        //console.log("el_div ", el_div);
+        //console.log("map_dict ", map_dict);
 
         if(el_div){
             const fldName = get_attr_from_el(el_div, "data-field");
@@ -1180,12 +1181,13 @@ let planning_list = [] // for export and printing - can replace map?
                 if (fldName === "select") {
                     // TODO add select multiple users option PR2020-08-18
                     // TODO filter_value not in use yet PR2020-10-18
-                } else if (fldName === "inactive") {
+                } else if(["inactive", "o_inactive"].includes(fldName)){
                     const el_img = el_div.children[0]
-                    add_or_remove_class (el_img, "inactive_1_3", map_dict.inactive, "inactive_0_2");
-                    const filter_value = (fld_value) ? "1" : "0"
+                    const is_inactive =  (fld_value) ? fld_value : false;
+                    add_or_remove_class (el_img, "inactive_1_3", is_inactive, "inactive_0_2");
+                    const filter_value = (is_inactive) ? "1" : "0";
                     el_div.setAttribute("data-filtervalue", fld_value)
-                } else if (["datefirst", "datelast"].indexOf(fldName) > -1){
+                } else if (["o_datefirst", "o_datelast"].indexOf(fldName) > -1){
                     // format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long)
                     el_div.innerText = format_dateISO_vanilla (loc, map_dict[fldName], true, false);
                     el_div.setAttribute("data-filtervalue", fld_value)
@@ -1582,6 +1584,10 @@ let planning_list = [] // for export and printing - can replace map?
             // new order has no old_map_dict PR2020-08-19
             // skip first column (is margin)
             for (let i = 1, col_field, old_value, new_value; col_field = field_settings["order"].field_names[i]; i++) {
+        console.log("col_field: " + col_field);
+        console.log("old_map_dict[col_field]: " + old_map_dict[col_field]);
+        console.log("updated_dict[col_field]: " + updated_dict[col_field]);
+
                 if (col_field in old_map_dict && col_field in updated_dict){
                     if (old_map_dict[col_field] !== updated_dict[col_field] ) {
                         updated_columns.push(col_field)
@@ -1875,20 +1881,20 @@ let planning_list = [] // for export and printing - can replace map?
         if(tblRow){
             const map_dict = get_mapdict_from_datamap_by_id(order_map, tblRow.id);
             console.log("map_dict", map_dict)
-// ---  create mod_dicty
+// ---  create mod_dict
             if(!isEmpty(map_dict)){
                 is_addnew = false;
                 mod_dict = {id: map_dict.id,
                         mapid: map_dict.mapid,
                         c_id: map_dict.c_id,
                         c_code: map_dict.c_code,
-                        code: map_dict.code,
+                        o_code: map_dict.o_code,
                         c_o_code: map_dict.c_o_code,
-                        identifier: map_dict.identifier,
-                        name: map_dict.name,
-                        datefirst: map_dict.datefirst,
-                        datelast: map_dict.datelast,
-                        inactive: map_dict.inactive
+                        o_identifier: map_dict.o_identifier,
+                        o_name: map_dict.o_name,
+                        o_datefirst: map_dict.o_datefirst,
+                        o_datelast: map_dict.o_datelast,
+                        o_inactive: map_dict.o_inactive
                       };
             }
         }
@@ -1976,10 +1982,14 @@ let planning_list = [] // for export and printing - can replace map?
             let fldName = get_attr_from_el(el_input, "data-field");
             // skip field customer code, value customer_pk is in mod_dict
             if(fldName !== "c_code"){
+
+
                 let new_value = (el_input.value) ? el_input.value : null;
                 const old_value = get_dict_value(mod_dict, [fldName]);
                 if (new_value !== old_value) {
-                    upload_dict[fldName] = new_value;
+                    //convert fldName to model fieldname
+                    const db_field = db_fields_order[fldName];
+                    upload_dict[db_field] = new_value;
                 };
             }
         };
@@ -4797,7 +4807,9 @@ let planning_list = [] // for export and printing - can replace map?
                          (tblName === "order") ? order_map : null;
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, selected_pk)
         const ppk_int = (tblName === "customer") ? map_dict.comp_id : (tblName === "order") ? map_dict.c_id : null;
-        const code_value = (tblName === "order") ? map_dict.c_o_code : map_dict.code;
+        const code_value = (tblName === "order") ? map_dict.c_o_code : map_dict.c_code;
+        const is_inactive = (tblName === "order") ? map_dict.o_inactive : map_dict.inactive;
+        console.log("map_dict", map_dict)
 
         const has_selected_item = (!isEmpty(map_dict));
         if(has_selected_item){
@@ -4807,7 +4819,7 @@ let planning_list = [] // for export and printing - can replace map?
                         mapid: map_dict.mapid,
                         table: tblName,
                         mode: mode,
-                        inactive: map_dict.inactive};
+                        inactive: is_inactive};
         }
 
 // ---  put header text in modal form
@@ -4816,9 +4828,9 @@ let planning_list = [] // for export and printing - can replace map?
                                 (tblName === "order") ? loc.Delete_order : null :
                             (mode === "inactive") ?
                                 (tblName === "customer") ?
-                                    (map_dict.inactive) ? loc.Make_customer_active : loc.Make_customer_inactive :
+                                    (is_inactive) ? loc.Make_customer_active : loc.Make_customer_inactive :
                                 (tblName === "order") ?
-                                    (map_dict.inactive) ? loc.Make_order_active : loc.Make_order_inactive : null : null;
+                                    (is_inactive) ? loc.Make_order_active : loc.Make_order_inactive : null : null;
 
         document.getElementById("id_confirm_header").innerText = header_text;
 
@@ -4829,7 +4841,7 @@ let planning_list = [] // for export and printing - can replace map?
                            (tblName === "order") ? loc.Order + " '" + map_dict.c_o_code + "' " : "";
             const txt_02 = (mode === "delete") ?  loc.will_be_deleted :
                            (mode === "inactive") ?
-                                (map_dict.inactive) ? loc.will_be_made_active : loc.will_be_made_inactive : "";
+                                (is_inactive) ? loc.will_be_made_active : loc.will_be_made_inactive : "";
 
 
             msg_01_txt = txt_01 + " " + txt_02;
@@ -4845,7 +4857,7 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  set btn text, color and hide
         let el_btn_save = document.getElementById("id_confirm_btn_save");
         el_btn_save.innerText = (mode === "delete") ? loc.Yes_delete :
-                                    (map_dict.inactive) ? loc.Yes_make_active : loc.Yes_make_inactive;
+                                    (is_inactive) ? loc.Yes_make_active : loc.Yes_make_inactive;
 
         add_or_remove_class (el_btn_save, cls_hide, !has_selected_item);
 
@@ -4884,13 +4896,14 @@ let planning_list = [] // for export and printing - can replace map?
         } else if (mod_dict.mode === "inactive"){
 // toggle inactive
             mod_dict.inactive = !mod_dict.inactive;
+
             upload_dict.inactive = mod_dict.inactive;
             // change inactive icon, before uploading
 // ---  toggle inactive icon, before uploading
-            let el_input = tblRow.querySelector("[data-field=inactive]");
-            let el_img = el_input.children[0];
-            if (el_img){
-                add_or_remove_class (el_img, "inactive_1_3", mod_dict.inactive, "inactive_0_2");
+            const selector = (mod_dict.table === "order") ? "[data-field=o_inactive]" : "[data-field=c_inactive]"
+            let el_input = tblRow.querySelector(selector);
+            if(el_input && el_input.children[0]){
+                add_or_remove_class (el_input.children[0], "inactive_1_3", mod_dict.inactive, "inactive_0_2");
             }
       }
 

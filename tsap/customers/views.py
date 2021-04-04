@@ -228,6 +228,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
                                 request=request,
                                 is_absence=is_absence,
                                 order_pk=instance.pk)
+
                             if updated_list and updated_list[0]:
                                 updated_row = updated_list[0]
                                 if is_created:

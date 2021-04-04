@@ -1408,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let order_code = null;
             if(!!selected_period.order_pk){
                 const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_period.order_pk)
-                order_code = order_dict.code;
+                order_code = order_dict.o_code;
             } else {
                 order_code = loc.All_orders.toLowerCase()
             }
@@ -2480,10 +2480,6 @@ rowcount: 11
                             if(emplhour_dict.c_o_code) { header_txt += " - " + emplhour_dict.c_o_code };
                             if(emplhour_dict.shiftcode) { header_txt += "  " + emplhour_dict.shiftcode };
                             if(emplhour_dict.employeecode) { header_txt += "\n" + emplhour_dict.employeecode };
-                        } else if (fldName === "ordernote") {
-                            header_txt = map_dict.c_o_code;
-                        } else if (fldName === "employeenote") {
-                            header_txt = map_dict.code;
                         }
                         el_MNO_header.innerText = header_txt;
 
@@ -4639,11 +4635,11 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
             // remove tilde from code not necessary, is in sql PR2020-8-14
             // was: if(order_code) {order_code.replace(/~/g,"")};
-            code_value = (pgeName === "MSO") ? map_dict.code : map_dict.c_o_code;
-            const within_range = period_within_range_iso(map_dict.datefirst, map_dict.datelast, rosterdate, rosterdate)
+            code_value = (pgeName === "MSO") ? map_dict.o_code : map_dict.c_o_code;
+            const within_range = period_within_range_iso(map_dict.o_datefirst, map_dict.o_datelast, rosterdate, rosterdate)
 
             // is_absence is already filtered in sql;
-            add_to_list = (!map_dict.inactive && !map_dict.c_inactive && within_range);
+            add_to_list = (!map_dict.o_inactive && !map_dict.c_inactive && within_range);
             // filter on custiomer_pk when pgeName = MSO
             if (add_to_list && pgeName === "MSO") {
                  add_to_list = (ppk_int === mod_dict.customer_pk)
@@ -4724,7 +4720,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                 map_dict = {id: 0, comp_id: ppk_int, code: "<" + loc.All_customers + ">"};
             } else {
                 const ppk_int =  mod_dict.customer_pk;
-                map_dict = {id: 0, c_id: ppk_int, code: "<" + loc.All_orders + ">"};
+                map_dict = {id: 0, c_id: ppk_int, o_code: "<" + loc.All_orders + ">"};
             }
         }
         //console.log( "map_dict: ", map_dict);
@@ -4782,7 +4778,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         } else if (tblName === "order") {
             mod_dict.order_pk = (!isEmpty(map_dict)) ? map_dict.id : 0;
             mod_dict.cust_order_code = (mod_dict.order_pk) ? map_dict.c_o_code : loc.All_orders;
-            mod_dict.order_code = (mod_dict.order_pk) ? map_dict.code : loc.All_orders;
+            mod_dict.order_code = (mod_dict.order_pk) ? map_dict.o_code : loc.All_orders;
             mod_dict.customer_code = (mod_dict.customer_pk) ? map_dict.c_code : loc.All_customers;
 
             const el_input = (pgeName === "MSO") ? el_MSO_input_order :
@@ -4869,6 +4865,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ---   set focus to next input element
         setTimeout(function (){el_focus.focus()}, 50);
 
+        //console.log( "mod_dict:", mod_dict);
     }  // MSE_MSO_MRE_MRO_SelecttableUpdateAfterSelect
 
 //=========  MRO_InputDateChanged  ================ PR2020-04-14
@@ -5403,7 +5400,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 // ++++ MOD ROSTER EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // =========  MRE_Open  ================ PR2019-06-23 PR2020-08-22
     function MRE_Open(el_input) {
-        console.log(" =========  MRE_Open  ==========")
+        //console.log(" =========  MRE_Open  ==========")
 
 // reset mod_dict
         mod_dict = {};
@@ -5510,8 +5507,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
 
 //=========  MRE_Save  ================ PR2019-06-23 PR2020-08-22
     function MRE_Save(crud_mode) {
-        console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
-        console.log("mod_dict", deepcopy_dict(mod_dict));
+        //console.log("===  MRE_Save ========= crud_mode: ", crud_mode);
+        //console.log("mod_dict", deepcopy_dict(mod_dict));
         // crud_mode = 'delete' when clicked on MRE delete btn. Deletes absence emplhour or removes employee from emplhour
         // crud_mode = 'save' otherwise
         // selected_btn are: tab_absence, tab_move, tab_split, tab_switch --- or values: tab_abs_split, add_employee
@@ -5545,7 +5542,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         } else if (mod_dict.btn_select === "tab_switch"){
             shift_option = "switch_shift";
         }
-        console.log("shift_option", shift_option);
+        //console.log("shift_option", shift_option);
 
 // ---  create id_dict of current emplhour record
         let upload_dict = { id: {pk: mod_dict.emplhour_pk,
@@ -5626,8 +5623,8 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             }
         }
 
-        console.log("url_emplhour_upload", url_emplhour_upload);
-        console.log("upload_dict", upload_dict);
+        //console.log("url_emplhour_upload", url_emplhour_upload);
+        //console.log("upload_dict", upload_dict);
         UploadChanges(upload_dict, url_emplhour_upload);
 
         $('#id_modroster_employee').modal('hide');

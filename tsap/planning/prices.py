@@ -48,166 +48,8 @@ sub_inv = 'SELECT id, note FROM companies_pricecode AS sub_inv WHERE sub_inv.isi
 # only tables timecode, teammember and shift have a field 'wagefactorcode'
 sub_wfc = 'SELECT id, rate FROM companies_wagecode AS sub_wfc WHERE sub_wfc.iswagefactor'
 
-sub_shift = """SELECT sh.id AS shft_id, 
-                s.id AS schm_id, 
-                s.code AS schm_code,
-                s.order_id AS s_order_id,
-                sh.code AS shft_code,
-                sh.billable AS shft_billable,
-                sh.pricecodeoverride AS shft_prc_override,
-                
-                sh.pricecode_id AS shft_pricecode_id,   
-                sh.additioncode_id AS shft_additioncode_id,        
-                sh.taxcode_id AS shft_taxcode_id,
-                
-                sh.wagefactorcode_id AS shft_wagefactorcode_id
 
-                FROM companies_shift AS sh
-                INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id)
 
-                WHERE (sh.isrestshift = FALSE)
-                AND (sh.istemplate = FALSE)
-       """
-
-sub_order = """SELECT o.id AS ordr_id, 
-                c.company_id AS company_id,
-                c.id AS cust_id,
-                COALESCE(c.code, '') AS cust_code,
-                COALESCE(o.code, '') AS ordr_code,
-                CONCAT(c.code, ' - ', o.code) AS cust_ordr_code,
-                
-                o.billable AS ordr_billable,
-                o.pricecodeoverride AS ordr_prc_override,
-                o.pricecode_id AS ordr_pricecode_id, 
-                o.additioncode_id AS ordr_additioncode_id, 
-                o.taxcode_id AS ordr_taxcode_id,
-                o.invoicecode_id AS ordr_invoicecode_id, 
-                
-                sub_shft.schm_id,
-                sub_shft.schm_code,
-  
-                sub_shft.shft_id,
-                sub_shft.shft_code,
-                sub_shft.shft_billable,
-                sub_shft.shft_prc_override,
-                
-                sub_shft.shft_pricecode_id, 
-                sub_shft.shft_additioncode_id, 
-                sub_shft.shft_taxcode_id,
-                sub_shft.shft_wagefactorcode_id
-
-                FROM companies_order AS o  
-                INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-                LEFT JOIN ( """ + sub_shift + """ ) AS sub_shft ON (o.id = sub_shft.s_order_id)
-
-                WHERE (o.isabsence = FALSE)
-                AND (o.istemplate = FALSE)
-                AND (o.inactive = FALSE)
-           """
-
-# billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
-
-sub_company = """SELECT CONCAT(comp.id::TEXT, '_'::TEXT, 
-                      COALESCE(sub_ordr.ordr_id, 0)::TEXT, '_'::TEXT, 
-                      COALESCE(sub_ordr.shft_id, 0)::TEXT) AS map_id,
-                      
-                comp.id AS comp_id,  
-                sub_ordr.ordr_id,
-                
-                COALESCE(comp.billable, 0) AS comp_billable,
-                comp.pricecodeoverride AS comp_prc_override,  
-                comp.pricecode_id AS comp_pricecode_id, 
-                comp.additioncode_id AS comp_additioncode_id, 
-                comp.taxcode_id AS comp_taxcode_id,
-                comp.invoicecode_id AS comp_invoicecode_id,
-                comp.id AS comp_id,
-                COALESCE(comp.code,'-') AS comp_code,
-                sub_ordr.cust_id,
-                sub_ordr.cust_code,
-                sub_ordr.ordr_code,
-                sub_ordr.cust_ordr_code,
-                
-                sub_ordr.schm_id,
-                sub_ordr.schm_code,
-
-                CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN
-                    CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
-                    ELSE comp.billable * -1  END
-                ELSE sub_ordr.ordr_billable END 
-                AS ordr_billable,
-
-                sub_ordr.ordr_prc_override,
-                
-                CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
-                    CASE WHEN comp.pricecode_id IS NULL THEN NULL
-                    ELSE comp.pricecode_id * -1 END
-                ELSE sub_ordr.ordr_pricecode_id END 
-                AS ordr_pricecode_id,
-                
-                CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN
-                    CASE WHEN comp.additioncode_id IS NULL THEN NULL
-                    ELSE comp.additioncode_id * -1 END
-                ELSE sub_ordr.ordr_additioncode_id END 
-                AS ordr_additioncode_id,  
-                         
-                CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN
-                    CASE WHEN comp.taxcode_id IS NULL THEN NULL
-                    ELSE comp.taxcode_id * -1 END
-                ELSE sub_ordr.ordr_taxcode_id END 
-                AS ordr_taxcode_id,   
-                        
-                CASE WHEN sub_ordr.ordr_invoicecode_id IS NULL THEN
-                    CASE WHEN comp.invoicecode_id IS NULL THEN NULL
-                    ELSE comp.invoicecode_id * -1 END
-                ELSE sub_ordr.ordr_invoicecode_id END 
-                AS ordr_invoicecode_id,           
-                
-                sub_ordr.shft_id,
-                COALESCE(sub_ordr.shft_code,'-') AS shft_code,
-                CASE WHEN sub_ordr.shft_billable = 0 OR sub_ordr.shft_billable IS NULL THEN
-                    CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN
-                        CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0
-                        ELSE comp.billable * -1  END
-                    ELSE sub_ordr.ordr_billable * -1 END
-                ELSE sub_ordr.shft_billable END 
-                AS shft_billable,
-                
-                sub_ordr.shft_prc_override,
-                
-                CASE WHEN sub_ordr.shft_pricecode_id IS NULL THEN
-                    CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN
-                        CASE WHEN comp.pricecode_id IS NULL THEN NULL
-                        ELSE comp.pricecode_id * -1 END
-                    ELSE sub_ordr.ordr_pricecode_id * -1 END
-                ELSE sub_ordr.shft_pricecode_id END 
-                AS shft_pricecode_id,
-                
-                CASE WHEN sub_ordr.shft_additioncode_id IS NULL THEN
-                    CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN
-                        CASE WHEN comp.additioncode_id IS NULL THEN NULL
-                        ELSE comp.additioncode_id * -1 END
-                    ELSE sub_ordr.ordr_additioncode_id * -1 END
-                ELSE sub_ordr.shft_additioncode_id END 
-                AS shft_additioncode_id,
-                
-                CASE WHEN sub_ordr.shft_taxcode_id IS NULL THEN
-                    CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN
-                        CASE WHEN comp.taxcode_id IS NULL THEN NULL
-                        ELSE comp.taxcode_id * -1 END
-                    ELSE sub_ordr.ordr_taxcode_id * -1 END
-                ELSE sub_ordr.shft_taxcode_id END 
-                AS shft_taxcode_id,
-                
-                sub_ordr.shft_wagefactorcode_id
-                
-                FROM companies_company AS comp 
-                LEFT JOIN ( """ + sub_order + """ ) AS sub_ordr ON (sub_ordr.company_id = comp.id)
-     
-                WHERE (comp.id = %(cid)s) 
-                ORDER BY 
-                LOWER(COALESCE(sub_ordr.ordr_code,'-')), sub_ordr.ordr_id, 
-                LOWER(COALESCE(sub_ordr.shft_code,'-')), sub_ordr.shft_id
-       """
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_price_list(filter_dict, request):  # PR2020-03-02
@@ -219,32 +61,142 @@ def create_price_list(filter_dict, request):  # PR2020-03-02
         rosterdate = filter_dict.get('rosterdate')
         rosterdate = rosterdate if rosterdate else None
 
-        """
-        employee_pk = filter_dict.get('employee_pk')
-        customer_pk = filter_dict.get('customer_pk')
-        order_pk = filter_dict.get('order_pk')
-        scheme_pk = filter_dict.get('scheme_pk')
-        shift_pk = filter_dict.get('shift_pk')
-        employee_pk = employee_pk if employee_pk else None
-        customer_pk = customer_pk if customer_pk else None
-        order_pk = order_pk if order_pk else None
-        scheme_pk = scheme_pk if scheme_pk else None
-        shift_pk = shift_pk if shift_pk else None
-        """
         company_id = request.user.company.id
-
-        cursor = connection.cursor()
 
         # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
         # ORDER BY 'id' is added in case there are multiple rows with the same code.
         # Subtotals are shown on change of id, might be messed up with different records with the same name when only ordered by name
-        cursor.execute(sub_company,
-                       {'cid': company_id,
-                        'rd': rosterdate
-                        })
+
+        # billable can be 0, 1 or 2: 0 = get value of parent, 1 = not billable, 2 = billable
+
+        sql_keys = {'cid': company_id, 'rd': rosterdate}
+        sub_shift_list = ["SELECT sh.id AS shft_id, s.id AS schm_id,  s.code AS schm_code, s.order_id AS s_order_id,",
+                          "sh.code AS shft_code, sh.billable AS shft_billable,",
+                          "sh.pricecodeoverride AS shft_prc_override, sh.pricecode_id AS shft_pricecode_id,",
+                          "sh.additioncode_id AS shft_additioncode_id, sh.taxcode_id AS shft_taxcode_id,",
+                          "sh.wagefactorcode_id AS shft_wagefactorcode_id",
+                          "FROM companies_shift AS sh",
+                          "INNER JOIN companies_scheme AS s ON (s.id = sh.scheme_id)",
+                          "WHERE NOT sh.isrestshift AND NOT sh.istemplate"
+                          ]
+        sub_shift = ' '.join(sub_shift_list)
+
+        sub_order_list = ["SELECT o.id AS ordr_id,  c.company_id AS company_id, c.id AS cust_id,",
+                          "COALESCE(c.code, '') AS cust_code, COALESCE(o.code, '') AS ordr_code,",
+                          "CONCAT(c.code, ' - ', o.code) AS cust_ordr_code,",
+                          "o.billable AS ordr_billable,",
+                          "o.pricecodeoverride AS ordr_prc_override, o.pricecode_id AS ordr_pricecode_id,",
+                          "o.additioncode_id AS ordr_additioncode_id,  o.taxcode_id AS ordr_taxcode_id,",
+                          "o.invoicecode_id AS ordr_invoicecode_id,",
+                          "sub_shft.schm_id, sub_shft.schm_code,",
+                          "sub_shft.shft_id, sub_shft.shft_code, sub_shft.shft_billable, sub_shft.shft_prc_override,",
+                          "sub_shft.shft_pricecode_id,  sub_shft.shft_additioncode_id,",
+                          "sub_shft.shft_taxcode_id, sub_shft.shft_wagefactorcode_id",
+                          "FROM companies_order AS o",
+                          "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                          "LEFT JOIN (" + sub_shift + ") AS sub_shft ON (o.id = sub_shft.s_order_id)",
+                          "WHERE NOT c.isabsence AND NOT o.istemplate AND NOT o.inactive"
+                          ]
+        sub_order = ' '.join(sub_order_list)
+
+        sql_list = ["SELECT CONCAT(comp.id::TEXT, '_'::TEXT,",
+                    "COALESCE(sub_ordr.ordr_id, 0)::TEXT, '_'::TEXT,",
+                    "COALESCE(sub_ordr.shft_id, 0)::TEXT) AS map_id,",
+                    "comp.id AS comp_id,  sub_ordr.ordr_id,",
+                    "COALESCE(comp.billable, 0) AS comp_billable,",
+                    "comp.pricecodeoverride AS comp_prc_override,",
+                    "comp.pricecode_id AS comp_pricecode_id,",
+                    "comp.additioncode_id AS comp_additioncode_id,",
+                    "comp.taxcode_id AS comp_taxcode_id,",
+                    "comp.invoicecode_id AS comp_invoicecode_id,",
+                    "comp.id AS comp_id,",
+                    "COALESCE(comp.code,'-') AS comp_code,",
+                    "sub_ordr.cust_id, sub_ordr.cust_code, sub_ordr.ordr_code, sub_ordr.cust_ordr_code,",
+                    "sub_ordr.schm_id, sub_ordr.schm_code,",
+
+                    "CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN",
+                        "CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0",
+                        "ELSE comp.billable * -1  END",
+                    "ELSE sub_ordr.ordr_billable END",
+                    "AS ordr_billable,",
+
+                    "sub_ordr.ordr_prc_override,",
+
+                    "CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN",
+                        "CASE WHEN comp.pricecode_id IS NULL THEN NULL",
+                        "ELSE comp.pricecode_id * -1 END",
+                    "ELSE sub_ordr.ordr_pricecode_id END",
+                    "AS ordr_pricecode_id,",
+
+                    "CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN",
+                        "CASE WHEN comp.additioncode_id IS NULL THEN NULL",
+                        "ELSE comp.additioncode_id * -1 END",
+                    "ELSE sub_ordr.ordr_additioncode_id END",
+                    "AS ordr_additioncode_id,",
+
+                    "CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN",
+                        "CASE WHEN comp.taxcode_id IS NULL THEN NULL",
+                        "ELSE comp.taxcode_id * -1 END",
+                    "ELSE sub_ordr.ordr_taxcode_id END",
+                    "AS ordr_taxcode_id,",
+
+                    "CASE WHEN sub_ordr.ordr_invoicecode_id IS NULL THEN",
+                        "CASE WHEN comp.invoicecode_id IS NULL THEN NULL",
+                        "ELSE comp.invoicecode_id * -1 END",
+                    "ELSE sub_ordr.ordr_invoicecode_id END",
+                    "AS ordr_invoicecode_id,",
+
+                    "sub_ordr.shft_id,",
+                    "COALESCE(sub_ordr.shft_code,'-') AS shft_code,",
+                    "CASE WHEN sub_ordr.shft_billable = 0 OR sub_ordr.shft_billable IS NULL THEN",
+                        "CASE WHEN sub_ordr.ordr_billable = 0 OR sub_ordr.ordr_billable IS NULL THEN",
+                            "CASE WHEN comp.billable = 0 OR comp.billable IS NULL THEN 0",
+                            "ELSE comp.billable * -1  END",
+                        "ELSE sub_ordr.ordr_billable * -1 END",
+                    "ELSE sub_ordr.shft_billable END",
+                    "AS shft_billable,",
+
+                    "sub_ordr.shft_prc_override,",
+
+                    "CASE WHEN sub_ordr.shft_pricecode_id IS NULL THEN",
+                        "CASE WHEN sub_ordr.ordr_pricecode_id IS NULL THEN",
+                            "CASE WHEN comp.pricecode_id IS NULL THEN NULL",
+                            "ELSE comp.pricecode_id * -1 END",
+                        "ELSE sub_ordr.ordr_pricecode_id * -1 END",
+                    "ELSE sub_ordr.shft_pricecode_id END",
+                    "AS shft_pricecode_id,",
+
+                    "CASE WHEN sub_ordr.shft_additioncode_id IS NULL THEN",
+                        "CASE WHEN sub_ordr.ordr_additioncode_id IS NULL THEN",
+                            "CASE WHEN comp.additioncode_id IS NULL THEN NULL",
+                            "ELSE comp.additioncode_id * -1 END",
+                        "ELSE sub_ordr.ordr_additioncode_id * -1 END",
+                    "ELSE sub_ordr.shft_additioncode_id END",
+                    "AS shft_additioncode_id,",
+
+                    "CASE WHEN sub_ordr.shft_taxcode_id IS NULL THEN",
+                        "CASE WHEN sub_ordr.ordr_taxcode_id IS NULL THEN",
+                            "CASE WHEN comp.taxcode_id IS NULL THEN NULL",
+                            "ELSE comp.taxcode_id * -1 END",
+                        "ELSE sub_ordr.ordr_taxcode_id * -1 END",
+                    "ELSE sub_ordr.shft_taxcode_id END",
+                    "AS shft_taxcode_id,",
+
+                    "sub_ordr.shft_wagefactorcode_id",
+
+                    "FROM companies_company AS comp",
+                    "LEFT JOIN ( " + sub_order + " ) AS sub_ordr ON (sub_ordr.company_id = comp.id)",
+
+                        "WHERE (comp.id = %(cid)s)",
+                        "ORDER BY LOWER(sub_ordr.cust_code), sub_ordr.cust_id, LOWER(sub_ordr.ordr_code), sub_ordr.ordr_id, LOWER(sub_ordr.shft_code), sub_ordr.shft_id"
+               ]
+        sql = ' '.join(sql_list)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
 
         # dictfetchall returns a list with dicts for each dictrow row
-        price_list = f.dictfetchall(cursor)
+            price_list = f.dictfetchall(cursor)
         #for dictrow in price_list:
         #    logger.debug('...................................')
         #    logger.debug('dictrow' + str(dictrow))

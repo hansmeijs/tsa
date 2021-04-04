@@ -4713,7 +4713,6 @@ class ReviewlAfasInvoiceXlsxView(View):
                 deleted_arr = list_dict.get('del')
                 # deleted_arr: ['MCB bank']
 
-
                 listname = print_dict.get('name')
                 customer_pk_list = print_dict.get('cl', [])
                 order_pk_list = print_dict.get('ol', [])
@@ -4739,7 +4738,8 @@ class ReviewlAfasInvoiceXlsxView(View):
                     if deleted_arr:
                         # deleted_arr: ['MCB bank']
                         for listname in deleted_arr:
-                            stored_setting.pop(listname)
+                            if listname in stored_setting:
+                                stored_setting.pop(listname)
 
                     if modified_dict:
                         # modified_dict: {'MCB bank 2': {'cl': [1], 'ol': [9]}}

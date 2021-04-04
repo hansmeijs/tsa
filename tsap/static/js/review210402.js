@@ -100,24 +100,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const field_settings = {
         billing_agg: { tbl_col_count: 12,
                     field_caption: ["", "Customer", "Order", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
-                    field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-                    filter_tags: ["", "text", "text", "duration","duration","","duration", "","amount", "amount", "amount"],
+                    // field_names only used in table 'prices'
+                    field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "text", "amount", "amount", "-"],
+                    filter_tags: ["", "text", "text", "duration","duration","","duration", "", "text", "amount", "amount"],
                     //field_tags: ["div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
                     field_width: ["016", "150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
                     field_align:  ["c", "l", "l", "r","r", "c", "r", "c", "r", "r", "r", "c"]
             },
         billing_rosterdate: { tbl_col_count: 12,
                     field_caption: ["<", "Order", "Date", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
-                    field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-                    filter_tags: ["", "text", "text", "duration","duration","","duration", "","amount", "amount", "amount"],
+                    // field_names only used in table 'prices'
+                    field_names: ["back", "text", "text", "duration", "duration", "-", "duration", "-", "text", "amount", "amount", "-"],
+                    filter_tags: ["", "text", "text", "duration","duration","","duration", "", "text", "amount", "amount"],
                     //field_tags: ["div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
                     field_width: ["016","150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
                     field_align:  ["c", "l", "l", "r","r", "c", "r", "c", "r", "r", "r", "c"]
             },
         billing_detail: { tbl_col_count: 14,
             field_caption: ["<", "Order", "Date", "Shift", "Employee", "Planned_hours", "Worked_hours", "", "Billing_hours", "", "Hourly_rate", "Addition", "Amount", ""],
-            field_names: ["back", "text", "text", "text", "text", "duration", "duration", "-", "duration", "-", "amount", "amount", "amount", "-"],
-            filter_tags: ["","text","text","text","text","duration","duration","","duration", "","amount","amount","amount"],
+            // field_names only used in table 'prices'
+            field_names: ["back", "text", "text", "text", "text", "duration", "duration", "-", "duration", "-", "text", "amount", "amount", "-"],
+            filter_tags: ["","text","text","text","text","duration","duration","","duration", "","text","amount","amount"],
             //field_tags: ["div","div", "div","div", "div", "div", "div", "div", "div", "div", "div", "div", "div", "div"],
             field_width: ["016","150", "090","150", "150", "090", "090", "032", "090", "032", "075", "075", "120", "032"],
             field_align:  ["c", "l", "l", "l", "l","r","r", "c", "r", "c", "r", "r", "r",  "c"]
@@ -130,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //field_align:  ["c", "l", "c", "r", "c", "r", "r"]
 
             field_caption: ["", "Order-Shift", "Billable", "Hourly_rate", "Addition", "Tax"],
+            // field_names only used in table 'prices'
             field_names: ["back","code", "billable", "pricecode", "additioncode", "taxcode"],
             field_width: ["016", "240", "150", "150", "150", "150"],
             field_align:  ["c", "l", "c", "r", "r", "r"]
@@ -312,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
 
                 if ("customer_list" in response) {b_refresh_datamap(response["customer_list"], customer_map)}
-                if ("order_list" in response) { b_refresh_datamap(response["order_list"], order_map)}
+                if ("order_rows" in response) {b_refresh_datamap(response.order_rows, order_map, "order")};
                 if ("employee_list" in response) { b_refresh_datamap(response["employee_list"], employee_map)}
 //----------------------------
                 if ("billing_agg_list" in response){  refresh_billing_list(response);};
@@ -383,8 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("===  CreateSubmenu == ");
         let el_submenu = document.getElementById("id_submenu")
 
-            AddSubmenuButton(el_submenu, loc.Expand_all, function() {HandleExpand("expand_all")},[], "id_submenu_expand_all");
-            AddSubmenuButton(el_submenu, loc.Collaps_all, function() {HandleExpand("collaps_all")}, ["mx-2"], "id_submenu_collapse_all");
+            AddSubmenuButton(el_submenu, loc.Expand_all, function() {HandleExpandCollapseAll("expand_all")},[], "id_submenu_expand_all");
+            AddSubmenuButton(el_submenu, loc.Collaps_all, function() {HandleExpandCollapseAll("collaps_all")}, ["mx-2"], "id_submenu_collapse_all");
             //AddSubmenuButton(el_submenu, loc.Show_report, function() {PrintReport("preview")}, ["mx-2"]);
             //AddSubmenuButton(el_submenu, loc.Download_report, function() {PrintReport("download")}, ["mx-2"]);
             AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"], "id_submenu_export_to_excel");
@@ -498,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
         CreatePricesHeader();
 
 // create GRAND TOTAL
-        CreateGrandTotal(rptName, price_list[0]);
+        CreatePricesCompanyRow(rptName, price_list[0]);
         const len = price_list.length;
         if (!!len) {
     // --- loop through price_list
@@ -515,17 +519,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(ord_id_curr !== ord_id_prev){
                         ord_id_prev = ord_id_curr;
                         shift_id_prev = null;
-                        CreateOrderTotal(rptName, row_list)
+                        CreatePricesOrderRow(rptName, row_list)
                     }
     // --- create DETAIL row
-                    CreateDetailRow(rptName, row_list)
+                    CreatePricesShiftRow(rptName, row_list)
             }  // for (let i = len - 1; i >= 0; i--)
         }  // if (!!len)
     }  // FillPricesRows
 
 //=========  CreatePricesHeader  === PR2019-07-27
     function CreatePricesHeader() {
-        console.log("===  CreatePricesHeader == ");
+        //console.log("===  CreatePricesHeader == ");
 
         //console.log("thead_text.customer", thead_text.customer);
         const tblName = "prices";
@@ -556,15 +560,15 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     };  //  CreatePricesHeader
 
-//=========  CreateGrandTotal  === PR2020-02-23
-    function CreateGrandTotal(rptName, row_list){
-        //console.log(" === CreateGrandTotal === ", rptName)
+//=========  CreatePricesCompanyRow  === PR2020-02-23 PR2021-04-03
+    function CreatePricesCompanyRow(rptName, row_list){
+        //console.log(" === CreatePricesCompanyRow === ", rptName)
         const tblName = "comp"
-        const pk_int = row_list.comp_id;
+        const comp_pk_int = row_list.comp_id;
         const map_id = row_list.map_id;
         let display_dict = {table: tblName,
                             map_id: row_list.map_id,
-                            pk_int: pk_int,
+                            pk_int: comp_pk_int,
                             code: row_list.comp_code.toUpperCase(),
                             billable: {value: row_list.comp_billable},
                             pricecode_id: row_list.comp_pricecode_id,
@@ -579,22 +583,22 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {        // array 'total' contains [time_dur, plan_dur, bill_dur]
         }  // if (rptName === "employee")
 
-        let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int)
-        UpdateTableRow(tblRow, display_dict);
-    }
+        let tblRow = CreatePricesRow(rptName, tblName, map_id, comp_pk_int);
+        UpdatePricesRow(tblRow, display_dict);
+    }  // CreatePricesCompanyRow
 
-//=========  CreateOrderTotal  === PR2020-02-23
-    function CreateOrderTotal(rptName, row_list) {
-        //console.log(" === CreateOrderTotal === ", rptName)
+//=========  CreatePricesOrderRow  === PR2020-02-23 PR2021-04-03
+    function CreatePricesOrderRow(rptName, row_list) {
+        //console.log(" === CreatePricesOrderRow === ", rptName)
         const tblName = "ordr";
-        const pk_int = row_list.ordr_id;
-        const p1pk_int = row_list.cust_id;
+        const comp_pk_int = row_list.comp_id;
+        const ordr_pk_int = row_list.ordr_id;
         const map_id = row_list.map_id;
         // skip when order does not exist (may happen because of left join in query)
-        if(!!pk_int){
+        if(!!ordr_pk_int){
             let display_dict = {table: tblName,
                                 map_id: row_list.map_id,
-                                pk_int: pk_int,
+                                pk_int: ordr_pk_int,
                                 //code: row_list.ordr_code,
                                 code: row_list.cust_ordr_code,
                                 billable: {value: row_list.ordr_billable},
@@ -603,16 +607,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                 taxcode_id: row_list.ordr_taxcode_id,
                                 invoicecode_id: row_list.ordr_invoicecode_id
                                 }
-            let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int, p1pk_int)
-            UpdateTableRow(tblRow, display_dict)
+            let tblRow = CreatePricesRow(rptName, tblName, map_id, comp_pk_int, ordr_pk_int)
+            UpdatePricesRow(tblRow, display_dict)
         };
-    }
+    }  // CreatePricesOrderRow
 
-//=========  CreateDetailRow  === PR2020-02-23
-    function CreateDetailRow(rptName, row_list){
-        //console.log("===  CreateDetailRow == ", rptName);
+//=========  CreatePricesShiftRow  === PR2020-02-23 PR2021-04-03
+    function CreatePricesShiftRow(rptName, row_list){
+        //console.log("===  CreatePricesShiftRow == ", rptName);
         //console.log("row_list", row_list);
+
         const tblName = "shft";
+        const comp_pk_int = row_list.comp_id;
+        const ordr_pk_int = row_list.ordr_id;
+        const shft_pk_int = row_list.shft_id;
         const pk_int = row_list.shft_id;
         const p2pk_int = row_list.ordr_id;
         const map_id = row_list.map_id;
@@ -631,28 +639,31 @@ document.addEventListener('DOMContentLoaded', function() {
                                 wagefactor_id: row_list.shft_wagefactor_id
             }
 
-            let tblRow = CreateTblRow(rptName, tblName, map_id, pk_int, p2pk_int)
-            UpdateTableRow(tblRow, display_dict)
+            let tblRow = CreatePricesRow(rptName, tblName, map_id, comp_pk_int, ordr_pk_int, shft_pk_int)
+            UpdatePricesRow(tblRow, display_dict)
         }
-    }
+    }  // CreatePricesShiftRow
 
-//=========  CreateTblRow  ================ PR2019-04-27
-    function CreateTblRow(rptName, tblName, map_id, pk_int, p2pk_int, p3pk_int) {
-        //console.log("=========  CreateTblRow ========= ", rptName, tblName, pk_int);
+//=========  CreatePricesRow  ================ PR2019-04-27
+    function CreatePricesRow(rptName, tblName, map_id, comp_pk_int, ordr_pk_int, shft_pk_int) {
+        //console.log("=========  CreatePricesRow ========= ", rptName, tblName);
+        //console.log("comp_pk_int", comp_pk_int, "ordr_pk_int", ordr_pk_int, "shft_pk_int", shft_pk_int);
         // p1pk_int = parent_pk, p2pk_int = parent_parent_pk, p3pk_int = parent_parent_parent_pk
 // ---  insert tblRow ino tblBody_datatable
         let tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
         tblRow.setAttribute("data-table", tblName )
-        const row_id = get_map_id(tblName, pk_int)
+        const row_id = (tblName === "comp") ? "comp_" + comp_pk_int :
+                         (tblName === "ordr") ? "ordr_" + ordr_pk_int :
+                         (tblName === "shft") ? "shft_" + shft_pk_int : null;
         tblRow.setAttribute("id", row_id)
         tblRow.setAttribute("data-map_id", map_id)
 
 // --- add EventListener to tblRow.
         // dont add this EventListener to tblRow - to first column instead
-        //tblRow.addEventListener("click", function(event) {HandleTableRowClickedOrDoubleClicked(tblRow, event)}, false)
+        //tblRow.addEventListener("click", function(event) {HandlePricesRowClickedOrDoubleClicked(tblRow, event)}, false)
 
-//+++ insert td's in tblRowe
+//+++ insert td's in tblRow
         const tbl_col_count = 6;
         const field_names = field_settings["prices"].field_names;
         const field_width = field_settings["prices"].field_width;
@@ -670,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add EventListener to td
             if (j === 1)  {
-                td.addEventListener("click", function(event) {HandleTableRowClickedOrDoubleClicked(tblRow, event)}, false)
+                td.addEventListener("click", function(event) {HandlePricesRowClickedOrDoubleClicked(tblRow, event)}, false)
             } else if (j === 2) {
                 el.addEventListener("click", function() {MSB_Open(td)}, false)
             } else if ([3,4,5].includes(j)) {
@@ -692,12 +703,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // row_id: cust_678 is set as tblRow.id
             // subrow must collapse and expand:
             //   add x_cust_678 and c_cust_678 to order row, add c_cust_678 to scheme and shift row
-            if(tblName === "ordr"){
+
+            // expand / collapse works as follows:
+            // - first sublevel rows have class starting with 'x_' followed by id of parent row
+            // - all sublevels rows  have class starting with 'c_' followed by id of parent row
+
+            if(tblName === "comp"){
+                // skip COmpany row is always visible
+            } else if (tblName === "ordr"){
+                tblRow.classList.add("x_comp_" + comp_pk_int);
             } else if(tblName === "shft"){
-                if(!!p2pk_int) {
-                    tblRow.classList.add("c_ordr_" + p2pk_int.toString());
-                    tblRow.classList.add("x_ordr_" + p2pk_int.toString());
-                }
+                tblRow.classList.add("c_comp_" + comp_pk_int, "x_ordr_" + ordr_pk_int);
+
+// when creating table: add 'subrows_hidden' to all totals except "comp" and "ordr". It keeps track if  subrows are hidden
+            //const subrows_hidden = (tblName === "shft")
+            //add_or_remove_attr (tblRow, "data-subrows_hidden", subrows_hidden, true);
             }
 
 // set color of total rows
@@ -711,9 +731,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow.classList.add("tsa_bc_lightgrey");
             }
 
-// when creating table: add 'subrows_hidden' to all totals except "comp". It keeps track if  subrows are hidden
-            const subrows_hidden = (["empl", "cust", "ordr", "schm"].includes(tblName))
-            if(subrows_hidden) {tblRow.setAttribute("data-subrows_hidden", true)};
 
 // when creating table: hide rows except Grand Total and customer total / employee total
             //const is_show = (["comp", "empl", "cust"].includes(tblName));
@@ -721,13 +738,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }  // for (let j = 0; j < 8; j++)
         return tblRow
-    };// CreateTblRow
+    };// CreatePricesRow
 
-//========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, dict){
-        //console.log(" ---- UpdateTableRow ---- ");
+//========= UpdatePricesRow  =============
+    function UpdatePricesRow(tblRow, dict){
+        //console.log(" ---- UpdatePricesRow ---- ");
         //console.log("dict", dict);
-        // UpdateTableRow dict = {table_NIU: "cust", map_id_NIU: "3_694_1420_1658_670", pk_int_NIU: 694,
+        // UpdatePricesRow dict = {table_NIU: "cust", map_id_NIU: "3_694_1420_1658_670", pk_int_NIU: 694,
         //  code: "MCB", billable: {value: 2}
         //  pricecode_id: -64, additioncode_id: -62, taxcode_id: 61, invoicecode_id_NIU: null
 
@@ -794,34 +811,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 };  // if(!!el)
             }  //  for (let j = 0; j < 8; j++)
         } // if (!!tblRow)
-    }  // function UpdateTableRow
+    }  // function UpdatePricesRow
 
-//========= HandleExpand  ====================================
-    function HandleExpand(mode){
-        //console.log(" === HandleExpand ===", mode)
 
-    // --- expand or collaps all rows in list 2020-03-05
-        const len = tblBody_datatable.rows.length;
-        if (len > 0){
-            for (let i = 0, tblRow; i < len; i++) {
-                tblRow = tblBody_datatable.rows[i];
-
-                tblRow.removeAttribute("data-subrows_hidden")
-                if (mode === "expand_all"){
-                    tblRow.classList.remove(cls_hide);
-                } else {
-                    const tblName = get_attr_from_el(tblRow, "data-table")
-                    const subrows_hidden = (["empl", "cust", "ordr", "schm"].includes(tblName));
-                    if(subrows_hidden){tblRow.setAttribute("data-subrows_hidden", true)}
-                    const is_show = (["comp", "empl", "cust"].includes(tblName));
-                    show_hide_element(tblRow, is_show);
-                }
-            }
-        }
-    }
-//=========  HandleTableRowClickedOrDoubleClicked  ================ PR2019-03-30
-    function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
-        //console.log("=== HandleTableRowClickedOrDoubleClicked");
+//=========  HandlePricesRowClickedOrDoubleClicked  ================ PR2019-03-30
+    function HandlePricesRowClickedOrDoubleClicked(tblRow, event) {
+        //console.log("=== HandlePricesRowClickedOrDoubleClicked");
         //console.log("event.target", event.target);
         //console.log("event.detail", event.detail);
         // PR2020-02-24 dont use doubleclick event, wil also trigger click twice. Use this function instead
@@ -833,46 +828,60 @@ document.addEventListener('DOMContentLoaded', function() {
         // event.detail: for mouse click events: returns the number of clicks.
         switch (event.detail) {
             case 1:
-                HandleTableRowClicked(tblRow)
+                HandlePricesRowClicked(tblRow)
                 break;
             case 2:
-                HandleTableRowDoubleClicked(tblRow)
+                HandlePricesRowDoubleClicked(tblRow)
         }
     }
 
-//=========  HandleTableRowClicked  ================ PR2019-03-30
-    function HandleTableRowClicked(tblRow) {
-        //console.log("=== HandleTableRowClicked");
+//=========  HandlePricesRowClicked  ================ PR2019-03-30
+    function HandlePricesRowClicked(tblRow) {
+        console.log("=== HandlePricesRowClicked");
         //console.log( "tblRow: ", tblRow, typeof tblRow);
+
+        // expand / collapse works as follows:
+        // - first sublevel rows have class starting with 'x_' followed by id of parent row
+        // - all sublevels rows  have class starting with 'c_' followed by id of parent row
         if(!!tblRow) {
             const tblName = get_attr_from_el(tblRow, "data-table")
-            const is_totalrow = (["empl", "cust", "ordr", "schm"].includes(tblName))
+            const is_totalrow = (["comp", "ordr"].includes(tblName))
+
             if (is_totalrow){
                 const row_id = tblRow.id //  id = 'cust_694'
-                let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
-                //console.log( "tblName: ", tblName);
-                //console.log( "row_id: ", row_id);
-                //console.log( "subrows_hidden: ", subrows_hidden);
-                if (subrows_hidden){
-                    // expand first level below this one, i.e. the rows with class = 'x_cust_694'
-                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
-                    add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, false, ".x_" + row_id);
-                    // remove attribute 'subrows_hidden' from this tblRow
-                    tblRow.removeAttribute("data-subrows_hidden")
-                } else {
-                    // collaps all levels below this one, i.e. the rows with class = 'c_cust_694
-                    //  add_or_remove_class_with_qsAll(tblBody, classname, is_add, filter_class){
-                    add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, true, ".c_" + row_id);
-                    // add attribute 'subrows_hidden' from this tblRow
-                    tblRow.setAttribute("data-subrows_hidden", true)
+                let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false);
+    // toggle attribute 'data-subrows_hidden'
+                const subrows_hide = (!subrows_hidden);
+
+    // set or remove attribute 'subrows_hidden' on tblRow
+                add_or_remove_attr (tblRow, "data-subrows_hidden", subrows_hide, true);
+    // set attribute 'subrows_hidden' = true on child rows (both when subrows_hide = true and false)
+                if(tblName === "comp"){
+                    const filter_class = ".x_" + row_id;
+                    const elements = tblBody_datatable.querySelectorAll(filter_class)
+                    for (let i = 0, el; el = elements[i]; i++) {
+                        el.setAttribute("data-subrows_hidden", true)
+                    };
                 }
+     // show / hide subrows
+                // if subrows_hide : collaps all levels below this one, i.e. the rows with class =  x_cust_694' plus 'c_cust_694
+                // if show subrows : expand only the first level below this one, i.e. the rows with class = 'x_cust_694'
+                const filter_class = (subrows_hide) ? ".c_" + row_id + ", .x_" + row_id :
+                                                      ".x_" + row_id;
+
+        console.log( "......... row_id: ", row_id);
+        console.log( "subrows_hidden: ", subrows_hidden);
+        console.log( "subrows_hide: ", subrows_hide);
+        console.log( "filter_class: ", filter_class);
+
+                add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, subrows_hide, filter_class);
             }
         }
-    }  // HandleTableRowClicked
+    }  // HandlePricesRowClicked
 
-//=========  HandleTableRowDoubleClicked  ================ PR2019-03-30
-    function HandleTableRowDoubleClicked(tblRow) {
-       //console.log("=== HandleTableRowDoubleClicked");
+//=========  HandlePricesRowDoubleClicked  ================ PR2019-03-30
+    function HandlePricesRowDoubleClicked(tblRow) {
+       console.log("=== HandlePricesRowDoubleClicked");
         if(!!tblRow) {
             const tblName = get_attr_from_el(tblRow, "data-table")
             const is_totalrow = (["empl", "cust", "ordr", "schm"].includes(tblName))
@@ -887,7 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-    }  //  HandleTableRowDoubleClicked
+    }  //  HandlePricesRowDoubleClicked
 
 //========= MSB_Open  ============= PR2020-03-03
     function MSB_Open(td) {
@@ -1022,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //@@@@@@@@@@@@@@@@@@ MODAL SELECT PRICE @@@@@@@@@@@@@@@@@@
 //========= MSP_Open ====================================  PR2020-02-27
     function MSP_Open (td) {
-        console.log(" ===  MSP_Open  ===== ");
+        //console.log(" ===  MSP_Open  ===== ");
         // fldName = "pricecode", "additioncode", "taxcode",
         const fldName = get_attr_from_el(td, "data-field");
         const pc_id = get_attr_from_el_int(td, "data-pk")
@@ -1238,9 +1247,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSP_Fill_SelectTable  ============= PR2020-03-08
     function MSP_Fill_SelectTable (fldName, selected_pk){
-        console.log("===== MSP_Fill_SelectTable ===== ", fldName, selected_pk);
-        console.log("fldName", fldName);
-        console.log("selected_pk", selected_pk);
+        //console.log("===== MSP_Fill_SelectTable ===== ", fldName, selected_pk);
+        //console.log("fldName", fldName);
+        //console.log("selected_pk", selected_pk);
 
 //--- reset tblBody
         let tblBody = document.getElementById("id_MSP_tblbody");
@@ -1257,9 +1266,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].includes(fldName));
                     const pricerate_display = format_pricerate (loc.user_lang, dict.pci_pricerate, is_percentage, true)  // show_zero = true
                     const datefirst_JS = get_dateJS_from_dateISO (dict.pci_datefirst)
-        console.log("dict.pci_pricerate", dict.pci_pricerate);
-        console.log("is_percentage", is_percentage);
-        console.log("pricerate_display", pricerate_display);
+        //console.log("dict.pci_pricerate", dict.pci_pricerate);
+        //console.log("is_percentage", is_percentage);
+        //console.log("pricerate_display", pricerate_display);
         //--------- insert tblBody row
                     let tblRow = tblBody.insertRow(-1);
                     tblRow.setAttribute("id",  "sel_" + pc_id);
@@ -1462,7 +1471,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // update tablerow
-                     //UpdateTableRow(tblRow, update_dict)
+                     //UpdatePricesRow(tblRow, update_dict)
                 }  //  if(!!tblRow){
             }  //  if(!!map_id)
         }  // if(!isEmpty(update_dict))
@@ -1548,30 +1557,33 @@ document.addEventListener('DOMContentLoaded', function() {
             img_src = (warning) ? imgsrc_warning : imgsrc_stat00;
             td_html[col_index] = "<td class=\"pt-0\"><div class=\"ta_c\"><img src=\"" + img_src + "\" class=\"icon_18\"></div></td>"
             filter_data[col_index] = warning;
-
 // ---  col 08 is price rate
             col_index += 1;
             excelcol_index +=1;
-            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
+            const pricerate_arr = format_rate_arr(item.eh_pricerate_arr, false)  // is_percentage = false;
             td_html[col_index] = pricerate_arr[0];
-            filter_data[col_index] =  pricerate_arr[1];
+
+            // TODO eh_pricerate_arr is array and may have different values when orderhour has employees with different pricerate PR2021-04-02
+            // pricerate per employee not implemented yet
+            // filter as text for now
+            // was: filter_data[col_index] =  pricerate_arr[1];  // = filter_col = item_arr
+            filter_data[col_index] = pricerate_arr[2];  // = excel_col = text
             excel_data[excelcol_index] = pricerate_arr[2];
 
 // ---  col 09 is addition rate
             col_index += 1;
             excelcol_index +=1;
-            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
-            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
-            filter_data[col_index] = item.oh_addrate;
-            excel_data[excelcol_index] = item.oh_addrate;
+            const additionrate_arr = format_rate_arr(item.oh_additionrate_arr, true)  // is_percentage = true;
+            td_html[col_index] = additionrate_arr[0];
+            filter_data[col_index] = additionrate_arr[2];
+            excel_data[excelcol_index] = additionrate_arr[2];
 
 // ---  col 10 is total_amount
             col_index +=1
             excelcol_index +=1;
             // format_pricerate is_percentage = false, show_zero = false
             td_html[col_index] = "<td><div class=\"ta_r\">" + format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
-            filter_data[col_index] = item.eh_total_sum;
+            filter_data[col_index] = (item.eh_total_sum) ? item.eh_total_sum / 100 : null;
             excel_data[excelcol_index] = item.eh_total_sum;
 // ---  col 11 is  status icon
             col_index +=1
@@ -1656,19 +1668,24 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  col 08 is price rate
             col_index += 1;
             excelcol_index +=1;
-            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
+            const pricerate_arr = format_rate_arr(item.eh_pricerate_arr, false)  // is_percentage = false;
             td_html[col_index] = pricerate_arr[0];
-            filter_data[col_index] =  pricerate_arr[1];
+
+            // TODO eh_pricerate_arr is array and may have different values when orderhour has employees with different pricerate PR2021-04-02
+            // pricerate per employee not implemented yet
+            // filter as text for now
+            // was: filter_data[col_index] =  pricerate_arr[1];  // = filter_col = item_arr
+            filter_data[col_index] = pricerate_arr[2];  // = excel_col = text
+
             excel_data[excelcol_index] = pricerate_arr[2];
 
 // ---  col 09 is addition rate
             col_index += 1;
             excelcol_index +=1;
-            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
-            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
-            filter_data[col_index] = item.oh_addrate;
-            excel_data[excelcol_index] = item.oh_addrate;
+            const additionrate_arr = format_rate_arr(item.oh_additionrate_arr, true)  // is_percentage = true;
+            td_html[col_index] = additionrate_arr[0];
+            filter_data[col_index] = additionrate_arr[2];
+            excel_data[excelcol_index] = additionrate_arr[2];
 
 // ---  col 10 is total_amount
             col_index +=1;
@@ -1691,8 +1708,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= CreateHTML_detail_list  ==================================== PR2020-07-03
     function CreateHTML_detail_list() {
-        console.log("==== CreateHTML_detail_list  ========= ");
-console.log("billing_detail_list", billing_detail_list);
+        //console.log("==== CreateHTML_detail_list  ========= ");
+//console.log("billing_detail_list", billing_detail_list);
         // billing_agg_list =  [ {'o_id': 1521, 'c_code': 'Centrum', 'o_code': 'Piscadera',
         // 'eh_timedur': 480, 'eh_plandur': 480, 'eh_billdur': 480, 'eh_amount': 20000, 'eh_addition': 2000,
         // 'eh_total_sum': 22000, 'is_billable': 0, 'not_billable': 1, 'is_nobill': 0, 'not_nobill': 1} ]
@@ -1750,7 +1767,6 @@ console.log("billing_detail_list", billing_detail_list);
             //filter_data[col_index] = ( (item.e_code) ? item.e_code.toLowerCase() : null );
             //excel_data[excelcol_index] = item.e_code;
 
-//console.log("employee_arr", employee_arr);
 // ---  col 05 is planned duration
             col_index +=1
             excelcol_index +=1
@@ -1783,31 +1799,22 @@ console.log("billing_detail_list", billing_detail_list);
 // ---  col 10 is price rate
             col_index += 1;
             excelcol_index +=1;
-            const pricerate_arr = format_rate_arr(item.eh_pricerate, false)  // is_percentage = false;
-            td_html[col_index] = pricerate_arr[0];
-            filter_data[col_index] =  pricerate_arr[1];
-            excel_data[excelcol_index] = pricerate_arr[2];
+            const pricerate_arr = format_rate_arr(item.eh_pricerate_arr, false)  // is_percentage = false;
+            td_html[col_index] = pricerate_arr[0];  // = td_html_col
+            // TODO eh_pricerate_arr is array and may have different values when orderhour has employees with different pricerate PR2021-04-02
+            // pricerate per employee not implemented yet
+            // filter as text for now
+            // was: filter_data[col_index] =  pricerate_arr[1];  // = filter_col = item_arr
+             filter_data[col_index] = pricerate_arr[2];  // = excel_col = text
+            excel_data[excelcol_index] = pricerate_arr[2];  // = excel_col
+
 // ---  col 11 is addition rate
             col_index += 1;
             excelcol_index +=1;
-            const additionrate_arr = format_rate_arr(item.oh_addrate, true)  // is_percentage = true;
-            const item_formatted = format_pricerate (loc.user_lang, item.oh_addrate, true, false) // is_percentage = true; show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + item_formatted + "</div></td>"
-            filter_data[col_index] = item.oh_addrate;
-            excel_data[excelcol_index] = item.oh_addrate;
-
-/*
-// ---  col 11 is addition rate . In detail mode these are values, not arrays
-            for (let j = 0;  j < 2; j++) {
-                const rate = (j === 0) ? item.eh_pricerate : item.oh_addrate;
-                const rate_formatted = format_pricerate (loc.user_lang, rate, !!j, false); // is_percentage , show_zero = false
-                col_index += 1;
-                excelcol_index +=1
-                td_html[col_index] = "<td><div class=\"ta_r\">" + rate_formatted + "</div></td>"
-                filter_data[col_index] =  rate;
-                excel_data[excelcol_index] = rate;
-            }
-            */
+            const additionrate_arr = format_rate_arr(item.oh_additionrate_arr, true)  // is_percentage = true;
+            td_html[col_index] = additionrate_arr[0];
+            filter_data[col_index] = additionrate_arr[2];
+            excel_data[excelcol_index] = additionrate_arr[2];
 
 // ---  col 12 is total_amount
             col_index +=1
@@ -1872,33 +1879,37 @@ console.log("billing_detail_list", billing_detail_list);
 //========= format_rate_arr  ==================================== PR2020-07-25
     function format_rate_arr(item_arr, is_percentage) {
         //console.log("===  format_rate_arr ==");
-        let rate_formatted = "", rate_title = "", rate_str = "";
+        //console.log("item_arr", item_arr);
+        let rate_formatted = "", rate_title = "", rate_str = "", excel_int = null;
         if(item_arr){
             const len = item_arr.length;
             if(len) {
                 rate_formatted = format_pricerate (loc.user_lang, item_arr[0], is_percentage, false); //  show_zero = false
-                rate_str = rate_formatted
+                rate_str = rate_formatted;
+                if(item_arr[0]) {excel_int = item_arr[0]};
                 if(len > 1) {
-                    rate_title = " title=\"" + ( (item_arr[0]) ? rate_formatted : "-");
-                    rate_formatted = "*"
+                    if (!rate_str) { rate_str = (is_percentage) ? "0%" : "0" };
+                    rate_title = " title=\"" + ( (item_arr[0]) ? rate_formatted : (is_percentage) ? "0%" : "0");
                     for (let i = 1; i < len; i++) {
                         const item_formatted = format_pricerate (loc.user_lang, item_arr[i], is_percentage, false) // show_zero = false
-                        rate_title += "\n" + ( (item_arr[i]) ? item_formatted : "-" );
-                        rate_str += "; " + ( (item_arr[i]) ? item_formatted : "-" );
+                        rate_title += "\n" + ( (item_arr[i]) ? item_formatted : (is_percentage) ? "0%" : "0" );
+                        rate_str += "; " + ( (item_arr[i]) ? item_formatted : (is_percentage) ? "0%" : "0" );
+                        // delete  excel_int if a different one is found
+                        if (!item_arr[i] || (item_arr[i]) !== excel_int ) {excel_int = null }
                     }
                     rate_title += "\""
                 }
             }
         };
+        if(rate_title){rate_str = "..." }
+        //console.log("rate_str", rate_str);
+        //console.log("rate_title", rate_title);
         const td_html_col = "<td><div class=\"ta_r\" " + rate_title + ">" + rate_str + "</div></td>"
         const filter_col = item_arr;
-        const excel_col = (rate_str) ? rate_str : null;
+        const excel_col = excel_int;
 
         return [td_html_col, filter_col, excel_col];
     }
-
-
-
 
 //=========  CreateBillingHeader  === PR2020-07-03
     function CreateBillingHeader() {
@@ -1999,11 +2010,11 @@ console.log("billing_detail_list", billing_detail_list);
             let order_code = null, customer_code = null, rosterdate_formatted = null;
             if (billing_level && selected_order_pk) {
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk );
-                order_code = get_dict_value(map_dict, ["code", "value"], "");
-                customer_code = get_dict_value(map_dict, ["customer", "code"], "");
+                order_code = (map_dict.code) ? map_dict.code : "";
+                customer_code = (map_dict.c_code) ? map_dict.c_code : "";
             }
             if (billing_level === 2 && selected_rosterdate_iso) {
-                    rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(selected_rosterdate_iso), false, true);
+                rosterdate_formatted = format_dateJS_vanilla (loc, get_dateJS_from_dateISO(selected_rosterdate_iso), false, true);
             }
             th = document.createElement("th");
 // --- add div to th, margin not working with th
@@ -2054,9 +2065,10 @@ console.log("billing_detail_list", billing_detail_list);
                 // filter on  filter_dict
                 if(show_row){
                     filter_row = detail_row[1];
-                    row_data = detail_row[2];
-                    const col_count = filter_row.length;
-                    show_row = ShowBillingRow(filter_row, filter_dict, col_count);
+                    //const col_count = filter_row.length;
+                    //show_row = ShowBillingRow(filter_row, filter_dict, col_count);
+
+                    show_row = t_ShowTableRowExtended(filter_row, filter_dict);
                 }
                 // save show_row in detail_row[0]
                 detail_row[0] = show_row;
@@ -2074,6 +2086,7 @@ console.log("billing_detail_list", billing_detail_list);
                     add_hover(tblRow)
                     tblRow.innerHTML += detail_row[3];
         // --- add duration to total_row.
+                    row_data = detail_row[2];
                     AddToBillingTotalrow(row_data);
                 }
         // --- hide sbr button 'back to billing overview'
@@ -2140,10 +2153,11 @@ console.log("billing_detail_list", billing_detail_list);
 // ---  show all rows if filter_name = ""
             if (!isEmpty(filter_dict)){
 // ---  loop through filter_dict key = col_index, value = filter_value
-                Object.keys(filter_dict).forEach(function(index_str) {
+
+                for (const [index_str, arr] of Object.entries(filter_dict)) {
+
 // ---  skip column if no filter on this column
-                    if(filter_dict[index_str]){
-                        const arr = filter_dict[index_str];
+                    if(arr && arr.length){
                         const col_index = Number(index_str);
                         // filter text is already trimmed and lowercase
                         const mode = arr[0];
@@ -2177,7 +2191,7 @@ console.log("billing_detail_list", billing_detail_list);
                                 } else {
                                     if (!cell_value || cell_value !== filter_value) {hide_row = true};
                     }}}};
-                });  // Object.keys(filter_dict).forEach(function(col_index) {
+                }; // for (const [index_str, arr] of Object.entries(filter_dict))
             }  // if (!hide_row)
         }  // if (!!tblRow)
         return !hide_row
@@ -2222,9 +2236,9 @@ console.log("billing_detail_list", billing_detail_list);
         if(billing_level === 0){
             const map_dict = get_mapdict_from_datamap_by_id(order_map, row_id);
             if(!isEmpty(map_dict)){
-                selected_order_pk = get_dict_value (map_dict, ["id", "pk"], 0);
-                selected_order_code = get_dict_value (map_dict, ["code", "value"]);
-                selected_customer_code = get_dict_value (map_dict, ["customer", "code"]);
+                selected_order_pk = (map_dict.id) ? map_dict.id : null;
+                selected_order_code = (map_dict.code) ? map_dict.code : "";
+                selected_customer_code = (map_dict.c_code) ? map_dict.c_code : "";
                 billing_level = 1;
                 //UpdateHeaderText();
                // reset filter_dict
@@ -2239,9 +2253,10 @@ console.log("billing_detail_list", billing_detail_list);
                 const arr = row_id.split("_");
                 selected_rosterdate_iso = arr[0];
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", arr[1])
-                selected_order_pk = Number(get_dict_value (map_dict, ["id", "pk"], 0));
-                selected_order_code = get_dict_value (map_dict, ["code", "value"]);
-                selected_customer_code = get_dict_value (map_dict, ["customer", "code"]);
+                selected_order_pk = (map_dict.id) ? map_dict.id : null;
+                selected_order_code = (map_dict.code) ? map_dict.code : "";
+                selected_customer_code = (map_dict.c_code) ? map_dict.c_code : "";
+
                 billing_level = 2;
 
                filter_dict = {};
@@ -2356,8 +2371,8 @@ console.log("billing_detail_list", billing_detail_list);
 
 //=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
-        console.log("===  ModPeriodSave  =====") ;
-        console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
+        //console.log("===  ModPeriodSave  =====") ;
+        //console.log("mod_dict: ", deepcopy_dict(mod_dict) ) ;
 // ---  get period_tag
         const period_tag = get_dict_value(mod_dict, ["period_tag"], "tweek");
 // ---  create upload_dict
@@ -2372,7 +2387,7 @@ console.log("billing_detail_list", billing_detail_list);
             if (el_mod_period_datelast.value) {upload_dict.period_datelast = el_mod_period_datelast.value};
         }
 // ---  upload new setting
-        console.log("upload_dict: ", upload_dict ) ;
+        //console.log("upload_dict: ", upload_dict ) ;
         let datalist_request = {review_period: upload_dict,
                                 billing_list: {mode: "get"}};
         DatalistDownload(datalist_request, "ModPeriodSave");
@@ -2395,8 +2410,8 @@ console.log("billing_detail_list", billing_detail_list);
             selected_customer_code = (customer_code) ? customer_code : null
             let order_code = null;
             if(!!selected_order_pk){
-                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
-                order_code = get_dict_value(order_dict, ["code", "value"]);
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
+                order_code = (map_dict.code) ? map_dict.code : "";
             } else {
                 order_code = loc.All_orders.toLowerCase()
             }
@@ -2657,8 +2672,8 @@ console.log("billing_detail_list", billing_detail_list);
             const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
             let order_code = null;
             if(!!mod_dict.order.pk){
-                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_dict.order.pk)
-                order_code = get_dict_value(order_dict, ["code", "value"]);
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_dict.order.pk)
+                order_code = get_dict_value(map_dict, ["code", "value"]);
             } else {
                 order_code = loc.All_orders.toLowerCase()
             }
@@ -2716,11 +2731,11 @@ console.log("billing_detail_list", billing_detail_list);
 ///////////////////
 //========= HandleBillingFilter  ====================================
     function HandleBillingFilter(el, col_index, event) {
-        console.log( "===== HandleBillingFilter  ========= ");
-        console.log( "event.key", event.key);
-        console.log( "filter_dict", filter_dict);
+        //console.log( "===== HandleBillingFilter  ========= ");
+        //console.log( "event.key", event.key);
         const skip_filter = t_SetExtendedFilterDict(el, col_index, filter_dict, event.key);
-        console.log( "skip_filter", skip_filter);
+        //console.log( "filter_dict", filter_dict);
+        //console.log( "skip_filter", skip_filter);
         if (!skip_filter) {
             if(selected_btn === "payroll_detail"){
                FillPayrollTabularRows();
@@ -2768,37 +2783,33 @@ console.log("billing_detail_list", billing_detail_list);
     }; // function HandleSelect_Filter
 
 
-// +++++++++++++++++  +++++++++++++++++++++++++++++++++++++++++++
-function HandleExpandAll(){
-    HandleExpand("expand_all")
-}
+// ++++++++ HANDLE EXPAND COLLAPS PRICERATE ROWS +++++++++++++++++++++++++++++++++++++++++++
+//========= HandleExpandCollapseAll  ====================================
+    function HandleExpandCollapseAll(mode){
+        console.log(" ===> HandleExpandCollapseAll ===", mode)
+        // modes are "collaps_all", "expand_all"
 
-function HandleCollapsAll(){
-    HandleExpand("collaps_all")
-}
+    // --- expand or collaps all rows in list 2020-03-05
+        const len = tblBody_datatable.rows.length;
+        if (len > 0){
+            for (let i = 0, tblRow; i < len; i++) {
+                tblRow = tblBody_datatable.rows[i];
 
-function HandleExpand(mode){
-    //console.log(" === HandleExpandAll ===", mode)
+                tblRow.removeAttribute("data-subrows_hidden")
 
-// --- expand all rows in list
-    const len = tblBody_datatable.rows.length;
-    if (len > 0){
-        for (let i = 0, tblRow; i < len; i++) {
-            tblRow = tblBody_datatable.rows[i];
-            tblRow.classList.remove("subrows_hidden")
-
-            if (mode === "expand_all"){
-                tblRow.classList.remove(cls_hide);
-            } else {
-                const tblName = get_attr_from_el(tblRow, "data-table")
-                const subrows_hidden = (["ordr", "date", "ehoh"].includes(tblName));
-                if(subrows_hidden){tblRow.setAttribute("data-subrows_hidden", true)}
-                const is_show = (["comp", "cust", "empl"].includes(tblName));
-                add_or_remove_class (tblRow, cls_hide, !is_show)
+                if (mode === "expand_all"){
+                    tblRow.classList.remove(cls_hide);
+                } else {
+                    const tblName = get_attr_from_el(tblRow, "data-table")
+                    const subrows_hidden = (["empl", "cust", "ordr", "schm"].includes(tblName));
+                    if(subrows_hidden){tblRow.setAttribute("data-subrows_hidden", true)}
+                    const is_show = (["comp", "empl", "cust"].includes(tblName));
+                    show_hide_element(tblRow, is_show);
+                }
             }
         }
     }
-}
+
 
 //=========  calc_pricerate_avg  === PR2020-07-03
     function calc_pricerate_avg(billing_duration, total_amount){
@@ -2842,19 +2853,17 @@ function HandleExpand(mode){
 //##################################################################################
 // +++++++++ MOD SELECT INVOICE ORDERS ++++++++++++++++ PR2021-03-31
     function MSIO_Open(el_input){
-        console.log(" -----  MSIO_Open   ----")
-        console.log("printlist_invoice", printlist_invoice)
+        //console.log(" -----  MSIO_Open   ----")
+        //console.log("printlist_invoice", printlist_invoice)
 
         const listname = "no_list_sys";
 // ---  add lists to mod_MSIO_dict.lists
         mod_MSIO_dict = {
             lists: {no_list_sys: {cl: [], ol: []}},
-            allorders: {},
             sel_listname: listname,
             deleted: []
         }
 
-        MSIO_FillDictAllorders();
         MSIO_FillDictSelected();
 
         MSIO_FillTblLists()
@@ -2865,7 +2874,7 @@ function HandleExpand(mode){
 
 //========= MSIO_Save  ============= PR2021-03-30
     function MSIO_Save() {
-        console.log("===== MSIO_Save ===== ");
+        //console.log("===== MSIO_Save ===== ");
         // setTimeout necessary, otherwise href will not work
         setTimeout(function (){
             const datalist_request = {companysetting: {printlist_invoice: "get"}};
@@ -2875,24 +2884,6 @@ function HandleExpand(mode){
         }, 150);
     }
 
-//========= MSIO_FillDictAllorders  ============= PR2021-03-31
-    function MSIO_FillDictAllorders() {
-        console.log("===== MSIO_FillDictAllorders ===== ");
-        mod_MSIO_dict.allorders = {};
-
-// ---  loop through order_map, add orders to mod_MSIO_dict.allorders
-        for (const [map_id, dict] of order_map.entries()) {
-            const customer_code = get_dict_value(dict, ["customer", "code"], "---");
-            const order_code = get_dict_value(dict, ["code", "value"], "---");
-            const customer_pk_int = get_dict_value(dict, ["id", "ppk"]);
-            const order_pk_int = get_dict_value(dict, ["id", "pk"]);
-            mod_MSIO_dict.allorders[order_pk_int] = {order_pk_int: order_pk_int,
-                                                    customer_pk_int: customer_pk_int,
-                                                    order_code: order_code,
-                                                    customer_code: customer_code };
-        }
-
-    }  // MSIO_FillDictAllorders
 
 //========= MSIO_FillDictSelected  ============= PR2021-03-31
     function MSIO_FillDictSelected() {
@@ -2933,21 +2924,23 @@ function HandleExpand(mode){
 //========= MSIO_FillTbls  ============= PR2021-03-31
     function MSIO_FillTbls(listname) {
         console.log("===== MSIO_FillTbls ===== ");
-        console.log("listname", listname);
+        //console.log("listname", listname);
+        //console.log("mod_MSIO_dict.lists[listname]", mod_MSIO_dict.lists[listname]);
 
         el_MSIO_tblBody_available.innerText = null;
         el_MSIO_tblBody_selected.innerText = null;
 
-// ---  loop through mod_MSIO_dict.allorders
-        for (const [order_pk_str, dict] of Object.entries(mod_MSIO_dict.allorders)) {
-        console.log("dict", dict);
-            const order_pk_int = Number(order_pk_str);
-            const customer_pk_int = Number(dict.customer_pk_int);
+// ---  loop through order_map
+        //for (const [map_id, dict] of order_map.entries()) {
+        for (const dict of order_map.values()) {
+            const order_pk_int = (dict.id) ? dict.id :null;
+            const customer_pk_int = (dict.c_id) ? dict.c_id : null;
+
             if(order_pk_int && customer_pk_int){
             // add to selected list when customer_pk or order_pk in selected list
                 const is_selected = (mod_MSIO_dict.lists[listname].cl.includes(customer_pk_int) ||
                                    mod_MSIO_dict.lists[listname].ol.includes(order_pk_int))
-        console.log("is_selected", is_selected);
+
                 if (is_selected){
                     MSIO_FillSelectRow("tbl_selected", el_MSIO_tblBody_selected, dict);
                 } else {
@@ -2962,15 +2955,18 @@ function HandleExpand(mode){
         //console.log("===== MSIO_FillSelectRow ===== ");
 
         const tblRow = tblBody_select.insertRow(-1);
-        const order_pk_int = dict.order_pk_int;
-        const customer_pk_int = dict.customer_pk_int;
+
+        const order_pk_int = (dict.id) ? dict.id :null;
+        const customer_pk_int = (dict.c_id) ? dict.c_id : null;
+        const order_code =  (dict.code) ? dict.code : "---";
+        const customer_code = (dict.c_code) ? dict.c_code : "---";
 
 //- add hover to select row
 // --- add td to tblRow.
         let td = tblRow.insertCell(-1);
         const el_cust = document.createElement("div");
             el_cust.classList.add("tw_150")
-            el_cust.innerText = dict.customer_code;
+            el_cust.innerText = customer_code;
             el_cust.setAttribute("data-cust_pk", customer_pk_int)
             el_cust.addEventListener("click", function() {MSIO_AddRemoveCustomer(tblName, el_cust)}, false);
             add_hover(el_cust)
@@ -2980,7 +2976,7 @@ function HandleExpand(mode){
         td = tblRow.insertCell(-1);
         const el_ordr = document.createElement("div");
             el_ordr.classList.add("tw_180")
-            el_ordr.innerText = dict.order_code;
+            el_ordr.innerText = order_code;
             el_ordr.setAttribute("data-ordr_pk", order_pk_int);
             el_ordr.setAttribute("data-cust_pk", customer_pk_int);
             el_ordr.addEventListener("click", function() {MSIO_AddRemoveOrder(tblName, el_ordr)}, false);
@@ -2991,16 +2987,17 @@ function HandleExpand(mode){
 
 //========= MSIO_AddRemoveCustomer  ============= PR2021-03-29
     function MSIO_AddRemoveCustomer(tblName, el_div){
-        //console.log( "===== MSIO_AddRemoveCustomer  ========= ");
+        console.log( "===== MSIO_AddRemoveCustomer  ========= ");
 
         const listname = (mod_MSIO_dict.sel_listname) ? mod_MSIO_dict.sel_listname : "no_list_sys"
         const sel_customers = mod_MSIO_dict.lists[listname].cl;
         const sel_orders = mod_MSIO_dict.lists[listname].ol;
 
         const cust_pk_int = get_attr_from_el_int(el_div, "data-cust_pk");
-        //console.log( "cust_pk_int", cust_pk_int);
-        //console.log( "sel_customers", sel_customers);
-        //console.log( "sel_orders", sel_orders);
+
+        console.log( "cust_pk_int", cust_pk_int);
+        console.log( "sel_customers", sel_customers);
+        console.log( "sel_orders", sel_orders);
 
         if(tblName === "tbl_available") {
             // add  this customer to mod_MSIO_dict.sel_customers
@@ -3047,10 +3044,13 @@ function HandleExpand(mode){
         }
         // ---  also add all orders from this customer to mod_MSIO_dict.sel_orders
         // in this way you can remove individual orders from mod_MSIO_dict.sel_orders
-        for (const [order_pk_str, dict] of Object.entries(mod_MSIO_dict.allorders)) {
-            const order_pk_int = Number(order_pk_str);
+        // for (const [map_id, dict] of order_map.entries()) {
+        for (const map_dict of order_map.values()) {
+            const order_pk_int = (map_dict.id) ? map_dict.id : null;
+            const customer_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
+
             if (order_pk_int){
-                if (cust_pk_int === dict.customer_pk_int){
+                if (cust_pk_int === customer_pk_int){
                     if (!sel_orders.includes(order_pk_int)){
                         sel_orders.push(order_pk_int);
                     }
@@ -3061,7 +3061,7 @@ function HandleExpand(mode){
 
 //========= MSIO_RemoveCustomerFromSel_customers  ============= PR2021-03-31
     function MSIO_RemoveCustomerFromSel_customers(sel_customers, sel_orders, cust_pk_int) {
-        //console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
+        console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
 // ---  remove this customer from sel_customers
         if(sel_customers.includes(cust_pk_int)) {
              for (let i = 0, sel_pk_int; sel_pk_int = sel_customers[i]; i++) {
@@ -3075,7 +3075,8 @@ function HandleExpand(mode){
 // ---  also remove all orders from this customer from sel_orders
         // note: i--; is necessary. See https://love2dev.com/blog/javascript-remove-from-array/
          for (let i = 0, sel_pk_int; sel_pk_int = sel_orders[i]; i++) {
-            const dict_cust_pk_int = get_dict_value(mod_MSIO_dict.allorders, [sel_pk_int, "customer_pk_int"])
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", sel_pk_int)
+            const dict_cust_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
             if (dict_cust_pk_int === cust_pk_int) {
                 sel_orders.splice(i, 1);
                 i--;
@@ -3096,11 +3097,15 @@ function HandleExpand(mode){
                 sel_orders.push(order_pk_int);
             };
 
-    // loop through allorders and check if all orders of this customer are in sel_orders
+    // loop through order_map and check if all orders of this customer are in sel_orders
             let not_selected_order_found = false;
-            for (const dict of Object.values(mod_MSIO_dict.allorders)) {
-                if (cust_pk_int === dict.customer_pk_int){
-                    if(!sel_orders.includes(dict.order_pk_int)) {
+            // for (const [map_id, dict] of order_map.entries()) {
+            for (const map_dict of order_map.values()) {
+                const order_pk_int = (map_dict.id) ? map_dict.id : null;
+                const customer_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
+
+                if (cust_pk_int === customer_pk_int){
+                    if(!sel_orders.includes(order_pk_int)) {
                         not_selected_order_found = true;
                     };
                 }
@@ -3145,92 +3150,6 @@ function HandleExpand(mode){
         }
 
     }  // MSIO_RemoveOrderFromSel_orders
-
-//========= MSIO_SetHref  ============= PR2021-03-30
-    function MSIO_SetHref(){
-        //console.log( "===== MSIO_SetHref  ========= ");
-        //console.log("mod_MSIO_dict", mod_MSIO_dict)
-
-        // put orderlist as argument in in href
-        // format href:   list_tobe_printed | list % list % list   | name % name % name
-        // format list_tobe_printed:   listname ~ customers ~ orders
-        // format listname:   old listname ~ new listname or null for deleted list
-        // format customers / orders: 2;4;25
-        //  <lists with cust and orders >
-
-// +++  add list_tobe_printed
-        const list_dict = MSIO_SetHref_AddList();
-        let href_str = JSON.stringify(list_dict)
-
-        if (href_str){
-            let href = url_afas_invoice_xlsx.replace("-", href_str);
-            el_MSIO_btn_save.setAttribute("href", href)
-        }
-
-        //console.log( "href_str", href_str);
-    }  // MSIO_SetHref
-
-//========= function replaceCharacters  ====================================
-    function replaceCharacters(value){
-        let newValue = value;
-        if (newValue) {
-            if (newValue.includes("\\")){newValue = newValue.replaceAll("\\", "_")};
-            if (newValue.includes("/")){newValue = newValue.replaceAll("/", "_")};
-            if (newValue.includes("{")){newValue = newValue.replaceAll("{", "_")};
-            if (newValue.includes("}")){newValue = newValue.replaceAll("}", "_")};
-            if (newValue.includes("[")){newValue = newValue.replaceAll("[", "_")};
-            if (newValue.includes("]")){newValue = newValue.replaceAll("]", "_")};
-            if (newValue.includes("\"")){newValue = newValue.replaceAll("\"", "_")};
-        }
-        return newValue;
-    }
-
-//========= MSIO_SetHref_AddList  ============= PR2021-04-01
-    function MSIO_SetHref_AddList(){
-        const list_dict = {pr: {}, mod: {}};
-
-        for (const [listname, dict] of Object.entries(mod_MSIO_dict.lists)) {
-            const is_sel_listname = (listname === mod_MSIO_dict.sel_listname);
-
-            let new_listname = replaceCharacters(listname);
-
-    // ---  add customers to be printed
-            const sel_customers_arr = dict.cl;
-            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
-            sel_customers_arr.sort(function(a, b){return a - b});
-
-    // ---  add orders to be printed
-            const sel_orders_arr = [];
-            for (let i = 0, sel_pk_int; sel_pk_int = dict.ol[i]; i++) {
-        // ---  skip orders of customers that are in customer list
-                const dict_cust_pk_int = get_dict_value(mod_MSIO_dict.allorders, [sel_pk_int, "customer_pk_int"])
-                if (!sel_customers_arr.includes(dict_cust_pk_int)) {
-                    sel_orders_arr.push(sel_pk_int);
-                }
-            }
-            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
-            sel_orders_arr.sort(function(a, b){return a - b});
-
-            if(is_sel_listname){
-                if (new_listname && (sel_customers_arr.length || sel_orders_arr.length)) {
-                    list_dict.pr = {name: new_listname, cl: sel_customers_arr, ol: sel_orders_arr};
-                } else {
-                    list_dict.pr = {};
-                }
-            }
-            if ("haschanged" in dict) {
-                if(new_listname !== "no_list_sys") {
-                    list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr};
-                }
-            }
-
-        }
-        if(mod_MSIO_dict.deleted && mod_MSIO_dict.deleted.length){
-            list_dict.del = mod_MSIO_dict.deleted;
-        }
-
-        return list_dict;
-    }  // MSIO_SetHref_AddList
 
 //========= MSIO_FillTblLists  ============= PR2021-03-30
     function MSIO_FillTblLists() {
@@ -3347,7 +3266,7 @@ function HandleExpand(mode){
 
 //========= MSIO_AddToLists  ============= PR2021-03-30
     function MSIO_AddToLists() {
-        console.log(" === MSIO_AddToLists ===")
+        //console.log(" === MSIO_AddToLists ===")
 
 // - create new listname 'List 7'
         const listname_arr = [];
@@ -3356,19 +3275,19 @@ function HandleExpand(mode){
         }
         // if only 1 customer selected: give list name of customer
         const this_list_dict = mod_MSIO_dict.lists[mod_MSIO_dict.sel_listname];
-        console.log("mod_MSIO_dict.sel_listname", mod_MSIO_dict.sel_listname)
-        console.log("this_list_dict", this_list_dict)
-        console.log("mod_MSIO_dict.allorders", mod_MSIO_dict.allorders)
+        //console.log("mod_MSIO_dict.sel_listname", mod_MSIO_dict.sel_listname)
+        //console.log("this_list_dict", this_list_dict)
+
         let base_name = loc.List, new_listname = null;
         if (this_list_dict){
             const cust_len = (this_list_dict.cl) ? this_list_dict.cl.length : 0;
             const ordr_len = (this_list_dict.ol) ? this_list_dict.ol.length : 0;
-        console.log("cust_len", cust_len)
-        console.log("ordr_len", ordr_len)
+        //console.log("cust_len", cust_len)
+        //console.log("ordr_len", ordr_len)
             if(cust_len === 0 && ordr_len === 1){
                 const order_pk_int = this_list_dict.ol[0];
-                const order_dict = mod_MSIO_dict.allorders[order_pk_int];
-                if(order_dict.order_code){ base_name = order_dict.order_code };
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", order_pk_int)
+                base_name = get_dict_value(map_dict, ["code", "value"], "---");
             } else if(cust_len === 1){
                 const customer_pk_int = this_list_dict.cl[0];
                 let customer_code = null;
@@ -3376,9 +3295,10 @@ function HandleExpand(mode){
                 let has_orders_from_other_cust = false;
                 for (let i = 0, sel_pk_int; sel_pk_int = this_list_dict.ol[i]; i++) {
             // ---  skip orders of customers that are in customer list
-                    const order_dict = mod_MSIO_dict.allorders[sel_pk_int];
-                    const dict_cust_pk_int = order_dict.customer_pk_int;
-                    const dict_cust_code = order_dict.customer_code;
+                    const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", sel_pk_int)
+                    const dict_cust_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
+                    const dict_cust_code = (map_dict.c_code) ? map_dict.c_code : "---";
+
                     if (dict_cust_pk_int !== customer_pk_int) {
                         has_orders_from_other_cust = true
                     } else {
@@ -3409,12 +3329,23 @@ function HandleExpand(mode){
             // prevent infinitive loop
         } while (sequence < 100 && listname_arr.includes(new_listname));
 
-        console.log("new_listname", new_listname)
+        //console.log("new_listname", new_listname)
 
         mod_MSIO_dict.lists[new_listname] = deepcopy_dict(this_list_dict);
         mod_MSIO_dict.lists[new_listname].haschanged = true;
 
         mod_MSIO_dict.lists.no_list_sys = { cl: [], ol: []};
+
+        // remove new_listname from deleted_list, if it is on that list
+        if(mod_MSIO_dict.deleted.includes(new_listname)){
+            // note: i--; is necessary. See https://love2dev.com/blog/javascript-remove-from-array/
+             for (let i = 0, del_listname; del_listname = mod_MSIO_dict.deleted[i]; i++) {
+                if (del_listname === new_listname) {
+                    mod_MSIO_dict.deleted.splice(i, 1);
+                    i--;
+                }
+            }
+        }
 
         const el_select = MSIO_CreateTblListsRow(new_listname);
         setTimeout(function (){
@@ -3423,15 +3354,15 @@ function HandleExpand(mode){
 
         MSIO_SelectList(el_select);
 
-        console.log("mod_MSIO_dict", mod_MSIO_dict)
+        //console.log("mod_MSIO_dict", mod_MSIO_dict)
         MSIO_SetHref();
     }  // MSIO_AddToLists
 
 
 //========= MSIO_InputChange  ============= PR2021-03-31
     function MSIO_InputChange(el_input) {
-        console.log(" === MSIO_InputChange ===")
-        console.log("el_input", el_input);
+        //console.log(" === MSIO_InputChange ===")
+        //console.log("el_input", el_input);
 
         let new_listname = replaceCharacters(el_input.value);
         if(el_input.value && new_listname !== el_input.value){
@@ -3464,6 +3395,88 @@ function HandleExpand(mode){
         }
     }  // MSIO_InputChange
 
+//========= MSIO_SetHref  ============= PR2021-03-30
+    function MSIO_SetHref(){
+        //console.log( "===== MSIO_SetHref  ========= ");
+        //console.log("mod_MSIO_dict", mod_MSIO_dict)
+
+// +++  add list_tobe_printed
+        const list_dict = MSIO_SetHref_AddList();
+        let href_str = JSON.stringify(list_dict)
+
+        if (href_str){
+            let href = url_afas_invoice_xlsx.replace("-", href_str);
+            el_MSIO_btn_save.setAttribute("href", href)
+        }
+
+        //console.log( "href_str", href_str);
+    }  // MSIO_SetHref
+
+//========= MSIO_SetHref_AddList  ============= PR2021-04-01
+    function MSIO_SetHref_AddList(){
+        const list_dict = {pr: {}, mod: {}};
+
+        for (const [listname, dict] of Object.entries(mod_MSIO_dict.lists)) {
+            const is_sel_listname = (listname === mod_MSIO_dict.sel_listname);
+
+            let new_listname = replaceCharacters(listname);
+
+    // ---  add customers to be printed
+            const sel_customers_arr = dict.cl;
+            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
+            sel_customers_arr.sort(function(a, b){return a - b});
+
+    // ---  add orders to be printed
+            const sel_orders_arr = [];
+            for (let i = 0, sel_pk_int; sel_pk_int = dict.ol[i]; i++) {
+        // ---  skip orders of customers that are in customer list
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", sel_pk_int)
+                const dict_cust_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
+
+                if (!sel_customers_arr.includes(dict_cust_pk_int)) {
+                    sel_orders_arr.push(sel_pk_int);
+                }
+            }
+            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
+            sel_orders_arr.sort(function(a, b){return a - b});
+
+            if(is_sel_listname){
+                if (new_listname && (sel_customers_arr.length || sel_orders_arr.length)) {
+                    list_dict.pr = {name: new_listname, cl: sel_customers_arr, ol: sel_orders_arr};
+                } else {
+                    list_dict.pr = {};
+                }
+            }
+            if ("haschanged" in dict) {
+                if(new_listname !== "no_list_sys") {
+                    list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr};
+                }
+            }
+
+        }
+        if(mod_MSIO_dict.deleted && mod_MSIO_dict.deleted.length){
+            list_dict.del = mod_MSIO_dict.deleted;
+        }
+
+        return list_dict;
+    }  // MSIO_SetHref_AddList
+
+//========= function replaceCharacters  ====================================
+    function replaceCharacters(value){
+        let newValue = value;
+        if (newValue) {
+            if (newValue.includes("\\")){newValue = newValue.replaceAll("\\", "_")};
+            if (newValue.includes("/")){newValue = newValue.replaceAll("/", "_")};
+            if (newValue.includes("{")){newValue = newValue.replaceAll("{", "_")};
+            if (newValue.includes("}")){newValue = newValue.replaceAll("}", "_")};
+            if (newValue.includes("[")){newValue = newValue.replaceAll("[", "_")};
+            if (newValue.includes("]")){newValue = newValue.replaceAll("]", "_")};
+            if (newValue.includes("\"")){newValue = newValue.replaceAll("\"", "_")};
+        }
+        return newValue;
+    }
+
+
 //##################################################################################
 // +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -3491,7 +3504,7 @@ function HandleExpand(mode){
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        //console.log("=== FillExcelRows  =====")
+        console.log("=== FillExcelRows  =====")
         let ws = {}
 
 // title row
@@ -3575,6 +3588,7 @@ function HandleExpand(mode){
 
                         const cell_value = get_cell_value(x, row_data, billing_level);
                         if(cell_value){ws[cell_index]["v"] = cell_value};
+
                     }
                     row_index += 1;
                 }
@@ -3704,7 +3718,7 @@ function HandleExpand(mode){
         let cell_types = []
         if (billing_level === 2){
             // level 2: [0: Order, 1: Date, 2: Shift, 3: Employee, 4: Planned_hours, 5: Worked_hours, 6: Billing_hours, 7: Hourly_rate, 8: Additionrate, 9: Amount
-            cell_types = ["s", "n", "s", "s", "n", "n", "n", "s", "s", "n"]
+            cell_types = ["s", "n", "s", "s", "n", "n", "n", "n", "n", "n"]
         } else if (billing_level === 1){
             // level 1: [0: Order, 1: Date, 2: Planned_hours, 3: Worked_hours, 4: Billing_hours, 5: Hourly_rate, 6: Addition, 7: Amount
             cell_types = ["s", "n", "n", "n", "n", "s", "s", "n"]

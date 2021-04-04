@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const el_loader = document.getElementById("id_loader");
         const el_msg = document.getElementById("id_msgbox");
+
         const field_settings = {
             schemeitem: { tbl_col_count: 8,
                         field_caption: ["Date", "Team", "Shift",  "Rest_shift" , "Start_time", "End_time", "", ""],
@@ -393,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
             locale: {page: "scheme"},
             company: {value: true},
             planning_period: {get: true, now: now_arr},
-            order_rows: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: false, inactive: false},
+            order_rows: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: false, inactive: null},
             // FOR TESTING order_list: {isabsence: show_absence_FOR_TESTING_ONLY, istemplate: null, inactive: null},
             // page_scheme_list: lists with all schemes, shifts, teams, schemeitems and teammembers of selected order_pk
             page_scheme_list: {mode: "get"},
@@ -466,8 +467,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("company_dict" in response) {company_dict = response.company_dict}
 
     // 'order' must come before 'customer'
-        if ("order_list" in response) {
-            b_refresh_datamap(response["order_list"], order_map)
+        if ("order_rows" in response) {
+            b_refresh_datamap(response.order_rows, order_map, "order");
+            //console.log("response.order_rows", response.order_rows)
+            //console.log("order_map", order_map)
             // check if selected_order exists in order_map
             if(!selected_item_exists_in_map(order_map, "order", selected.order_pk)){
                 selected.customer_pk = 0;
@@ -533,7 +536,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
         //console.log("response[copied_from_template: ", response["copied_from_template"]);
 
-        if ("order_list" in response) {b_refresh_datamap(response["order_list"], order_map)}
+         // already updated in refresh_maps
+        //if ("order_list" in response) {b_refresh_datamap(response["order_list"], order_map)}
+        //if ("order_rows" in response) { b_refresh_datamap(response.order_rows, order_map, "order")};
+
         if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
         // PR2021-01-03 use shift_rows instead of shift_list. Was: if ("shift_list" in response) {b_refresh_datamap(response.shift_list, shift_map)}
         if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")}
@@ -567,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected.order_pk = settings.order_pk;
 
                 selected.scheme_pk = settings.scheme_pk;
-        console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
+        //console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
                 is_template_mode = false;
                 selected_btn = "btn_grid" // btns are: btn_grid, btn_schemeitem, btn_shift, btn_teammember, btn_absence
@@ -660,9 +666,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSubmenubtnTemplateShow  ================ PR2019-09-15 PR2020-05-28
     function HandleSubmenubtnTemplateShow() {
-        console.log("--- HandleSubmenubtnTemplateShow")
+        //console.log("--- HandleSubmenubtnTemplateShow")
         // template order will be retrieved from database in function HandleSelectOrder
-        is_template_mode = !is_template_mode
+        is_template_mode = !is_template_mode;
         let sel_customer_pk = null, sel_order_pk = null, sel_scheme_pk = null;
 
 // reset header text
@@ -687,19 +693,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // NIU selected.template_pk = 0;
 
 // lookup template order in order_map
-        console.log("order_map", order_map);
-        console.log("order_map.size", order_map.size, !!order_map.size)
+        //console.log("order_map", order_map);
+        //console.log("order_map.size", order_map.size, !!order_map.size)
             if(order_map.size){
                 for (const [map_id, item_dict] of order_map.entries()) {
                     const is_template = get_dict_value(item_dict, [ "id", "istemplate"], false)
                     if (is_template) {
                         sel_order_pk = get_dict_value(item_dict, [ "id", "pk"], 0)
                         sel_customer_pk = get_dict_value(item_dict, [ "id", "ppk"], 0)
-        console.log("item_dict", item_dict)
+        //console.log("item_dict", item_dict)
                         break;
             }}};
 
-        console.log("sel_order_pk", sel_order_pk)
+        //console.log("sel_order_pk", sel_order_pk)
         console.log("sel_customer_pk", sel_customer_pk)
 
         } else {
@@ -2137,8 +2143,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  UploadSchemeitemDelete  ================ PR2019-10-30
     function UploadSchemeitemDelete(mod_dict, action) {
-        console.log("========= UploadSchemeitemDelete ===", action );
-        console.log("mod_dict ", mod_dict );
+        //console.log("========= UploadSchemeitemDelete ===", action );
+        //console.log("mod_dict ", mod_dict );
         // mod_dict: {id: {delete: true, pk: 363, ppk: 1208, table: "schemeitem"}}
 
         // UploadSchemeitemDelete is only called by ModConfirmSave after btn_delete in tblRow
@@ -2215,7 +2221,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  UploadSchemeOrShiftOrTeam  ================ PR2019-08-08
     function UploadSchemeOrShiftOrTeam(tblRow, action) {
-        console.log("========= UploadSchemeOrShiftOrTeam ===", action );
+        //console.log("========= UploadSchemeOrShiftOrTeam ===", action );
         //console.log(" tblRow", tblRow);   // tblRow is SelectTableRow
         // selecttable scheme, shift, team; action 'inactive, create
         let tblName = get_attr_from_el(tblRow, "data-table");
@@ -2272,7 +2278,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             };  // if (!isEmpty(id_dict))
 
             const parameters = {"upload": JSON.stringify (upload_dict)}
-            console.log("upload_dict", upload_dict);
+            //console.log("upload_dict", upload_dict);
 
             let response = "";
             $.ajax({
@@ -2310,8 +2316,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= UploadTimepickerChanged  ============= PR2019-10-12
     function UploadTimepickerChanged(tp_dict) {
-        console.log("=== UploadTimepickerChanged");
-        console.log("tp_dict", tp_dict);
+        //console.log("=== UploadTimepickerChanged");
+        //console.log("tp_dict", tp_dict);
 
         let upload_dict = {"id": tp_dict["id"]};
         // quicksaveis saved separately by uploadusersettings
@@ -2360,7 +2366,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             let parameters = {"upload": JSON.stringify (upload_dict)}
             const url_str = url_scheme_shift_team_upload;
 
-            console.log("url_str", url_str);
+            //console.log("url_str", url_str);
             console.log("upload_dict", upload_dict);
             let response;
             $.ajax({
@@ -2423,7 +2429,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= UploadDeleteInactive  ============= PR2019-09-23 PR2020-05-31
     function UploadDeleteInactive(mode, el_input) {
-        console.log( " ==== UploadDeleteInactive ====", mode);
+        //console.log( " ==== UploadDeleteInactive ====", mode);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
@@ -2589,8 +2595,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  Grid_UpdateFromResponse_teammember  ================ PR2020-03-20
     function Grid_UpdateFromResponse_teammember(update_list) {
-        console.log(" ==== Grid_UpdateFromResponse_teammember ====");
-        console.log("update_list", update_list);
+        //console.log(" ==== Grid_UpdateFromResponse_teammember ====");
+        //console.log("update_list", update_list);
         let cell_id_str = null, ppk_int = null;
 
 // --- loop through update_list
@@ -2614,8 +2620,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  Grid_UpdateFromResponse_shift  ================ PR2020-03-20  PR2021-01-03
     function Grid_UpdateFromResponse_shift(update_list) {
-        console.log(" ==== Grid_UpdateFromResponse_shift ====");
-        console.log("update_list", update_list);
+        //console.log(" ==== Grid_UpdateFromResponse_shift ====");
+        //console.log("update_list", update_list);
         // deleted: true, id: 8,  rowid: "gridrow_shift_8", s_id: 2, table: "shift"
         let cell_id_str = null, ppk_int = null, tblName = "shift";
         let pk_list = [] // for highlighting cells
@@ -2637,7 +2643,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 for (let i = 0, created_mapid; created_mapid = created_mapid_list[i]; i++) {
                     const row_id = "gridrow_" +  created_mapid;
                     const tblRow = document.getElementById(row_id);
-                    console.log("tblRow", tblRow);
+                    //console.log("tblRow", tblRow);
                     if(!!tblRow){
                         ShowOkElement(tblRow);
                     };
@@ -2668,8 +2674,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  Grid_Update_shiftmap_row  ================ PR2020-03-20  PR2021-01-03
     function Grid_Update_shiftmap_row(update_dict) {
-        console.log(" ==== Grid_Update_shiftmap_row ====");
-        console.log("update_dict", deepcopy_dict(update_dict))
+        //console.log(" ==== Grid_Update_shiftmap_row ====");
+        //console.log("update_dict", deepcopy_dict(update_dict))
 
         let created_mapid = null;
 //----- get id_dict of updated item
@@ -3443,7 +3449,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  MGS_Open  ================  PR2020-03-21
     function MGS_Open(mode, el_input, is_addnew_row) {
-        console.log(" ======  MGS_Open  ======= mode: ", mode)
+        //console.log(" ======  MGS_Open  ======= mode: ", mode)
         //console.log("el_input:", el_input)
         // mode = "grid", "datatable"
 // ---  reset mod_MGS_dict
@@ -3502,7 +3508,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //=========  MGS_Save  ================ PR2019-11-23  PR2020-03-21
     function MGS_Save(crud_mode){
-        console.log( "===== MGS_Save  ========= ");
+        //console.log( "===== MGS_Save  ========= ");
         // crud_mode = "save" or "delete"
         const is_delete = (crud_mode === "delete");
         const action = "gridrow_shift_" + crud_mode;
@@ -3511,8 +3517,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 // =========== SAVE SHIFT =====================
         const shift_dict = (mod_MGS_dict.shift) ? mod_MGS_dict.shift : {};
-        console.log( "mod_MGS_dict", mod_MGS_dict);
-        console.log( "shift_dict", shift_dict);
+        //console.log( "mod_MGS_dict", mod_MGS_dict);
+        //console.log( "shift_dict", shift_dict);
         if(!isEmpty(shift_dict)){
             const mode = (is_delete) ? "delete" : (shift_dict.mode) ? shift_dict.mode : "update";
             // shiftoption: "grid_shift" is needed in teammember_upload to go to the right function
@@ -3696,7 +3702,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
                 time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
             }
 
-            console.log( "shift_code: ", shift_code);
+            //console.log( "shift_code: ", shift_code);
             const new_shift_code = f_create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
             mod_MGS_dict.shift.code = new_shift_code
             mod_MGS_dict.shift.offsetstart = offset_start;
@@ -3725,7 +3731,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= MGS_AllowanceShow  ============= PR2021-01-28
     function MGS_AllowanceShow() {
-        console.log( "=== MGS_AllowanceShow ");
+        //console.log( "=== MGS_AllowanceShow ");
 
         const is_hidden = el_allowance_container.classList.contains("display_hide")
         add_or_remove_class(el_allowance_container, "display_hide", !is_hidden)
@@ -3735,8 +3741,8 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= MGS_WfcShow  ============= PR2021-01-28
     function MGS_WfcShow(el_header) {
-        console.log( "=== MGS_WfcShow ");
-        console.log( "el_header", el_header);
+        //console.log( "=== MGS_WfcShow ");
+        //console.log( "el_header", el_header);
 
         let show_wfc = false;
         if(el_header){
@@ -3748,7 +3754,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
             show_wfc = !!(mod_MGS_dict.shift.wfc_onwd || mod_MGS_dict.shift.wfc_onsat ||
             mod_MGS_dict.shift.wfc_onsun || mod_MGS_dict.shift.wfc_onph);
         }
-        console.log( "show_wfc", show_wfc);
+        //console.log( "show_wfc", show_wfc);
 // ---  if not show_wfc: hide container with wfc input boxes and container with checkbox
         add_or_remove_class(el_wfc_container, "display_hide", !show_wfc)
         add_or_remove_class(el_wfc_checkbox_container, "display_hide", !show_wfc)
@@ -3760,7 +3766,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 //========= MGS_WfcDiffChange  ============= PR2021-01-28
 
     function MGS_WfcDiffChange(el_clicked) {
-        console.log(" -----  MGS_WfcDiffChange   ----")
+        //console.log(" -----  MGS_WfcDiffChange   ----")
         // if called by MGS_Open: el_clicked = undefined > set checked=true when any of dthe diff fields contain value
         // else: called by checkbox el_wfc_checkbox_diff: get value from checkbox
 
@@ -3798,10 +3804,10 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
 //========= MGS_WfcInputChange  ============= R2021-02-15
     function MGS_WfcInputChange(el) {
-        console.log( "=== MGS_WfcInputChange ");
+        //console.log( "=== MGS_WfcInputChange ");
         const fldName = get_attr_from_el(el, "data-field");
-        console.log( "fldName.value", fldName);
-        console.log( "el.value", el.value);
+        //console.log( "fldName.value", fldName);
+        //console.log( "el.value", el.value);
         const pk_int = (Number(el.value)) ? Number(el.value) : null;
         if(fldName) {
             mod_MGS_dict.shift[fldName] = pk_int
@@ -3809,7 +3815,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ---  enable save button
             MGS_BtnSaveDeleteEnable()
         }
-        console.log( "mod_MGS_dict", mod_MGS_dict);
+        //console.log( "mod_MGS_dict", mod_MGS_dict);
 
     }  // MGS_WfcInputChange
 
@@ -3864,8 +3870,8 @@ console.log("mod_MGS_dict.shift[fldName]", mod_MGS_dict.shift[fldName])
 
 //=========  MGT_Open  ================  PR2020-03-16 PR2020-05-27 PR2021-01-05
     function MGT_Open(mode, el_input) {
-        console.log(" ======  MGT_Open  =======")
-        console.log("mode", mode)
+        //console.log(" ======  MGT_Open  =======")
+        //console.log("mode", mode)
 
 // ---  get scheme_pk and team_pk from el_input
         let scheme_pk = null, team_pk = null;
@@ -3913,7 +3919,7 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
 
 //=========  MGT_fill_MGT_dict  ================  PR2020-03-19 PR2021-01-05
     function MGT_fill_MGT_dict(scheme_pk, team_pk){
-        console.log( "MGT_fill_MGT_dict");
+        //console.log( "MGT_fill_MGT_dict");
         // only called by MGT_Open
 
 // ---  get grid_team_dict from grid_teams_dict
@@ -3955,14 +3961,14 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
                                     };
             }
 
-       console.log( "grid_team_dict", grid_team_dict);
+       //console.log( "grid_team_dict", grid_team_dict);
 
 // +++ loop through teammember list of this team - using grid_teams_dict
             //for (const [key, tm_dict] of Object.entries(grid_team_dict)) {
             for (const key of Object.keys(grid_team_dict)) {
-       console.log( "key", key);
+       //console.log( "key", key);
                 const teammember_pk = Number(key);
-       console.log( "teammember_pk", teammember_pk);
+       //console.log( "teammember_pk", teammember_pk);
                 if(!!teammember_pk){
                     MGT_create_modMGT_tm_dict(teammember_pk);
                 }
@@ -3973,12 +3979,12 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
 
 // ===== MGT_create_modMGT_tm_dict ===== PR2020-04-18
     function MGT_create_modMGT_tm_dict(teammember_pk, tm_ppk_str){
-        console.log( ">>>>> ===== MGT_create_modMGT_tm_dict =====");
-        console.log( "mod_MGT_dict", mod_MGT_dict);
-        console.log( "teammember_pk", teammember_pk);
+        //console.log( ">>>>> ===== MGT_create_modMGT_tm_dict =====");
+        //console.log( "mod_MGT_dict", mod_MGT_dict);
+        //console.log( "teammember_pk", teammember_pk);
         if(teammember_pk){
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(teammember_map, "teammember", teammember_pk);
-       console.log( "map_dict", map_dict);
+       //console.log( "map_dict", map_dict);
             if(isEmpty(map_dict)){
 // create empty teammember_dict with ppk and create=true
                 mod_MGT_dict[teammember_pk] = {
@@ -4011,7 +4017,7 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
 
 //=========  MGT_Save  ================  PR2019-11-23 PR2021-01-05
     function MGT_Save(crud_mode){
-        console.log( "===== MGT_Save  ========= ");
+        //console.log( "===== MGT_Save  ========= ");
         // crud_mode = "save" or "delete"
         const is_delete = (crud_mode === "delete");
         const shiftoption = "grid_team"
@@ -4020,7 +4026,7 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
 
 // =========== SAVE TEAM =====================
         const team_dict = (mod_MGT_dict.team) ? mod_MGT_dict.team : {};
-        console.log( "team_dict", deepcopy_dict(team_dict));
+        //console.log( "team_dict", deepcopy_dict(team_dict));
         if(!isEmpty(team_dict)){
         // always upload team, pk needed for teammembers
             const mode = (is_delete) ? "delete" : (team_dict.create) ? "create" : null;
@@ -4034,7 +4040,7 @@ console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
                                 code: team_dict.code,
                                 col: team_dict.col,
                                 }
-            console.log( "mod_dict", deepcopy_dict(mod_dict));
+            //console.log( "mod_dict", deepcopy_dict(mod_dict));
             if(is_delete){
                // don't make team red until clicked on btnSave of ModConfirm
                 ModConfirmOpen(shiftoption, null)
@@ -4226,9 +4232,9 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //========= MGT_TblTeammember_UpdateRow  =============
     function MGT_TblTeammember_UpdateRow(tblRow, tm_dict){
-       console.log("--- MGT_TblTeammember_UpdateRow  --------------");
+       //console.log("--- MGT_TblTeammember_UpdateRow  --------------");
        //console.log("tblRow", tblRow);
-       console.log("tm_dict", tm_dict);
+       //console.log("tm_dict", tm_dict);
 
         if (!!tblRow && !isEmpty(tm_dict)) {
 // check if tblBody = tfoot, if so: is_addnew_row = true
@@ -4282,7 +4288,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //========= MGT_AddTeammember  ============= PR2020-03-19 PR2021-01-05
     function MGT_AddTeammember() {
-        console.log( " ==== MGT_AddTeammember ====");
+        //console.log( " ==== MGT_AddTeammember ====");
         // function is called when clicked on footer 'New teammember or when is_add_new_mode
         const team_pk = get_dict_value(mod_MGT_dict, ["team", "id"]);
         if(team_pk){
@@ -4300,25 +4306,25 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
             MGT_BtnSaveDeleteEnable();
             MGT_FillTableTeammember(team_pk)
         }
-        console.log( "mod_MGT_dict: " , deepcopy_dict(mod_MGT_dict));
+        //console.log( "mod_MGT_dict: " , deepcopy_dict(mod_MGT_dict));
     }  // MGT_AddTeammember
 
 //========= MGT_DeleteTeammember  ============= PR2020-03-19
     function MGT_DeleteTeammember(tblRow) {
-        console.log( " ==== MGT_DeleteTeammember ====");
-        console.log( "tblRow", tblRow);
+        //console.log( " ==== MGT_DeleteTeammember ====");
+        //console.log( "tblRow", tblRow);
 
         const teammember_pk = get_attr_from_el(tblRow, "data-pk", 0);
         const team_pk = get_attr_from_el(tblRow, "data-ppk", 0);
 
-        console.log( "teammember_pk", teammember_pk);
-        console.log( "team_pk", team_pk);
+        //console.log( "teammember_pk", teammember_pk);
+        //console.log( "team_pk", team_pk);
         let teammember_dict = mod_MGT_dict[teammember_pk]
         if(teammember_dict) {
             teammember_dict.delete = true;
         }
         mod_MGT_dict.update = true;
-        console.log( "mod_MGT_dict", mod_MGT_dict);
+        //console.log( "mod_MGT_dict", mod_MGT_dict);
 
         MGT_BtnSaveDeleteEnable();
 
@@ -4380,7 +4386,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MGT_TeammemberDateChanged  ================ PR2020-03-19
     function MGT_TeammemberDateChanged(el_input) {
-       console.log( "===== MGT_TeammemberDateChanged  ========= ");
+       //console.log( "===== MGT_TeammemberDateChanged  ========= ");
 
 // --- get info from el_input
         const tblRow = get_tablerow_selected(el_input);
@@ -4460,7 +4466,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MGT_TeamcodeChanged  ================ PR2020-03-18
     function MGT_TeamcodeChanged(el_input) {
-        console.log( "===== MGT_TeamcodeChanged  ========= ");
+        //console.log( "===== MGT_TeamcodeChanged  ========= ");
         const field ="code"
         const new_code = el_input.value;
 
@@ -4470,7 +4476,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
             MGT_team_dict.code = new_code;
             MGT_team_dict.values_changed = true;
         }
-        console.log( "mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
+        //console.log( "mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
 // ---  enable save button
         MGT_BtnSaveDeleteEnable()
     }; // MGT_TeamcodeChanged
@@ -4478,16 +4484,16 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MGT_BtnSaveDeleteEnable  ================ PR2020-03-20
     function MGT_BtnSaveDeleteEnable(){
-        console.log( "MGT_BtnSaveDeleteEnable");
-        console.log( "mod_MGT_dict", mod_MGT_dict);
-        console.log( "mod_MGT_dict.update", mod_MGT_dict.update);
+        //console.log( "MGT_BtnSaveDeleteEnable");
+        //console.log( "mod_MGT_dict", mod_MGT_dict);
+        //console.log( "mod_MGT_dict.update", mod_MGT_dict.update);
 
         el_MGT_btn_save.disabled = !mod_MGT_dict.update;
 
         const team_mode = get_dict_value(mod_MGT_dict, ["team", "mode"])
         const btn_delete_hidden = (!selected.scheme_pk || team_mode === "create");
-        console.log( "team_mode", team_mode);
-        console.log( "btn_delete_hidden", btn_delete_hidden);
+        //console.log( "team_mode", team_mode);
+        //console.log( "btn_delete_hidden", btn_delete_hidden);
         add_or_remove_class (el_MGT_btn_delete, cls_hide, btn_delete_hidden) // args: el, classname, is_add
     }  // MGT_BtnSaveDeleteEnable
 
@@ -4530,10 +4536,10 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
         const employee_code = (tblName === "absence") ? map_dict.e_code : null;
 
        //console.log("map_dict", map_dict)
-        console.log("code_value", code_value)
+        //console.log("code_value", code_value)
 
         const has_selected_item = (!isEmpty(map_dict));
-        console.log("has_selected_item", has_selected_item)
+        //console.log("has_selected_item", has_selected_item)
         if(has_selected_item){
 // ---  create mod_dict
             mod_dict = {pk: pk_int,
@@ -4546,7 +4552,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
                         TEMP_is_ModConfirmTblrow: true
                         };
         }
-        console.log("mod_dict", mod_dict)
+        //console.log("mod_dict", mod_dict)
 
 // ---  put header text in modal form
         let header_text = null
@@ -4610,9 +4616,9 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 // +++++++++ MOD CONFRIM ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-10-23 PR2020-05-03 PR2021-03-28
     function ModConfirmOpen(shiftoption, el_input, get_header_text) {
-        console.log(" -----  ModConfirmOpen   ----")
-        console.log("shiftoptions", shiftoption)
-        console.log("mod_MSCH_dict", mod_MSCH_dict)
+        //console.log(" -----  ModConfirmOpen   ----")
+        //console.log("shiftoptions", shiftoption)
+        //console.log("mod_MSCH_dict", mod_MSCH_dict)
 
         // shiftoptions are: delete, inactive, schemeitem_delete, scheme_delete, scheme_inactive, absence_delete,
         //                   gridrow_shift_save, gridrow_shift_delete, grid_team, grid_si
@@ -4688,12 +4694,12 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 } else {
 // ---  get tblRow - tblRow is undefined when clicked on menubtn or modal
         let tblRow = get_tablerow_selected(el_input);
-        console.log("tblRow: ", tblRow)
+        //console.log("tblRow: ", tblRow)
         if(!tblRow && selected_btn === "btn_absence"){
             tblRow = document.getElementById(selected.mapid)
         }
         let tblName = get_attr_from_el(tblRow, "data-table")  // can be 'absence' from UploadDeleteInactive
-        console.log("tblName: ", tblName)
+        //console.log("tblName: ", tblName)
         const pk_str = get_attr_from_el(tblRow, "data-pk")
         const map_id =  get_map_id(tblName, pk_str);
         const map_dict = get_mapdict_from_tblRow(tblRow)
@@ -5037,7 +5043,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MSCO_FillSelectTableCustOrder  ================ PR2020-07-02
     function MSCO_FillSelectTableCustOrder(mod_name) {
-        //console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
+        console.log( "===== MSCO_FillSelectTableCustOrder ========= ");
         const tbl_id = (mod_name === "msco") ? "id_MSCO_tbody_select" :
                        (mod_name === "mcft") ? "id_mod_copyfrom_tblbody" : null
         let tableBody = document.getElementById(tbl_id);
@@ -5048,10 +5054,8 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
             let row_count = 0;
             if (data_map) {
 
-        //console.log( "data_map", data_map);
         //--- loop through data_map
                 for (const [map_id, map_dict] of data_map.entries()) {
-
         //console.log( "map_dict", map_dict);
                     const add_to_list = MSCO_FillSelectRow(tableBody, map_dict, mod_name)
                     if (add_to_list) { row_count += 1 };
@@ -5078,34 +5082,36 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MSCO_FillSelectRow  ================ PR2020-05-21 cleaned
     function MSCO_FillSelectRow(tableBody, map_dict, mod_name) {
-        //console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
-        //console.log( "map_dict ", map_dict);
+        console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
+        console.log( "map_dict ", map_dict);
 
 //--- check if item must be added to list
         let add_to_list = false, is_selected_pk = false;
-        const is_absence = get_dict_value(map_dict, ["id", "isabsence"], false);
+        const is_absence = (map_dict.c_isabsence) ? map_dict.c_isabsence : false;
+        const customer_inactive = (map_dict.c_inactive) ? map_dict.c_inactive : false;
+        const order_inactive = (map_dict.o_inactive) ? map_dict.o_inactive : false;
+        console.log( "map_dict.c_isabsence ", map_dict.c_isabsence);
+        console.log( "map_dict.c_inactive ", map_dict.c_inactive);
+        console.log( "map_dict.o_inactive ", map_dict.o_inactive);
+
         if (is_absence === show_absence_FOR_TESTING_ONLY || show_absence_FOR_TESTING_ONLY == null){
             add_to_list = true
         } else {
-            const customer_inactive = get_dict_value(map_dict, ["customer", "inactive"], false);
-            const order_inactive = get_dict_value(map_dict, ["inactive", "value"], false);
             add_to_list = (!customer_inactive && !order_inactive);
         }
 // ---  add item to list
         if (add_to_list){
 // ---  get info from map_dict
-            const pk_int = get_dict_value(map_dict, ["id", "pk"]);
-            const ppk_int = get_dict_value(map_dict, ["id", "ppk"]);
-            const customer_code = get_dict_value(map_dict, ["customer", "code"], "");
-            const order_code = get_dict_value(map_dict, ["code", "value"], "");
-            const code_value = customer_code + " - " + order_code;
+            const pk_int = (map_dict.id) ? map_dict.id : null;
+            const ppk_int =  (map_dict.c_id) ? map_dict.c_id : null;
+            const cust_ordr_code = (map_dict.c_o_code) ? map_dict.c_o_code : "---";
 // ---  insert tblRow  //index -1 results in that the new row will be inserted at the last position.
             let tblRow = tableBody.insertRow(-1);
             if (pk_int) {
                 tblRow.id = "sel_order_" + pk_int.toString();
                 tblRow.setAttribute("data-pk", pk_int)
                 tblRow.setAttribute("data-ppk", ppk_int)
-                tblRow.setAttribute("data-value", code_value);
+                tblRow.setAttribute("data-value", cust_ordr_code);
             };
 //- add EventListener to tblRow
             tblRow.addEventListener("click", function() {MSCO_MCFT_SelecttableClicked(tblRow, mod_name)}, false )
@@ -5122,7 +5128,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
             let td = tblRow.insertCell(-1);
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
             let el = document.createElement("div");
-                el.innerText = code_value;
+                el.innerText = cust_ordr_code;
                 el.classList.add("mx-1", "tw_180")
             td.appendChild(el);
         } // if (add_to_list)
@@ -7519,8 +7525,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-        //console.log(" --- UpdateSettings ---")
-        //console.log("setting_dict", setting_dict)
+        console.log(" --- UpdateSettings ---")
+        console.log("setting_dict", setting_dict)
         // only called at opening of page
 
         selected_btn = get_dict_value(setting_dict, ["sel_btn"], "btn_grid");
@@ -7543,8 +7549,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         // these variables store pk of customer / order from setting.
         // They are used in HandleSelectCustomer to go to saved customer / order
         // field type is integer
-        settings.order_pk = get_dict_value(setting_dict, ["sel_order_pk"], 0);
-        settings.scheme_pk = get_dict_value(setting_dict, ["sel_scheme_pk"], 0);
+        settings.customer_pk = get_dict_value(setting_dict, ["sel_customer_pk"]);
+        settings.order_pk = get_dict_value(setting_dict, ["sel_order_pk"]);
+        settings.scheme_pk = get_dict_value(setting_dict, ["sel_scheme_pk"]);
 
         // selected.customer_pk can also contain pk of template customer,
         // settings.customer_pk only contains normal customers
@@ -7552,6 +7559,8 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         selected.order_pk = settings.order_pk;
         // don't set value of selected.scheme_pk after update in template_mode
         selected.scheme_pk = (!is_template_mode) ? settings.scheme_pk : null
+console.log( "selected.customer_pk:", selected.customer_pk);
+console.log( "selected.order_pk:", selected.order_pk);
 console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
 // put grid_range in selected, default = 1 (1 week)
@@ -7564,7 +7573,7 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
 //========= UpdateHeaderText  ================== PR2019-11-23
     function UpdateHeaderText(calledby){
-        //console.log(" --- UpdateHeaderText ---", calledby )
+        console.log(" --- UpdateHeaderText ---", calledby )
 
         // from fill select order
         let header_text = "", hdr_right_text = "";
@@ -7577,11 +7586,15 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
             let pk_int = null;
             if(!!selected.order_pk){
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected.order_pk)
-                pk_int = get_dict_value(map_dict, ["id", "pk"])
+                pk_int = (map_dict.id) ? map_dict.id : null;
 
-                const order_code = get_dict_value(map_dict, ["code", "value"], "")
-                const customer_code = get_dict_value(map_dict, ["customer", "code"], "")
-                header_text += customer_code + "  -  " + order_code;
+                const order_code = (map_dict.o_code) ? map_dict.o_code : null;
+                const customer_code =  (map_dict.c_code) ? map_dict.c_code : null;
+
+
+        console.log("map_dict", map_dict)
+
+                header_text += (map_dict.c_o_code) ? map_dict.c_o_code : "---";
                 select_order_header_text = header_text;
             }
             // if selected.order_pk not found in order_map: reset
@@ -7595,8 +7608,7 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
                 if(!!order_map.size){
                 // --- loop through order_map
                     for (const [map_id, item_dict] of order_map.entries()) {
-                        //istemplate: {value: true}
-                        const is_template = get_dict_value(item_dict, ["istemplate", "value"], false)
+                        const is_template = (item_dict.c_istemplate) ? item_dict.c_istemplate : false;
                         if (is_template === is_template_mode) {
                             has_records = true;
                             break;

@@ -1461,6 +1461,7 @@
         is_percentage = (is_percentage) ? is_percentage : false;
         show_zero = (show_zero) ? show_zero : false;
 
+        //console.log("value_int", value_int)
         let display_text = "";
 
         if (!value_int) {
@@ -1523,7 +1524,7 @@
             display_text = minus_sign + dollar_text + cent_text;
         }  // if (!!value_int)
         if (display_text && is_percentage) {display_text += "%" }
-
+        //console.log("display_text", display_text)
         return display_text
     }  // format_pricerate
 
