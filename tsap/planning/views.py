@@ -5190,8 +5190,10 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                                     if msg_err:
                                         msg_dict['err_delete'] = msg_err
                                     else:
+                                        pass
                                         # instance will stay after delete, therefore must set instance = None
-                                        update_dict['id']['deleted'] = True
+                                        # TODO update_dict doesn't exists ,can be re,oved?
+                                        #  update_dict['id']['deleted'] = True
                             elif mode == 'update':
                                 if allowancecode:
                                     # only quantity field can change, also get rate again from allowancecode

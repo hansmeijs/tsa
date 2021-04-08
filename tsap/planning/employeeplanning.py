@@ -1035,9 +1035,16 @@ def remove_double_absence_restrows(eid_tmsid_arr, tm_si_id_info):  # PR2020-10-2
                                     lookup_isabs = lookup_info.get('isabs', False)
                                     lookup_isrest = lookup_info.get('isrest', False)
                                     if lookup_isabs or lookup_isrest:
-                                        lookup_os_nonull = lookup_info.get('sh_os_nonull')
-                                        lookup_oe_nonull = lookup_info.get('sh_oe_nonull')
-                                        lookup_o_seq = lookup_info.get('o_seq', -1)
+                                        # PR2021-04-08 debug. tel Romy Nieuwenhuis. Error creating new roster.
+                                        # gave error: '<' not supported between instances of 'int' and 'NoneType'
+                                        # apparently this one still gives None value:
+                                        #   lookup_os_nonull = lookup_info.get('sh_os_nonull')
+                                        #   lookup_oe_nonull = lookup_info.get('sh_oe_nonull')
+                                        #   lookup_o_seq = lookup_info.get('o_seq', -1)
+                                        # use this one instead:
+                                        lookup_os_nonull = lookup_info.get('sh_os_nonull') if lookup_info.get('sh_os_nonull') else 0
+                                        lookup_oe_nonull = lookup_info.get('sh_oe_nonull') if lookup_info.get('sh_oe_nonull') else 1440
+                                        lookup_o_seq = lookup_info.get('o_seq') if lookup_info.get('o_seq') else -1
 
                                 # only remove absence row when os and oe are equal
                                         remove_row = False
