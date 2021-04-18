@@ -425,3 +425,22 @@ LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minut
 
 MAX_CYCLE_DAYS = 91  # PR2021-01-02 changed from 28 to 91, request Guido // MAX_CYCLE_DAYS is defined in several places
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
+
+# PR2021-04-17 headerrows is not a field, but hides the headerr ows
+AFAS_INVOICE_FIELD_LIST = ['headerrows', 'c_identifier', 'c_code', 'o_code', 'e_code', 'oh_rosterdate', 'oh_shiftcode',
+                           'eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum', 'oh_pricerate_calc', 'eh_amount_sum', 'totalrow']
+AFAS_INVOICE_FIELDS = {
+    'headerrows': {'field': 'headerrows', 'caption': _('Header rows'), 'width': 0},
+    'c_identifier': {'field': 'c_identifier', 'caption': _('Customer code'), 'width': 15},
+    'c_code': {'field': 'c_code', 'caption': _('Customer'), 'width': 25},
+    'o_code': {'field': 'o_code', 'caption': _('Order'), 'width': 25},
+    'e_code': {'field': 'e_code','caption': _('Employee'), 'width': 40},
+    'oh_rosterdate': {'field': 'oh_rosterdate', 'caption': _('Roster date'), 'width': 15},
+    'oh_shiftcode': {'field': 'oh_shiftcode', 'caption': _('Shift'), 'width': 15},
+    'eh_plandur_sum': {'field': 'eh_plandur_sum', 'caption': _('Planned hours'), 'width': 15},
+    'eh_timedur_sum': {'field': 'eh_timedur_sum', 'caption': _('Worked hours'), 'width': 15},
+    'eh_billdur_sum': {'field': 'eh_billdur_sum', 'caption': _('Billing hours'), 'width': 15},
+    'oh_pricerate_calc': {'field': 'oh_pricerate_calc', 'caption': _('Hourly rate'), 'width': 15},
+    'eh_amount_sum': {'field': 'eh_amount_sum', 'caption': _('Amount'), 'width': 15},
+    'totalrow': {'field': 'totalrow', 'caption': _('Total row'), 'width': 0},
+}

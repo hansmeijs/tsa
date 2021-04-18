@@ -4690,6 +4690,7 @@ class ReviewlAfasInvoiceXlsxView(View):
 
             customer_pk_list = []
             order_pk_list = []
+            hidden_fields_list = []
 
 # - get order_pk_list from parameter 'list
             if list:
@@ -4714,8 +4715,10 @@ class ReviewlAfasInvoiceXlsxView(View):
                 # deleted_arr: ['MCB bank']
 
                 listname = print_dict.get('name')
-                customer_pk_list = print_dict.get('cl', [])
-                order_pk_list = print_dict.get('ol', [])
+                customer_pk_list =  print_dict.get('cl') if print_dict.get('cl') else []
+                order_pk_list =  print_dict.get('ol') if print_dict.get('ol') else []
+                hidden_fields_list = print_dict.get('fld') if print_dict.get('fld') else []
+
                 if logging_on:
                     logger.debug('list_dict:        ' + str(list_dict))
                     logger.debug('print_dict: ' + str(print_dict))
@@ -4724,6 +4727,7 @@ class ReviewlAfasInvoiceXlsxView(View):
                     logger.debug('listname:         ' + str(listname))
                     logger.debug('customer_pk_list: ' + str(customer_pk_list))
                     logger.debug('order_pk_list:    ' + str(order_pk_list))
+                    logger.debug('hidden_fields_list:    ' + str(hidden_fields_list))
 
 # - save modified lists to companysetting, delete deleted lists
                 if modified_dict or deleted_arr:
@@ -4759,7 +4763,7 @@ class ReviewlAfasInvoiceXlsxView(View):
             interval = request.user.company.interval if request.user.company.interval else 15
             period_dict = pld.period_get_and_save('review_period', None, comp_timezone, timeformat, interval, user_lang, request)
 
-            response = ed.create_afas_invoice_rows(period_dict, customer_pk_list, order_pk_list, user_lang, request)
+            response = ed.create_afas_invoice_rows(period_dict, customer_pk_list, order_pk_list, hidden_fields_list, user_lang, request)
 
             return response
 # - end of ReviewlAfasInvoiceXlsxView

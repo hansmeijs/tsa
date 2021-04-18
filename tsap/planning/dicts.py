@@ -14,6 +14,8 @@ from tsap import constants as c
 from tsap import functions as f
 from employees import dicts as ed
 
+from timeit import default_timer as timer
+
 import pytz
 import json
 import logging
@@ -1981,9 +1983,12 @@ def create_deletedrows_from_emplhourlog(period_dict, request, last_emplhour_chec
 
 
 def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_deleted=False):  # PR2019-11-16 PR2020-08-20
-    #logger.debug(' ============= create_emplhour_rows ============= ')
+    logger.debug(' ============= create_emplhour_rows ============= ')
     #logger.debug('period_dict: ' + str(period_dict))
     # called by EmplhourUploadView and FillRosterdateView.create_emplhour_list and DatalistDownloadView.create_emplhour_list
+
+    starttime = timer()
+
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
 
@@ -2194,10 +2199,13 @@ def create_emplhour_rows(period_dict, request, last_emplhour_check=None, show_de
         sql_list.append('ORDER BY eh.rosterdate, c.isabsence, LOWER(o.code), o.id, oh.sortby, eh.excelstart')
         sql_emplhour = ' '.join(sql_list)
 
-
         newcursor = connection.cursor()
         newcursor.execute(sql_emplhour,sql_keys)
+
         emplhour_rows = f.dictfetchall(newcursor)
+
+        logger.debug('elapsed_seconds: ' + str(int(1000 * (timer() - starttime)) / 1000))
+
         #for qr in connection.queries:
             #logger.debug('-----------------------------------------------------------------------------')
             #logger.debug(str(qr))

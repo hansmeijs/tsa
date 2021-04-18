@@ -1357,7 +1357,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, is_saturday, is_sunday, is_publi
         )
         orderhour.save(request=request)
 
-# - add sortby after saving - it needs the rderhour.pk
+# - add sortby after saving - it needs the orderhour.pk
         sort_by = f.calculate_sortby(sh_os, is_restshift, orderhour.pk)
         orderhour.sortby = sort_by
         orderhour.save()

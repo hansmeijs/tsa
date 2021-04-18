@@ -17,25 +17,27 @@
                     <div class="flex_content">
                         <div class="flex_1 py-2 my-2">
                             <h6 class="px-2">{% trans 'Saved lists' %}:</h6>
-                            <table class="tsa_tbl border_bg_transparent tbl_div_320_280 my-2 p-2">
+                            <table class="tsa_tbl border_bg_transparent tbl_div_340_360 my-2 p-2">
                                 <tbody id="id_MSIO_tblBody_lists"></tbody>
                             </table>
-                            <button id="id_MSIO_btn_addnewlist" class="btn btn-outline-secondary m-2">{% trans 'Add as new list' %}</button>
+                            <button id="id_MSIO_btn_addnewlist" class="btn btn-outline-secondary my-1">{% trans 'Add as new list' %}</button>
+
+                            <button id="id_MSIO_btn_showtblcolumns" class="btn btn-outline-secondary my-1">{% trans 'Show columns' %}</button>
 
                         </div>
-
                          <div class="flex_1 py-2 my-2">
-                             <h6 class="px-2">{% trans 'Customers and orders of this invoice' %}:</h6>
+                             <h6 id="id_MSIO_label_selected" class="px-2">:</h6>
                               <table class="tableX tsa_tbl border_bg_lightblue tbl_div_390_360">
                                 <tbody id="id_MSIO_tblBody_selected"></tbody>
                               </table>
                          </div>
                          <div class="flex_1 py-2 my-2">
-                             <h6 class="px-2">{% trans 'Other customers and orders' %}:</h6>
+                             <h6 id="id_MSIO_label_available" class="px-2">:</h6>
                              <table class="tableX tsa_tbl border_bg_message tbl_div_390_360">
                                 <tbody id="id_MSIO_tblBody_available"></tbody>
                              </table>
                          </div>
+
                     </div>
                 </div>
 

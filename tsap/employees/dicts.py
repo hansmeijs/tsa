@@ -1910,7 +1910,7 @@ def create_wagecode_rows(key_str, request, msg_dict, pk_int=None):
     #logger.debug('msg_dict: ' + str(msg_dict))
 
     wagerate_line, isdefault_line = '', ''
-    if key_str is None or  key_str ==  'wfc':
+    if key_str is None or key_str ==  'wfc':
         isdefault_line = "CASE WHEN comp.wagefactorcode_id = w.id THEN TRUE ELSE FALSE END AS isdefault,"
         wagerate_line = "w.wagerate,"
     elif key_str == 'alw':
@@ -2328,8 +2328,8 @@ def create_afas_ehal_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # P
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-def create_afas_invoice_rows(period_dict, customer_list, order_list, user_lang, request):
-    # --- create_afas_invoice_rows PR2021-01-30 PR2021-03-31
+def create_afas_invoice_rows(period_dict, customer_list, order_list, hidden_fields_list, user_lang, request):
+    # --- create_afas_invoice_rows PR2021-01-30 PR2021-03-31 PR2021-04-17
     logging_on = False # s.LOGGING_ON
     if logging_on:
         logger.debug('===== create_afas_invoice_rows ===== ')
@@ -2417,14 +2417,14 @@ def create_afas_invoice_rows(period_dict, customer_list, order_list, user_lang, 
             logger.debug('sql: ' + str(sql))
             logger.debug('rows: ' + str(rows))
 
-    response = create_afas_invoice_xlsx(period_dict, rows, user_lang, request)
+    response = create_afas_invoice_xlsx(period_dict, rows, hidden_fields_list, user_lang, request)
     return response
 # --- end of create_afas_invoice_rows
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  # PR2021-02-13 PR2021-03-31
+def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, hidden_fields_list, user_lang, request):  # PR2021-02-13 PR2021-04-17
     logging_on = False # s.LOGGING_ON
     if logging_on:
         logger.debug(' ----- create_afas_invoice_xlsx -----')
@@ -2447,17 +2447,6 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = "attachment; filename=" + file_name
 
-    field_captions = (str(_('Customer code')), str(_('Customer')), str(_('Order')), str(_('Roster date')),
-                      str(_('Planned hours')), str(_('Worked hours')), str(_('Billing hours')),
-                      str(_('Hourly rate')), str(_('Amount')), str(_('Shift')), str(_('Employee')))
-
-    field_names = ('c_identifier', 'c_code', 'o_code', 'oh_rosterdate',
-                   'eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum',
-                   'oh_pricerate_calc', 'eh_amount_sum', 'oh_shiftcode', 'e_code' )
-
-    field_width = (15, 25, 25, 15,   15, 15, 15,   15, 15, 15 , 40)
-
-
 # .. and pass it into the XLSXWriter
     book = xlsxwriter.Workbook(response, {'in_memory': True})
     sheet = book.add_worksheet(worksheet_name)
@@ -2468,27 +2457,40 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
     tblHead_format = book.add_format({'bold': True})
     tblHead_format.set_bottom()
     tblHead_format.set_bg_color('#d8d8d8') #   #d8d8d8;  /* light grey 218 218 218 100%
-
-    for i, width in enumerate(field_width):
-        sheet.set_column(i, i, width)
+    col_index = 0
+    for field in c.AFAS_INVOICE_FIELD_LIST:
+        if field not in ('headerrows', 'totalrow') and field not in hidden_fields_list:
+            #  set_column(first_col, last_col, width, cell_format, options)
+            width = f.get_dict_value(c.AFAS_INVOICE_FIELDS, (field,'width'))
+            sheet.set_column(col_index, col_index, width)
+            col_index += 1
 
 # --- title row
-    sheet.write(0, 0, str(_('Report')) + ':', bold)
-    sheet.write(1, 0, str(_('Company')) + ':', bold)
-    sheet.write(2, 0, str(_('Report date')) + ':', bold)
-    sheet.write(0, 1, title, bold)
-    sheet.write(1, 1, company_name, bold)
-    sheet.write(2, 1, today_formatted, bold)
+    if 'headerrows' not in hidden_fields_list:
+        sheet.write(0, 0, str(_('Report')) + ':', bold)
+        sheet.write(1, 0, str(_('Company')) + ':', bold)
+        sheet.write(2, 0, str(_('Report date')) + ':', bold)
+        sheet.write(0, 1, title, bold)
+        sheet.write(1, 1, company_name, bold)
+        sheet.write(2, 1, today_formatted, bold)
 
-# ---  period row
-    dates_display_short = period_dict.get('dates_display_short')
+    # ---  period row
+        dates_display_short = period_dict.get('dates_display_short')
 
-    sheet.write(5, 0,  str(_('Period')) + ":")
-    sheet.write(5, 1, dates_display_short)
+        sheet.write(5, 0,  str(_('Period')) + ":")
+        sheet.write(5, 1, dates_display_short)
 
-    row_index = 7
-    for i, caption in enumerate(field_captions):
-        sheet.write(row_index, i, caption, tblHead_format)
+        row_index = 7
+    else:
+        row_index = 0
+
+    col_index = 0
+    for field in c.AFAS_INVOICE_FIELD_LIST:
+        if field not in ('headerrows', 'totalrow') and field not in hidden_fields_list:
+            #  set_column(first_col, last_col, width, cell_format, options)
+            caption = str(f.get_dict_value(c.AFAS_INVOICE_FIELDS, (field, 'caption')))
+            sheet.write(row_index, col_index, caption, tblHead_format)
+            col_index += 1
 
     total_plandur = 0
     total_timedur = 0
@@ -2519,75 +2521,81 @@ def create_afas_invoice_xlsx(period_dict, afas_ehal_rows, user_lang, request):  
                 logger.debug('total_decimal: ' + str(total_decimal) + ' ' + str(type(total_decimal)))
                 logger.debug('hours_decimal: ' + str(hours_decimal) + ' ' + str(type(hours_decimal)))
 
-            for i, field_name in enumerate(field_names):
+            col_index = 0
+            for field_name in c.AFAS_INVOICE_FIELD_LIST:
+                if field_name not in ('headerrows', 'totalrow') and field_name not in hidden_fields_list:
+                    if field_name == 'oh_rosterdate':
+                        value = row.get(field_name)
+                        display = '-'.join((('0' + str(value.day))[-2:], ('0' + str(value.month))[-2:], str(value.year)))
+                    elif field_name in ('eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum'):
+                        value = row.get(field_name)
+                        if value:
+                            value_decimal = Decimal(str(value / 60)).quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                            display = str(value_decimal).replace(',', '.')
+                        else:
+                            display = '0'
+                    elif field_name == 'eh_amount_sum':
+                        if amount_sum or addition_sum:
+                            total_rounded = total_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                            display = str(total_rounded).replace(',', '.')
+                        else:
+                            display = '0'
 
-                if field_name == 'oh_rosterdate':
-                    value = row.get(field_name)
-                    display = '-'.join((('0' + str(value.day))[-2:], ('0' + str(value.month))[-2:], str(value.year)))
+                    elif field_name == 'oh_pricerate_calc':
+                        # can be replaced by vaulue of oh_pricerate_calc
+                        if billdur_sum:
+                            rate = total_decimal / hours_decimal
+                            rate_decimal = rate.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                            display = str(rate_decimal).replace(',', '.')
+                        else:
+                            display = '0'
+                    else:
+                        display = row.get(field_name)
+                    sheet.write(row_index, col_index, display)
+                    col_index += 1
+
+# print total row
+    if 'totalrow' not in hidden_fields_list:
+        row_index += 2
+        col_index = 0
+        for field_name in c.AFAS_INVOICE_FIELD_LIST:
+            if field_name not in ('headerrows', 'totalrow') and field_name not in hidden_fields_list:
+                display = ''
+                if field_name == 'c_identifier':
+                    display = str(_('Total'))
                 elif field_name in ('eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum'):
-                    value = row.get(field_name)
-                    if value:
-                        value_decimal = Decimal(str(value / 60)).quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                        display = str(value_decimal).replace(',', '.')
+                    total_dur = 0
+                    if field_name == 'eh_plandur_sum':
+                        total_dur = total_plandur
+                    elif field_name == 'eh_timedur_sum':
+                        total_dur = total_timedur
+                    elif field_name == 'eh_billdur_sum':
+                        total_dur = total_billdur
+                    if total_dur:
+                        dur_decimal = Decimal(str(total_dur)) / Decimal("60")
+                        dur_rounded = dur_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(dur_rounded).replace(',', '.')
+                    else:
+                        display = '0'
+                elif field_name == 'oh_pricerate_calc':
+                    if total_billdur:
+                        amount_decimal = Decimal(str(total_amount)) / Decimal("100")
+                        billdur_decimal = Decimal(str(total_billdur)) / Decimal("60")
+                        rate_decimal = amount_decimal / billdur_decimal
+                        rate_rounded = rate_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(rate_rounded).replace(',', '.')
                     else:
                         display = '0'
                 elif field_name == 'eh_amount_sum':
-                    if amount_sum or addition_sum:
-                        total_rounded = total_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                        display = str(total_rounded).replace(',', '.')
+                    if total_amount :
+                        amount_decimal = Decimal(str(total_amount)) / Decimal("100")
+                        amount_rounded = amount_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
+                        display = str(amount_rounded).replace(',', '.')
                     else:
                         display = '0'
 
-                elif field_name == 'oh_pricerate_calc':
-                    # can be replaced by vaulue of oh_pricerate_calc
-                    if billdur_sum:
-                        rate = total_decimal / hours_decimal
-                        rate_decimal = rate.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                        display = str(rate_decimal).replace(',', '.')
-                    else:
-                        display = '0'
-                else:
-                    display = row.get(field_name)
-                sheet.write(row_index, i, display)
-
-# print total row
-    row_index += 2
-    for i, field_name in enumerate(field_names):
-        display = ''
-        if field_name == 'c_identifier':
-            display = str(_('Total'))
-        elif field_name in ('eh_plandur_sum', 'eh_timedur_sum', 'eh_billdur_sum'):
-            total_dur = 0
-            if field_name == 'eh_plandur_sum':
-                total_dur = total_plandur
-            elif field_name == 'eh_timedur_sum':
-                total_dur = total_timedur
-            elif field_name == 'eh_billdur_sum':
-                total_dur = total_billdur
-            if total_dur:
-                dur_decimal = Decimal(str(total_dur)) / Decimal("60")
-                dur_rounded = dur_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                display = str(dur_rounded).replace(',', '.')
-            else:
-                display = '0'
-        elif field_name == 'oh_pricerate_calc':
-            if total_billdur:
-                amount_decimal = Decimal(str(total_amount)) / Decimal("100")
-                billdur_decimal = Decimal(str(total_billdur)) / Decimal("60")
-                rate_decimal = amount_decimal / billdur_decimal
-                rate_rounded = rate_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                display = str(rate_rounded).replace(',', '.')
-            else:
-                display = '0'
-        elif field_name == 'eh_amount_sum':
-            if total_amount :
-                amount_decimal = Decimal(str(total_amount)) / Decimal("100")
-                amount_rounded = amount_decimal.quantize(Decimal("1.00"), rounding='ROUND_HALF_UP')
-                display = str(amount_rounded).replace(',', '.')
-            else:
-                display = '0'
-
-        sheet.write(row_index, i, display, tblHead_format)
+                sheet.write(row_index, col_index, display, tblHead_format)
+                col_index += 1
 
     book.close()
     return response

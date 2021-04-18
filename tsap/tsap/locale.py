@@ -1215,6 +1215,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Export_invoices_toAFAS'] = _("Export invoices to AFAS")
         dict['List'] = _('List')
+        dict['Customers_orders_this_invoice'] = _("Customers and orders of this invoice")
+        dict['Other_customers_orders'] = _("Other customers and orders")
+        dict['Columns_tobe_shown'] = _("Columns, to be shown in report")
+        dict['Available_columns'] = _("Available columns")
+        dict['AFAS_invoice_fields'] = c.AFAS_INVOICE_FIELDS
+
 
         # mod select price
         dict['Select_hourly_rate_or_enter_new'] = _('Select an hourly rate in the list or enter a new rate')

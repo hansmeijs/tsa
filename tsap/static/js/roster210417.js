@@ -419,6 +419,14 @@ document.addEventListener('DOMContentLoaded', function() {
             company: {value: true},
             quicksave: {mode: "get"},
             roster_period:  {get: true, now: now_arr},
+        };
+        DatalistDownload(datalist_request, true); // true = no_loader
+
+// ---  download settings and datalists
+        // split download to make changes in rosterdate possible before all data are downloaded
+        const datalist_request2 = {
+            // roster_period required to download emplhour
+            roster_period:  {get: true, now: now_arr},
             emplhour: {mode: "get"},
 
             // inactive=null: both active and inactive customers and orders
@@ -436,7 +444,9 @@ document.addEventListener('DOMContentLoaded', function() {
             allowance_rows: {inactive: false},
             wagecode_rows: {inactive: false}
         };
-        DatalistDownload(datalist_request, false);
+        DatalistDownload(datalist_request2, false);
+
+
 
 //  #############################################################################################################
 

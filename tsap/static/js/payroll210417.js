@@ -4476,14 +4476,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSEF_Fill_SelectTable  ============= PR2020--09-17
     function MSEF_Fill_SelectTable() {
-        //console.log("===== MSEF_Fill_SelectTable ===== ");
+        console.log("===== MSEF_Fill_SelectTable ===== ");
 
         const tblName = mod_MSEF_dict.sel_btn;
         const dictlist = (is_period_allowance) ? (tblName === "functioncode") ? alw_functions_inuse_dictlist : alw_employees_inuse_dictlist
                                                : (tblName === "functioncode") ? payroll_functions_inuse_dictlist : payroll_employees_inuse_dictlist;
 
-        //console.log("tblName", tblName);
-        //console.log("dictlist", dictlist);
+        console.log("tblName", tblName);
+        console.log("dictlist", dictlist);
         const tblBody_select = document.getElementById("id_MSEF_tbody_select");
         tblBody_select.innerText = null;
 
@@ -4505,13 +4505,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSEF_Create_SelectRow  ============= PR2020-09-19
     function MSEF_Create_SelectRow(tblName, tblBody_select, dict, selected_pk) {
-        //console.log("===== MSEF_Fill_SelectRow ===== ", tblName);
+        console.log("===== MSEF_Fill_SelectRow ===== ", tblName);
+        console.log("dict", dict);
 
 //--- get info from item_dict
         //[ {pk: 2608, code: "Colpa de, William"} ]
         const pk_int = dict.pk;
         const code_value = dict.code
         const is_selected_row = (pk_int === selected_pk);
+        console.log("code_value", code_value);
 
 //--------- insert tblBody_select row at end
         const map_id = "sel_" + tblName + "_" + pk_int

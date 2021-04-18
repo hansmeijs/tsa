@@ -237,6 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let el_MSIO_tblBody_selected = document.getElementById("id_MSIO_tblBody_selected");
     let el_MSIO_btn_addnewlist = document.getElementById("id_MSIO_btn_addnewlist");
         el_MSIO_btn_addnewlist.addEventListener("click", function() {MSIO_AddToLists()}, false);
+    let el_MSIO_btn_showtblcolumns = document.getElementById("id_MSIO_btn_showtblcolumns");
+        el_MSIO_btn_showtblcolumns.addEventListener("click", function() {MSIO_ShowFieldNames()}, false);
     let el_MSIO_btn_save = document.getElementById("id_MSIO_btn_save");
         el_MSIO_btn_save.addEventListener("click", function() {MSIO_Save()}, false )
 
@@ -837,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandlePricesRowClicked  ================ PR2019-03-30
     function HandlePricesRowClicked(tblRow) {
-        console.log("=== HandlePricesRowClicked");
+        //console.log("=== HandlePricesRowClicked");
         //console.log( "tblRow: ", tblRow, typeof tblRow);
 
         // expand / collapse works as follows:
@@ -869,10 +871,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const filter_class = (subrows_hide) ? ".c_" + row_id + ", .x_" + row_id :
                                                       ".x_" + row_id;
 
-        console.log( "......... row_id: ", row_id);
-        console.log( "subrows_hidden: ", subrows_hidden);
-        console.log( "subrows_hide: ", subrows_hide);
-        console.log( "filter_class: ", filter_class);
+        //console.log( "......... row_id: ", row_id);
+        //console.log( "subrows_hidden: ", subrows_hidden);
+        //console.log( "subrows_hide: ", subrows_hide);
+        //console.log( "filter_class: ", filter_class);
 
                 add_or_remove_class_with_qsAll(tblBody_datatable, cls_hide, subrows_hide, filter_class);
             }
@@ -881,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandlePricesRowDoubleClicked  ================ PR2019-03-30
     function HandlePricesRowDoubleClicked(tblRow) {
-       console.log("=== HandlePricesRowDoubleClicked");
+       //console.log("=== HandlePricesRowDoubleClicked");
         if(!!tblRow) {
             const tblName = get_attr_from_el(tblRow, "data-table")
             const is_totalrow = (["empl", "cust", "ordr", "schm"].includes(tblName))
@@ -2786,7 +2788,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ++++++++ HANDLE EXPAND COLLAPS PRICERATE ROWS +++++++++++++++++++++++++++++++++++++++++++
 //========= HandleExpandCollapseAll  ====================================
     function HandleExpandCollapseAll(mode){
-        console.log(" ===> HandleExpandCollapseAll ===", mode)
+        //console.log(" ===> HandleExpandCollapseAll ===", mode)
         // modes are "collaps_all", "expand_all"
 
     // --- expand or collaps all rows in list 2020-03-05
@@ -2859,14 +2861,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const listname = "no_list_sys";
 // ---  add lists to mod_MSIO_dict.lists
         mod_MSIO_dict = {
-            lists: {no_list_sys: {cl: [], ol: []}},
+            lists: {no_list_sys: {cl: [], ol: [], fld:[]}},
             sel_listname: listname,
-            deleted: []
+            deleted: [],
+            show_tbl_columns: false
         }
 
         MSIO_FillDictSelected();
 
-        MSIO_FillTblLists()
+        MSIO_FillTblLists();
+        MSIO_SetTableHeader();
         MSIO_FillTbls(listname);
 
         $("#id_mod_select_invoice_order").modal({backdrop: true});
@@ -2875,6 +2879,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= MSIO_Save  ============= PR2021-03-30
     function MSIO_Save() {
         //console.log("===== MSIO_Save ===== ");
+        //  lists are stored in href attribute of save button. calls afas_invoice_xlsx_url
         // setTimeout necessary, otherwise href will not work
         setTimeout(function (){
             const datalist_request = {companysetting: {printlist_invoice: "get"}};
@@ -2883,7 +2888,29 @@ document.addEventListener('DOMContentLoaded', function() {
             $("#id_mod_select_invoice_order").modal("hide");
         }, 150);
     }
+//========= MSIO_SetTableHeader  ============= PR2021-04-17
+    function MSIO_SetTableHeader() {
+        //console.log("===== MSIO_SetTableHeader ===== ");
+        // setTimeout necessary, otherwise href will not work
+        const label_selected_text = (mod_MSIO_dict.show_tbl_columns) ? loc.Columns_tobe_shown : loc.Customers_orders_this_invoice;
+        const label_available_text = (mod_MSIO_dict.show_tbl_columns) ? loc.Available_columns : loc.Other_customers_orders;
+        document.getElementById("id_MSIO_label_selected").innerText = label_selected_text;
+        document.getElementById("id_MSIO_label_available").innerText = label_available_text;
 
+        // highlight button 'Show columns'
+        add_or_remove_class(el_MSIO_btn_showtblcolumns, cls_btn_selected, mod_MSIO_dict.show_tbl_columns);
+
+    }  // MSIO_SetTableHeader
+
+//========= MSIO_ShowFieldNames  ============= PR2021-04-17
+    function MSIO_ShowFieldNames() {
+        //console.log("===== MSIO_ShowFieldNames ===== ");
+        // toggle show_tbl_columns
+        mod_MSIO_dict.show_tbl_columns = !mod_MSIO_dict.show_tbl_columns
+        MSIO_SetTableHeader();
+
+        MSIO_FillTbls(mod_MSIO_dict.sel_listname)
+    }  // MSIO_ShowFieldNames
 
 //========= MSIO_FillDictSelected  ============= PR2021-03-31
     function MSIO_FillDictSelected() {
@@ -2892,7 +2919,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // and add listname to mod_MSIO_dict.lists
         for (const [listname, list_dict] of Object.entries(printlist_invoice)) {
 
-            const sel_customers = [], sel_orders = [];
+            const sel_customers = [], sel_orders = [], hidden_fields = [];
 
             const arr_customers = list_dict.cl;
             if(arr_customers && arr_customers.length){
@@ -2900,8 +2927,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // add  this customer to mod_MSIO_dict.sel_customers
                     // also add all orders from this customer to mod_MSIO_dict.sel_orders
                     MSIO_AddCustomerToSel_customers(sel_customers, sel_orders, cust_pk_int);
-                }
-            }
+            }};
 
             const arr_orders = list_dict.ol;
             if(arr_orders && arr_orders.length){
@@ -2909,43 +2935,70 @@ document.addEventListener('DOMContentLoaded', function() {
                     // add  this order to sel_orders
                     if (!sel_orders.includes(order_pk_int)){
                         sel_orders.push(order_pk_int);
-                    }
-                }
-            }
+            }}};
+
+            const arr_fields = list_dict.fld;
+            if(arr_fields && arr_fields.length){
+                for (let i = 0, fldName; fldName = arr_fields[i]; i++) {
+                    // add  this fldName to hidden_fields
+                    if (!hidden_fields.includes(fldName)){
+                        hidden_fields.push(fldName);
+            }}};
+
             if (listname === "no_list_sys") {
-                mod_MSIO_dict.lists[listname] = {cl: [], ol: []};
+                mod_MSIO_dict.lists[listname] = {cl: [], ol: [], fld: []};
             } else {
-                mod_MSIO_dict.lists[listname] = {cl: sel_customers, ol: sel_orders};
+                mod_MSIO_dict.lists[listname] = {cl: sel_customers, ol: sel_orders, fld: hidden_fields};
             }
        }
 
     } // MSIO_FillDictSelected
 
-//========= MSIO_FillTbls  ============= PR2021-03-31
+//========= MSIO_FillTbls  ============= PR2021-03-31 PR2021-04-17
     function MSIO_FillTbls(listname) {
-        console.log("===== MSIO_FillTbls ===== ");
+        //console.log("===== MSIO_FillTbls ===== ");
         //console.log("listname", listname);
         //console.log("mod_MSIO_dict.lists[listname]", mod_MSIO_dict.lists[listname]);
 
         el_MSIO_tblBody_available.innerText = null;
         el_MSIO_tblBody_selected.innerText = null;
 
+        if(!mod_MSIO_dict.show_tbl_columns){
 // ---  loop through order_map
-        //for (const [map_id, dict] of order_map.entries()) {
-        for (const dict of order_map.values()) {
-            const order_pk_int = (dict.id) ? dict.id :null;
-            const customer_pk_int = (dict.c_id) ? dict.c_id : null;
+            //for (const [map_id, dict] of order_map.entries()) {
+            for (const dict of order_map.values()) {
+                const order_pk_int = (dict.id) ? dict.id :null;
+                const customer_pk_int = (dict.c_id) ? dict.c_id : null;
 
-            if(order_pk_int && customer_pk_int){
-            // add to selected list when customer_pk or order_pk in selected list
-                const is_selected = (mod_MSIO_dict.lists[listname].cl.includes(customer_pk_int) ||
-                                   mod_MSIO_dict.lists[listname].ol.includes(order_pk_int))
-
+                if(order_pk_int && customer_pk_int){
+                // add to selected list when customer_pk or order_pk in selected list
+                    const is_selected = (mod_MSIO_dict.lists[listname].cl.includes(customer_pk_int) ||
+                                       mod_MSIO_dict.lists[listname].ol.includes(order_pk_int))
+                    if (is_selected){
+                        MSIO_FillSelectRow("tbl_selected", el_MSIO_tblBody_selected, dict);
+                    } else {
+                        MSIO_FillSelectRow("tbl_available", el_MSIO_tblBody_available, dict);
+                    }
+                }
+            }
+        } else {
+// ---  loop through list of columns
+            const columns_dict = loc.AFAS_invoice_fields;
+            for (const [fldName, dict] of Object.entries(columns_dict)) {
+                // list 'fld' contains the column names that are NOT shown
+                // add to selected list when fldName is NOT in selected list
+                let is_selected = true;
+                if (mod_MSIO_dict.lists[listname] && mod_MSIO_dict.lists[listname].fld) {
+                    if (mod_MSIO_dict.lists[listname].fld.includes(fldName)) {
+                        is_selected = false;
+                    }
+                }
                 if (is_selected){
                     MSIO_FillSelectRow("tbl_selected", el_MSIO_tblBody_selected, dict);
                 } else {
                     MSIO_FillSelectRow("tbl_available", el_MSIO_tblBody_available, dict);
                 }
+
             }
         }
     } // MSIO_FillTbls
@@ -2958,61 +3011,80 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const order_pk_int = (dict.id) ? dict.id :null;
         const customer_pk_int = (dict.c_id) ? dict.c_id : null;
-        const order_code =  (dict.code) ? dict.code : "---";
+        const order_code =  (dict.o_code) ? dict.o_code : "---";
         const customer_code = (dict.c_code) ? dict.c_code : "---";
+
+        const fldName = (dict.field) ? dict.field :null;
+        const field_caption = (dict.caption) ? dict.caption :null;
 
 //- add hover to select row
 // --- add td to tblRow.
+        let caption = (!mod_MSIO_dict.show_tbl_columns) ? customer_code : field_caption;
         let td = tblRow.insertCell(-1);
         const el_cust = document.createElement("div");
             el_cust.classList.add("tw_150")
-            el_cust.innerText = customer_code;
-            el_cust.setAttribute("data-cust_pk", customer_pk_int)
+            el_cust.innerText = caption;
+            if(fldName) {el_cust.setAttribute("data-field", fldName)}
+            if(customer_pk_int) {el_cust.setAttribute("data-cust_pk", customer_pk_int)}
             el_cust.addEventListener("click", function() {MSIO_AddRemoveCustomer(tblName, el_cust)}, false);
             add_hover(el_cust)
         td.appendChild(el_cust);
 
-// --- add td to tblRow.
-        td = tblRow.insertCell(-1);
-        const el_ordr = document.createElement("div");
-            el_ordr.classList.add("tw_180")
-            el_ordr.innerText = order_code;
-            el_ordr.setAttribute("data-ordr_pk", order_pk_int);
-            el_ordr.setAttribute("data-cust_pk", customer_pk_int);
-            el_ordr.addEventListener("click", function() {MSIO_AddRemoveOrder(tblName, el_ordr)}, false);
-            add_hover(el_ordr)
-        td.appendChild(el_ordr);
-
+// --- add td to tblRow, not when show_tbl_columns
+        if (!mod_MSIO_dict.show_tbl_columns){
+            td = tblRow.insertCell(-1);
+            const el_ordr = document.createElement("div");
+                el_ordr.classList.add("tw_180")
+                el_ordr.innerText = order_code;
+                el_ordr.setAttribute("data-ordr_pk", order_pk_int);
+                el_ordr.setAttribute("data-cust_pk", customer_pk_int);
+                el_ordr.addEventListener("click", function() {MSIO_AddRemoveOrder(tblName, el_ordr)}, false);
+                add_hover(el_ordr)
+            td.appendChild(el_ordr);
+        }
     } // MSIO_FillSelectRow
 
 //========= MSIO_AddRemoveCustomer  ============= PR2021-03-29
     function MSIO_AddRemoveCustomer(tblName, el_div){
-        console.log( "===== MSIO_AddRemoveCustomer  ========= ");
+        //console.log( "===== MSIO_AddRemoveCustomer  ========= ");
 
         const listname = (mod_MSIO_dict.sel_listname) ? mod_MSIO_dict.sel_listname : "no_list_sys"
+
+        if(!mod_MSIO_dict.lists[listname].cl) { mod_MSIO_dict.lists[listname].cl = []}
+        if(!mod_MSIO_dict.lists[listname].ol) { mod_MSIO_dict.lists[listname].ol = []}
+        if(!mod_MSIO_dict.lists[listname].fld) { mod_MSIO_dict.lists[listname].fld = []}
+
         const sel_customers = mod_MSIO_dict.lists[listname].cl;
         const sel_orders = mod_MSIO_dict.lists[listname].ol;
+        const sel_fields = (mod_MSIO_dict.lists[listname].fld) ? mod_MSIO_dict.lists[listname].fld : [];
 
         const cust_pk_int = get_attr_from_el_int(el_div, "data-cust_pk");
+        const fldName = get_attr_from_el(el_div, "data-field");
 
-        console.log( "cust_pk_int", cust_pk_int);
-        console.log( "sel_customers", sel_customers);
-        console.log( "sel_orders", sel_orders);
+        if(!mod_MSIO_dict.show_tbl_columns){
+            if(tblName === "tbl_available") {
+                // add  this customer to mod_MSIO_dict.sel_customers
+                // also add all orders from this customer to mod_MSIO_dict.sel_orders
+                MSIO_AddCustomerToSel_customers(sel_customers, sel_orders, cust_pk_int);
+            } else {
+                // ---  remove this customer from mod_MSIO_dict.sel_customers
+                // ---  also remove orders from this customer from mod_MSIO_dict.sel_customers
+                MSIO_RemoveCustomerFromSel_customers(sel_customers, sel_orders, cust_pk_int)
+            }
 
-        if(tblName === "tbl_available") {
-            // add  this customer to mod_MSIO_dict.sel_customers
-            // also add all orders from this customer to mod_MSIO_dict.sel_orders
-            MSIO_AddCustomerToSel_customers(sel_customers, sel_orders, cust_pk_int);
         } else {
-            // ---  remove this customer from mod_MSIO_dict.sel_customers
-            // ---  also remove orders from this customer from mod_MSIO_dict.sel_customers
-            MSIO_RemoveCustomerFromSel_customers(sel_customers, sel_orders, cust_pk_int)
+            if(tblName === "tbl_available") {
+                // remove field from list of hidden fields
+                MSIO_RemoveFieldFromHiddenFields(fldName, sel_fields);
+            } else {
+                // add field to list of hidden fields
+                MSIO_AddFieldToHiddenFields(fldName, sel_fields)
+            }
         }
         mod_MSIO_dict.lists[listname].haschanged = true;
 
         MSIO_SetHref();
         MSIO_FillTbls(listname);
-
     }  // MSIO_AddRemoveCustomer
 
 //========= MSIO_AddRemoveOrder  ============= PR2021-03-29
@@ -3061,25 +3133,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSIO_RemoveCustomerFromSel_customers  ============= PR2021-03-31
     function MSIO_RemoveCustomerFromSel_customers(sel_customers, sel_orders, cust_pk_int) {
-        console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
-// ---  remove this customer from sel_customers
-        if(sel_customers.includes(cust_pk_int)) {
-             for (let i = 0, sel_pk_int; sel_pk_int = sel_customers[i]; i++) {
-                if (sel_pk_int === cust_pk_int) {
-                    sel_customers.splice(i, 1);
-                    break;
+        //console.log( "===== MSIO_RemoveCustomerFromSel_customers  ========= ");
+        // this function is also used to add field to list of hidden fields PR2021-04-17
+        if (!mod_MSIO_dict.show_tbl_columns){
+    // ---  remove this customer from sel_customers
+            if(sel_customers.includes(cust_pk_int)) {
+                 for (let i = 0, sel_pk_int; sel_pk_int = sel_customers[i]; i++) {
+                    if (sel_pk_int === cust_pk_int) {
+                        sel_customers.splice(i, 1);
+                        break;
+                    }
+                }
+            };
+
+    // ---  also remove all orders from this customer from sel_orders
+            // note: i--; is necessary. See https://love2dev.com/blog/javascript-remove-from-array/
+             for (let i = 0, sel_pk_int; sel_pk_int = sel_orders[i]; i++) {
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", sel_pk_int)
+                const dict_cust_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
+                if (dict_cust_pk_int === cust_pk_int) {
+                    sel_orders.splice(i, 1);
+                    i--;
                 }
             }
-        };
-
-// ---  also remove all orders from this customer from sel_orders
-        // note: i--; is necessary. See https://love2dev.com/blog/javascript-remove-from-array/
-         for (let i = 0, sel_pk_int; sel_pk_int = sel_orders[i]; i++) {
-            const map_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", sel_pk_int)
-            const dict_cust_pk_int = (map_dict.c_id) ? map_dict.c_id : null;
-            if (dict_cust_pk_int === cust_pk_int) {
-                sel_orders.splice(i, 1);
-                i--;
+        } else {
+            if(!sel_customers.includes(cust_pk_int)) {
+            sel_customers.push(cust_pk_int);
             }
         }
     }  // MSIO_RemoveCustomerFromSel_customers
@@ -3151,6 +3230,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // MSIO_RemoveOrderFromSel_orders
 
+//========= MSIO_AddFieldToHiddenFields ============= PR2021-04-17
+    function MSIO_AddFieldToHiddenFields(fldName, sel_fields) {
+        //console.log( "===== MSIO_AddFieldToHiddenFields  ========= ");
+        // add  this field  to list of hidden fields
+        if (!sel_fields.includes(fldName)){
+            sel_fields.push(fldName);
+        }
+    }  // MSIO_AddFieldToHiddenFields
+
+//========= MSIO_RemoveFieldFromHiddenFields ============= PR2021-04-17
+    function MSIO_RemoveFieldFromHiddenFields(fldName, sel_fields) {
+        //console.log( "===== MSIO_RemoveFieldFromHiddenFields  ========= ");
+        // remove  this field  from list of hidden fields
+        if(sel_fields.includes(fldName)) {
+            for (let i = 0, sel_field; sel_field = sel_fields[i]; i++) {
+                if (sel_field === fldName) {
+                    sel_fields.splice(i, 1);
+                    break;
+        }}};
+    }  // MSIO_RemoveFieldFromHiddenFields
 //========= MSIO_FillTblLists  ============= PR2021-03-30
     function MSIO_FillTblLists() {
         //console.log("===== MSIO_FillTblLists ===== ");
@@ -3161,10 +3260,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const listname of Object.keys(mod_MSIO_dict.lists)) {
             if(listname !== "no_list_sys") {
                 MSIO_CreateTblListsRow(listname);
-            }
-        }
+        }};
     } // MSIO_FillTblLists
-
 
 //========= MSIO_CreateTblListsRow  ============= PR2021-03-31
     function MSIO_CreateTblListsRow(listname) {
@@ -3334,7 +3431,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mod_MSIO_dict.lists[new_listname] = deepcopy_dict(this_list_dict);
         mod_MSIO_dict.lists[new_listname].haschanged = true;
 
-        mod_MSIO_dict.lists.no_list_sys = { cl: [], ol: []};
+        mod_MSIO_dict.lists.no_list_sys = { cl: [], ol: [], fld: []};
 
         // remove new_listname from deleted_list, if it is on that list
         if(mod_MSIO_dict.deleted.includes(new_listname)){
@@ -3422,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let new_listname = replaceCharacters(listname);
 
     // ---  add customers to be printed
-            const sel_customers_arr = dict.cl;
+            const sel_customers_arr = (dict.cl) ? dict.cl : [];
             // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
             sel_customers_arr.sort(function(a, b){return a - b});
 
@@ -3440,19 +3537,25 @@ document.addEventListener('DOMContentLoaded', function() {
             // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
             sel_orders_arr.sort(function(a, b){return a - b});
 
+    // ---  add fields to be hidden
+            const sel_fields_arr = (dict.fld) ? dict.fld : [];
+            // PR2020-11-02 from https://www.w3schools.com/js/js_array_sort.asp
+            sel_fields_arr.sort(function(a, b){return a - b});
+
+            // list_dict.pr contains list to be printed
             if(is_sel_listname){
                 if (new_listname && (sel_customers_arr.length || sel_orders_arr.length)) {
-                    list_dict.pr = {name: new_listname, cl: sel_customers_arr, ol: sel_orders_arr};
+                    list_dict.pr = {name: new_listname, cl: sel_customers_arr, ol: sel_orders_arr, fld: sel_fields_arr};
                 } else {
                     list_dict.pr = {};
                 }
             }
             if ("haschanged" in dict) {
+                // list_dict.mod contains modified lists
                 if(new_listname !== "no_list_sys") {
-                    list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr};
+                    list_dict.mod[new_listname] = {cl: sel_customers_arr, ol: sel_orders_arr, fld: sel_fields_arr};
                 }
             }
-
         }
         if(mod_MSIO_dict.deleted && mod_MSIO_dict.deleted.length){
             list_dict.del = mod_MSIO_dict.deleted;
@@ -3504,7 +3607,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        console.log("=== FillExcelRows  =====")
+        //console.log("=== FillExcelRows  =====")
         let ws = {}
 
 // title row

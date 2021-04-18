@@ -512,7 +512,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # 9. return datalists
         # PR2020-05-23 debug: datalists = {} gives parse error.
         # elapsed_seconds to the rescue: now datalists will never be empty
-        elapsed_seconds = int(1000 * (timer() - starttime) ) /1000
+        elapsed_seconds = int(1000 * (timer() - starttime) ) / 1000
         datalists['elapsed_seconds'] = elapsed_seconds
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
@@ -2661,6 +2661,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23 PR2021-02-03
         if request.user is not None and request.user.company is not None:
             has_permit = request.user.is_perm_supervisor or request.user.is_perm_hrman
             if has_permit:
+
     # - reset language
                 # PR2019-03-15 Debug: language gets lost, get request.user.lang again
                 user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2920,6 +2921,11 @@ def create_orderhour_emplhour(upload_dict, error_list, logging_on, request):
         )
         orderhour.save(request=request)
 
+        # - add sortby after saving - it needs the orderhour.pk
+        # - offsetstart has here no value yet
+        orderhour.sortby = f.calculate_sortby(None, is_restshift, orderhour.pk)
+        orderhour.save()
+
 # - create error when orderhour not created
     if orderhour is None:
         msg_err = _('This item could not be created.')
@@ -3158,6 +3164,10 @@ def make_absence_shift(emplhour, orderhour, upload_dict, eplh_update_list, check
                 status=c.STATUS_NONE_ADDED
             )
             new_orderhour.save(request=request)
+
+            # - add sortby after saving - it needs the orderhour.pk PR2021-04-17
+            new_orderhour.sortby = f.calculate_sortby(offset_start, is_restshift, new_orderhour.pk)
+            new_orderhour.save()
 
  # create new emplhour record with current employee
             if new_orderhour:

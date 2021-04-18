@@ -2712,8 +2712,8 @@ def system_updates():
     # update_customercode_ordercode_in_orderhours() PR2020-07-25
     # update_employeecode_in_orderhours() PR2020-07-25
     # update_sysadmin_in_user()  # PR2020-07-30
-    update_key_in_wagecode()  # PR2021-01-29
-    update_sortby_in_orderhours()  # PR2021-03-02
+    #update_sortby_in_orderhours()  # PR2021-03-02
+    update_key_in_wagecode()  # PR2021-01-29 debug PR2021-04-15
 
 def update_sortby_in_orderhours():
     # Once-only function to put emplhour.excelstart of all companies in orderhour.excelstart PR2021-03-02
@@ -2749,10 +2749,12 @@ def update_sortby_in_orderhours():
 
 
 def calculate_sortby(offset_start, is_restshift, orderhour_pk):  # PR2021-03-02
-    logger.debug(' ----- calculate_sortby -----')
+    #logger.debug(' ----- calculate_sortby -----')
 # - calulate order_by.
-    # orderby is istring with the following format:
-    # exceldate : '0063730980' excel_start with leading zero
+    # orderby is string with the following format:
+    # - '0' for rest shift, '1' for other shifts
+    # - offset_start_str: 4 digits, '1440 when offset_start = None
+    # - 'orderhour_pk' last 6 digits with leading zero's
     offset_start_str = ('0000' + str(offset_start))[-4:] if offset_start is not None else '1440'
     is_restshift_str = '0' if is_restshift else '1'
     oh_id_str = ('000000' + str(orderhour_pk))[-6:]
@@ -2763,15 +2765,16 @@ def calculate_sortby(offset_start, is_restshift, orderhour_pk):  # PR2021-03-02
 def update_key_in_wagecode():
     # Once-only function to put value in 'key' in wagecode table, to replace 'iswagefactor etc PR2021-01-29
     #logger.debug('........update_sysadmin_in_user..........')
+    # PR2021-04-15 debug: one-time deffault was '-', therefore functions not update with filter 'key IS NULL'
 
     with connection.cursor() as cursor:
-        sql = "UPDATE companies_wagecode AS w SET key = 'wfc' WHERE w.iswagefactor AND key IS NULL"
+        sql = "UPDATE companies_wagecode AS w SET key = 'wfc' WHERE (w.iswagefactor) AND (key = '-' OR key IS NULL)"
         cursor.execute(sql)
-        sql = "UPDATE companies_wagecode AS w SET key = 'fnc' WHERE w.isfunctioncode AND key IS NULL"
+        sql = "UPDATE companies_wagecode AS w SET key = 'fnc' WHERE (w.isfunctioncode) AND (key = '-' OR key IS NULL)"
         cursor.execute(sql)
-        sql = "UPDATE companies_wagecode AS w SET key = 'slc' WHERE w.iswagecode AND key IS NULL"
+        sql = "UPDATE companies_wagecode AS w SET key = 'slc' WHERE (w.iswagecode) AND (key = '-' OR key IS NULL)"
         cursor.execute(sql)
-        sql = "UPDATE companies_wagecode AS w SET key = 'alw' WHERE w.isallowance AND key IS NULL"
+        sql = "UPDATE companies_wagecode AS w SET key = 'alw' WHERE (w.isallowance) AND (key = '-' OR key IS NULL)"
         cursor.execute(sql)
 
 def update_sysadmin_in_user():
@@ -3681,7 +3684,7 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
 
 
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
-    logging_on = False
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' =============== check_emplhour_overlap ============= ')
 
