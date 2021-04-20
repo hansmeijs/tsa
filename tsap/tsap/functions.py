@@ -2663,7 +2663,6 @@ def calc_wage_rounded(time_duration, is_restshift, nopay, wagerate, wagefactor):
 
 
 #######################################
-
 def dictfetchall(cursor):
     # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly
     # creates list of dicts from output cursor.execute instead of list of lists

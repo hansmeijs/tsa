@@ -3188,7 +3188,7 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
                 elif table == 'wagecode':
                     update_wrap['updated_wagecode_rows'] = upload_wagecode(key_str, upload_dict, request, logging_on)
 
-# +++++ EMPLOYEE PAYDATECODE, FUNCTION
+# +++++ EMPLOYEE, field functioncode, wagecode, paydatecode
                 elif table == 'employee':
                     update_wrap['updated_employee_rows'] = upload_pdc_wgc_fnc_in_employee(upload_dict, request, logging_on)
 
@@ -3956,7 +3956,7 @@ def update_paydatecodeitem(instance, upload_dict, update_dict, request):
 
 # === upload_pdc_wgc_fnc_in_employee ===================================== PR2020-06-18 PR2021-02-28
 def upload_pdc_wgc_fnc_in_employee(upload_dict, request, logging_on):
-    # put new paydatecode / wagecode / functioncode in all non-locked employees in employee_list
+    # put new paydatecode / functioncode / (todo: wagecode)  in all non-locked employees in employee_list
     # if 'pk' = None the existing value will be removed
 
     if logging_on:
