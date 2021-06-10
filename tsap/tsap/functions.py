@@ -1194,6 +1194,7 @@ def format_period_from_datetimelocal(periodstart_dtmlocal, periodend_dtmlocal, t
 
     return display_text
 
+
 def format_WDMY_from_dte(dte, user_lang):
     # returns 'zo 16 juni 2019'
     date_WDMY = ''
@@ -1274,6 +1275,7 @@ def format_DMY_from_dte(dte, lang):  # PR2019-06-09
     return date_DMY
 
 
+# NIU PR2021-05-09
 def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
     #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
     date_longstr = ''
@@ -1289,39 +1291,6 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
             if lang == c.LANG_EN:
                 time_longstr = dte.strftime("%H:%M %p")
                 day_str = day_str + ','
-                date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
-            elif lang == c.LANG_NL:
-                time_longstr = dte.strftime("%H.%M") + 'u'
-                date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
-        except:
-            pass
-    #logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
-    return date_longstr
-
-
-def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
-    #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
-    date_longstr = ''
-    if dte:
-        try:
-
-            #weekday_str = str(datetime_aware.strftime("%a"))
-            #weekday_int = str(datetime_aware.strftime("%w"))
-            #year_str = str(datetime_aware.strftime("%Y"))
-            #month_str = str(datetime_aware.strftime("%m"))
-            #day_str = str(datetime_aware.strftime("%d"))
-            #date_str = '-'.join([year_str, month_str, day_str])
-
-            year_str = str(dte.year)
-            day_str = str(dte.day)
-            month_lang = ''
-            if lang in c.MONTHS_ABBREV:
-                month_lang = c.MONTHS_ABBREV[lang]
-            month_str = month_lang[dte.month]
-
-            if lang == c.LANG_EN:
-                time_longstr = dte.strftime("%H:%M %p")
-                day_str  = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
             elif lang == c.LANG_NL:
                 time_longstr = dte.strftime("%H.%M") + 'u'
@@ -1637,7 +1606,6 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
     return has_overlap, delete_this_row
 
 
-
 def check_shift_overlap_with_startend(a, b, x, y):  # PR2020-05-12
     #logger.debug(' --- check_shift_overlap_with_startend --- ')
     # parameterss are excelstart and excelend. Value of excelstart = exceldate * 1440 + offsetstart
@@ -1683,6 +1651,7 @@ def check_shift_overlap_with_startend(a, b, x, y):  # PR2020-05-12
         #logger.debug('     has blanks overlap_start = False overlap_end = False')
         pass
     return overlap_start, overlap_end
+
 
 def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
     #logger.debug(' --- check_overlap --- ')
@@ -2352,8 +2321,6 @@ def calc_pricerate_from_emplhour(emplhour):  # PR2020-11-24  PR2020-11-27
     return price_rate
 
 
-
-
 def calc_pricerate_from_values(sh_prc_id, sh_prc_override, e_prc_id, rosterdate_dte ):  # PR2020-11-24
    #logger.debug(' --------- calc_pricerate_from_values -------------')
    #logger.debug('sh_prc_id: ' + str(sh_prc_id) + ' sh_prc_override: ' + str(sh_prc_override))
@@ -2566,7 +2533,6 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     #logger.debug('new is_update: ' + str(is_update))
 
     return pricerate_dict, is_update
-
 # -- end of save_pricerate_to_dict
 
 
@@ -2714,6 +2680,7 @@ def system_updates():
     #update_sortby_in_orderhours()  # PR2021-03-02
     update_key_in_wagecode()  # PR2021-01-29 debug PR2021-04-15
 
+
 def update_sortby_in_orderhours():
     # Once-only function to put emplhour.excelstart of all companies in orderhour.excelstart PR2021-03-02
     # this one takes too long - gives error 502 bad gateway
@@ -2775,6 +2742,7 @@ def update_key_in_wagecode():
         cursor.execute(sql)
         sql = "UPDATE companies_wagecode AS w SET key = 'alw' WHERE (w.isallowance) AND (key = '-' OR key IS NULL)"
         cursor.execute(sql)
+
 
 def update_sysadmin_in_user():
     # Once-only function to add sysadmin permit to admin users PR2020-07-30
@@ -2882,6 +2850,7 @@ def update_sysadmin_in_user():
 
 ###############################################################
 # FORMAT ELEMENTS
+
 def format_date_element(rosterdate_dte, user_lang,
                         show_weekday=True, show_wd_long=False, show_day=True,
                         show_month=True, show_month_long=False, show_year=True):
@@ -2972,6 +2941,7 @@ def format_time_element(rosterdate_dte, offset, timeformat, user_lang,
 
     return display_txt
 
+
 def format_time_range(timestart_local, timeend_local, timeformat, user_lang):
     # PR2020-01-26
     use24insteadof00 = True
@@ -2981,6 +2951,7 @@ def format_time_range(timestart_local, timeend_local, timeformat, user_lang):
     display_txt = ' - '.join([timestart_txt, timeend_txt])
 
     return display_txt
+
 
 def display_duration(value_int, user_lang, skip_prefix_suffix):
     #logger.debug(' ========= display_duration  ======== ')  # PR2020-01-24
@@ -3121,6 +3092,7 @@ def calc_timeduration_from_shift(shift):
 
     return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
 
+
 # <<<<<<<<<< calc_timedur_plandur_from_offset >>>>>>>>>>>>>>>>>>> PR2020-08-29
 def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, is_billable, is_sat, is_sun, is_ph, is_ch,
         row_offsetstart, row_offsetend, row_breakduration, row_timeduration, row_plannedduration, update_plandur,
@@ -3140,7 +3112,7 @@ def calc_timedur_plandur_from_offset(rosterdate_dte, is_absence, is_restshift, i
     # - calculates timeduration, only when both start- and endtime have value.
     # - and takes in account daylight saving time
     # - value of row_timeduration is used when offset_start or offset_end is null (shift '6:00 hours')
-    logging_on = s.LOGGING_ON
+    logging_on = False  # s.LOGGING_ON
     if logging_on:
         logger.debug(' ----- calc_timedur_plandur_from_offset ----- ')
         logger.debug('is_absence: ' + str(is_absence))
@@ -3281,7 +3253,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
 
     # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
     if rosterdate_dte:
-# a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
+# a. convert date_obj 'rosterdate_dte' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
         #logger.debug(' rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
         # rosterdate_dte: 2019-11-21 <class 'datetime.date'>
@@ -3309,6 +3281,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             new_timeduration = timeduration
 
     return starttime_local, endtime_local, new_timeduration
+
 
 def calc_datepart(offsetstart, offsetend):  # PR2020-03-23
     # e. calculate datepart, only when start- and enddate are filled in
@@ -3683,7 +3656,7 @@ def create_emplhourdict_of_employee(datefirst_iso, datelast_iso, employee_pk, re
 
 
 def check_emplhour_overlap(datefirst_iso, datelast_iso, employee_pk_list, request):
-    logging_on = s.LOGGING_ON
+    logging_on = False  # s.LOGGING_ON
     if logging_on:
         logger.debug(' =============== check_emplhour_overlap ============= ')
 

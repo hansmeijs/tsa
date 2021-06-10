@@ -1455,9 +1455,9 @@
         return display_text;
     }  // format_wagefactor
 
-//========= format_pricerate ======== PR2019-08-22 PR2020-07-10 PR2021-01-29
-    function format_pricerate (user_lang, value_int, is_percentage, show_zero, no_thousand_separators) {
-        //console.log(" --- format_pricerate  -----")
+//========= f_format_pricerate ======== PR2019-08-22 PR2020-07-10 PR2021-01-29
+    function f_format_pricerate (user_lang, value_int, is_percentage, show_zero, no_thousand_separators) {
+        //console.log(" --- f_format_pricerate  -----")
         is_percentage = (is_percentage) ? is_percentage : false;
         show_zero = (show_zero) ? show_zero : false;
 
@@ -1475,9 +1475,9 @@
             }
             const decimal_separator = (user_lang === "en") ? "." : ",";
             const thousand_separator = (user_lang === "en") ? "," : ".";
-            // PR2021-03-29 debug. Divisor is also 100 when percentage
-            // was: const divisor = is_percentage ? 10000 : 100;
-            const divisor =  100;
+            // PR2021-06-05 this is not correct: PR2021-03-29 debug. Divisor is also 100 when percentage
+            // was: const divisor =  100;
+            const divisor = is_percentage ? 10000 : 100;
 
 // --- calculate whole number ('dollar' when currency)
     // --- divide by 100 when number, by 10,000 when percentage
@@ -1499,7 +1499,6 @@
                     dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
                 }
             }
-
 // --- create cents text
             let cent_text = "";
             if(is_percentage && !cents_int){
@@ -1526,7 +1525,7 @@
         if (display_text && is_percentage) {display_text += "%" }
         //console.log("display_text", display_text)
         return display_text
-    }  // format_pricerate
+    }  // f_format_pricerate
 
 //========= format_shift_count ======== PR2020-02-28
     function format_shift_count (shift_count, loc) {
@@ -1866,5 +1865,39 @@
             if(!timeout) { timeout = 2000};
             el.classList.add(className);
             setTimeout(function (){el.classList.remove(className)}, timeout);
+        };
+    }
+
+
+//=========  ShowModMessages  ================ PR2021-06-09
+    function ShowModMessages(messages) {
+        // show class, remove it after timeout milliseconds
+
+        //  [ { class: "alert-warning",
+        //      msg_list: ["Deze loonperiode heeft 7 diensten.", "Alle diensten zijn al afgesloten.", "Er worden geen diensten afgesloten."] } ]
+
+        if(messages && messages.length){
+            let html_text = "", msg_header = null;
+            //const el_header =  document.getElementById("id_mod_message_header");
+            //if(el_header) {el_header.innerText = msg_header};
+            const el_container = document.getElementById("id_mod_message_container");
+            if(el_container){
+                el_container.innerHTML = null;
+                for (let i = 0, msg_dict; msg_dict = messages[i]; i++) {
+                    const class_str = (msg_dict.class) ? msg_dict.class : "border_bg_transparent";
+
+            // --- create div element with alert border for each message in messages
+                    const el_border = document.createElement("div");
+                    el_border.classList.add(class_str, "p-2");
+                        const msg_list = (msg_dict.msg_list) ? msg_dict.msg_list : [];
+                        for (let j = 0, msg_txt; msg_txt = msg_list[j]; j++) {
+                            const el_div = document.createElement("div");
+                            el_div.innerHTML = msg_txt;
+                            el_border.appendChild(el_div);
+                        }
+                    el_container.appendChild(el_border);
+                };
+            }  // if(el_container)
+            $("#id_mod_message").modal({backdrop: true});
         };
     }

@@ -1581,7 +1581,6 @@ def add_emplhour(row, orderhour, employee_dictlist, wagecode_dictlist, tm_si_id_
                 datepart=date_part,
 
                 paydatecode_id=pdc_id,
-                lockedpaydate=False,
 
                 timestart=timestart,
                 timeend=timeend,
@@ -1678,9 +1677,9 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
                     WHERE c.company_id = %(comp_id)s::INT 
                     AND (oh.rosterdate = %(rd)s::DATE OR oh.rosterdate IS NULL)
                     AND oh.status < %(oh_status)s::INT 
-                    AND NOT eh.lockedpaydate AND NOT oh.lockedinvoice
+                    AND eh.payrollpublished_id IS NULL AND eh.invoicepublished_id IS NULL
                 )"""
-    newcursor.execute(sql_delete,sql_keys)
+    newcursor.execute(sql_delete, sql_keys)
     deleted_count = newcursor.rowcount
 
 
@@ -1690,24 +1689,25 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
     #  - this company
     #  - this rosterdate
     #  - eh_status less than confirmed_start
-    #  - not eh_locked, not eh_lockedpaydate
+    #  - not eh_locked, payrollpublished_id IS NULL
     #  - oh_status less than locked
     #  - not oh_locked, not oh_lockedinvoice
     # not in use:  AND (NOT eh.locked) , AND (NOT oh.locked)
-    sql_delete = """ DELETE FROM companies_emplhour AS eh
-                WHERE (eh.rosterdate = %(rd)s::DATE OR eh.rosterdate IS NULL) 
-                AND eh.status < %(eh_status)s::INT 
-                AND NOT eh.lockedpaydate
-                AND orderhour_id IN (
-                    SELECT oh.id AS oh_id FROM companies_orderhour AS oh
-                    INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
-                    INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                    WHERE c.company_id = %(comp_id)s::INT 
-                    AND (oh.rosterdate = %(rd)s::DATE OR oh.rosterdate IS NULL)
-                    AND oh.status < %(oh_status)s::INT 
-                    AND NOT oh.lockedinvoice
-                )"""
-    newcursor.execute(sql_delete,sql_keys)
+    sql_list = ["DELETE FROM companies_emplhour AS eh",
+                "WHERE (eh.rosterdate = %(rd)s::DATE OR eh.rosterdate IS NULL)",
+                "AND eh.status < %(eh_status)s::INT",
+                "AND eh.payrollpublished_id IS NULL",
+                "AND eh.invoicepublished_id IS NULL",
+                "AND orderhour_id IN (",
+                    "SELECT oh.id AS oh_id FROM companies_orderhour AS oh",
+                    "INNER JOIN companies_order AS o ON (oh.order_id = o.id)",
+                    "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                    "WHERE c.company_id = %(comp_id)s::INT",
+                    "AND (oh.rosterdate = %(rd)s::DATE OR oh.rosterdate IS NULL)",
+                    "AND oh.status < %(oh_status)s::INT )"]
+    sql = ' '.join(sql_list)
+
+    newcursor.execute(sql,sql_keys)
     deleted_count = newcursor.rowcount
 
     # b delete 'childless' orderhour records (i.e. without emplhour records)
@@ -1715,21 +1715,16 @@ def delete_emplhours_orderhours(new_rosterdate_dte, request):  # PR2019-11-18
     #  - this rosterdate or rosterdate is null
     #  - any status
     #  - without emplhour records
-
-    newcursor.execute(""" 
-            DELETE FROM companies_orderhour AS oh
-            WHERE order_id IN (
-                SELECT o.id AS o_id FROM companies_order AS o
-                INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                WHERE (c.company_id = %(comp_id)s) 
-            )
-            AND id NOT IN (
-                SELECT orderhour_id FROM companies_emplhour
-            )
-            AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL) 
-            """, {
-        'comp_id': request.user.company_id,
-        'rd': new_rosterdate_dte})
+    sql_keys =  {'comp_id': request.user.company_id, 'rd': new_rosterdate_dte}
+    sql_list = ["DELETE FROM companies_orderhour AS oh",
+            "WHERE order_id IN (",
+                "SELECT o.id AS o_id FROM companies_order AS o",
+                "INNER JOIN companies_customer AS c ON (o.customer_id = c.id)",
+                "WHERE (c.company_id = %(comp_id)s)  )",
+            "AND id NOT IN (SELECT orderhour_id FROM companies_emplhour)",
+            "AND (oh.rosterdate = %(rd)s OR oh.rosterdate IS NULL)"]
+    sql = ' '.join(sql_list)
+    newcursor.execute(sql,sql_keys)
     deleted_count_oh = newcursor.rowcount
 
     return deleted_count, deleted_count_oh

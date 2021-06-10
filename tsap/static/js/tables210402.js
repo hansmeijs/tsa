@@ -17,6 +17,7 @@
                             header_txt, title_header_btn, title_row_btn) {
         //console.log("===== t_Fill_SelectTable ===== ", tblName);
         //console.log("header_txt = ", header_txt)
+        // used to select customer, order, abscat and scheme
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive filters in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -152,8 +153,9 @@
                                 bc_color_default, bc_color_selected, bc_color_hover,
                                 imgsrc_default, imgsrc_default_header, imgsrc_black, imgsrc_hover,
                                 title_row_btn, is_selected_row) {
-        //console.log(" === t_CreateSelectRow === ")
+       // console.log(" === t_CreateSelectRow === ")
         //console.log("item_dict = ", item_dict)
+
         is_selected_row = false;
 // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -162,16 +164,43 @@
         if (!isEmpty(item_dict)) {
 
 //--- get info from item_dict
-            const id_dict = get_dict_value (item_dict, ["id"]);
-                const tblName = get_dict_value(id_dict, ["table"]);
-                const pk_int = get_dict_value(id_dict, ["pk"]);
-                const ppk_int = get_dict_value(id_dict, ["ppk"]);
-                const is_absence = get_dict_value(id_dict, ["isabsence"], false);
-                const is_template = get_dict_value(id_dict, ["istemplate"], false);
-                const map_id = get_map_id(tblName, pk_int);
-                const code_value = get_dict_value(item_dict, ["code", "value"], "")
-                const is_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
-
+            // the old way: get info from id_dict, if id exists in map. PR2021-05-26
+            // warning: make sure teher is no field 'id' in map
+            let tblName = null, ppk_int = null, map_id = null, code_value = null;
+            let is_absence = false, is_template = false, is_inactive = false;
+            // check if there is a dict id: {pk = 33} in item_dict. If so: it is an old version using 'scheme_list' oid
+            let pk_int = get_dict_value(item_dict, ["id", "pk"]);
+            if(pk_int){
+                const id_dict = get_dict_value (item_dict, ["id"]);
+                tblName = get_dict_value(id_dict, ["table"]);
+                pk_int = get_dict_value(id_dict, ["pk"]);
+                ppk_int = get_dict_value(id_dict, ["ppk"]);
+                map_id = get_map_id(tblName, pk_int);
+                code_value = get_dict_value(item_dict, ["code", "value"], "");
+                is_absence = get_dict_value(id_dict, ["isabsence"], false);
+                is_template = get_dict_value(id_dict, ["istemplate"], false);
+                is_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
+            } else {
+                // the new way: get infor from response ending with '_rows'  PR2021-05-26
+                tblName = item_dict.table;
+                // PR2021-05-27 use new format of scheme_rows
+                if (tblName === "scheme"){
+                    pk_int = item_dict.id;
+                    ppk_int = item_dict.o_id;
+                    code_value = (item_dict.code) ? item_dict.code : "";
+                } else {
+                    pk_int = item_dict.pk;
+                    ppk_int = item_dict.ppk;
+                    code_value = get_dict_value(item_dict, ["code"], "");
+                }
+        console.log("tblName = ", tblName)
+        console.log("pk_int = ", pk_int)
+        console.log("ppk_int = ", ppk_int)
+                map_id = item_dict.mapid;
+                is_absence = get_dict_value(item_dict, ["isabsence"], false);
+                is_template = get_dict_value(item_dict, ["istemplate"], false);
+                is_inactive = get_dict_value(item_dict, ["inactive"], false);
+            }
     //--------- filter parent_pk or inactive if filter has value
             let ppk_str = "", filter_ppk_str = "";
             if (ppk_int) {ppk_str = ppk_int.toString()};
@@ -287,24 +316,28 @@
 //========= t_UpdateSelectRow  ============= PR2019-10-20 PR2020-05-21
     function t_UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_default, imgsrc_black) {
         //console.log("t_UpdateSelectRow in tables.js");
+        //console.log("update_dict", update_dict);
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
-
-        //console.log("update_dict", update_dict);
         // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
         if(!isEmpty(update_dict)){
             if(!!selectRow){
                 //const id_dict = get_dict_value_by_key (update_dict, "id");
                 //const is_deleted = ("deleted" in id_dict);
-                const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
+                const is_deleted = get_dict_value(update_dict, ["id", "deleted"], false);
 
+        console.log("is_deleted", is_deleted);
     // --- if deleted record: remove row
                 if(!!is_deleted) {
                     selectRow.parentNode.removeChild(selectRow)
                 } else {
     // --- put value of select row in tblRow and el_input
-                    let code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
-
+                    let code_value = null;
+                    if (update_dict.table === "scheme"){
+                        code_value = (update_dict.code) ? update_dict.code : null;
+                    } else {
+                        code_value = get_dict_value(update_dict, ["code", "value"], "")
+                    }
     // if include_parent_code: add parent code to code_value . include_parent_code containsname of table: 'customer'
                     if (!!include_parent_code && include_parent_code in update_dict){
                         const parent_code = get_subdict_value_by_key (update_dict, include_parent_code, "code");
@@ -822,8 +855,11 @@
                         // employee / rosterdate and order column
                             // filter_row text is already trimmed and lowercase
                             const cell_value = filter_row[col_index];
+
                             // hide row if filter_value not found or when cell is empty
-                             if(cell_value){
+                            // PR2021-05-18 debug: when switching from btn payrol period to btn roster details
+                            // the filterrow contains a number. Cannot find out why. Add string check for now
+                             if(cell_value && typeof cell_value === "string"){
                                 if(cell_value.indexOf(filter_value) === -1){hide_row = true};
                              } else {
                                 hide_row = true;
@@ -1126,14 +1162,14 @@
 //========= t_get_rowindex_by_orderby  ================= PR2020-06-30
     function t_get_rowindex_by_orderby(tblBody, search_orderby) {
         //console.log(" ===== t_get_rowindex_by_orderby =====");
-        //console.log("tblBody", tblBody);
+        //console.log("search_orderby", search_orderby);
         let row_index = -1;
 // --- loop through rows of tblBody_datatable
         if(search_orderby){
             if (typeof search_orderby === 'string' || search_orderby instanceof String) {
                 search_orderby = search_orderby.toLowerCase()};
-       //console.log("search_orderby", search_orderby);
             for (let i = 0, tblRow; tblRow = tblBody.rows[i]; i++) {
+        //console.log("tblRow.rowIndex", tblRow.rowIndex);
                 let row_orderby = get_attr_from_el(tblRow, "data-orderby");
                 if(row_orderby){
                     if (typeof row_orderby === 'string' || row_orderby instanceof String) {
@@ -1141,12 +1177,12 @@
        //console.log("row_orderby", row_orderby);
                     if(search_orderby < row_orderby) {
     // --- search_rowindex = row_index - 1, to put new row above row with higher row_orderby
-                        row_index = tblRow.rowIndex - 1;
+                        row_index = tblRow.rowIndex; // tblRow.rowIndex - 1;
         //console.log("search_orderby < row_orderby: row_index = ", row_index);
                         break;
         }}}}
         if(!row_index){row_index = 0}
-        if(row_index >= 0){ row_index -= 1 }
+
         return row_index
     }  // t_get_rowindex_by_orderby
 
@@ -2479,10 +2515,12 @@
 // --- loop through scheme_map
         // lookup schemes of this order that end with a character, like 'Team C'
         for (const [map_id, item_dict] of scheme_map.entries()) {
-            const scheme_ppk = get_dict_value(item_dict, ["id", "ppk"])
-            if(scheme_ppk === order_pk){
+            // use new format from scheme_rows PR2021-05-27
+
+            const scheme_ppk = item_dict.o_id;
+            if(scheme_ppk && scheme_ppk === order_pk){
                 count += 1;
-                const code_value = get_dict_value(item_dict, ["code", "value"], "")
+                const code_value = (item_dict.code) ? item_dict.code : "";
 // ----  get index of scheme (Scheme 2 has index 2)
                 const index_str = code_value.slice(default_code_len).trim();
                 if(!!index_str && !!Number(index_str)){

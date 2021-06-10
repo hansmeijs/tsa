@@ -329,7 +329,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Payroll_code_abbrev'] = TXT_Payroll_code_abbrev
         dict['Payroll_code_2lines'] = TXT_Payroll_code_2lines
 
-
         dict['Projectcode_2lines'] = pgettext_lazy('Projectcode_2lines', 'Project-\ncode')
 
         dict['No_payroll_periods'] = TXT_No_payroll_periods
@@ -338,6 +337,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['Show_hide_columns'] = _('Show or hide columns')
         dict['Upload_payroll_periods'] = _('Upload payroll periods')
+        dict['Close_payroll_period'] = _('Close payroll period')
+        dict['Closed_payroll_period'] = _('Closed payroll period')
+        dict['Undo_closed_payroll_period'] = _('Undo closed payroll period')
 
         dict['payroll_columns_list'] = TXT_payroll_columns_list
 
@@ -456,6 +458,16 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['Delete_wagecode'] = TXT_Delete_wagecode
 
         dict['Description'] = TXT_Description
+        dict['First_date'] = TXT_First_date
+        dict['Last_date'] = TXT_Last_date
+        dict['Number_of_closed_shifts'] = _('Number of closed shifts')
+        dict['Date_closed'] = _('Date of closing')
+        dict['Download'] = _('Download')
+        dict['Correction'] = _('Correction')
+        dict['Add_correction'] = _('Add correction')
+
+        dict['will_be_made_undone'] = _(' will be made undone.')
+        dict['Year'] = _('Year')
 
         dict['There_is_no'] = _('There is no ')
         dict['selected'] = _(' selected')
@@ -532,22 +544,30 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
 
         dict['No_payment'] = _('No payment')
 
+        dict['Show_correction'] = _('Show correction')
+        dict['Add_correction'] = _('Add correction')
+        dict['Delete_correction'] = _('Delete correction')
+        dict['Correction_hours'] = _('Correction hours')
 
         dict['Show_logfile'] = _('Show log file')
         dict['Hide_logfile'] = _('Hide log file')
 
         dict['Modified_on'] = _('Modified on')
         dict['_on_'] = TXT_date_prefix_on
+        dict['By'] = _('By')
 
         dict['Back_to_previous_level'] = TXT_Back_to_previous_level
 
         dict['This_is_rostershift'] = _('This is a roster shift.')
+        dict['This_is_closed_rostershift'] = _('This is a closed roster shift.')
+        dict['This_is_correction'] = _('This is a correction.')
         dict['Please_select_abscat_first'] = TXT_Please_select_abscat_first
         dict['Please_select_function_first'] = TXT_Please_select_function_first
         dict['Please_select_wagecomponent_first'] = TXT_Please_select_wagecomponent_first
         dict['Please_select_allowance_first'] = TXT_Please_select_allowance_first
         dict['Please_select_salaryscale_first'] = TXT_Please_select_salaryscale_first
         dict['Please_select_payrollperiod_first'] = TXT_Please_select_payrollperiod_first
+        dict['Please_select_published_first'] = TXT_Please_select_published_first
 
         # excel
         dict['Export_to_AFAS'] = _("Export to AFAS")
@@ -1500,6 +1520,7 @@ TXT_Please_select_wagecomponent_first = _('Please select a wage component first.
 TXT_Please_select_allowance_first = _('Please select an allowance first.')
 TXT_Please_select_salaryscale_first = _('Please select a salary scale first.')
 TXT_Please_select_payrollperiod_first = _('Please select a payroll period first.')
+TXT_Please_select_published_first = _('Please select a published payroll period first.')
 
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Replacement_employees = _('Replacement employees')

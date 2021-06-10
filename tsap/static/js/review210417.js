@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  show only the elements that are used in this tab
-        show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn);
+        b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn);
 
 // ---  show submenu btns collapse_all ./ expand all
         let hide_btn = (selected_btn !== "btn_prices");
@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const map_dict = pricecode_map.get(pat_id);
                             const is_percentage = ([4, 5].includes(i)) ? true : false;
                             // show_zero = true necessary to show difference between 0 and null
-                            pricerate_display = format_pricerate (loc.user_lang, map_dict.pci_pricerate, is_percentage, true)  // show_zero = true
+                            pricerate_display = f_format_pricerate (loc.user_lang, map_dict.pci_pricerate, is_percentage, true)  // show_zero = true
                             //if (!!map_dict.pc_note) {pricerate_display += " " + map_dict.pc_note}
 
                             datefirst_display = format_dateJS_vanilla (loc, map_dict.shft_pricerate_df, true, false);
@@ -1266,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         //--- get info from dict
                     const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].includes(fldName));
-                    const pricerate_display = format_pricerate (loc.user_lang, dict.pci_pricerate, is_percentage, true)  // show_zero = true
+                    const pricerate_display = f_format_pricerate (loc.user_lang, dict.pci_pricerate, is_percentage, true)  // show_zero = true
                     const datefirst_JS = get_dateJS_from_dateISO (dict.pci_datefirst)
         //console.log("dict.pci_pricerate", dict.pci_pricerate);
         //console.log("is_percentage", is_percentage);
@@ -1456,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             td.removeAttribute("data-pk")
                         }
                         const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].includes(fldName));
-                        let pricerate_display = format_pricerate (loc.user_lang, pci_pricerate, is_percentage, true)  // show_zero = true
+                        let pricerate_display = f_format_pricerate (loc.user_lang, pci_pricerate, is_percentage, true)  // show_zero = true
                         // if (!!pc_note) {pricerate_display += " " + pc_note}
                         const datefirst_JS = get_dateJS_from_dateISO (pci_datefirst)
                         const datefirst_display = format_dateJS_vanilla (loc, datefirst_JS, true, false);
@@ -1583,8 +1583,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  col 10 is total_amount
             col_index +=1
             excelcol_index +=1;
-            // format_pricerate is_percentage = false, show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
+            // f_format_pricerate is_percentage = false, show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + f_format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
             filter_data[col_index] = (item.eh_total_sum) ? item.eh_total_sum / 100 : null;
             excel_data[excelcol_index] = item.eh_total_sum;
 // ---  col 11 is  status icon
@@ -1692,8 +1692,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  col 10 is total_amount
             col_index +=1;
             excelcol_index +=1;
-            // format_pricerate  is_percentage = false, show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
+            // f_format_pricerate  is_percentage = false, show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + f_format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
             filter_data[col_index] = item.eh_total_sum;
             excel_data[excelcol_index] = item.eh_total_sum;
 // ---  col 11 is  status icon
@@ -1821,8 +1821,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  col 12 is total_amount
             col_index +=1
                 excelcol_index +=1
-            // format_pricerate is_percentage = false, show_zero = false
-            td_html[col_index] = "<td><div class=\"ta_r\">" + format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
+            // f_format_pricerate is_percentage = false, show_zero = false
+            td_html[col_index] = "<td><div class=\"ta_r\">" + f_format_pricerate (loc.user_lang, item.eh_total_sum) + "</div></td>"
             filter_data[col_index] = item.eh_total_sum;
             excel_data[excelcol_index] = item.eh_total_sum;
 // ---  col 13 is  status icon
@@ -1886,14 +1886,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if(item_arr){
             const len = item_arr.length;
             if(len) {
-                rate_formatted = format_pricerate (loc.user_lang, item_arr[0], is_percentage, false); //  show_zero = false
+                rate_formatted = f_format_pricerate (loc.user_lang, item_arr[0], is_percentage, false); //  show_zero = false
                 rate_str = rate_formatted;
                 if(item_arr[0]) {excel_int = item_arr[0]};
                 if(len > 1) {
                     if (!rate_str) { rate_str = (is_percentage) ? "0%" : "0" };
                     rate_title = " title=\"" + ( (item_arr[0]) ? rate_formatted : (is_percentage) ? "0%" : "0");
                     for (let i = 1; i < len; i++) {
-                        const item_formatted = format_pricerate (loc.user_lang, item_arr[i], is_percentage, false) // show_zero = false
+                        const item_formatted = f_format_pricerate (loc.user_lang, item_arr[i], is_percentage, false) // show_zero = false
                         rate_title += "\n" + ( (item_arr[i]) ? item_formatted : (is_percentage) ? "0%" : "0" );
                         rate_str += "; " + ( (item_arr[i]) ? item_formatted : (is_percentage) ? "0%" : "0" );
                         // delete  excel_int if a different one is found
@@ -2134,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_div = tblRow.cells[col_index].children[0];
                 if (el_div){
                     if( i === 3){
-                        el_div.innerText = format_pricerate (loc.user_lang, billing_total_row[i]); // is_percentage = false, show_zero = false
+                        el_div.innerText = f_format_pricerate (loc.user_lang, billing_total_row[i]); // is_percentage = false, show_zero = false
                     } else {
                         el_div.innerText = format_total_duration(billing_total_row[i], loc.user_lang);
                     }
@@ -2828,7 +2828,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  calc_pricerate_avg_format  === PR2020-04-28
     function calc_pricerate_avg_format(billing_duration, total_amount){
         const avg_rounded = calc_pricerate_avg(billing_duration, total_amount);
-        return format_pricerate (loc.user_lang, avg_rounded); // is_percentage = false, show_zero = false
+        return f_format_pricerate (loc.user_lang, avg_rounded); // is_percentage = false, show_zero = false
     }
 
 
@@ -2878,7 +2878,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= MSIO_Save  ============= PR2021-03-30
     function MSIO_Save() {
-        //console.log("===== MSIO_Save ===== ");
+        console.log("===== MSIO_Save ===== ");
         //  lists are stored in href attribute of save button. calls afas_invoice_xlsx_url
         // setTimeout necessary, otherwise href will not work
         setTimeout(function (){
@@ -3253,20 +3253,28 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= MSIO_FillTblLists  ============= PR2021-03-30
     function MSIO_FillTblLists() {
         //console.log("===== MSIO_FillTblLists ===== ");
-        //console.log("order_pk_str", order_pk_str);
-        //console.log("cust_order_code", cust_order_code);
+        //console.log("mod_MSIO_dict.lists", mod_MSIO_dict.lists);
 
         el_MSIO_tblBody_lists.innerText = null;
         for (const listname of Object.keys(mod_MSIO_dict.lists)) {
+
             if(listname !== "no_list_sys") {
-                MSIO_CreateTblListsRow(listname);
+                const search_orderby = (listname) ? listname.toLowerCase() : "";  //  PR2021-05-15
+                let row_index = t_get_rowindex_by_orderby(el_MSIO_tblBody_lists, search_orderby)
+
+                MSIO_CreateTblListsRow(listname, row_index);
         }};
     } // MSIO_FillTblLists
 
 //========= MSIO_CreateTblListsRow  ============= PR2021-03-31
-    function MSIO_CreateTblListsRow(listname) {
-        //console.log("===== MSIO_CreateTblListsRow ===== ");
-        const tblRow = el_MSIO_tblBody_lists.insertRow(-1);
+    function MSIO_CreateTblListsRow(listname, row_index) {
+        console.log("===== MSIO_CreateTblListsRow ===== ");
+        console.log("listname", listname, "row_index", row_index);
+
+        const tblRow = el_MSIO_tblBody_lists.insertRow(row_index);
+
+        const row_orderby = (listname) ? listname.toLowerCase() : "";  //  PR2021-05-15
+        tblRow.setAttribute("data-orderby", row_orderby);
 
 // --- add td to tblRow.
         let td = tblRow.insertCell(-1);
@@ -3287,6 +3295,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_input.setAttribute("autocomplete", "off");
             el_input.setAttribute("ondragstart", "return false;");
             el_input.setAttribute("ondrop", "return false;");
+            el_input.addEventListener("click", function() {MSIO_SelectList(el_select)}, false);
             el_input.addEventListener("change", function() {MSIO_InputChange(el_input)}, false);
         td.appendChild(el_input);
 
@@ -3299,6 +3308,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_del.addEventListener("mouseenter", function() {add_or_remove_class (el_del, "delete_0_2", true, "delete_0_1")});
             el_del.addEventListener("mouseleave", function() {add_or_remove_class (el_del, "delete_0_1", true, "delete_0_2")});
         td.appendChild(el_del);
+
         // return el_select for selecting new added list
         return el_select;
     } // MSIO_CreateTblListsRow

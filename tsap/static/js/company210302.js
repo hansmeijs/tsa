@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---  show / hide submenu print planning and Excel
 
     // ---  show / hide elements of selected button
-            show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
+            b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 
 
     // ---  update header text -- >  cant update header text until customer- and order_map are filled

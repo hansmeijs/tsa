@@ -561,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
         highlight_BtnSelect(document.getElementById("id_btn_container"), selected_btn);
 
 // ---  show only the elements that are used in this tab
-        show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
+        b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 
 // ---  fill datatable
         if (selected_btn === "employee"){
@@ -3362,7 +3362,7 @@ if(pgeName === "absence"){
             el_MAB_input_employee.value = mod_MAB_dict.employee_code;
             el_MAB_input_abscat.value = mod_MAB_dict.order_code
             el_MAB_input_replacement.value =  mod_MAB_dict.replacement_code;
-            el_MAB_modifiedby.innerText = display_modifiedby(loc, mod_MAB_dict.modat, mod_MAB_dict.modby_usr);
+            el_MAB_modifiedby.innerText = b_display_modifiedat_by(loc, mod_MAB_dict.modat, mod_MAB_dict.modby_usr);
         }
         //console.log("mod_MAB_dict", deepcopy_dict(mod_MAB_dict))
 // --- when no employee selected: fill select table employee
@@ -6340,8 +6340,8 @@ console.log( "filter_dict", filter_dict);
                         if(planning_total_row[2]){ display = planning_total_row[2]}
                     } else {
                         if(i === 2){
-                            // format_pricerate (loc.user_lang, value_int, is_percentage, show_zero, no_decimals) {
-                            display = format_pricerate (loc.user_lang, 100 * planning_total_row[i], false, false); // is_percentage = false, show_zero = false
+                            // f_format_pricerate (loc.user_lang, value_int, is_percentage, show_zero, no_decimals) {
+                            display = f_format_pricerate (loc.user_lang, 100 * planning_total_row[i], false, false); // is_percentage = false, show_zero = false
                         } else {
                             display = format_total_duration(planning_total_row[i]);
                         }

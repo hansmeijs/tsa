@@ -536,7 +536,7 @@ let planning_list = [] // for export and printing - can replace map?
         add_or_remove_class(el_submenu_order_delete, cls_hide, hide_btn_order)
 
 // ---  show / hide elements of selected button
-        show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
+        b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 
 // ---  update header text -- >  cant update header text until customer- and order_map are filled
         UpdateHeaderText();
@@ -3138,7 +3138,7 @@ let planning_list = [] // for export and printing - can replace map?
         MSO_Grid_HighlightTblShifts()
 
 // ---  show only the elements that are used in this mod
-        show_hide_selected_elements_byClass("mod_show", selected_btn)
+        b_show_hide_selected_elements_byClass("mod_show", selected_btn)
 
     }; // function MSO_BtnSelectClicked
 

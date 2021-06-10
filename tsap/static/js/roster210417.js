@@ -280,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  MOD NOTE ------------------------------------
         const el_MNO_header = document.getElementById("id_MNO_header")
         const el_MNO_note_container = document.getElementById("id_MNO_note_container")
+        const el_MNO_btn_cancel = document.getElementById("id_MNO_btn_cancel")
         const el_MNO_btn_save = document.getElementById("id_MNO_btn_save")
             el_MNO_btn_save.addEventListener("click", function() {MNO_Save()}, false )
 
@@ -595,7 +596,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 Sidebar_DisplaySelectText();
 
                 if (check_status) {
-
 // check for overlap, also get emplhourallowance and emplhournote (and emplhourstatus
                     // these are also called in MRD_Finished, after adding / deleting rosterdate
                     const datalist_request = {
@@ -710,11 +710,13 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTblHeader();
 
 // --- loop through emplhour_map
-        if(emplhour_map) {
+        if(emplhour_map && emplhour_map.size) {
             let previous_oh_id = null, is_odd_row = false;
             for (const [map_id, map_dict] of emplhour_map.entries()) {
+
                 if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
                 previous_oh_id = map_dict.oh_id;
+
         //console.log("employeecode", map_dict.employeecode);
         //console.log("map_dict.oh_id", map_dict.oh_id);
         //console.log("previous_oh_id", previous_oh_id);
@@ -848,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.classList.add("edit_0_0", "pointer_show")
                     add_hover(el)
             } else if ( ["ordernote", "employeenote", "hasnote"].includes(field_name)){
-                    // everybody may see notes, permit_add_notes is used in MNO_open
+                    // everybody may see notes, permit_add_notes is used in  MNO_open
                     el.addEventListener("click", function() {MNO_Open(el)}, false)
                     el.classList.add("edit_0_0", "pointer_show")
                     add_hover(el)
@@ -897,7 +899,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (tblRow && !isEmpty(map_dict)) {
             const confirmed_any = (map_dict.stat_start_conf || map_dict.stat_end_conf);
-            const is_pay_or_inv_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            const is_pay_or_inv_locked = (map_dict.stat_pay_publ || map_dict.stat_inv_publ);
             const is_locked = (is_pay_or_inv_locked || map_dict.stat_locked);
             const status_array = b_get_status_array(map_dict.status);
 
@@ -928,7 +930,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el && !isEmpty(map_dict)) {
             const has_changed = map_dict.haschanged;
 
-            const is_pay_or_inv_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            const is_pay_or_inv_locked = (map_dict.stat_pay_publ || map_dict.stat_inv_publ);
             const is_locked = (is_pay_or_inv_locked || map_dict.stat_locked);
 
             const fldName = get_attr_from_el(el, "data-field");
@@ -937,7 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // function format_dateISO_vanilla (loc, date_iso, hide_weekday, hide_year, is_months_long, is_weekdays_long)
                 inner_text = format_dateISO_vanilla (loc, map_dict.rosterdate, false, true);
                 filter_value = inner_text;
-
+                el.title = format_dateISO_vanilla (loc, map_dict.rosterdate, false, false);
             } else if (fldName === "c_o_code") {
                 const abscat_enabled = (!is_locked && map_dict.c_isabsence && permit_edit_rows);
                 inner_text = (map_dict.c_o_code) ? map_dict.c_o_code : "\n";
@@ -1980,7 +1982,7 @@ rowcount: 11
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= MOD ALLOWANCE Open====================================
     function MAL_Open (el_input) {
-        //console.log("===  MAL_Open  =====") ;
+        console.log("===  MAL_Open  =====") ;
         //  emplhourallowance_dict contains key = alw_pk for every allowance (also created and deleted ones)
         // plus key emplhour_pk and mapid
         mod_MAL_dict = {}
@@ -1988,9 +1990,26 @@ rowcount: 11
 // get info from emplhour_map
         let emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
         if(!isEmpty(emplhour_dict)){
-            // locked when stat_locked or stat_pay_locked, not when stat_inv_locked
-            const is_not_locked = (!emplhour_dict.stat_locked && !emplhour_dict.stat_pay_locked)
-            if (is_not_locked){
+// ---  put emplhour_pk and mapid in mod_MAL_dict
+            mod_MAL_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid};
+
+// ---  put allowance rows in mod_MAL_dict
+            const empl_alw_dict = get_dict_value(emplhourallowance_dict, [emplhour_dict.id])
+            const ehal_count = MAL_fill_MAL_dict(empl_alw_dict)
+        console.log("ehal_count: ", ehal_count) ;
+
+            // locked when stat_locked or stat_pay_publ, not when stat_inv_publ
+            const emplhour_is_locked = (emplhour_dict.stat_locked || emplhour_dict.stat_pay_publ);
+            // also open modal when emplhour_is_locked but has allowances
+
+            // user may only save allowances when emplhour_is_not_locked and user has permit to add allowances
+            mod_MAL_dict.may_save_alw = (!emplhour_is_locked && permit_add_notes);
+
+            // always show modal when there are allowances
+            // when there are no allowances: only show modal when emplhour_is_not_locked and user has permit to add allowances
+            const show_modal = (ehal_count || mod_MAL_dict.may_save_alw);
+
+            if (show_modal){
     // ---  set header text
                 let header_txt = loc.Allowances + loc.for_txt + emplhour_dict.employeecode + "\n"
                 header_txt += format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
@@ -1998,26 +2017,19 @@ rowcount: 11
                 if(emplhour_dict.shiftcode) { header_txt += "  " + emplhour_dict.shiftcode };
                 el_MAL_header.innerText = header_txt;
 
-    // ---  put emplhour_pk and mapid in mod_MAL_dict
-                mod_MAL_dict = {emplhour_pk: emplhour_dict.id, mapid: emplhour_dict.mapid};
-
-    // ---  put allowance rows in mod_MAL_dict
-                const empl_alw_dict = get_dict_value(emplhourallowance_dict, [emplhour_dict.id])
-                MAL_fill_MAL_dict(empl_alw_dict)
-
     // ---  display modified_by
                 // loop through allowances and put last modifiedat and username in
                 const modat = get_dict_value(mod_MAL_dict, ["max_modifiedat"])
                 const modby = get_dict_value(mod_MAL_dict, ["max_modifiedby"])
-                el_MAL_modifiedby.innerText = display_modifiedby(loc, modat, modby);
+                el_MAL_modifiedby.innerText = b_display_modifiedat_by(loc, modat, modby);
 
     // ---  fill table empl_alw
                 MAL_FillTable("alw_listdict");
 
-                //const el_input = document.getElementById("id_MNO_input_note")
-                //if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
+                el_MAL_btn_save.disabled = !mod_MAL_dict.may_save_alw;
 
                 $("#id_mod_emplhourallowance").modal({backdrop: true});
+
             }  //  if (is_not_locked)
         }
     }  // MAL_Open
@@ -2026,9 +2038,8 @@ rowcount: 11
     function MAL_Save () {
         //console.log("===  MAL_Save  =====");
 
-        //console.log("mod_MAL_dict.alw_listdict", mod_MAL_dict.alw_listdict);
-
-        if(permit_add_notes){
+        // user may only save allowances when emplhour_is_not_locked and user has permit to add allowances
+        if(mod_MAL_dict.may_save_alw){
             let ehal_list = [];
             for (const [key, alw_dict] of Object.entries(mod_MAL_dict.alw_listdict)) {
                 // add only items with mode 'create, 'delete' or 'update'. This skips unchanged items
@@ -2081,26 +2092,27 @@ rowcount: 11
 
         let tblFoot = document.getElementById("id_MAL_tfoot");
         tblFoot.innerText = null;
+        if(mod_MAL_dict.may_save_alw){
+            let tblRow = tblFoot.insertRow(-1);
+            // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
+            const col_count = fields.field_names.length;
+            for (let j = 0; j < col_count; j++) {
+                let td = tblRow.insertCell(-1);
+                if(j === 1){
+    // --- create element with tag from field_tags
+                    let el = document.createElement("div");
+                    el.setAttribute("tabindex", "0")
+                    el.setAttribute("colspan", "5")
 
-        let tblRow = tblFoot.insertRow(-1);
-        // in field_settings col=0 contains team. Skip this column in MGT. Start at j=1
-        const col_count = fields.field_names.length;
-        for (let j = 0; j < col_count; j++) {
-            let td = tblRow.insertCell(-1);
-            if(j === 1){
-// --- create element with tag from field_tags
-                let el = document.createElement("div");
-                el.setAttribute("tabindex", "0")
-                el.setAttribute("colspan", "5")
-
-                //el.classList.add("pointer_show")
-                td.classList.add("tsa_color_darkgrey")
-                el.classList.add("ml-2")
-                el.innerText = loc.Add_allowance + "..."
-                add_hover(td)
-// --- add EventListener to td
-                el.addEventListener("click", function() {MSA_Open()}, false);
-                td.appendChild(el);
+                    //el.classList.add("pointer_show")
+                    td.classList.add("tsa_color_darkgrey")
+                    el.classList.add("ml-2")
+                    el.innerText = loc.Add_allowance + "..."
+                    add_hover(td)
+    // --- add EventListener to td
+                    el.addEventListener("click", function() {MSA_Open()}, false);
+                    td.appendChild(el);
+                }
             }
         }
     };  // MAL_CreateTblFooter
@@ -2120,6 +2132,8 @@ rowcount: 11
     }  // MSA_Open
 
 //========= MAL_DeleteAlw  ============= PR2021-01-30
+    // NIU PR2021-05-18
+    /*
     function MAL_DeleteAlw(tblRow) {
         //console.log( " ==== MAL_DeleteAlw ====");
         //console.log( "tblRow", tblRow);
@@ -2140,7 +2154,7 @@ rowcount: 11
 
         MGT_FillTableTeammember(team_pk)
     }  // MAL_DeleteAlw
-
+*/
 //=========  MAL_BtnSaveDeleteEnable  ================ PR2021-01-30
     function MAL_BtnSaveDeleteEnable(){
         //console.log( "MAL_BtnSaveDeleteEnable");
@@ -2174,10 +2188,12 @@ rowcount: 11
         */
         const alw_listdict = {}
         const ehal_id_list = (empl_alw_dict && empl_alw_dict.ehal_id_agg) ? empl_alw_dict.ehal_id_agg : [];
-        const len = ehal_id_list.length;
+        const ehal_count = ehal_id_list.length;
+        //console.log( "ehal_count", ehal_count);
+
         let max_modifiedat_index = 0, max_modifiedat = null, max_modifiedby = null;
-        if(len) {
-            for (let i = 0; i < len; i++) {
+        if(ehal_count) {
+            for (let i = 0; i < ehal_count; i++) {
                 const map_id = "ehal_" + ehal_id_list[i];
                 alw_listdict[map_id] = {
                     ehal_id: ehal_id_list[i],
@@ -2204,7 +2220,7 @@ rowcount: 11
         mod_MAL_dict.max_modifiedby = max_modifiedby;
 
         //console.log( "mod_MAL_dict", mod_MAL_dict);
-
+        return ehal_count;
     }  // MAL_fill_MAL_dict
 
 //========= MAL_FillTable  ==========  PR2021-01-30
@@ -2272,13 +2288,18 @@ rowcount: 11
             if (table === "alw_listdict" && field === "delete") {
                 el.addEventListener("click", function() {MAL_DeleteClicked(tblRow)}, false )
         // --- add div with image delete
-                let el_img = document.createElement("div");
-                    el_img.className = "delete_0_1";
-                    el.appendChild(el_img);
-                el.addEventListener("mouseenter", function() {el_img.className = "delete_0_2"});
-                el.addEventListener("mouseleave", function() {el_img.className = "delete_0_1"});
+                if(mod_MAL_dict.may_save_alw){
+                    let el_img = document.createElement("div");
+                        el_img.className = "delete_0_1";
+                        el.appendChild(el_img);
+                    el.addEventListener("mouseenter", function() {el_img.className = "delete_0_2"});
+                    el.addEventListener("mouseleave", function() {el_img.className = "delete_0_1"});
+                }
             } else if (table === "alw_listdict" && field === "quantity") {
-                el.addEventListener("change", function() {MAL_QuantityChanged(tblRow, el)}, false )
+                el.readOnly = (!mod_MAL_dict.may_save_alw);
+                if(mod_MAL_dict.may_save_alw){
+                    el.addEventListener("change", function() {MAL_QuantityChanged(tblRow, el)}, false )
+                }
             }
 // --- add width to el - not necessary, tblhead has width
             el.classList.add("tw_" + fields.field_width[j])
@@ -2333,13 +2354,13 @@ rowcount: 11
                             el_input.value = (value) ? value / 10000 : 0;
 
                         } else if (["amount", "wagerate"].includes( fldName )){
-                            el_input.innerText = format_pricerate (loc.user_lang, value, false , true) // false = is_percentage , true = show_zero
+                            el_input.innerText = f_format_pricerate (loc.user_lang, value, false , true) // false = is_percentage , true = show_zero
 
                         }
        //console.log("alw_dict", alw_dict);
        //console.log("fldName", fldName);
        //console.log("value", value);
-       //console.log("format_pricerate", value);
+       //console.log("f_format_pricerate", value);
 
                     }
                 }
@@ -2373,22 +2394,23 @@ rowcount: 11
         $("#id_mod_select_allowance").modal("hide");
     }  // MSA_TblRowClicked
 
-//========= MAL_DeleteClicked  ============= PR2021-01-31
+//========= MAL_DeleteClicked  ============= PR2021-01-31 PR2021-05-18
     function MAL_DeleteClicked(tblRow){
        //console.log("MAL_DeleteClicked") ;
-
-        const map_id = tblRow.id;
-        const ehal_dict = mod_MAL_dict.alw_listdict[map_id];
-        if (ehal_dict){
-            if (get_dict_value(ehal_dict, ["create"], false )){
-                // delete item from dict when it is a new item
-                delete mod_MAL_dict.alw_listdict[map_id];
-            } else {
-                // set delete=true when it is an existing item
-                ehal_dict.delete = true;
+        if(mod_MAL_dict.may_save_alw){
+            const map_id = tblRow.id;
+            const ehal_dict = mod_MAL_dict.alw_listdict[map_id];
+            if (ehal_dict){
+                if (get_dict_value(ehal_dict, ["create"], false )){
+                    // delete item from dict when it is a new item
+                    delete mod_MAL_dict.alw_listdict[map_id];
+                } else {
+                    // set delete=true when it is an existing item
+                    ehal_dict.delete = true;
+                }
+    // ---  fill table empl_alw
+                MAL_FillTable("alw_listdict");
             }
-// ---  fill table empl_alw
-            MAL_FillTable("alw_listdict");
         }
         //console.log("mod_MAL_dict", mod_MAL_dict) ;
     }  // MAL_DeleteClicked
@@ -2458,15 +2480,15 @@ rowcount: 11
         if(el_input){
             const fldName = get_attr_from_el(el_input, "data-field");
             const tr_selected = get_tablerow_selected(el_input)
-            //console.log("fldName", fldName) ;
+
 // get info from emplhour_map
             emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
-            //console.log("emplhour_dict", emplhour_dict) ;
+            console.log("emplhour_dict", emplhour_dict) ;
             if(!isEmpty(emplhour_dict)){
 
                 let show_note = (fldName === "hasnote") || (fldName === "employeenote") || (fldName === "ordernote" && !emplhour_dict.c_isabsence && !emplhour_dict.oh_isrestshift);
+                let emplhour_is_locked = (emplhour_dict.stat_locked || emplhour_dict.stat_pay_publ || emplhour_dict.stat_inv_publ);
 
-            //console.log("show_note", show_note) ;
                 if(show_note){
                     const pk_int = (fldName === "hasnote") ? emplhour_dict.id :
                                     (fldName === "ordernote") ? emplhour_dict.o_id :
@@ -2484,7 +2506,7 @@ rowcount: 11
                     }
                     if(!isEmpty(map_dict)){
                         let header_txt = (fldName === "ordernote") ? map_dict.c_o_code : (fldName === "employeenote") ? map_dict.code : null;
-            //console.log("header_txt", header_txt) ;
+
                         if (fldName === "hasnote") {
                             header_txt = format_dateISO_vanilla (loc, emplhour_dict.rosterdate, false, true);
                             if(emplhour_dict.c_o_code) { header_txt += " - " + emplhour_dict.c_o_code };
@@ -2494,15 +2516,19 @@ rowcount: 11
                         el_MNO_header.innerText = header_txt;
 
                         mod_MNO_dict = {table: tblName, pk: map_dict.id}
-                        MNO_FillNotes(tblName, map_dict.id);
+                        const note_count = MNO_FillNotes(tblName, map_dict.id, emplhour_is_locked);
 
-                        const el_input = document.getElementById("id_MNO_input_note")
-                        if (el_input){ setTimeout(function (){ el_input.focus() }, 50)};
+                        const el_MNO_input_note = document.getElementById("id_MNO_input_note")
+                        if (el_MNO_input_note){ setTimeout(function (){ el_MNO_input_note.focus() }, 50)};
 
-                        $("#id_mod_note").modal({backdrop: true});
+                        // when emplhour_is_locked: only show modal when th re are notes
+                        // when emplhour_is_not_locked: only show modal when user has permit to add notes
+                        const show_modal = ((emplhour_is_locked && note_count) || (!emplhour_is_locked && permit_add_notes));
+                        if(show_modal){
+                            $("#id_mod_note").modal({backdrop: true});
+                        }
                     }
                 }
-
             }
         }
     }  // MNO_Open
@@ -2512,41 +2538,44 @@ rowcount: 11
        //console.log("===  MNO_Save  =====");
 
         if(permit_add_notes){
-            const note = document.getElementById("id_MNO_input_note").value;
-            if(note){
-                const url_str = (mod_MNO_dict.table === "emplhour") ? url_emplhournote_upload :
-                                (mod_MNO_dict.table === "employee") ? url_employeenote_upload :
-                                (mod_MNO_dict.table === "order") ? url_ordernote_upload : null;
-                const upload_dict = { ppk: mod_MNO_dict.pk,
-                                      table: mod_MNO_dict.table,
-                                      note: note,
-                                      create: true};
-                UploadChanges(upload_dict, url_str) ;
+            const el_MNO_input_note = document.getElementById("id_MNO_input_note")
+            if(el_MNO_input_note){
+                const note = el_MNO_input_note.value;
+                if(note){
+                    const url_str = (mod_MNO_dict.table === "emplhour") ? url_emplhournote_upload :
+                                    (mod_MNO_dict.table === "employee") ? url_employeenote_upload :
+                                    (mod_MNO_dict.table === "order") ? url_ordernote_upload : null;
+                    const upload_dict = { ppk: mod_MNO_dict.pk,
+                                          table: mod_MNO_dict.table,
+                                          note: note,
+                                          create: true};
+                    UploadChanges(upload_dict, url_str) ;
+               }
            }
        }
 // hide modal
         $("#id_mod_note").modal("hide");
     }  // MNO_Save
 
-//========= MNO_FillNotes============== PR2020-10-15
-    function MNO_FillNotes (tblName, pk_int) {
-        //console.log("===  MNO_FillNotes  =====") ;
+//========= MNO_FillNotes============== PR2020-10-15 PR2021-05-18
+    function MNO_FillNotes (tblName, pk_int, emplhour_is_locked) {
+        console.log("===  MNO_FillNotes  =====") ;
         el_MNO_note_container.innerText = null;
         const note_rows = (tblName === "emplhour") ? emplhournote_rows :
                           (tblName === "employee") ? employeenote_rows :
                           (tblName === "order") ? ordernote_rows : null;
 
-        //console.log("emplhournote_rows", emplhournote_rows) ;
         //console.log("tblName", tblName) ;
-        //console.log("note_rows", note_rows) ;
-        //console.log("pk_int", pk_int) ;
+        console.log("note_rows", note_rows) ;
+        console.log("pk_int", pk_int) ;
         const pk_str = (pk_int) ? pk_int.toString() : null;
         //console.log("pk_str", pk_str) ;
         const note = get_dict_value(note_rows, [pk_str]);
-        //console.log("note", note) ;
+        console.log("note", note);
+        let note_count = 0;
         if(note){
-            const len = note.id_agg.length;
-            for (let i = 0; i < len; i++) {
+            note_count = note.id_agg.length;
+            for (let i = 0; i < note_count; i++) {
                 const note_text = (note.note_agg[i]) ? note.note_agg[i] : "";
                 const note_len = (note_text) ? note_text.length : 0;
                 const modified_dateJS = parse_dateJS_from_dateISO(note.modifiedat_agg[i]);
@@ -2578,10 +2607,11 @@ rowcount: 11
                     el_textarea.value = note_text
                     el_div.appendChild(el_textarea);
                 el_MNO_note_container.appendChild(el_div);
-            }
+            }  // for (let i = 0; i < note_count; i++)
         }
-        // --- create input element for note, only when permit_edit_rows
-        if(permit_add_notes){
+        // --- create input element for note, only when permit_edit_rows and emplhour is not locked
+        const may_save_notes = (permit_add_notes && !emplhour_is_locked);
+        if(may_save_notes){
             const el_div = document.createElement("div");
             el_div.classList.add("tsa_textarea_div");
             el_div.classList.add("tsa_textarea_div", "mt-4", );
@@ -2596,6 +2626,10 @@ rowcount: 11
             el_MNO_note_container.appendChild(el_div);
         }
 
+        add_or_remove_class(el_MNO_btn_save, cls_hide, !may_save_notes)
+        if(el_MNO_btn_cancel){el_MNO_btn_cancel.innerText = (may_save_notes) ? loc.Cancel : loc.Close};
+
+        return note_count
     }  // MNO_FillNotes
 
 
@@ -2615,7 +2649,7 @@ rowcount: 11
 
 // get status from field status, not from confirm start/end
         let emplhour_dict = get_mapdict_from_datamap_by_el(el_input, emplhour_map)
-        const row_is_locked = (emplhour_dict.stat_pay_locked || emplhour_dict.stat_inv_locked);
+        const row_is_locked = (emplhour_dict.stat_pay_publ || emplhour_dict.stat_inv_publ);
 
         if(!row_is_locked && (permit_lock_rows || permit_unlock_rows) ){
 
@@ -2642,8 +2676,8 @@ rowcount: 11
        //console.log("allow_open", allow_open)
             //if (allow_open) {
 
-       // only HR-man can unlock, only when not stat_pay_locked and not stat_inv_locked
-                const allow_unlock_status = (!emplhour_dict.stat_pay_locked && !emplhour_dict.stat_inv_locked && permit_unlock_rows);
+       // only HR-man can unlock, only when not stat_pay_publ and not stat_inv_publ
+                const allow_unlock_status = (!emplhour_dict.stat_pay_publ && !emplhour_dict.stat_inv_publ && permit_unlock_rows);
 
                 const is_absence = (emplhour_dict.c_isabsence) ? emplhour_dict.c_isabsence : false;
                 const is_restshift = (emplhour_dict.oh_isrestshift) ? emplhour_dict.oh_isrestshift : false;
@@ -3600,6 +3634,7 @@ rowcount: 11
     function UploadChanges(upload_dict, url_str) {
         console.log("=== UploadChanges");
         console.log("url_str: ", url_str);
+        console.log("upload_dict: ", upload_dict);
 
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)};
@@ -3806,7 +3841,7 @@ rowcount: 11
                 ShowOkElement(tblRow);
 
             } else if(updated_columns){
-                const is_pay_or_inv_locked = (update_dict.stat_pay_locked || update_dict.stat_inv_locked);
+                const is_pay_or_inv_locked = (update_dict.stat_pay_publ || update_dict.stat_inv_publ);
                 const is_locked = (is_pay_or_inv_locked || update_dict.stat_locked);
                 const status_array = b_get_status_array(update_dict.status);
 
@@ -4943,7 +4978,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
             ppk_int = map_dict.oh_id;
             rosterdate = map_dict.rosterdate;
             is_not_restshift = (!map_dict.oh_isrestshift);
-            is_not_locked = (!map_dict.stat_locked && !map_dict.stat_pay_locked && !map_dict.stat_inv_locked)
+            is_not_locked = (!map_dict.stat_locked && !map_dict.stat_pay_publ && !map_dict.stat_inv_publ)
             is_not_start_conf = (!map_dict.stat_start_conf)
             is_not_end_conf = (!map_dict.stat_end_conf)
 
@@ -5423,7 +5458,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
         let row_is_locked = false;
         mod_dict = {};
         if(!isEmpty(map_dict)){
-            row_is_locked = (map_dict.stat_pay_locked || map_dict.stat_inv_locked);
+            row_is_locked = (map_dict.stat_pay_publ || map_dict.stat_inv_publ);
             if(!row_is_locked){
                 // check if row status is 'locked'
                 const status_array = b_get_status_array(map_dict.status)
@@ -5753,10 +5788,10 @@ if(!skip_when_split_checked){
 }
     // ---  show only the elements that are used in this mod_dict.btn_select
         //console.log( "............mod_dict.btn_select", mod_dict.btn_select);
-            show_hide_selected_elements_byClass("tab_show", mod_dict.btn_select)
+            b_show_hide_selected_elements_byClass("tab_show", mod_dict.btn_select)
 
 // ---  hide checkboxes split_before / split_after when no replacement employee
-            // show checkboxes is done above in show_hide_selected_elements_byClass
+            // show checkboxes is done above in b_show_hide_selected_elements_byClass
             //const el_MRE_part_absent_container = document.getElementById("id_MRE_part_absent_container")
             //if (!mod_dict.selected_employee_pk) { el_MRE_part_absent_container.classList.add(cls_hide) }
 

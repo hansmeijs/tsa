@@ -1038,7 +1038,9 @@ def create_orders_inuse_list(period_dict, request):
 
 ####################===============@@@@@@@@@@@@@@@@@@@@@@@
 def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, user_lang, request):
-    logger.debug(' +++++++++++ create_payroll_detail_listNEW +++++++++++ ')
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' +++++++++++ create_payroll_detail_listNEW +++++++++++ ')
     #logger.debug('payroll_period: ' + str(payroll_period))
 
     payrollperiod_detail_list = []
@@ -1069,6 +1071,7 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
             paydatecode_pk=paydatecode_pk,
             request=request)
         #logger.debug('rosterdate_rows: ' + str(rosterdate_rows))
+
 ###############################
 # +++++ loop through dates of selected period
         datefirst_dte, msg_txtNIU = f.get_date_from_ISOstring(period_datefirst)
@@ -1081,13 +1084,14 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
                 if rosterdate_dte in rosterdate_rows:
     # - when emplhour records of this rosterdate exist: get emplhour records and add them to payrollperiod_detail_list
                     detail_listONEDAY = create_payrollperiod_detail_listONDEDAY(
+                        request=request,
                         rosterdate=rosterdate_iso,
                         customer_pk=customer_pk,
                         order_pk=order_pk,
                         paydatecode_pk=paydatecode_pk,
                         employee_pk_list=employee_pk_list,
-                        functioncode_pk_list=functioncode_pk_list,
-                        request=request)
+                        functioncode_pk_list=functioncode_pk_list
+                    )
                     if detail_listONEDAY:
                         payrollperiod_detail_list.extend(detail_listONEDAY)
 
@@ -1117,10 +1121,11 @@ def create_payroll_detail_listNEW(payroll_period, comp_timezone, timeformat, use
 #################################
 
     return payrollperiod_detail_list
-# --- end of create_payroll_detail_list
+# --- end of create_payroll_detail_listNEW
+
 
 ####################===============@@@@@@@@@@@@@@@@@@@@@@@
-
+# NIU
 def create_payroll_detail_list(payroll_period, request):
     #logger.debug(' +++++++++++ create_payroll_detail_list +++++++++++ ')
     payrollperiod_detail_list = []
@@ -1224,8 +1229,9 @@ def get_rosterdates_of_emplhour_period(period_datefirst, period_datelast, paydat
 # - end of get_rosterdates_of_emplhour_period
 
 
-def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
-                                            employee_pk_list, functioncode_pk_list, paydatecode_pk, request):
+def create_payrollperiod_detail_listONDEDAY(request, rosterdate, customer_pk = None, order_pk = None,
+                                            employee_pk_list = None, functioncode_pk_list = None,
+                                            paydatecode_pk = None, emplhour_pk_list = None):
 
     #logger.debug(' ============= create_payrollperiod_detail_listONDEDAY ============= ')
     # create crosstab list of employees with absence hours PR2020-06-12  PR2021-02-15
@@ -1235,11 +1241,12 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
     # see https://stackoverflow.com/questions/3002499/postgresql-crosstab-query/11751905#11751905
 
     sql_keys = {'compid': request.user.company_id, 'rd': rosterdate}
-    sql_list = ["SELECT eh.id AS emplhour_id,  eh.rosterdate, eh.employee_id AS e_id,  e.code AS e_code,",
+    sql_list = ["SELECT eh.id AS emplhour_id, CONCAT('emplhour_', eh.id::TEXT) AS mapid, ",
+        "eh.rosterdate, eh.employee_id AS e_id,  e.code AS e_code,",
         "e.identifier AS e_identifier, e.payrollcode AS e_payrollcode, oh.id AS oh_id,",
         "o.id AS o_id, o.code AS o_code, o.identifier AS o_identifier,",
         "c.code AS c_code, c.isabsence, CONCAT(c.code, ' - ', o.code) AS c_o_code,",
-        "eh.offsetstart, eh.offsetend, eh.exceldate, eh.excelstart, eh.excelend,",
+        "eh.offsetstart, eh.offsetend, eh.exceldate, eh.excelstart, eh.excelend, eh.corremplhourid,",
 
         "CASE WHEN c.isabsence THEN 0 ELSE eh.plannedduration END AS plandur,",
         "CASE WHEN NOT c.isabsence THEN eh.timeduration ELSE 0 END AS timedur,",
@@ -1248,7 +1255,9 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
 
         "eh.functioncode_id AS fnc_id, fnc.code AS fnc_code, pdc.id AS pdc_id, pdc.code AS pdc_code,",
         "eh.wagefactorcode_id AS wfc_id, eh.wagefactorcaption AS wfc_code, eh.wagefactor AS wfc_rate, eh.nohours,",
-        "eh.wagecode_id AS wgc_id, eh.wagerate, eh.wage",
+        "eh.wagecode_id AS wgc_id, eh.wagerate, eh.wage,",
+
+        "CASE WHEN eh.payrollpublished_id IS NULL THEN FALSE ELSE TRUE END AS stat_pay_publ",
 
         "FROM companies_emplhour AS eh",
         "LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)",
@@ -1279,6 +1288,10 @@ def create_payrollperiod_detail_listONDEDAY(rosterdate, customer_pk, order_pk,
     if functioncode_pk_list:
         sql_keys['fnc_id_arr'] = functioncode_pk_list
         sql_list.append('AND e.functioncode_id IN ( SELECT UNNEST( %(fnc_id_arr)s::INT[] ) )')
+
+    if emplhour_pk_list:
+        sql_keys['eplhid_arr'] = emplhour_pk_list
+        sql_list.append('AND eh.id IN ( SELECT UNNEST( %(eplhid_arr)s::INT[] ) )')
 
     sql_list.append('ORDER BY LOWER(e.code), LOWER(o.code)')
 
@@ -1722,6 +1735,68 @@ def create_paydatecode_rows(period_dict, paydatecode_pk, msg_dict, request):
 # --- end of create_paydatecode_rows
 
 
+def create_published_rows(period_dict, request):  # PR2021-05-16
+    #  creates list of all published row with ispayroll = True
+    #  if published_pk has value: return only the row of this published_pk
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' --- create_published_rows --- ')
+
+    published_rows = []
+    is_invoice = False
+
+# --- create list of payrollperiods of this company PR2029-06-17
+    if period_dict and request.user.company:
+        # don't filter on period
+        paydateitem_datefirst = None  # period_dict.get('paydateitem_datefirst')
+        paydateitem_datelast = None  #period_dict.get('paydateitem_datelast')
+        published_pk = period_dict.get('published_pk')
+        if logging_on:
+            #logger.debug('paydateitem_datefirst: ' + str(paydateitem_datefirst))
+            #logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
+            logger.debug('published_pk: ' + str(published_pk))
+
+        sql_keys = {'comp_id': request.user.company_id}
+        sql_list = ["SELECT pub.id, pub.company_id AS comp_id,",
+            "CONCAT('published_', pub.id::TEXT) AS mapid,",
+            "pub.name, pub.filename, pub.file, pub.datepublished,",
+            "pub.datefirst, pub.datelast, pub.recordcount,",
+            "pub.ispayroll, pub.isinvoice, pub.status",
+            "FROM companies_published AS pub",
+            "WHERE pub.company_id = %(comp_id)s"]
+
+        if is_invoice:
+            sql_list.append("AND pub.isinvoice")
+        else:
+            sql_list.append("AND pub.ispayroll")
+
+        if published_pk:
+            sql_keys['pub_pk'] = published_pk
+            sql_list.append("AND pub.id = %(pub_pk)s::INT")
+        else:
+            if paydateitem_datefirst:
+                sql_keys['df'] = paydateitem_datefirst
+                sql_list.append("AND (pub.datelast >= %(df)s::DATE OR pub.datelast IS NULL)")
+            if paydateitem_datelast:
+                sql_keys['dl'] = paydateitem_datelast
+                sql_list.append("AND (pub.datefirst <= %(dl)s::DATE OR pub.datefirst IS NULL)")
+            sql_list.append("ORDER BY pub.datepublished DESC")
+        sql = ' '.join(sql_list)
+        if logging_on:
+            logger.debug('sql: ' + str(sql))
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+            published_rows = f.dictfetchall(cursor)
+
+        if logging_on:
+            logger.debug('published_rows: ' + str(published_rows))
+    return published_rows
+# --- end of create_published_rows
+
+
+
+
 def create_bi_weekly_monthly_paydateitem_rows(paydatecode_rows):
     #logger.debug(' --- create_paydatecode_rows --- ')
     # --- create list of paydateitems of weekly, biweekly and monthly paydatecodes PR2020-09-23
@@ -1950,37 +2025,46 @@ def create_wagecode_rows(key_str, request, msg_dict, pk_int=None):
 
 
 def create_afas_hours_rows(period_dict, user_lang, request):
+
+    logger.debug('-----  create_afas_hours_rows  -----')
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
     #     add messages to wagecode_rows
     logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug('-----  create_afas_hours_rows  -----')
+        logger.debug('period_dict: ' + str(period_dict))
 
     company_pk = request.user.company.pk
     rosterdatefirst, rosterdatelast, paydateitem_year, paydateitem_period = None, None, 0, 0
-    paydatecode_pk, sel_view, dates = None, None, ''
+    published_pk, paydatecode_pk,sel_view, dates = None, None, None, ''
     if period_dict:
-        sel_view = period_dict.get('sel_view')
-        if sel_view == 'payroll_period':
-            paydateitem_year = period_dict.get('paydateitem_year')
-            paydateitem_period = period_dict.get('paydateitem_period')
-            paydatecode_pk = period_dict.get('paydatecode_pk')
-        else:
-            rosterdatefirst = period_dict.get('period_datefirst')
-            rosterdatelast = period_dict.get('period_datelast')
-            dates = period_dict.get('dates_display_short')
+        published_pk = period_dict.get('published_pk')
+        if published_pk is None:
+            sel_view = period_dict.get('sel_view')
+            if sel_view == 'payroll_period':
+                paydateitem_year = period_dict.get('paydateitem_year')
+                paydateitem_period = period_dict.get('paydateitem_period')
+                paydatecode_pk = period_dict.get('paydatecode_pk')
+            else:
+                rosterdatefirst = period_dict.get('period_datefirst')
+                rosterdatelast = period_dict.get('period_datelast')
+                dates = period_dict.get('dates_display_short')
 
     sql_keys = {'compid': company_pk}
-    if sel_view == 'payroll_period':
-        sql_keys['year'] = paydateitem_year
-        sql_keys['period'] = paydateitem_period
-        pdc_line = "pdc.code AS pdc_code, %(year)s::TEXT AS pdi_year, %(period)s::TEXT AS pdi_period,"
-    else:
-        sql_keys['dates'] = dates
-        pdc_line = "pdc.code AS pdc_code, '' AS pdi_year, '' AS pdi_period,"
+    pdc_line = ''
+    if published_pk is None:
+        if sel_view == 'payroll_period':
+            sql_keys['year'] = paydateitem_year
+            sql_keys['period'] = paydateitem_period
+            pdc_line = "pdc.code AS pdc_code, %(year)s::TEXT AS pdi_year, %(period)s::TEXT AS pdi_period,"
+        else:
+            sql_keys['dates'] = dates
+            pdc_line = "pdc.code AS pdc_code, '' AS pdi_year, '' AS pdi_period,"
 
     sql_list = [
         "SELECT eh.id, c.company_id AS comp_id,"
         "eh.wagefactorcode_id, wfc.code AS wfc_code, wfc.wagerate AS wfc_wagerate, eh.functioncode_id,",
-        "eh.rosterdate::TEXT AS eh_rosterdate, eh.timeduration AS eh_timeduration,",
+        "eh.rosterdate::TEXT AS eh_rosterdate, eh.timeduration AS eh_timeduration, eh.payrollpublished_id,",
         pdc_line,
         "e.paydatecode_id AS e_pdc_id, e.payrollcode AS e_payrollcode, CONCAT(e.namelast, ', ', e.namefirst) AS e_name,",
         "o.identifier AS o_identifier, CONCAT(o.code, ' - ', c.code) AS c_o_code",
@@ -1995,23 +2079,26 @@ def create_afas_hours_rows(period_dict, user_lang, request):
         "LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id)",
 
         "WHERE c.company_id = %(compid)s::INT",
-
-
     ]
-    if paydatecode_pk:
-        sql_keys['pdc_pk'] = paydatecode_pk
-        sql_list.append("AND e.paydatecode_id = %(pdc_pk)s::INT")
-    elif rosterdatefirst and rosterdatelast:
-        sql_keys['rdf'] = rosterdatefirst
-        sql_keys['rdl'] = rosterdatelast
-        sql_list.append("AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE")
+
+    if published_pk:
+        sql_keys['pbl_pk'] = published_pk
+        sql_list.append("AND eh.payrollpublished_id = %(pbl_pk)s::INT")
+    else:
+        if paydatecode_pk:
+            sql_keys['pdc_pk'] = paydatecode_pk
+            sql_list.append("AND e.paydatecode_id = %(pdc_pk)s::INT")
+        elif rosterdatefirst and rosterdatelast:
+            sql_keys['rdf'] = rosterdatefirst
+            sql_keys['rdl'] = rosterdatelast
+            sql_list.append("AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE")
 
     sql_list.append("ORDER BY eh.rosterdate, LOWER(e.namelast), LOWER(e.namefirst)")
     sql = ' '.join(sql_list)
 
-    newcursor = connection.cursor()
-    newcursor.execute(sql, sql_keys)
-    afas_hours_rows = f.dictfetchall(newcursor)
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_keys)
+        afas_hours_rows = f.dictfetchall(cursor)
 
     response = create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request)
     return response
@@ -2650,7 +2737,8 @@ def create_payroll_allowance_rows(period_dict, comp_timezone, timeformat, user_l
         ehal_group = ' '.join(ehal_group_list)
 
         eh_list = [
-            "SELECT eh.id AS emplhour_id, eh.rosterdate, eh.employee_id AS e_id, e.code AS e_code,",
+            "SELECT eh.id AS emplhour_id, CONCAT('emplhour_', eh.id::TEXT) AS mapid,",
+            "eh.rosterdate, eh.employee_id AS e_id, e.code AS e_code,",
             "e.identifier AS e_identifier, e.payrollcode AS e_payrollcode, oh.id AS oh_id,",
             "o.id AS o_id, o.code AS o_code, o.identifier AS o_identifier,",
             "c.code AS c_code, c.isabsence, CONCAT(c.code, ' - ', o.code) AS c_o_code,",
@@ -2660,7 +2748,9 @@ def create_payroll_allowance_rows(period_dict, comp_timezone, timeformat, user_l
             "eh.wagecode_id AS wgc_id, eh.wagerate, eh.wage,",
 
             "ehal.ehal_id_agg, ehal.alw_id_agg, ehal.code_agg, ehal.description_agg, ehal.wagerate_agg,",
-            "ehal.quantity_agg, ehal.amount_agg, ehal.modifiedby_agg, ehal.modifiedat_agg",
+            "ehal.quantity_agg, ehal.amount_agg, ehal.modifiedby_agg, ehal.modifiedat_agg,",
+
+            "CASE WHEN eh.payrollpublished_id IS NULL THEN FALSE ELSE TRUE END AS stat_pay_publ",
 
             "FROM companies_emplhour AS eh",
             "INNER JOIN (" + ehal_group + ") AS ehal ON (ehal.emplhour_id = eh.id)",
@@ -2684,7 +2774,6 @@ def create_payroll_allowance_rows(period_dict, comp_timezone, timeformat, user_l
 
     return emplhourallowance_rows
 # - end of create_payroll_allowance_rows
-
 
 def create_employeenote_rows(period_dict, request):  # PR2021-02-16
     #logger.debug(' ============= create_employeenote_rows ============= ')

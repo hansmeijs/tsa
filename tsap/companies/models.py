@@ -8,7 +8,7 @@ from django.db import connection
 
 from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, SmallIntegerField, IntegerField, \
-    DateField, DateTimeField, JSONField, Q, Value
+    DateField, DateTimeField, FileField, JSONField, Q, Value
 
 from django.db.models.functions import Lower, Coalesce
 from django.utils.translation import ugettext_lazy as _
@@ -18,6 +18,9 @@ from datetime import datetime, timedelta
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap import constants as c
 from tsap import functions as f
+from tsap import settings as s
+
+from tsap.storage_backends import PrivateMediaStorage
 
 import pytz
 
@@ -126,6 +129,7 @@ class TsaBaseModel(Model):
             modby_str = self.modifiedby.username_sliced
         return modby_str
 
+    # NIU PR2021-05-09
     def modifiedat_str(self,  lang):  # PR2019-03-23
         # This doesn't work in template tags
         dte_str = ''
@@ -237,11 +241,14 @@ class Paydatecode(TsaBaseModel):
     class Meta:
         ordering = ['code']
 
-    def has_lockedpaydate_emplhours(self):  # PR2020-06-26
-        # function checks if this paydatcode has emplhours with lockedpaydate=True
+    def has_locked_paydatecode_emplhours(self):  # PR2020-06-26 PR2021-06-09
+        # function checks if this paydatecode has emplhours with payrollpublished is not None
         has_locked_emplhours = False
         if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(paydatecode_id=self.pk, lockedpaydate=True).exists()
+            has_locked_emplhours = Emplhour.objects.filter(
+                paydatecode_id=self.pk,
+                payrollpublished_id__isnull=False
+            ).exists()
         return has_locked_emplhours
 
 
@@ -294,20 +301,35 @@ class Wagecode(TsaBaseModel):
     def __str__(self):
         return self.code
 
-    def has_lockedwagecode_emplhours(self):  # PR2020-07-14
-        # function checks if this wagecode has emplhours with lockedpaydate=True
+    def has_lockedwagecode_emplhours(self):  # PR2020-07-14 PR2021-06-09
+        # function checks if this wagecode has emplhours with payrollpublished is not None
         has_locked_emplhours = False
         if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
+            has_locked_emplhours = Emplhour.objects.filter(
+                wagecode_id=self.pk,
+                payrollpublished_id__isnull=False
+        ).exists()
         return has_locked_emplhours
 
-    def has_lockedfunctioncode_emplhours(self):  # PR2020-07-18
-        # function checks if this functioncode has emplhours with lockedpaydate=True
+    def has_lockedfunctioncode_emplhours(self):  # PR2020-07-18 PR2021-06-09
+        # function checks if this functioncode has emplhours with payrollpublished is not None
         has_locked_emplhours = False
         if self.pk:
-            has_locked_emplhours = Emplhour.objects.filter(wagecode_id=self.pk, lockedpaydate=True).exists()
+            has_locked_emplhours = Emplhour.objects.filter(
+                functioncode_id=self.pk,
+                payrollpublished_id__isnull=False
+            ).exists()
         return has_locked_emplhours
 
+    def has_lockedwagefactorcode_emplhours(self):  # PR2021-06-07 PR2021-06-09
+        # function checks if this functioncode has emplhours with payrollpublished is not None
+        has_locked_emplhours = False
+        if self.pk:
+            has_locked_emplhours = Emplhour.objects.filter(
+                wagefactorcode_id=self.pk,
+                payrollpublished_id__isnull=False
+            ).exists()
+        return has_locked_emplhours
 
 class Wagecodeitem(TsaBaseModel):
     objects = TsaManager()
@@ -562,55 +584,22 @@ class Ordernote(TsaBaseModel):
     inactive = None
 
 
-#NOT IN USE PR2021-01-29
-"""
-class Object(TsaBaseModel):
-    objects = TsaManager()
-
-    customer = ForeignKey(Customer, related_name='+', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-
-    class Meta:
-        ordering = [Lower('code')]
-
-    def __str__(self):
-        return self.code
-
-
-class OrderObject(TsaBaseModel): # PR2019-06-23 added
-    objects = TsaManager()
-
-    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
-    object = ForeignKey(Object, related_name='+', on_delete=CASCADE)
-
-    code = None
-    name = None
-    datefirst = None
-    datelast = None
-
-    locked = None
-    inactive = None
-"""
-
 class Published(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
 
-    note = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    filename = CharField(max_length=255, null=True)
+
+    file = FileField(storage=PrivateMediaStorage(), null=True)
 
     datepublished = DateField()
     status = PositiveSmallIntegerField(default=0)
+    recordcount = IntegerField(default=0)
 
     ispayroll = BooleanField(default=False)
     isinvoice = BooleanField(default=False)
 
     code = None
-    name = None
-    datefirst = None
-    datelast = None
 
     locked = None
     inactive = None
@@ -905,7 +894,7 @@ class Schemeitem(TsaBaseModel):
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
-                scheme = Scheme.objects.get_or_none(pk=self.scheme_id)
+                scheme = self.scheme
                 if scheme:
                     #logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only). Value fore once-only is cycle = 32767
@@ -960,6 +949,8 @@ class Orderhour(TsaBaseModel):
 
     invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     # invoicedate = DateField(db_index=True, null=True)
+
+    # TODO deprecate, replaced by eh.invoicepublished IS NOT NULL
     lockedinvoice = BooleanField(default=False)
 
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -1006,7 +997,6 @@ class Emplhour(TsaBaseModel):
 
     #paydate = DateField(db_index=True, null=True)
     paydatecode = ForeignKey(Paydatecode, related_name='+', on_delete=SET_NULL, null=True)
-    lockedpaydate = BooleanField(default=False)
 
     payrollpublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
     invoicepublished = ForeignKey(Published, related_name='+', on_delete=SET_NULL, null=True)
@@ -1061,6 +1051,9 @@ class Emplhour(TsaBaseModel):
     schemeitemid = IntegerField(null=True)
     teammemberid = IntegerField(null=True)
 
+    # corremplhourid contains id of emplhour that is corrected. This emplhour contains the correction PR2021-05-18
+    corremplhourid = IntegerField(db_index=True, null=True)
+
     modifiedbyusername = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     class Meta:
@@ -1107,12 +1100,11 @@ class Emplhourlog(TsaBaseModel):
     employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
 
     shift = ForeignKey(Shift, related_name='+', on_delete=SET_NULL, null=True)
-    # TODO remove schemeitem, teammember,
-    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
-    teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True)
 
     schemeitemid = IntegerField(null=True)
     teammemberid = IntegerField(null=True)
+
+    corremplhourid = IntegerField(null=True)
 
     customercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     ordercode = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -1121,10 +1113,11 @@ class Emplhourlog(TsaBaseModel):
 
     timestart = DateTimeField(null=True)
     timeend = DateTimeField(null=True)
-    breakduration = IntegerField(default=0)
     timeduration = IntegerField(default=0)
+    breakduration = IntegerField(default=0)
     plannedduration = IntegerField(default=0)
     billingduration = IntegerField(default=0)
+
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
 
@@ -1331,8 +1324,8 @@ def delete_emplhour_instance(emplhour, request):  #  PR2020-08-23
 
 # - create deleted_row
         deleted_row = {'pk': emplhour.pk,
-                           'mapid': 'emplhour_' + str(emplhour.pk),
-                           'deleted': True}
+                       'mapid': 'emplhour_' + str(emplhour.pk),
+                       'deleted': True}
 # - delete emplhour record
         try:
             emplhour.delete()
@@ -1438,16 +1431,62 @@ def get_parent_NIU(table, ppk_int, update_dict, request):
 
 def delete_instance(instance, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25 PR2021-03-22
-    msg_err = None
+    msg_dict = None
+    msg_list = []
     if instance:
         try:
+            instance.delete(requestXX=request)
+        except Exception as e:
+            msg_list.append(str(_('An error occurred')) + ": '" + str(e) + "'.")
+            if this_text is None:
+                this_text = str(_('This item'))
+            msg_list.append(str(_('%(tbl)s could not be deleted.') % {'tbl': this_text}))
+    if msg_list:
+        msg_dict = {'class': 'border_bg_invalid', 'msg_list': msg_list}
+    return msg_dict
+
+
+def delete_with_err_list_instance(instance, error_list, request, this_text=None):
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- delete_instance  -----')
+        logger.debug('instance: ' + str(instance))
+
+    # function deletes instance of table, and retruns errorlist PR2021-05-17
+    # to be imlemented, for now only used in PublishUpload
+    deleted_ok = False
+
+    if instance:
+
+        try:
             instance.delete(request=request)
-        except:
-            if this_text:
-                msg_err = _('An error occurred. %(tbl)s could not be deleted.') % {'tbl': this_text}
-            else:
-                msg_err = _('An error occurred. This item could not be deleted.')
 
-    return msg_err
+            if logging_on:
+                logger.debug('instance.delete: ' + str(instance))
 
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+
+            tbl = this_text if this_text else _('This item')
+            msg_list = [str(_('An error occurred: ')) , str(e),
+                        str(_('%(tbl)s could not be deleted.') % {'tbl': tbl})]
+
+            # error_list = [ { 'field': 'code', msg_list: [text1, text2] }, (for use in imput modals)
+            #                {'class': 'alert-danger', msg_list: [text1, text2]} ] (for use in modal message)
+            error_list.append({'class': 'alert-danger', 'msg_list': msg_list})
+
+            if logging_on:
+                logger.debug('except instance: ' + str(instance))
+        else:
+            instance = None
+            deleted_ok = True
+            if logging_on:
+                logger.debug('else instance: ' + str(instance))
+
+    if logging_on:
+        logger.debug('error_list: ' + str(error_list))
+        logger.debug('instance: ' + str(instance))
+        logger.debug('deleted_ok: ' + str(deleted_ok))
+
+    return deleted_ok
 

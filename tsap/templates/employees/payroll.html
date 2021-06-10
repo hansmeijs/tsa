@@ -15,31 +15,32 @@
         <div class="sidebar_header">
             <h3 id="id_SBR_hdr_text"></h3>
         </div>
+        <div class="tab_show tab_btn_payroll_agg tab_btn_payroll_detail tab_published display_hide">
+            <div class="tw_200 mx-2 mt-2 mb-4">
+                <h6 id="id_SBR_label_select_period" class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
+                <input id="id_SBR_select_period"
+                    type="text"
+                    class="tw_200 border_none pointer_show px-2"
+                    readonly>
+            </div>
+        </div>
         <div class="tab_show tab_btn_payroll_agg tab_btn_payroll_detail display_hide">
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 id="id_SBR_label_select_period" class="tw_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
-            <input id="id_SBR_select_period"
-                type="text"
-                class="tw_200 border_none pointer_show px-2"
-                readonly>
-        </div>
+            <div class="tw_200 mx-2 mt-2 mb-4">
+                <h6 id="id_SBR_label_select_allowance" class="tw_200 line_height_normal px-2">{% trans 'Hours' %} / {% trans 'Allowances' %}:</h6>
+                <select id="id_SBR_select_allowance" class="tw_200 border_none px-2"
+                    autocomplete="off" ondragstart="return false;" ondrop="return false;">
+                    <option value="hours">{% trans 'Hours' %}</option>
+                    <option value="allowances">{% trans 'Allowances' %}</option>
+               </select>
+            </div>
 
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 id="id_SBR_label_select_allowance" class="tw_200 line_height_normal px-2">{% trans 'Hours' %} / {% trans 'Allowances' %}:</h6>
-            <select id="id_SBR_select_allowance" class="tw_200 border_none px-2"
-                autocomplete="off" ondragstart="return false;" ondrop="return false;">
-                <option value="hours">{% trans 'Hours' %}</option>
-                <option value="allowances">{% trans 'Allowances' %}</option>
-           </select>
-        </div>
-
-        <div class="tw_200 mx-2 mt-2 mb-4">
-            <h6 id="id_SBR_label_select_employee" class="tw_200 line_height_normal px-2">{% trans 'Employee' %} / {% trans 'Function' %}:</h6>
-            <input id="id_SBR_select_employee"
-                type="text"
-                class="tw_200 border_none pointer_show px-2"
-                readonly>
-        </div>
+            <div class="tw_200 mx-2 mt-2 mb-4">
+                <h6 id="id_SBR_label_select_employee" class="tw_200 line_height_normal px-2">{% trans 'Employee' %} / {% trans 'Function' %}:</h6>
+                <input id="id_SBR_select_employee"
+                    type="text"
+                    class="tw_200 border_none pointer_show px-2"
+                    readonly>
+            </div>
 
 
         </div>
@@ -70,44 +71,33 @@
     <div class="tsa_margin_top48_left24">
         {% if user.is_authenticated %}
             {% if user.is_perm_hrman %}
-        <!-- =================== MODAL CONFIRM  =================== -->
                 {% include 'includes/confirm.html' %}
-        <!-- =================== MODAL MESSAGE  =================== -->
                 {% include 'includes/modmessage.html' %}
-        <!-- =================== MODAL ABSCAT  =================== -->
                 {% include 'includes/modabscat.html' %}
-        <!-- =================== MODAL PERIOD OR PAYROLL PERIOD =================== -->
                 {% include 'includes/modselectperiodorpaydate.html' %}
-        <!-- =================== MODAL PAYROLL PERIOD  =================== -->
                 {% include 'includes/modpayrollperiod.html' %}
-        <!-- =================== MODAL FUNCTION CODE =================== -->
                 {% include 'includes/modfunctioncode.html' %}
-        <!-- =================== MODAL WAGE CODE =================== -->
                 {% include 'includes/modwagecode.html' %}
-        <!-- =================== MODAL WAGE FACTOR =================== -->
                 {% include 'includes/modwagefactor.html' %}
-        <!-- =================== MODAL SELECT ORDER  ===================-->
                 {% include 'includes/modselectcustomerorder.html' %}
-        <!-- =================== MODAL SELECT EMPLOYEE FUNCTION =================== -->
                 {% include 'includes/modselectemployeefunction.html' %}
-        <!-- =================== MODAL SELECT PAYDATE  =================== -->
                 {% include 'includes/modselectpaydate.html' %}
-        <!-- =================== MODAL SELECT COLUMNS  =================== -->
+                {% include 'includes/modpublishpayrollperiod.html' %}
                 {% include 'includes/modselectcolumns.html' %}
-        <!-- =================== MODAL EMPLHOUR PAYROLL =================== -->
                 {% include 'includes/modemplhourpayroll.html' %}
-        <!-- =================== MODAL TIMEPICKER  =================== -->
                 {% include 'includes/modtimepicker.html' %}
+
 
 <!-- =================== CONTAINER =================== -->
 <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block m-2 pr-4 pt-3" role="group" aria-label="Choose option" >
                     <button data-btn="btn_payroll_agg" class="btn btn-secondary ">{% trans 'Roster totals' %}</button>
                     <button data-btn="btn_payroll_detail" class="btn btn-secondary ">{% trans 'Roster details' %}</button>
-                    <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
+                    <button data-btn="published" class="btn btn-secondary">{% trans 'Close payroll period' %}</button>
                     <button data-btn="paydatecode" class="btn btn-secondary">{% trans 'Payroll periods' %}</button>
                     <button data-btn="wagefactor" class="btn btn-secondary">{% trans 'Wage components' %}</button>
                     <button data-btn="wagecode" class="btn btn-secondary display_hide">{% trans 'Salary scales' %}</button>
+                    <button data-btn="functioncode" class="btn btn-secondary">{% trans 'Functions' %}</button>
                     <button data-btn="allowance" class="btn btn-secondary ">{% trans 'Allowances' %}</button>
                     <button data-btn="abscat" class="btn btn-secondary ">{% trans 'Absence categories' %}</button>
                 </div>
@@ -134,7 +124,7 @@
                 <div class="content_body ml-2 mr-0">
 
     <!-- =================== DATA TABLE  =================== -->
-                    <div class="tab_show tab_btn_payroll_agg tab_btn_payroll_detail tab_abscat display_hide">
+                    <div class="tab_show tab_btn_payroll_agg tab_btn_payroll_detail tab_published tab_abscat display_hide">
                          <table class="table tsa_tbl">
                             <thead id="id_tblHead_datatable"></thead>
                             <tbody id="id_tblBody_datatable"></tbody>
@@ -169,10 +159,16 @@
                     data-datalist_download_url="{% url 'datalist_download_url' %}"
                     data-settings_upload_url="{% url 'settings_upload_url' %}"
                     data-payroll_upload_url="{% url 'payroll_upload_url' %}"
+                    data-publish_upload_url="{% url 'publish_upload_url' %}"
+
                     data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
+                    data-payroll_correction_url="{% url 'payroll_correction_url' %}"
                     data-paydatecode_import_url="{% url 'paydatecode_import_url' %}"
                     data-afas_hours_xlsx_url="{% url 'afas_hours_xlsx_url' %}"
                     data-afas_ehal_xlsx_url="{% url 'afas_ehal_xlsx_url' %}"
+
+
+                    data-payrollpublished_xlsx_url="{% url 'payrollpublished_xlsx_url' '-' %}"
 
                     data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
                     data-imgsrc_delete="{% static 'img/delete.gif' %}"

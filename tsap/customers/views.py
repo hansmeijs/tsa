@@ -43,6 +43,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
     def post(self, request, *args, **kwargs):
         logging_on = settings.LOGGING_ON
         update_wrap = {}
+        messages = []
         if request.user is not None and request.user.company is not None:
 
 # - reset language
@@ -79,6 +80,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
 
                 updated_list = []
                 deleted_list = []
+                messages = []
                 msg_dict = {}
                 is_created = False
 
@@ -109,9 +111,9 @@ class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
                                                    'mapid': map_id,
                                                    'deleted': True}
                         # - delete customer
-                                    msg_err = m.delete_instance(instance, request, this_text)
-                                    if msg_err:
-                                        msg_dict['err_delete'] = msg_err
+                                    msg_dict = m.delete_instance(instance, request, this_text)
+                                    if msg_dict:
+                                        messages.append(msg_dict)
                                     else:
                                 # - add deleted_row to deleted_list
                                         deleted_list.append(deleted_row)
@@ -190,9 +192,9 @@ class CustomerUploadView(UpdateView):# PR2019-03-04 PR2021-03-21
                                                    'mapid': map_id,
                                                    'deleted': True}
                         # - delete order
-                                    msg_err = m.delete_instance(instance, request, this_text)
-                                    if msg_err:
-                                        msg_dict['err_delete'] = msg_err
+                                    msg_dict = m.delete_instance(instance, request, this_text)
+                                    if msg_dict:
+                                        messages.append(msg_dict)
                                     else:
                                 # - add deleted_row to deleted_list
                                         deleted_list.append(deleted_row)
@@ -752,7 +754,7 @@ def update_nohours_in_emplhour(abscat_order, comp_timezone, request):
 # - get emplhour records of this abscat_order that are not locked
         emplhours = m.Emplhour.objects.filter(
             orderhour__order=abscat_order,
-            lockedpaydate=False
+            payrollpublished_id__isnull=True
         )
         for emplhour in emplhours:
             rosterdate_dte = emplhour.rosterdate
@@ -828,7 +830,7 @@ def update_wagefactor_in_emplhour(abscat_order, request):
 
         emplhours = m.Emplhour.objects.filter(
             orderhour__order=abscat_order,
-            lockedpaydate=False
+            payrollpublished_id__isnull=False
         )
         for emplhour in emplhours:
             rosterdate_dte = emplhour.rosterdate

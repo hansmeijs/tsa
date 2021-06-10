@@ -157,10 +157,6 @@ STATUS_03_END_PENDING = 8
 STATUS_04_END_CONFIRMED = 16
 STATUS_05_LOCKED = 32
 
-# only used in Emplhourstatus PR2021-02-04
-STATUS_06_PAYROLLOCKED = 64
-STATUS_07_INVOICELOCKED = 128
-
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
 SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
 
@@ -233,6 +229,7 @@ KEY_USER_PERIOD_ROSTER = 'period_roster'
 KEY_USER_PERIOD_REVIEW = 'period_review'
 KEY_USER_PERIOD_CUSTOMER = 'period_customer'
 KEY_USER_PERIOD_EMPLOYEE = 'period_employee'
+KEY_USER_PAYROLL_PERIOD = 'payroll_period'
 
 # code, cycle, excludecompanyholiday, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
@@ -366,7 +363,7 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'customercode', 'ordercode', 's
 
 FIELDS_EMPLHOUR = ('orderhour', 'rosterdate', 'exceldate',
                     'employee', 'employeecode', 'cat', 'isreplacement', 'datepart',
-                    'paydatecode', 'lockedpaydate', 'payrollpublished', 'invoicepublished',
+                    'paydatecode', 'payrollpublished', 'invoicepublished',
                     'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                     'offsetstart', 'offsetend', 'excelstart', 'excelend',
                     'functioncode', 'wagefactorcode', 'wagefactor', 'wagefactorcaption',

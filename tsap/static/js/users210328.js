@@ -159,8 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("company_dict" in response) { company_dict = response.company_dict}
                 if ("user_list" in response) { refresh_user_map(response.user_list)}
                 if ("employee_list" in response) { b_refresh_datamap(response.employee_list, employee_map)}
-                if ("customer_rows" in response) { fill_datamap(customer_map, response.customer_rows)}
-                if ("order_rows" in response) { fill_datamap(order_map, response.order_rows)}
+                if ("customer_rows" in response) { b_fill_datamap(customer_map, response.customer_rows)}
+                if ("order_rows" in response) { b_fill_datamap(order_map, response.order_rows)}
 
                 HandleBtnSelect(selected_btn, true)  // true = skip_upload
 
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  show only the elements that are used in this tab
-        //show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn);
+        //b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn);
 
 // ---  fill datatable
         CreateTblHeader();
@@ -806,7 +806,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 // ---  show only the elements that are used in this tab
         const container_element = document.getElementById("id_mod_select_user_from_employee");
-        show_hide_selected_elements_byClass("tab_show", "tab_" + mode, container_element)
+        b_show_hide_selected_elements_byClass("tab_show", "tab_" + mode, container_element)
 
 // ---  set header text
         if (mode === "update"){
@@ -1078,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_msg_container.classList.remove("border_bg_invalid");
             el_msg_container.classList.add("border_bg_valid");
 // ---  show only the elements that are used in this tab
-            show_hide_selected_elements_byClass("tab_show", "tab_ok");
+            b_show_hide_selected_elements_byClass("tab_show", "tab_ok");
 
         } else {
             // --- loop through input elements
@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_msg_container.classList.remove("border_bg_valid");
                 el_msg_container.classList.add("border_bg_invalid");
 // ---  show only the elements that are used in this tab
-                show_hide_selected_elements_byClass("tab_show", "tab_ok");
+                b_show_hide_selected_elements_byClass("tab_show", "tab_ok");
 
             } else {
                 const fields = ["username", "last_name", "email"]

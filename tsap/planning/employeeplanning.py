@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, request):  #PR2020-10-25
-    logging_on = s.LOGGING_ON
+    logging_on = False  # s.LOGGING_ON
     if logging_on:
         logger.debug('   ')
         logger.debug(' ++++++++++++++  create_employee_planningNEW  ++++++++++++++ ')
@@ -44,7 +44,9 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
 # - check if calendar contains dates of this year, fill if necessary
         starttime = timer()
         f.check_and_fill_calendar(datefirst_dte, datelast_dte, request)
-        #logger.debug( 'check_and_fill_calendar: ' + str(timer() - starttime))
+
+        if logging_on:
+            logger.debug( 'check_and_fill_calendar: ' + str(timer() - starttime))
 
         planning_list = []
         customer_dictlist = {}
@@ -55,8 +57,10 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
         # - returns empty list when all employees are allowed
         # - no other filters are used in this function
         allowed_employees_list = f.get_allowed_employees_and_replacements(request)
-        #logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
-        #logger.debug('order_pk: ' + str(order_pk))
+
+        if logging_on:
+            logger.debug('allowed_employees_list: ' + str(allowed_employees_list))
+            logger.debug('order_pk: ' + str(order_pk))
 
 # - when only shifts of order_pk are selected (when called by planning page)
         # - employee_pk_list_from_order is a list of all employees and replacements
@@ -70,7 +74,9 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             # note: list includes employees / replacements that are inactive or not in service
             # PR2020-11-09 debug: must also add absence replacement employees
             employee_pk_list_from_order = get_employeeplanning_employee_pk_list(order_pk, request)
-            #logger.debug('employee_pk_list_from_order: ' + str(employee_pk_list_from_order))
+
+            if logging_on:
+                logger.debug('employee_pk_list_from_order: ' + str(employee_pk_list_from_order))
 
 # - create employee_pk_list, a combination of allowed_employees_list and employee_pk_list_from_order
         employee_pk_list, employee_pk_nonull, order_pk_list = [], [], []
@@ -93,18 +99,24 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             for pk in employee_pk_list:
                 if pk:
                     employee_pk_nonull.append(pk)
-            #logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
+
+            if logging_on:
+                logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
             # TODO: replace by employee_pk_list.pop(None)
 
 # - add the absence replacements of the employees to employee_pk_nonull
             # - replacements that are also in employee_pk_nonull are skipped
             absence_replacement_pk_list = get_employeeplanning_absence_replacement_pk_list (employee_pk_nonull, datefirst_iso, datelast_iso, request)
-            #logger.debug('absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
+
+            if logging_on:
+                logger.debug('absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
             if absence_replacement_pk_list:
                 employee_pk_nonull.extend(absence_replacement_pk_list)
-            #logger.debug('..... employee_pk_list: ' + str(employee_pk_list))
-            #logger.debug('..... absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
-            #logger.debug('..... employee_pk_nonull: ' + str(employee_pk_nonull))
+
+            if logging_on:
+                logger.debug('..... employee_pk_list: ' + str(employee_pk_list))
+                logger.debug('..... absence_replacement_pk_list: ' + str(absence_replacement_pk_list))
+                logger.debug('..... employee_pk_nonull: ' + str(employee_pk_nonull))
 
 # - if pp_employee_pk_list has value: remove all employees that are not in pp_employee_pk_list
             if pp_employee_pk_list and len(pp_employee_pk_list) and len(employee_pk_nonull):
@@ -117,7 +129,8 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             # - only when customer, order and scheme are active and not istemplate
             # in this way you can print a planning of the employees of one order that also contain the shifts of other orders
             order_pk_list = get_employeeplanning_order_list(employee_pk_nonull, request)
-            #logger.debug('order_pk_list: ' + str(order_pk_list))
+            if logging_on:
+                logger.debug('order_pk_list: ' + str(order_pk_list))
 
 # +++++ +++++ +++++ +++++ +++++ +++++
 # +++++ loop through dates +++++
@@ -127,9 +140,11 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             is_saturday, is_sunday, is_publicholiday, is_companyholiday = \
                 f.get_issat_issun_isph_isch_from_calendar(rosterdate_dte, request)
             rosterdate_iso = rosterdate_dte.isoformat()
-            #logger.debug('  ===================  rosterdate_iso: ' + str(rosterdate_iso) + ' ===================')
 
-            #logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
+
+            if logging_on:
+                logger.debug('  ===================  rosterdate_iso: ' + str(rosterdate_iso) + ' ===================')
+                logger.debug('employee_pk_nonull: ' + str(employee_pk_nonull))
 
 # ---  create employee_list with employees:
             # filter:
@@ -155,7 +170,9 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
             'wgc_id': 20, 'wgc_code': 'secretaresse', 
             'pdc_id': None, 'pdc_code': None, 'prc_id': None, 'locked': False, 'inactive': False, 'e_wmpd': 480},  
             """
-            #logger.debug('employee_dictlist: ' + str(employee_dictlist))
+
+            if logging_on:
+                logger.debug('employee_dictlist: ' + str(employee_dictlist))
 
 # ---  create dict of wagecode and wagecodeitems of this rosterdate (without filter 'key'
             wagecode_dictlist = create_wagecode_dictlist(request, rosterdate_iso, rosterdate_iso)
@@ -197,9 +214,11 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
 
     # ---  remove overlapping absence- / restshifts
             remove_double_absence_restrows(eid_tmsid_arr, tm_si_id_info)  # PR2020-10-23
-            #logger.debug('----- tm_si_id_info after remove: ')
-            #for key, value in tm_si_id_info.items():
-            #    #logger.debug('..... ' + str(key) + ': ' + str(value))
+
+            if logging_on:
+                logger.debug('----- tm_si_id_info after remove: ')
+                for key, value in tm_si_id_info.items():
+                    logger.debug('..... ' + str(key) + ': ' + str(value))
 
 # ---  create list of shifts (teammembers):
             # filters:
@@ -327,7 +346,9 @@ def create_employee_planningNEW(planning_period_dict, order_pk, comp_timezone, r
 def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlist, order_dictlist, wagecode_dictlist, default_wagefactor_pk, tm_si_id_info,
                         is_saturday, is_sunday, is_publicholiday, is_companyholiday,
                         comp_timezone, request):  # PR2020-01-5 PR2020-08-14
-    logger.debug(' ============= add_orderhour_emplhour ============= ')
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('row: ' + str(row))
     """
     row: {'tm_id': 1975, 'tm_si_id': '1975_4000', 'tm_rd': datetime.date(2020, 10, 26), 't_id': 2905, 't_code': 'Agata', 
@@ -348,10 +369,12 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
 
         if e_id:
             employee_dict = employee_dictlist.get(e_id)
-            logger.debug('employee_dict: ' + str(employee_dict))
+
+            if logging_on:
+                logger.debug('employee_dict: ' + str(employee_dict))
             if employee_dict:
                 e_code = employee_dict.get('code')
-                #logger.debug('e_code: ' + str(e_code))
+
                 e_identifier = employee_dict.get('identifier')
                 e_payrollcode = employee_dict.get('payrollcode')
 
@@ -374,7 +397,8 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
             # necessary for sorted list
             e_code = '---'
 
-        logger.debug('e_wmpd: ' + str(e_wmpd))
+        if logging_on:
+            logger.debug('e_wmpd: ' + str(e_wmpd))
 # create note when employee is absent
         note_absent_eid = row.get('note_absent_eid')
         # TODO note_absence_o_code is not working yet
@@ -382,20 +406,29 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
         note = None
         if note_absent_eid is not None:
             # employee_dictlist: { 2608: {'id': 2608, 'comp_id': 3, 'code': 'Colpa de, William',
-            #logger.debug('note_absent_eid: ' + str(note_absent_eid))
+
+            if logging_on:
+                logger.debug('note_absent_eid: ' + str(note_absent_eid))
             absent_employee_dict = employee_dictlist.get(note_absent_eid)
-            #logger.debug('absent_employee_dict: ' + str(absent_employee_dict))
+
+            if logging_on:
+                logger.debug('absent_employee_dict: ' + str(absent_employee_dict))
             if absent_employee_dict:
                 absent_e_code = absent_employee_dict.get('code')
-                #logger.debug('absent_e_code: ' + str(absent_e_code))
+
+                if logging_on:
+                    logger.debug('absent_e_code: ' + str(absent_e_code))
                 if absent_e_code:
                     note = absent_e_code + str(_(' is absent'))
                     # TODO add abscat
                     # if abscat_order_code:
                     #    note += ' (' + abscat_order_code + ')'
 
-                #logger.debug('note: ' + str(note))
-            #logger.debug('employee_dictlist: ' + str(employee_dictlist))
+                if logging_on:
+                    logger.debug('note: ' + str(note))
+
+            if logging_on:
+                logger.debug('employee_dictlist: ' + str(employee_dictlist))
 
         mode = row.get('si_mod')
         is_absence = (mode == 'a')
@@ -468,10 +501,12 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
             order_list = order_dictlist[o_id]
             if e_id_nonull not in order_list:
                 order_list.append(e_id_nonull)
-        #logger.debug('e_code: ' + str(e_code))
-        #logger.debug('o_code: ' + str(o_code))
-        #logger.debug('planned_duration: ' + str(planned_duration))
-        #logger.debug('time_duration: ' + str(time_duration))
+
+        if logging_on:
+            logger.debug('e_code: ' + str(e_code))
+            logger.debug('o_code: ' + str(o_code))
+            logger.debug('planned_duration: ' + str(planned_duration))
+            logger.debug('time_duration: ' + str(time_duration))
 
         o_nopay = False # row.get('o_nopay', False)
 
@@ -485,7 +520,9 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
             wagefactor_rate = wagecode_dict.get('wagerate', 0)
 
         planning_dict_short = {
+                    # TODO replace fid by mapid in functions that use fid
                     'fid': '_'.join([str(tm_id), str(si_id), str(tm_rd)]),
+                    'mapid': '_'.join([str(tm_id), str(si_id), str(tm_rd)]),
                     'e_id': e_id,
                     'e_code': e_code,
                     'e_identifier': e_identifier,
@@ -534,10 +571,10 @@ def add_row_to_planning(row, rosterdate_dte, employee_dictlist, customer_dictlis
                     # 'note_absence_o_code': note_absence_o_code,
                     'isreplacement': is_replacement
         }
-        #if note_absent_eid:
-            #logger.debug('===============planning_dict_short with note_absent_eid========================')
-            #logger.debug(planning_dict_short)
-    ##>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        if note_absent_eid:
+            if logging_on:
+                logger.debug('===============planning_dict_short with note_absent_eid========================')
+                logger.debug(planning_dict_short)
 
     return planning_dict_short
 
@@ -709,7 +746,7 @@ def create_employee_dictlist(request, datefirst_iso, datelast_iso, paydatecode_p
 
 def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_companyholiday, order_pk_list, employee_pk_list):
     # --- create rows of all teammembers of this company in this period, not inactive PR2020-10-11  PR2021-02-17
-    logging_on = s.LOGGING_ON
+    logging_on = False  # s.LOGGING_ON
     if logging_on:
         logger.debug(' ------------- emplan_create_teammember_dict ----------------- ')
         logger.debug('order_pk_list' + str(order_pk_list))
@@ -805,7 +842,7 @@ def emplan_create_teammember_list(request, rosterdate_iso, is_publicholiday, is_
 
 #######################################################
 def calculate_add_row_to_dictNEW(row, employee_dictlist, eid_tmsid_arr, tm_si_id_info, rosterdate_dte):
-    logging_on = s.LOGGING_ON
+    logging_on = False  # s.LOGGING_ON
     if logging_on:
         logger.debug('  ')
         logger.debug('------------ calculate_add_row_to_dictNEW ------------------------------ ')

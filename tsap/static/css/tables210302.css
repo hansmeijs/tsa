@@ -371,11 +371,6 @@
 .flag_1_1 { background-position: -20px -20px;}
 .flag_1_2 { background-position: -40px -20px;}
 
-
-
-/* END OF SPRITES */
-
-
 .tw_360 { width: 360px; }
 .tw_300 { width: 300px; }
 .tw_270 { width: 270px; }
@@ -396,6 +391,7 @@
 
 .tw_hours { padding: 2px; width: 60px; }
 
+/* END OF SPRITES */
 .tbl_border {
     border: 1px solid #808080; /* grijs; */
 }
@@ -584,9 +580,14 @@
 }
 
 .tbl_div_390_280, .tbl_div_390_220, .tbl_div_390_360,
-.tbl_div_50vh_200, .tbl_div_25vh_200 {
+.tbl_div_50vh_200, .tbl_div_25vh_200, .tbl_MEP_h1800_w280 {
     overflow-x: hidden;
     overflow-y: auto;
+}
+
+.tbl_MEP_h140_w720 {
+    height: 140px;
+    width: 720px;
 }
 
 .tbl_div_390_360 {
@@ -614,5 +615,6 @@
     max-height: 25vh;
     width: 200px;
 }
+
 
 

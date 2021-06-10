@@ -159,6 +159,36 @@ STATICFILES_STORAGE = config('STATICFILES_STORAGE', default='django.contrib.stat
 #DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
 #DBBACKUP_STORAGE_OPTIONS = {'location': os.path.join(BASE_DIR, 'backups')} # path backups: C:\dev\tsa\tsap\backups
 
+# PR2021-05-15 aws storage added from awpr
+# PR2021-03-07 https://www.ordinarycoders.com/blog/article/serve-django-static-and-media-files-in-production
+# Note: must comment out the original STATIC_URL and STATICFILES_DIRS.
+
+# PR2021-03-06 from https://www.digitalocean.com/community/tutorials/how-to-set-up-object-storage-with-django
+# SECURITY WARNING: keep the access key used in production secret!
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL')
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',}
+# AWS_LOCATION = config('AWS_LOCATION')
+
+# from Vitor de Freitas, used in storage_backends.py
+# AWS_STATIC_LOCATION = config('AWS_STATIC_LOCATION')
+# AWS_PUBLIC_MEDIA_LOCATION = config('AWS_PUBLIC_MEDIA_LOCATION')
+AWS_PRIVATE_MEDIA_LOCATION = config('AWS_PRIVATE_MEDIA_LOCATION')
+
+#STATIC_URL = 'https://%s/%s/' % (AWS_S3_ENDPOINT_URL, AWS_LOCATION)
+# PR2021-03-08 from https://simpleisbetterthancomplex.com/tutorial/2017/08/01/how-to-setup-amazon-s3-in-a-django-project.html
+# from Vitor de Freitas: STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# DEFAULT_FILE_STORAGE = 'awpr.storage_backends.MediaStorage'  # <-- here is where we reference it
+
+# PR2021-03-08 from the docs https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html
+#STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+AWS_S3_REGION_NAME = 'nyc3'
+
+
+
 # PR 2018-03-27
 LOGIN_URL = 'login'
 # PR 2018-03-20
@@ -190,30 +220,6 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-
-#PR2019-03-06 set default date formats
-
-# from https://docs.djangoproject.com/en/2.1/ref/templates/builtins/#std:templatefilter-date
-# y 	Year, 2 digits. 	'99'
-# Y 	Year, 4 digits. 	'1999'
-# d 	Day of the month, 2 digits with leading zeros.
-# j 	Day of the month without leading zeros. 	'1' to '31'
-# D 	Day of the week, textual, 3 letters. 	'Fri'
-# l 	Day of the week, textual, long. 	'Friday'
-
-# m 	Month, 2 digits with leading zeros. 	'01' to '12'
-# n 	Month without leading zeros. 	'1' to '12'
-# M 	Month, textual, 3 letters. 	'Jan'
-# b 	Month, textual, 3 letters, lowercase. 	'jan'
-
-# g 	Hour, 12-hour format without leading zeros. 	'1' to '12'
-# G 	Hour, 24-hour format without leading zeros. 	'0' to '23'
-# h 	Hour, 12-hour format. 	'01' to '12'
-# H 	Hour, 24-hour format. 	'00' to '23'
-# i 	Minutes. 	'00' to '59'
-# a 	'a.m.' or 'p.m.'
-# A 	'AM' or 'PM'.
-
 from django.conf.locale.en import formats as en_formats
 from django.conf.locale.nl import formats as nl_formats
 en_formats.DATE_FORMAT = "M j, Y"
@@ -239,7 +245,6 @@ LANGUAGES = (
 LANGUAGE_CODE = 'nl'
 
 HEADER_CLASS = config('HEADER_CLASS', default='headerbar') # PR2021-02-17 sets color of header for production or test environment
-
 
 # Tell Django where the project's translation files should be.
 LOCALE_PATHS = (

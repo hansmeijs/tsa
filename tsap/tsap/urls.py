@@ -1,4 +1,4 @@
-# PR2019-03-01
+# PR2019-03-01 PR2021-05-15
 from django.urls import include, path, re_path
 from django.conf.urls import url
 from django.contrib.auth import views as auth_views
@@ -15,6 +15,7 @@ from planning import rosterfill as rosterfill_views
 from accounts.forms import CompanyAuthenticationForm
 
 from tsap import settings
+from tsap import downloads as dl
 
 param = {'headerbar_class': settings.HEADER_CLASS}
 
@@ -154,7 +155,7 @@ urlpatterns = [
     path('session_security', include('session_security.urls')),
 
 # ++++ datalist_download +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
+    path('datalist_download', dl.DatalistDownloadView.as_view(), name='datalist_download_url'),
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     path('company/', include([
@@ -190,18 +191,26 @@ urlpatterns = [
         path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
         path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(), name='employee_uploadsetting_url'),
         path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
+    ])),
 
+    path('payroll/', include([
         path('payroll', employee_views.PayrollView.as_view(), name='payroll_url'),
-        path('payroll_upload', employee_views.PayrollUploadView.as_view(), name='payroll_upload_url'),
+        path('upload', employee_views.PayrollUploadView.as_view(), name='payroll_upload_url'),
+
+        path('correction', employee_views.PayrollCorrectionUploadView.as_view(), name='payroll_correction_url'),
+        
+        path('publish', employee_views.PublishUploadView.as_view(), name='publish_upload_url'),
         path('import_pdc', employee_views.PayrollImportView.as_view(), name='paydatecode_import_url'),
         path('afas_hours_xlsx', employee_views.PayrollAfasHoursXlsxView.as_view(), name='afas_hours_xlsx_url'),
         path('afas_ehal_xlsx', employee_views.PayrollAfasEhalXlsxView.as_view(), name='afas_ehal_xlsx_url'),
+
+        path('published_xlsx/<list>/', employee_views.PayrollDownloadPublishedHoursXlsxView.as_view(), name='payrollpublished_xlsx_url'),
     ])),
 
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
         # path('scheme_upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
-        path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
+        # PR2021-05-26 NIU: path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
         path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),
         path('schemeorshiftorteam_upload', planning_views.SchemeOrShiftOrTeamUploadView.as_view(), name='schemeorshiftorteam_upload_url'),

@@ -21,22 +21,20 @@
             <h3>{% trans 'Planning' %}</h3>
         </div>
 
-        <div id="id_sidebar_div_select_order" class="tw_200 mx-2 mt-2 mb-4">
+        <div id="id_SBR_order_div" class="tw_200 mx-2 mt-2 mb-4">
             <h6 class="tw_200 line_height_normal px-2">{% trans 'Select customer and order' %}:</h6>
             <input id="id_SBR_select_order"
                 type="text"
                 class="tw_200 border_none pointer_show px-2"
-                readonly>
+                readOnly>
         </div>
 
         <div class="tw_200 mx-2 my-2">
-            <div id="id_select_template_div" class="display_hide my-2">
-                <h4 class="mx-2 my-2">{% trans 'Templates' %}</h4>
-            </div>
-            <table id="id_select_table_schemeXX" class="display_hideXX mt-4">
-                <thead id="id_select_thead_scheme" class="tsa_color_white m-1"></thead>
-                <tbody id="id_select_tbody_scheme"></tbody>
-                <tfoot id="id_select_tfoot_scheme"></tfoot>
+            <h4 id="id_SBR_template_div" class="mx-2 my-2 display_hide">{% trans 'Templates' %}</h4>
+            <table class="mt-4">
+                <thead id="id_SBR_thead_scheme" class="tsa_color_white m-1"></thead>
+                <tbody id="id_SBR_tbody_scheme"></tbody>
+                <tfoot id="id_SBR_tfoot_scheme"></tfoot>
             </table>
         </div>
     </nav>
@@ -196,17 +194,17 @@
                             <h6 class="mx-1 my-0">{% trans 'Scheme' %}:</h6>
                         </div>
                         <div class=" m-1">
-                            <button id="id_grid_scheme_btn_code" type="button" data-field="code" class="tsa_input_text tw_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
-                            <button id="id_grid_scheme_btn_cycle" type="button" data-field="cycle" class="tsa_input_text tw_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
+                            <button data-field="code" class="tsa_input_text tw_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
+                            <button data-field="cycle" class="tsa_input_text tw_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
                         </div>
                         <div class=" mx-1">
-                            <a id="id_grid_scheme_btn_datefirstlast" data-field="datefirstlast" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
+                            <a data-field="datefirstlast" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
                         </div>
                         <div class=" mx-1">
-                            <a id="id_grid_scheme_btn_exph" data-field="dvg_excl_ph" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-0"></a>
+                            <a data-field="dvg_excl_ph" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-0"></a>
                         </div>
                         <div class=" mx-1 mb-1">
-                            <a id="id_grid_scheme_btn_exch" data-field="excludecompanyholiday" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
+                            <a data-field="excludecompanyholiday" class="tsa_input_text btn-smallfont pointer_show tw_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
                         </div>
                     </div>
                     <div class="grid_teams tbl_border">
@@ -270,7 +268,7 @@
         data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
         data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
         data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
-        data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
+
         data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
         data-teammember_upload_url="{% url 'teammember_upload_url' %}"
         data-grid_upload_url="{% url 'grid_upload_url' %}"

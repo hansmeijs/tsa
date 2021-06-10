@@ -208,7 +208,6 @@ PR2021-03-09 error after switching to Django 3.1:
         return dict
     }  // get_dict_value
 
-
 //========= b_get_status_class  ============= PR2021-02-03
     function b_get_status_class(loc, fldName, status_sum, is_pay_or_inv_locked, has_changed) {
         //console.log(" ------  b_get_status_class  ------");
@@ -222,10 +221,6 @@ PR2021-03-09 error after switching to Django 3.1:
             STATUS_03_END_PENDING = 8
             STATUS_04_END_CONFIRMED = 16
             STATUS_05_LOCKED = 32
-
-            # only used in Emplhourstatus PR2021-02-04
-            STATUS_06_PAYROLLOCKED = 64
-            STATUS_07_INVOICELOCKED = 128
         */
 
         const status_array = b_get_status_array(status_sum);
@@ -245,10 +240,10 @@ PR2021-03-09 error after switching to Django 3.1:
             } else if (fldName === "status"){
                 if(is_pay_or_inv_locked){
                     icon_index = "6"  // blue padlock
-                    title = loc.This_shift_is_locked;
+                    title = loc.This_shift_is_closed; // afgesloten
                 } else if (status_array_length > 5 && status_array[5]){  // STATUS_05_LOCKED = 32
                     icon_index = "5"; // blue cube icon
-                    title = loc.This_shift_is_closed;
+                    title = loc.This_shift_is_locked;  // vergrendeld
                 } else if ( (status_array_length > 2 && status_array[2]) || (status_array_length > 4 && status_array[4]) ){
                     if ( (status_array_length > 2 && status_array[2]) && (status_array_length > 4 && status_array[4]) ) {
                         icon_index = "4"; // full grey cube icon
@@ -285,8 +280,6 @@ PR2021-03-09 error after switching to Django 3.1:
         }
         return status_bool
     }  // b_get_status_bool_at_index
-
-
 
 //========= b_set_status_bool_at_index  ============= PR2021-01-15
     function b_set_status_bool_at_index(status_sum, index, new_value) {
@@ -659,9 +652,9 @@ PR2021-03-09 error after switching to Django 3.1:
     }  // b_get_updated_fields_list
 
 
-//=========  fill_datamap  ================ PR2020-09-06
-    function fill_datamap(data_map, rows) {
-        //console.log(" --- fill_datamap  ---");
+//=========  b_fill_datamap  ================ PR2020-09-06
+    function b_fill_datamap(data_map, rows) {
+        //console.log(" --- b_fill_datamap  ---");
         //console.log("rows", rows);
         data_map.clear();
         if (rows && rows.length) {
@@ -671,13 +664,13 @@ PR2021-03-09 error after switching to Django 3.1:
         }
         //console.log("data_map", data_map);
         //console.log("data_map.size", data_map.size)
-    };  // fill_datamap
+    };  // b_fill_datamap
 
 //========= refresh_datamap  ================== PR2019-10-03 PR2020-07-13
     function b_refresh_datamap(data_list, data_map, tblName) {
         //console.log(" --- refresh_datamap ---")
         data_map.clear();
-        const data_list_length = data_list.length
+        const data_list_length = data_list.length;
         if (data_list && data_list_length) {
             // tblName overrules table in id, necessary for absence_map
             let table = null;
@@ -688,17 +681,23 @@ PR2021-03-09 error after switching to Django 3.1:
                 const table_in_dict = get_dict_value(data_list[0], ["id", "table"]);
                 table = (table_in_dict) ? table_in_dict : "no_table";
             }
-
             for (let i = 0; i < data_list_length; i++) {
                 const item_dict = data_list[i];
-                let pk_str = get_dict_value(item_dict, ["id", "pk"]);
-                // for list that comes from dict_fetchall. Must have  key 'id' in .For user_list PR2020-07-31
-                if(!pk_str) { pk_str = (item_dict.id) ? item_dict.id : null }
-                let map_id = get_map_id(table, pk_str);
-                data_map.set(map_id, item_dict);
+                if(!isEmpty(item_dict)){
+                    let map_id = null;
+                    if ("mapid" in item_dict){ // PR2021-06-05 added
+                        map_id = item_dict.mapid;
+                    } else if ("id" in item_dict){
+                        // for list that comes from dict_fetchall. Must have  key 'id' in .For user_list PR2020-07-31
+                        map_id = item_dict.id;
+                    } else {
+                        let pk_str = get_dict_value(item_dict, ["id", "pk"]);
+                        map_id = get_map_id(table, pk_str);
+                    }
+                    data_map.set(map_id, item_dict);
+                }
             }
         }
-        //console.log("data_map", data_map)
     };
 
 //========= update_map_item  ================== PR2020-08-09
@@ -800,6 +799,9 @@ PR2021-03-09 error after switching to Django 3.1:
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
     function insertInMapAtIndex(data_map, map_id, new_row, new_code, code_key, user_lang){
         //console.log("===== insertInMapAtIndex ==== ")
+        // ou can convert the Map to an Array, use Array.splice to insert the element,
+        // and then convert to a Map again.
+        // This is not an efficient solution,
         const data_arr = Array.from(data_map);
         const row_index = getRowIndex(data_arr, code_key, new_code, user_lang);
         data_arr.splice(row_index, 0, [map_id, new_row]);
@@ -821,7 +823,8 @@ PR2021-03-09 error after switching to Django 3.1:
                     map_item = data_arr[i];
                     map_dict = map_item[1];
                     row_code = (map_dict[code_key]) ? map_dict[code_key] : "";
-                    row_code_lc = (row_code) ? row_code.toLowerCase() : "";
+                    // PR2021-06-08 note: toLowerCase is not necessary, because sensitivity: 'base' ignores lower- / uppercase and accents
+                    row_code_lc = (row_code) ? row_code : ""; // was: row_code_lc = (row_code) ? row_code.toLowerCase() : "";
                     // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
                     // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
                     // row_code 'acu' new_code_lc 'giro' compare = -1
@@ -1038,9 +1041,20 @@ PR2021-03-09 error after switching to Django 3.1:
     return abbrev;
 }  // get_teamcode_abbrev
 
+// =========  b_display_modifiedat  === PR2021-05-29
+    function b_display_modifiedat(loc, modat, hide_weekday, hide_year, hide_suffix){
+        let display_text = null;
+        if(modat){
+            const modified_dateJS = parse_dateJS_from_dateISO(modat);
+            display_text = format_datetime_from_datetimeJS(loc, modified_dateJS, hide_weekday, hide_year, hide_suffix);
 
-// =========  display_modifiedby  === PR2021-01-05
-    function display_modifiedby(loc, modat, modby_usr){
+
+        };
+        return display_text
+    };  // b_display_modifiedat
+
+// =========  b_display_modifiedat_by  === PR2021-01-05
+    function b_display_modifiedat_by(loc, modat, modby_usr){
         let display_text = null;
         if(modat){
             const modified_dateJS = parse_dateJS_from_dateISO(modat);
@@ -1049,7 +1063,7 @@ PR2021-03-09 error after switching to Django 3.1:
             display_text = loc.Last_modified_by + modified_by + loc._on_ + modified_date_formatted;
         };
         return display_text
-    };  // display_modifiedby
+    };  // b_display_modifiedat_by
 
 //=========  deepcopy_dict  ================ PR2020-05-03
     let deepcopy_dict = function copy_fnc(data_dict) {
@@ -1845,8 +1859,8 @@ PR2021-03-09 error after switching to Django 3.1:
         }
     }
 
-//========= show_hide_selected_elements_byClass  ====  PR2020-02-19  PR2020-06-20
-    function show_hide_selected_elements_byClass(container_classname, contains_classname, container_element) {
+//========= b_show_hide_selected_elements_byClass  ====  PR2020-02-19  PR2020-06-20
+    function b_show_hide_selected_elements_byClass(container_classname, contains_classname, container_element) {
         // this function shows / hides elements on page, based on classnames: example: <div class="tab_show tab_shift tab_team display_hide">
         // - all elements with class 'container_classname' will be checked. example:'tab_show' is the container_classname.
         // - if an element contains class 'contains_classname', it will be shown, if not it will be hidden. example: 'tab_shift' and 'tab_team' are classes of the select buttons ('contains_classname')
@@ -1857,7 +1871,7 @@ PR2021-03-09 error after switching to Django 3.1:
             const is_show = el.classList.contains(contains_classname)
             show_hide_element(el, is_show)
         }
-    }  // show_hide_selected_elements_byClass
+    }  // b_show_hide_selected_elements_byClass
 
 //========= function show_hide_element_by_id  ====  PR2019-12-13
     function show_hide_element_by_id(el_id, is_show) {
@@ -1936,6 +1950,51 @@ PR2021-03-09 error after switching to Django 3.1:
         //console.log( "el_datefirst: ", el_datefirst);
         }
     }  // set_other_datefield_minmax
+
+//######### UNDER CONSTRUCTION #################################################################
+// +++++++++++++++++ LOOKUP dict in ordered dictlist +++++++++++++++++++++++++++++++++++++++++ PR2021-06-08
+
+//========= get_number_from_input  ========== PR2020-06-10
+    function lookup_row_in_dicht_list(dictlist, lookup_field, search_value){
+        // function return rowindex of searched value, or rowindex of row to be inserted
+        let min_index = null, max_index = null, middle_index = null;
+        let middle_dict = null;
+        if (dictlist && dictlist.length){
+            min_index = 0;
+            max_index = dictlist.length - 1;
+            // Math.trunc() returns the integer part of a floating-point number
+            middle_index = Math.trunc( (max_index - min_index) / 2)
+            middle_dict = dictlist[middle_index];
+            middle_value = middle_dict[lookup_field];
+            if (middle_value){
+            // compare
+                    // PR2021-06-08 note: toLowerCase is not necessary, because sensitivity: 'base' ignores lower- / uppercase and accents
+;
+                    // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                    // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                    // 'acu'.localeCompare('giro') = -1
+                    // 'mcb'.localeCompare('giro') = 1
+
+                    let compare = search_value.localeCompare(middle_value, user_lang, { sensitivity: 'base' });
+                    if (!compare ) {
+                        //  search_value === middle_value
+                        // exit, return  middle_index
+                    } else if (compare < 0) {
+                        //  search_value < middle_value
+                        //  set max_index = middle_index - 1
+                        // rounddown to integer
+                        // set middle_index =  Math.trunc( (max_index - min_index) / 2)
+                    } else if (compare > 0) {
+                        //  search_value > middle_value
+                        //  set min_index = middle_index + 1
+                        // round up to integer
+                        // set middle_index =  1 + Math.trunc( (max_index - min_index) / 2)
+                    }
+                    // Todo: exit when not found, make recurring
+                }
+        }
+    }
+
 
 //###########################################################################
 // +++++++++++++++++ VALIDATORS ++++++++++++++++++++++++++++++++++++++++++++++++++

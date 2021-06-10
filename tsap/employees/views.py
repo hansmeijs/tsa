@@ -1,7 +1,7 @@
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
 from django.db import connection
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 
 from django.db.models import Q
 from django.shortcuts import render
@@ -10,7 +10,7 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 import json
 from django.utils.functional import Promise
@@ -30,6 +30,7 @@ from customers import views as cv
 from planning import dicts as pld
 from planning import views as plv
 from planning import rosterfill as plrf
+from planning import employeeplanning as empl
 
 import math
 import logging
@@ -79,6 +80,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
             logger.debug(' ============= EmployeeUploadView ============= ')
 
         update_wrap = {}
+        messages = []
         has_permit = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_planner or request.user.is_perm_hrman)
@@ -131,10 +133,9 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
                     # b. check if there are teammembers with this employee: absence teammembers, remove employee from shift teammembers
                                 delete_employee_from_teammember(employee, request)
                     # c. delete employee
-                                msg_err = m.delete_instance(employee, request, this_text)
-
-                                if msg_err:
-                                    error_dict['err_delete'] = msg_err
+                                msg_dict = m.delete_instance(employee, request, this_text)
+                                if msg_dict:
+                                    messages.append(msg_dict)
                                 else:
                      # - add deleted_row to absence_rows
                                     deleted_dict = {'pk': employee_pk,
@@ -239,8 +240,10 @@ class EmployeenoteUploadView(UpdateView):  # PR2021-02-16
 class TeammemberUploadView(UpdateView):  # PR2019-12-06 PR2021-01-03
     # this function is called bij employee.js, customer.js and scheme.js
     def post(self, request, *args, **kwargs):
-        logger.debug('  ')
-        logger.debug(' ===================== TeammemberUploadView ===================== ')
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('  ')
+            logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
         # <PERMIT> PR2020-11-10
@@ -266,13 +269,13 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06 PR2021-01-03
         upload_json = request.POST.get("upload")
         if upload_json:
             upload_dict = json.loads(upload_json)
-            logger.debug('upload_dict: ' + str(upload_dict))
+            if logging_on:
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # upload_dict: upload_dict: {'shiftoption': 'grid_shift', 'mode': 'update',
             # 'shift': { 'mode': 'update', 'isabsence': False
             #           'id': 5, 's_id': 2, 'code': '09.00 - 17.00', 'offsetstart': 540, 'offsetend': 1020,
             #           'breakduration': 240, 'timeduration': 240, 'isrestshift': False}}
-
 
 # - save quicksave
             # quicksave is saved in UploadUserSettings
@@ -290,16 +293,15 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06 PR2021-01-03
             if shift_option == 'isabsence' and has_permit_absence:
                 update_wrap['updated_absence_rows'] = absence_upload(request, upload_dict, user_lang)
 
-            elif shift_option == 'schemeshift' and has_permit:
+            #elif shift_option == 'schemeshift' and has_permit:
                 # 'table' has no value in mode 'schemeshift'
+            #    calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
+            #    if calendar_dictlist:
+            #        update_wrap['employee_calendar_list'] = calendar_dictlist
+            #    if logfile:
+            #        update_wrap['logfile'] = logfile
 
-                calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
-                if calendar_dictlist:
-                    update_wrap['employee_calendar_list'] = calendar_dictlist
-                if logfile:
-                    update_wrap['logfile'] = logfile
-
-                create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, timeformat, user_lang, request)
+            #    create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, timeformat, user_lang, request)
 
             elif shift_option == 'grid_team' and has_permit:
                 update_wrap = grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
@@ -315,14 +317,14 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06 PR2021-01-03
                     update_dict = teammember_upload(request, upload_dict, user_lang)
                     update_wrap['teammember_update'] = update_dict
 
-            if shift_option == 'schemeshift':
+            #if shift_option == 'schemeshift':
                 # get saved calendar_period_dict
-                period_dict = {'get': True}
-                calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
-                                                             comp_timezone, timeformat, interval, user_lang, request)
+               # period_dict = {'get': True}
+                #calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
+                #                                             comp_timezone, timeformat, interval, user_lang, request)
 
-                datefirst_iso = calendar_period_dict.get('rosterdatefirst')
-                datelast_iso = calendar_period_dict.get('rosterdatelast')
+                #datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                #datelast_iso = calendar_period_dict.get('rosterdatelast')
                 #logger.debug('datefirst_iso: ' + str(datefirst_iso))
                 #logger.debug('datelast_iso: ' + str(datelast_iso))
 
@@ -374,7 +376,7 @@ def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
     scheme = m.Scheme.objects.get_or_none(id=scheme_pk, order__customer__company=request.user.company)
 
 # - get or create team, map team_pk = 'new2' to new team_pk
-    team, mapped_teampk_dict, msg_dict = update_instance_from_upload_dict('team', upload_team_dict, scheme, user_lang, request)
+    team, mapped_teampk_dict, msg_dict, deleted_row = update_instance_from_upload_dict('team', upload_team_dict, scheme, user_lang, request)
     logger.debug('team: ' + str(team) )
     logger.debug(' mapped_teampk_dict: ' + str(mapped_teampk_dict))
     logger.debug(' >>>>>>>>>>>>>>> upload_team_dict: ' + str(upload_team_dict))
@@ -404,7 +406,7 @@ def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
         if teammembers_list:
             for upload_teammember_dict in teammembers_list:
     # - create, delet and update teammember
-                teammember, mapped_teammemberpk_dict, msg_dict = update_instance_from_upload_dict('teammember', upload_teammember_dict, team, user_lang, request)
+                teammember, mapped_teammemberpk_dict, msg_dict, deleted_row = update_instance_from_upload_dict('teammember', upload_teammember_dict, team, user_lang, request)
 
                 logger.debug('teammember: ' + str(teammember))
                 logger.debug('mapped_teammemberpk_dict: ' + str(mapped_teammemberpk_dict))
@@ -445,14 +447,18 @@ def grid_team_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
 
 
 def grid_shift_upload(request, upload_dict, user_lang): # PR2019-12-06 PR2021-01-03
-    logger.debug(' -------------- grid_shift_upload ----------------')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' -------------- grid_shift_upload ----------------')
+        logger.debug('upload_dict: ' + str(upload_dict))
     # this function is called by TeammemberUploadView shift_option 'grid_shift'
 
     updates = {}
 # ++++++++++++++++  update shift from upload_dict ++++++++++++++++
     upload_shift_dict = upload_dict.get('shift')
-    #logger.debug('upload_shift_dict: ' + str(upload_shift_dict))
+
+    if logging_on:
+        logger.debug('upload_shift_dict: ' + str(upload_shift_dict))
 
 # upload_dict: {shift: {'id': 5, 's_id': 2, 'code': '09.00 - 17.00', 'offsetstart': 540, 'offsetend': 1020,
     # 'breakduration': 240, 'timeduration': 240, 'isrestshift': False} }
@@ -463,19 +469,24 @@ def grid_shift_upload(request, upload_dict, user_lang): # PR2019-12-06 PR2021-01
     scheme_pk = upload_shift_dict.get('s_id')
     scheme = m.Scheme.objects.get_or_none(id=scheme_pk, order__customer__company=request.user.company)
 
-    shift, mapped_shiftpk_dict, msg_dict = \
+    shift, mapped_shiftpk_dict, msg_dict, deleted_row = \
         update_instance_from_upload_dict('shift', upload_shift_dict, scheme, user_lang, request)
 
-    logger.debug('........... shift: ' + str(shift))
-    logger.debug('........... mapped_shiftpk_dict: ' + str(mapped_shiftpk_dict))
-    logger.debug('........... msg_dict: ' + str(msg_dict))
+    if logging_on:
+        logger.debug('........... shift: ' + str(shift))
+        logger.debug('........... mapped_shiftpk_dict: ' + str(mapped_shiftpk_dict))
+        logger.debug('........... msg_dict: ' + str(msg_dict))
 
     if shift is None:
 # - shift is deleted:
+
         # shift is deleted when shift is None. msg_dict contains: {pk: -- mapid: --  deleted: True}
-        logger.debug('........... shift is deleted > shift_update: ' + str(msg_dict))
-        if msg_dict:
-            updates['shift_update_list'] = [msg_dict]
+        if logging_on:
+            logger.debug('........... shift is deleted > shift_update: ' + str(msg_dict))
+        if deleted_row:
+            if msg_dict:
+                deleted_row['msg_dict'] = msg_dict
+            updates['shift_update_list'] = [deleted_row]
 
 # - shift is created or updated:
     else:
@@ -486,7 +497,9 @@ def grid_shift_upload(request, upload_dict, user_lang): # PR2019-12-06 PR2021-01
 
         updates['shift_update_list'] = [shift_row]
 
-    logger.debug('........... updates: ' + str(updates))
+    if logging_on:
+        logger.debug('........... updates: ' + str(updates))
+
     return updates
 #######################################
 
@@ -827,7 +840,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
 # 8. update scheme_list when changes are made
     filter_dict = {'order_pk': order_pk}
-    scheme_list = pld.create_scheme_list(
+    scheme_rows, scheme_list = pld.create_scheme_list(
         filter_dict=filter_dict,
         company=request.user.company,
         comp_timezone=comp_timezone,
@@ -855,7 +868,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     if teammember_list:
         update_wrap['teammember_list'] = teammember_list
 
-    schemeitem_list = pld.create_schemeitem_list(filter_dict=filter_dict, company=request.user.company)
+    schemeitem_list, schemeitem_rows = pld.create_schemeitem_list(filter_dict=filter_dict, company=request.user.company)
     if schemeitem_list:
         update_wrap['schemeitem_list'] = schemeitem_list
 
@@ -942,7 +955,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
         functioncode_pk = None
         paydatecode_pk = None
         calendar_dictlist, short_list, logfile = \
-            plrf.create_employee_planning(
+            empl.create_employee_planning(
                 datefirst_iso=datefirst_iso,
                 datelast_iso=datelast_iso,
                 customer_pk=customer_id,
@@ -984,7 +997,7 @@ def update_scheme_shift_team_tm_si(upload_dict, user_lang, request): # PR2020-04
 # - update scheme from upload_dict
         # only one scheme is used, mapped_schemepk_dict is necessary when it is a new scheme
         scheme_dict = upload_dict.get('scheme')
-        scheme, mapped_schemepk_dict, msg_dictNIU = update_instance_from_upload_dict('scheme', scheme_dict, order, user_lang, request)
+        scheme, mapped_schemepk_dict, msg_dictNIU, deleted_row = update_instance_from_upload_dict('scheme', scheme_dict, order, user_lang, request)
         #logger.debug('scheme: ' + str(scheme))
 
         if scheme:
@@ -1043,7 +1056,7 @@ def update_shifts_from_uploaddict (shifts_list, mapped_schemepk_dict, scheme, us
                 shift_dict['id']['ppk'] = mapped_schemepk
                 #logger.debug('new shift_dict[id]: ' + str(shift_dict['id']))
 
-            instance, mapped_pk, msg_dictNIU = update_instance_from_upload_dict(table, shift_dict, scheme, user_lang, request)
+            instance, mapped_pk, msg_dictNIU, deleted_row = update_instance_from_upload_dict(table, shift_dict, scheme, user_lang, request)
             # update adds dict 'mapped_pk' to dict 'mapped_pk_dict'
             mapped_pk_dict.update(mapped_pk)
     return mapped_pk_dict
@@ -1070,7 +1083,7 @@ def update_teams_from_uploaddict (teams_list, mapped_schemepk_dict, scheme, user
                 team_dict['id']['ppk'] = mapped_schemepk
                 #logger.debug('new team_dict[id]: ' + str(team_dict['id']))
 
-            instance, mapped_pk, msg_dictNIU = update_instance_from_upload_dict(table, team_dict, scheme, user_lang, request)
+            instance, mapped_pk, msg_dictNIU, deleted_row = update_instance_from_upload_dict(table, team_dict, scheme, user_lang, request)
             # update adds dict 'mapped_pk' to dict 'mapped_pk_dict'
             mapped_pk_dict.update(mapped_pk)
     return mapped_pk_dict
@@ -1099,7 +1112,7 @@ def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_l
                     scheme__order__customer__company=request.user.company)
                 if team:
     # update teammember'
-                    teammember, mapped_dict_NIU, msg_dictNIU = update_instance_from_upload_dict(table, item_dict, team, user_lang, request)
+                    teammember, mapped_dict_NIU, msg_dictNIU, deleted_row = update_instance_from_upload_dict(table, item_dict, team, user_lang, request)
 
     # return teammember_dict when row is updated, created or deleted
                     teammember_update = ed.create_teammember_dict_from_model(teammember, item_dict)
@@ -1152,17 +1165,20 @@ def update_schemeitems_from_list (schemeitems_list, mapped_schemepk_dict, mapped
                 item_dict['team']['pk'] = mapped_teampk
                 #logger.debug('new item_dict[team]: ' + str(item_dict['team']))
 
-            instance, mapped_pk_dictNIU, msg_dict = update_instance_from_upload_dict(table, item_dict, parent, user_lang, request)
+            instance, mapped_pk_dictNIU, msg_dict, deleted_row = update_instance_from_upload_dict(table, item_dict, parent, user_lang, request)
 # === end of update_schemeitems_from_list
 
 
 def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, request):  # PR2021-01-04
     #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
     #logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
-    logger.debug('----------------  update_instance_from_upload_dict items_dict ------------------ ')
-    logger.debug('table: ' + str(table))
-    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
-    logger.debug('upload_dict: ' + str(upload_dict))
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ')
+        logger.debug('----------------  update_instance_from_upload_dict items_dict ------------------ ')
+        logger.debug('table: ' + str(table))
+        logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+        logger.debug('upload_dict: ' + str(upload_dict))
 
     # upload_dict: {'id': {'pk': 'new9', 'ppk': '1424', 'table': 'scheme', 'mode': 'create', 'shiftoption': 'isabsence', 'cycle': 1},
     #       'code': 'Colpa de WH', 'datefirst': '2020-02-05', 'datelast': '2020-02-07', 'excludepublicholiday': False, 'excludecompanyholiday': False}
@@ -1173,6 +1189,8 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
     instance = None
     mapped_pk_dict = {}
     msg_dict = {}
+    deleted_row = None
+
     if upload_dict:
         # only mode 'create' and 'delete' are used in this function.
         # tag 'update' is not used in this function, instead it detects changed values
@@ -1187,9 +1205,10 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
         elif 'pk' in upload_dict:
             upload_pk = upload_dict.get('pk')
 
-        logger.debug('mode: ' + str(mode))
-        logger.debug('upload_pk: ' + str(upload_pk))
-        logger.debug('is_absence: ' + str(is_absence))
+        if logging_on:
+            logger.debug('mode: ' + str(mode))
+            logger.debug('upload_pk: ' + str(upload_pk))
+            logger.debug('is_absence: ' + str(is_absence))
 
         # TODO onpublicholiday
         divergent_onpublicholiday = False
@@ -1223,9 +1242,11 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                                         isabsence=is_absence)
             elif table == 'schemeitem':
                 rosterdate = f.get_dict_value(upload_dict, ('rosterdate', 'value'))
-                #logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
-                #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-                #logger.debug('is_absence: ' + str(is_absence) + ' ' + str(type(is_absence)))
+
+                if logging_on:
+                    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+                    logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+                    logger.debug('is_absence: ' + str(is_absence) + ' ' + str(type(is_absence)))
                 if rosterdate:
                     instance = m.Schemeitem(scheme=parent,
                                             rosterdate=rosterdate,
@@ -1233,7 +1254,8 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                                             isabsence=is_absence,
                                             inactive=False,
                                             )
-            logger.debug('instance: <' + str(instance) + '> type: ' + str(type(instance)))
+            if logging_on:
+                logger.debug('instance: <' + str(instance) + '> type: ' + str(type(instance)))
 
             if instance:
                 instance.save(request=request)
@@ -1241,7 +1263,9 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                 msg_dict['created'] = True
 
                 is_created = True
-                logger.debug('instance is_created: ' + str(is_created))
+
+# - also update modifiedby in scheme and team, to show in grid scheme and team  modal MGT form  PR2021-05-27
+                also_save_scheme_when_modified(table, instance, request)
 
 # - get existing instance
         elif upload_pk:
@@ -1260,31 +1284,39 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
             elif table == 'schemeitem':
                 instance = m.Schemeitem.objects.get_or_none(pk=upload_pk,
                     scheme__order__customer__company=request.user.company)
-            logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
+
+            if logging_on:
+                logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
 
 # - delete instance, check if there are schemeitems_tobe_deleted
-            # note: this is not necessary for teammembers when team is deleted beacuse of cascade delete
+            # note: this is not necessary for teammembers when team is deleted because of cascade delete
             if instance and mode == 'delete':
+
+                # - create deleted_row
+                deleted_row = {'pk': instance.pk,
+                               'mapid': '_'.join((table, str(instance.pk))),
+                               'deleted': True}
+
                 if table == 'shift':
-    # - if shift: also delete ecisting schemeitems of shift
+    # - if shift: also delete existing schemeitems of shift
                     has_schemeitems_tobe_deleted = m.Schemeitem.objects.filter(scheme=parent, shift=instance).exists()
                     if has_schemeitems_tobe_deleted:
                         m.Schemeitem.objects.filter(scheme=parent, shift=instance).delete()
-
+                copy_of_instance = instance
                 instance.delete()  # PR2021-01-06 request not needed on delete Was: instance.delete(request=request)
                 instance = None
                 is_deleted = True
 
-        # - create deleted_row
-                msg_dict = {'pk': upload_pk,
-                               'mapid': table + '_' + str(upload_pk),
-                               'deleted': True}
+                # - also update modifiedby in scheme and team, to show in grid scheme and team  modal MGT form  PR2021-05-27
+                also_save_scheme_when_modified(table, copy_of_instance, request)
 
-                logger.debug('instance is_deleted: ' + str(is_deleted))
+                if logging_on:
+                    logger.debug('instance is_deleted: ' + str(is_deleted))
 
 # - upate new and existing instance, not when mode = delete or None
         if instance and mode in ('create', 'update'):
-            logger.debug('upate new and existing instance: ')
+            if logging_on:
+                logger.debug('upate new and existing instance: ')
             # loop through fields in upload_dict.
             # Fields in upload_dict are updated or not updated, check if new_vale != old_value
             # therefore no need for 'update=true' in dict
@@ -1292,16 +1324,19 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
     # - change parent - only when absence and table = scheme: order changes when changing abscat
             if is_absence and  table == 'scheme':
                 new_order_pk = f.get_dict_value(upload_dict, ('id', 'ppk'))
-                #logger.debug('new_order_pk: ' + str(new_order_pk))
+                if logging_on:
+                    logger.debug('new_order_pk: ' + str(new_order_pk))
                 if new_order_pk and new_order_pk != parent.pk:
                     new_order = m.Order.objects.get_or_none(pk=new_order_pk,
                                     customer__company=request.user.company)
-                    #logger.debug('new_order: ' + str(new_order))
+                    if logging_on:
+                        logger.debug('new_order: ' + str(new_order))
                     if new_order:
                         instance.order = new_order
                         is_updated = True
 
-            logger.debug('upload_dict: ' + str(upload_dict))
+            if logging_on:
+                logger.debug('upload_dict: ' + str(upload_dict))
             for field, value in upload_dict.items():
                 # field 'rosterdate' only occurs in table 'schemeitem' and cannot be changed in this function
                 # field 'scheme' occurs in table 'shift', 'team' and 'schemeitem', it cannot be changed
@@ -1310,11 +1345,13 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                     old_value = getattr(instance, field)
                     new_value = None
 
-                    logger.debug('field: ' + str(field) + ' value: ' + str(value))
-                    logger.debug('old_value: ' + str(old_value))
+                    if logging_on:
+                        logger.debug('field: ' + str(field) + ' value: ' + str(value))
+                        logger.debug('old_value: ' + str(old_value))
 
                     pk_int = value
-                    logger.debug('pk_int: ' + str(pk_int))
+                    if logging_on:
+                        logger.debug('pk_int: ' + str(pk_int))
                     if pk_int:
                         if field in ('employee', 'replacement'):
                             new_value = m.Employee.objects.get_or_none(
@@ -1328,27 +1365,31 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                             new_value = m.Shift.objects.get_or_none(
                                 pk=pk_int,
                                 scheme__order__customer__company=request.user.company)
-
-                    logger.debug('new_value: ' + str(new_value))
+                    if logging_on:
+                        logger.debug('new_value: ' + str(new_value))
                     if new_value != old_value:
                         setattr(instance, field, new_value)
                         is_updated = True
 
                 elif field in ('employee', 'replacement'):
                     old_value = getattr(instance, field)
-                    logger.debug('field: ' + str(field) + ' value: ' + str(value))
-                    logger.debug('old_value: ' + str(old_value))
+                    if logging_on:
+                        logger.debug('field: ' + str(field) + ' value: ' + str(value))
+                        logger.debug('old_value: ' + str(old_value))
 
                     pk_int = value.get('pk')
-                    logger.debug('pk_int: ' + str(pk_int))
+                    if logging_on:
+                        logger.debug('pk_int: ' + str(pk_int))
                     new_value = m.Employee.objects.get_or_none(
                         pk=pk_int,
                         company=request.user.company)
-                    logger.debug('new_value: ' + str(new_value) + ' ' + str(type(new_value)))
+                    if logging_on:
+                        logger.debug('new_value: ' + str(new_value) + ' ' + str(type(new_value)))
                     if new_value != old_value:
                         setattr(instance, field, new_value)
                         is_updated = True
-                        logger.debug('is_updated: ' + str(is_updated))
+                        if logging_on:
+                            logger.debug('is_updated: ' + str(is_updated))
 
                 elif field == 'code':
                     old_value = getattr(instance, field)
@@ -1400,14 +1441,16 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
 
                 elif field in ('wagefactorcode', 'wagefactoronsat', 'wagefactoronsun', 'wagefactoronph'):
                     old_value = getattr(instance, field)
-                    logger.debug('old_value: ' + str(old_value))
-                    logger.debug('value: ' + str(value))
+                    if logging_on:
+                        logger.debug('old_value: ' + str(old_value))
+                        logger.debug('value: ' + str(value))
+
                     new_value = m.Wagecode.objects.get_or_none(pk= value, key='wfc')
                     if new_value != old_value:
                         setattr(instance, field, new_value)
                         is_updated = True
-
-                    logger.debug('new_value: ' + str(new_value))
+                    if logging_on:
+                        logger.debug('new_value: ' + str(new_value))
 
                 # TODO add table if applicable
                 elif table in ('addtable_if_applicable',) and field == 'isabsence':
@@ -1423,18 +1466,27 @@ def update_instance_from_upload_dict (table, upload_dict, parent, user_lang, req
                 if not is_created and not is_deleted:
                     msg_dict['updated'] = True
 
-# - when teammember: also update modifiedby in team, to show in grid_team modal MGT form
-                if table == 'teammember':
-                    team = instance.team
-                    logger.debug('-----> team : ' + str(team))
-                    if team:
-                        team.save(request=request)
+# - also update modifiedby in scheme and team, to show in grid scheme and team  modal MGT form  PR2021-05-27
+                also_save_scheme_when_modified(table,instance, request)
 
     #  ++++++++++++++++  end update_from_teamsdict ++++++++++++++++
-    return instance, mapped_pk_dict, msg_dict
+    return instance, mapped_pk_dict, msg_dict, deleted_row
+
+def also_save_scheme_when_modified(table,instance, request):
+    # also update modifiedby in scheme wwhen teammeber or schemeitem has changed PR2021-05-27
+    scheme = None
+    if table in ('team', 'shift', 'schemeitem'):
+        scheme = instance.scheme
+    elif table == 'teammember':
+        team = instance.team
+        if team:
+            team.save(request=request)
+        scheme = team.scheme
+    if scheme:
+        scheme.save(request=request)
+
 
 #######################################
-
 def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28  PR2020-10-10
     logger.debug(' --- absence_upload ---')
     logger.debug('upload_dict: ' + str(upload_dict))
@@ -1451,6 +1503,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28
     #                   'replacement': {'pk': 3, 'ppk': 8, 'update': True}}
 
     absence_rows = []
+    messages = []
     msg_dict = {}
 
     # if data_has_changed in shift or scheme, also update modifiedby / at in teammember, to show latest update in 'Last modifeid' PR2021-01-06
@@ -1480,10 +1533,10 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13 PR2020-08-28
 
                     # teammember, team, shift and schemeitem all have 'on_delete=CASCADE'
                     # therefore deleting scheme also deletes the other records
-                    msg_err = m.delete_instance(scheme, request, this_text)
+                    msg_dict = m.delete_instance(scheme, request, this_text)
     # - add deleted_row to absence_rows
-                    if msg_err:
-                        msg_dict['err_delete'] = msg_err
+                    if msg_dict:
+                        messages.append(msg_dict)
                     else:
                         absence_rows.append( {'pk': teammember_pk,
                                                 'mapid': 'absence_' + str(teammember_pk),
@@ -1708,7 +1761,7 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
     # 'replacement': {'pk': 2586, 'ppk': 3, 'update': True}}
 
     update_dict = {}
-
+    messages = []
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
@@ -1748,12 +1801,10 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
                 if instance:
                     # add pk here, because instance will be deleted
                     update_dict['id']['pk'] = instance.pk
-                    # delete_instance
-                    # msg_dict is not in use yet PR2020-10-14
-                    msg_dict = {}
-                    msg_err = m.delete_instance(instance, request)
-                    if msg_err:
-                        msg_dict['err_delete'] = msg_err
+
+                    msg_dict = m.delete_instance(instance, request)
+                    if msg_dict:
+                        messages.append(msg_dict)
                     else:
                         instance = None
                         update_dict['id']['deleted'] = True
@@ -3151,6 +3202,7 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
             logger.debug(' ============= PayrollUploadView ============= ')
 
         update_wrap = {}
+        messages = []
         has_permit = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_hrman)
@@ -3181,12 +3233,13 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
 
 # +++++ PAYDATECODE
                 elif table == 'paydatecode':
-                    update_list, refresh_employeelist_needed = upload_paydatecode(upload_dict, user_lang, request)
+                    update_list, messages, refresh_employeelist_needed = upload_paydatecode(upload_dict, user_lang, request)
                     update_wrap['updated_paydatecode_rows'] = update_list
 
 # +++++ WAGECODE (allowance, wagefactor, functioncode, salaryscale)
                 elif table == 'wagecode':
-                    update_wrap['updated_wagecode_rows'] = upload_wagecode(key_str, upload_dict, request, logging_on)
+                    wagecode_rows, messages, refresh_employeelist_needed = upload_wagecode(key_str, upload_dict, request, logging_on)
+                    update_wrap['updated_wagecode_rows'] = wagecode_rows
 
 # +++++ EMPLOYEE, field functioncode, wagecode, paydatecode
                 elif table == 'employee':
@@ -3199,16 +3252,607 @@ class PayrollUploadView(UpdateView):  # PR2020-06-10
                    # update_wrap['update_list'] = update_list
 # +++++ GET EMPLHOUR
                 elif table == 'emplhour':
-                    emplhour_dict, emplhourlog_list = get_payroll_emplhour(upload_dict, request)
+                    emplhour_dict, emplhourlog_list, corremplhour_rows = get_payroll_emplhour(upload_dict, request)
                     update_wrap['emplhour_dict'] = emplhour_dict
                     if emplhourlog_list:
                         update_wrap['emplhourlog_list'] = emplhourlog_list
+                    #if corremplhour_rows:
+                    update_wrap['corremplhour_rows'] = corremplhour_rows
                 if refresh_employeelist_needed:
                     dict_list = ed.create_employee_list(request=request, user_lang=user_lang)
                     update_wrap['employee_list'] = dict_list
+        if messages:
+                update_wrap['messages'] = messages
 # - return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
+
+@method_decorator([login_required], name='dispatch')
+class PayrollCorrectionUploadView(UpdateView):  # PR2021-05-27
+
+    def post(self, request, *args, **kwargs):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug(' ')
+            logger.debug(' ============= PayrollCorrectionUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+            has_permit = request.user.is_perm_hrman
+            if has_permit:
+
+    # - reset language
+                # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+                user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                activate(user_lang)
+
+    # - get comp_timezone PR2019-06-14
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
+                timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+
+    # - get upload_dict from request.POST
+                upload_json = request.POST.get('upload', None)
+                if upload_json:
+                    upload_dict = json.loads(upload_json)
+
+        # - get iddict variables
+                    # emplhour_pk is the emplhour for which the correction is made
+                    emplhour_pk = upload_dict.get('emplhour_pk')
+                    orderhour_pk = upload_dict.get('orderhour_pk')
+                    corremplhour_list = upload_dict.get('corremplhour_list')
+                    if logging_on:
+                        logger.debug('upload_dict: ' + str(upload_dict))
+                        logger.debug('emplhour_pk: ' + str(emplhour_pk) + ' ' + str(type(emplhour_pk)))
+                        logger.debug('orderhour_pk: ' + str(orderhour_pk) + ' ' + str(type(orderhour_pk)))
+                        logger.debug('corremplhour_list: ' + str(corremplhour_list))
+
+                    related_emplhour, orderhour = None, None
+
+            # - get orderhour and emplhour (orderhour is orderhour of emplhour)
+                    orderhour = m.Orderhour.objects.get_or_none(
+                        id=orderhour_pk,
+                        order__customer__company=request.user.company)
+                    if orderhour:
+                        related_emplhour = m.Emplhour.objects.get_or_none(id=emplhour_pk, orderhour=orderhour)
+                    if logging_on:
+                        logger.debug('orderhour: ' + str(orderhour) + ' pk: ' + str(orderhour.pk))
+                        logger.debug('related_emplhour: ' + str(related_emplhour) + ' pk: ' + str(related_emplhour.pk))
+
+                    if related_emplhour:
+                        payrollperiod_detail_list = []
+
+# - save changes of abscat in related_emplhour PR2021-06-04
+                        get_updated_emplhour_row = False
+                        new_abscat_pk = upload_dict.get('abscat_pk')
+                        if new_abscat_pk:
+                            saved_abscat = orderhour.order
+                            new_abscat = m.Order.objects.get_or_none(
+                                pk=new_abscat_pk,
+                                customer__isabsence=True,
+                                customer__company=request.user.company
+                            )
+                            if logging_on:
+                                logger.debug('new_abscat_pk: ' + str(new_abscat_pk) + ' ' + str(type(new_abscat_pk)))
+                                logger.debug('new_abscat: ' + str(new_abscat))
+                                logger.debug('saved_abscat: ' + str(saved_abscat))
+                            # abscat is required
+                            if new_abscat and new_abscat.pk != saved_abscat.pk:
+                                # PR2021-06-05 debug. entering orderhour.ordercode = new_abscat_code in instance gave error 'value too long for type character varying(24)'
+                                # using setattr solved it. Weird he?
+                                new_abscat_code = new_abscat.code.replace('~', '') if new_abscat.code else None
+                                setattr(orderhour, 'order', new_abscat)
+                                setattr(orderhour, 'ordercode', new_abscat_code)
+                                orderhour.save(request=request)
+                                get_updated_emplhour_row = True
+                                if logging_on:
+                                    logger.debug('saved orderhour: ' + str(orderhour))
+
+# - save changes of wagefactor in related_emplhour PR2021-06-04
+                        new_wagefactor_pk = upload_dict.get('wagefactor_pk')
+                        if new_wagefactor_pk:
+                            saved_wagefactor = related_emplhour.wagefactorcode
+                            new_wagefactor = m.Wagecode.objects.get_or_none(
+                                id=new_wagefactor_pk,
+                                key='wfc',
+                                company=request.user.company
+                            )
+                            if logging_on:
+                                logger.debug('new_wagefactor: ' + str(new_wagefactor))
+                                logger.debug('saved_wagefactor: ' + str(saved_wagefactor))
+                            # wagefactor is not required
+                            if new_wagefactor != saved_wagefactor:
+                                related_emplhour.wagefactorcode = new_wagefactor
+                                if new_wagefactor:
+                                    related_emplhour.wagefactor = new_wagefactor.wagerate
+                                    related_emplhour.wagefactorcaption = new_wagefactor.code
+                                else:
+                                    related_emplhour.wagefactor = 0
+                                    related_emplhour.wagefactorcaption = None
+                                related_emplhour.save(request=request)
+                                get_updated_emplhour_row = True
+
+# - return updated related_emplhour row
+                        if get_updated_emplhour_row:
+                            emplhour_pk_list = [related_emplhour.pk]
+                            rosterdate_iso = related_emplhour.rosterdate.isoformat()
+                            if logging_on:
+                                logger.debug('emplhour_pk_list orderhour: ' + str(emplhour_pk_list))
+                                logger.debug('related_emplhour.rosterdate: ' + str(related_emplhour.rosterdate) + str(type(related_emplhour.rosterdate)))
+                                logger.debug('rosterdate_iso: ' + str(rosterdate_iso) + str(type(rosterdate_iso)))
+
+                            updated_emplhour_row = ed.create_payrollperiod_detail_listONDEDAY(
+                                request=request,
+                                rosterdate=related_emplhour.rosterdate,
+                                emplhour_pk_list=emplhour_pk_list
+                                )
+                            if logging_on:
+                                logger.debug('updated_emplhour_row: ' + str(updated_emplhour_row))
+                            if updated_emplhour_row:
+                                payrollperiod_detail_list.extend(updated_emplhour_row)
+
+                        if corremplhour_list:
+                            emplhour_pk_list = []
+                            deleted_emplhour_rows = []
+    # - loop through corremplhour_list
+                            for dict in corremplhour_list:
+                                # 'dict': [{'corremplhour_pk': None, 'emplhour_pk': 587, 'mode': 'create', 'timeduration': 1200, 'wagefactor_pk': None}]}}
+                                related_emplhour_pk = dict.get('corremplhour_pk')
+                                this_emplhour_pk =  dict.get('emplhour_pk')
+                                mode = dict.get('mode')
+                                new_timeduration = dict.get('timeduration')
+                                new_wagefactor_pk = dict.get('wagefactor_pk')
+                                if logging_on:
+                                    logger.debug('.....dict: ' + str(dict))
+                                    logger.debug('new_timeduration: ' + str(new_timeduration))
+                                    logger.debug('new_wagefactor_pk: ' + str(new_wagefactor_pk))
+
+                                if related_emplhour_pk == related_emplhour.pk:
+
+                                    if logging_on:
+                                        logger.debug('.....related_emplhour_pk: ' + str(related_emplhour_pk) + ' ' +  str(type(related_emplhour_pk)))
+                                        logger.debug('related_emplhour.pk: ' + str(related_emplhour.pk) + ' ' +  str(type(related_emplhour.pk)))
+                                        logger.debug('orderhour: ' + str(orderhour.pk))
+                                    # corremplhour is the emplhour that contains the corrections
+                                    # note corremplhour_pk has the pk of the related emplhour, NOT the corremplhour
+    # - create new  corremplhour
+                                    if mode == 'create':
+                                        logger.debug('mode == create: ' + str(mode))
+                                        # create a copy of emplhour by settig pk=None. It will save the instance with a new primary key
+                                        corremplhour = m.Emplhour(
+                                            orderhour=orderhour,
+                                            rosterdate=related_emplhour.rosterdate,
+                                            exceldate=related_emplhour.exceldate,
+                                            employee=related_emplhour.employee,
+                                            employeecode=related_emplhour.employeecode,
+
+                                            # timeduration=new_timeduration,
+
+                                            #wagefactorcode=new_wagefactor_instance,
+                                            #wagefactor=new_wagefactor_factor,
+                                            #wagefactorcaption=new_wagefactor_caption,
+
+                                            paydatecode=related_emplhour.paydatecode,
+                                            functioncode=related_emplhour.functioncode,
+
+                                            wagecode=related_emplhour.wagecode,
+                                            wagerate=related_emplhour.wagerate,
+                                            wage=related_emplhour.wage,
+
+                                            corremplhourid=related_emplhour.pk,
+                                            haschanged=True,  # to show orange top on cube icon
+                                            # is entered in save function: modifiedbyusername=request.user.username_sliced
+                                        )
+                                        corremplhour.save(request=request)
+                                        if logging_on:
+                                            logger.debug('corremplhour: ' + str(corremplhour) + ' pk: ' + str(corremplhour.pk))
+                                            logger.debug('rosterdate: ' + str(corremplhour.rosterdate))
+                                    else:
+    # - get existing  corremplhour
+                                        corremplhour = m.Emplhour.objects.get_or_none(
+                                            pk=this_emplhour_pk,
+                                            orderhour=orderhour
+                                        )
+                                        if logging_on:
+                                            logger.debug('corremplhour: ' + str(corremplhour) + ' pk: ' + str(corremplhour.pk))
+                                            logger.debug('rosterdate: ' + str(corremplhour.rosterdate))
+
+                                    if corremplhour:
+                                        # cannot change corremplhour when published
+                                        if corremplhour.payrollpublished is None:
+
+                                            if mode == 'delete':
+    # - delete corremplhour
+                                                deleted_row = m.delete_emplhour_instance(corremplhour, request)
+                                                deleted_emplhour_rows.append(deleted_row)
+                                            else:
+                                                emplhour_pk_list.append(corremplhour.pk)
+    # - get new wagefactor
+                                                new_wagefactor_instance, new_wagefactor_caption, new_wagefactor_factor = None, None, 0
+                                                if new_wagefactor_pk:
+                                                    new_wagefactor_instance = m.Wagecode.objects.get_or_none(
+                                                        id=new_wagefactor_pk,
+                                                        key='wfc',
+                                                        company=request.user.company)
+                                                    if new_wagefactor_instance:
+                                                        new_wagefactor_caption = new_wagefactor_instance.code
+                                                        new_wagefactor_factor = new_wagefactor_instance.wagerate
+                                                    else:
+                                                        new_wagefactor_pk = None
+                                                    if logging_on:
+                                                        logger.debug('new_wagefactor_instance: ' + str(new_wagefactor_instance))
+                                                        logger.debug('new_wagefactor_factor: ' + str(new_wagefactor_factor))
+            # - save new wagefactor
+                                                save_changes = False
+                                                if new_wagefactor_pk != corremplhour.wagefactorcode_id:
+                                                    corremplhour.wagefactorcode_id = new_wagefactor_pk
+                                                    corremplhour.wagefactorcaption = new_wagefactor_caption
+                                                    corremplhour.wagefactor = new_wagefactor_factor
+                                                    save_changes = True
+            # - save new timeduration
+                                                if new_timeduration != corremplhour.timeduration:
+                                                    corremplhour.timeduration = new_timeduration
+                                                    save_changes = True
+
+                                                if save_changes:
+                                                    corremplhour.haschanged = True
+                                                    corremplhour.save(request=request)
+                                # end of for loop
+
+                            if emplhour_pk_list:
+                                updated_emplhour_rows = ed.create_payrollperiod_detail_listONDEDAY(
+                                    request=request,
+                                    rosterdate=related_emplhour.rosterdate,
+                                    emplhour_pk_list=emplhour_pk_list
+                                    )
+                                if updated_emplhour_rows:
+                                    payrollperiod_detail_list.extend(updated_emplhour_rows)
+
+                            if deleted_emplhour_rows:
+                                payrollperiod_detail_list.extend(deleted_emplhour_rows)
+
+                        if payrollperiod_detail_list:
+                            update_wrap['updated_payrollperiod_detail_list'] = payrollperiod_detail_list
+
+# 9. return update_wrap
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+
+
+# === PublishUploadView ============= PR2021-05-16
+@method_decorator([login_required], name='dispatch')
+class PublishUploadView(UpdateView):
+
+    def post(self, request, *args, **kwargs):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('')
+            logger.debug(' ============= PublishUploadView ============= ')
+
+        req_usr = request.user
+        update_wrap = {}
+
+# - add edit permit
+        has_permit = False
+        if req_usr and req_usr.company:
+            has_permit = (req_usr.is_perm_hrman)
+        if has_permit:
+
+# ----- Reset language
+            # PR2019-03-15 Debug: language gets lost, get req_usr.lang again
+            user_lang = req_usr.lang if req_usr.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+# ----- get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                if logging_on:
+                    logger.debug('upload_dict' + str(upload_dict))
+                    # upload_dict{'mode': 'create', 'now': [2021, 6, 2, 9, 54]}
+
+                message_list = []
+                append_dict = {}
+                is_created = False
+                published_rows = []
+
+# - get  variables
+                mode = upload_dict.get('mode')
+                published_pk = upload_dict.get('pk')
+                if logging_on:
+                    logger.debug('mode:         ' + str(mode))
+                    logger.debug('published_pk: ' + str(published_pk))
+
+# ----- get today_dte
+                # now is the time of the computer of the current user. May be different from company local
+                now_arr = upload_dict.get('now')
+                # if 'now' is not in period_dict: create 'now' (should not be possible)
+                if now_arr is None:
+                    now = datetime.now()
+                    now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+                today_dte = f.get_date_from_arr(now_arr)
+
+# ----- get period from Usersetting
+                payroll_period = req_usr.get_usersetting(c.KEY_USER_PAYROLL_PERIOD)
+                paydatecode_pk = payroll_period.get('paydatecode_pk')
+                paydatecode_code = payroll_period.get('paydatecode_code')
+                datefirst = payroll_period.get('paydateitem_datefirst')
+                datelast = payroll_period.get('paydateitem_datelast')
+
+                if logging_on:
+                    logger.debug('paydatecode_pk:        ' + str(paydatecode_pk))
+                    logger.debug('paydatecode_code:      ' + str(paydatecode_code))
+                    logger.debug('datefirst: ' + str(datefirst))
+                    logger.debug('datelast: ' + str(datelast))
+
+# ++++ Check published emplhours when mode = 'test', return paydatecode and message_list with info or errors
+                instance = None
+                if mode == 'test':
+                    has_unpublished_emplhours = check_published(
+                        paydatecode_pk=paydatecode_pk,
+                        paydatecode_code=paydatecode_code,
+                        datefirst=datefirst,
+                        datelast=datelast,
+                        message_list=message_list,
+                        company=req_usr.company)
+                    update_wrap['has_unpublished_emplhours'] = has_unpublished_emplhours
+
+# ++++ Create new instance if is_create:
+                elif mode == 'create':
+                    instance = create_new_published(
+                        name=paydatecode_code,
+                        ispayroll=True,
+                        isinvoice=False,
+                        datefirst=datefirst,
+                        datelast=datelast,
+                        datepublished=today_dte,
+                        message_list=message_list,
+                        request=request
+                    )
+                    if instance:
+                        is_created = True
+                        record_count = publish_emplhour_rows(paydatecode_pk, datefirst, datelast,
+                                              instance, message_list, request)
+                        if record_count:
+                            if record_count == 0:
+                                record_arr = (str(_('No ')), str(_('shifts')))
+                            elif record_count == 1:
+                                record_arr = (str('1'), str(_('shift')))
+                            else:
+                                record_arr = (str(record_count), str(_('shifts')))
+                            record_str = ' '.join(record_arr)
+
+                            msg_list = [str(_('This payroll period is closed.')), str(_("There are %(count_shifts)s are closed.") % {'count_shifts': record_str})]
+                            msg_dict = {'class': 'alert-info', 'msg_list': msg_list}
+                            message_list.append(msg_dict)
+
+                    if logging_on:
+                        logger.debug('is_created' + str(is_created))
+
+# ++++ Delete instance if is_delete
+                elif mode == 'delete':
+        # - get existing instance
+                    instance = m.Published.objects.get_or_none(
+                        id=published_pk,
+                        company=request.user.company
+                    )
+                    if logging_on:
+                        logger.debug('..... instance: ' + str(instance))
+
+                    if instance:
+                        deleted_ok = delete_published(instance, published_rows, message_list, request)
+                        if deleted_ok:
+                            instance = None
+                        if logging_on:
+                            logger.debug('delete_published >> deleted_ok: ' + str(deleted_ok))
+                            logger.debug('published_rows: ' + str(published_rows))
+                            logger.debug('message_list: ' + str(message_list))
+
+    # - create instance row, also when deleting failed
+                # (when deleted ok there is no instance, instance_row is made above)
+                if instance:
+                    period_dict = {'published_pk': instance.pk}
+                    if logging_on:
+                        logger.debug('instance: ' + str(instance))
+                        logger.debug('period_dict: ' + str(period_dict))
+                    published_rows = ed.create_published_rows(period_dict, request)
+
+            # - add messages to subject_row (there is only 1 subject_row
+                    if published_rows:
+                        row = published_rows[0]
+                        if row:
+                            # - add message_list to published_rows[0]
+                            if message_list:
+                                # structure of message_list: [ { 'field': 'code', msg_list ['line 1', 'line 2'] } ]
+                                # or general error:        [ { 'class': 'alert-danger', msg_list ['line 1', 'line 2'] } ]
+                                row['error'] = message_list
+                            if is_created:
+                                row['created'] = True
+
+                            for key, value in append_dict.items():
+                                row[key] = value
+
+                        update_wrap['updated_published_rows'] = published_rows
+
+                if logging_on:
+                    logger.debug('message_list: ' + str(message_list))
+
+                if message_list:
+                    update_wrap['published_message'] = message_list
+# - return update_wrap
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+# - end of PublishUploadView
+
+
+def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, message_list, company):
+    # --- check published # PR2021-05-17
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- check_published ----- ')
+
+    # message_list = [ { 'field': 'code', msg_list: [text1, text2] }, (for use in imput modals)
+    #                {'class': 'alert-danger', msg_list: [text1, text2]} ] (for use in modal message)
+    msg_list = []
+    has_unpublished_emplhours = False
+# - check if paydatecode exists:
+    if not paydatecode_pk:
+        class_str = 'alert-warning'
+        msg_list.append(str(_('There is no payroll period selected.')))
+    else:
+        class_str = 'alert-danger'
+        paydatecode = m.Paydatecode.objects.get_or_none(pk=paydatecode_pk, company=company)
+        if paydatecode is None:
+            msg_list.append(str(_("This payroll period '%(code)s' is not found.") % {'code': paydatecode_code}))
+
+# - check if period is entered:
+        elif datefirst is None or datelast is None:
+            if datefirst is None and datelast is None:
+                first_lastdate = _("first- and last date")
+            elif datefirst is None:
+                first_lastdate = _("first date")
+            else:
+                first_lastdate = _("last date")
+            msg_list.append(str(_("This payroll period has no %(first_lastdate)s.") % {'first_lastdate': first_lastdate}))
+
+        else:
+            class_str = 'alert-info'
+# - create queryset of emplhours in the  timerange
+            crit = Q(orderhour__order__customer__company=company) & \
+                   Q(paydatecode=paydatecode) & \
+                   Q(rosterdate__isnull=False) & \
+                   Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast)
+    # - check if there are any emplhour records
+            record_count = m.Emplhour.objects.filter(crit).count()
+            if not record_count:
+                record_arr = (str(_('no')), str(_('shifts')))
+            elif record_count == 1:
+                record_arr = (str('1'), str(_('shift')))
+            else:
+                record_arr = (str(record_count), str(_('shifts')))
+            record_str = ' '.join(record_arr)
+            msg_list.append(str(_("This payroll period has %(count_shifts)s.") % {'count_shifts': record_str}))
+
+            if record_count:
+                crit = Q(orderhour__order__customer__company=company) & \
+                       Q(paydatecode=paydatecode) & \
+                       Q(rosterdate__isnull=False) & \
+                       Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast) & \
+                        Q(payrollpublished_id__isnull=False)
+    # - check if there are closed records
+                published_count = m.Emplhour.objects.filter(crit).count()
+                if logging_on:
+                    logger.debug('published_count instance: ' + str(published_count))
+
+                if published_count:
+                    if published_count == record_count:
+                        msg_list.append(str(_("All shifts are already closed.")))
+                    else:
+                        if published_count == 1:
+                            record_arr = (str('1'), str(_('shift')), str(_('is')))
+                        else:
+                            record_arr = (str(published_count), str(_('shifts')), str(_('are')))
+                        record_str = ' '.join(record_arr)
+                        msg_list.append(str(_("%(count_shifts_are)s already closed.") % {'count_shifts_are': record_str}))
+
+    # - check if there are records that are not closed
+                crit = Q(orderhour__order__customer__company=company) & \
+                       Q(paydatecode=paydatecode) & \
+                       Q(rosterdate__isnull=False) & \
+                       Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast) & \
+                        Q(payrollpublished_id__isnull=True)
+                unpublished_count = m.Emplhour.objects.filter(crit).count()
+                if logging_on:
+                    logger.debug('published_count instance: ' + str(published_count))
+
+                if unpublished_count:
+                    has_unpublished_emplhours = True
+                    if unpublished_count == 1:
+                        record_arr = (str('1'), str(_('shift')))
+                    else:
+                        record_arr = (str(unpublished_count), str(_('shifts')))
+                    record_str = ' '.join(record_arr)
+                    msg_list.append(str(_("There will be %(count_shifts)s closed.") % {'count_shifts': record_str}))
+                else:
+                    class_str = 'alert-warning'
+                    msg_list.append(str(_("No shifts will be closed.")))
+    if msg_list:
+        message_list.append({'class': class_str, 'msg_list': msg_list})
+        if logging_on:
+            logger.debug('message_list: ' + str(message_list))
+
+    return has_unpublished_emplhours
+
+
+def delete_published(instance, published_rows, message_list, request):
+    # --- delete published instance # PR2021-05-16
+    logging_on = False  # s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- delete_published ----- ')
+        logger.debug('published instance: ' + str(instance))
+
+    instance_row = {'pk': instance.pk,
+                   'mapid': 'published_' + str(instance.pk),
+                   'deleted': True}
+
+    this_text = _("Closed payroll period '%(tbl)s'") % {'tbl': instance.name}
+    deleted_ok = m.delete_with_err_list_instance(instance, message_list, request, this_text)
+
+    if logging_on:
+        logger.debug('deleted_ok: ' + str(deleted_ok))
+        logger.debug('instance: ' + str(instance))
+        logger.debug('message_list: ' + str(message_list))
+
+    if deleted_ok:
+# - add deleted_row to published_rows
+        published_rows.append(instance_row)
+
+    if logging_on:
+        logger.debug('published_rows' + str(published_rows))
+        logger.debug('message_list' + str(message_list))
+
+    return deleted_ok
+# - end of delete_published
+
+
+def create_new_published(name, ispayroll, isinvoice, datefirst, datelast, datepublished, message_list, request):
+    # --- create new published instance # PR2021-05-15
+
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ----- create_new_published ----- ')
+        logger.debug('name: ' + str(name))
+        logger.debug('datefirst: ' + str(datefirst))
+        logger.debug('datelast: ' + str(datelast))
+        logger.debug('datepublished: ' + str(datepublished))
+
+    instance = None
+    if name and datepublished and request.user.company:
+# - create and save paydatecode
+        try:
+            instance = m.Published(
+                company=request.user.company,
+                name=name,
+                ispayroll=ispayroll,
+                isinvoice=isinvoice,
+                datefirst=datefirst,
+                datelast=datelast,
+                datepublished=datepublished
+                # filename = CharField(max_length=255, null=True)
+                # file = FileField(storage=PrivateMediaStorage(), null=True)
+            )
+            instance.save(request=request)
+
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            msg_list = [str(_('An error occurred: ')),
+                        str(e),
+                        str(_('This payroll period could not be closed.'))]
+            message_list.append({'class': 'alert-danger', 'msg_list': msg_list})
+
+    if logging_on:
+        logger.debug('message_list: ' + str(message_list))
+        logger.debug('instance: ' + str(instance))
+
+    return instance
+# --- end of create_new_published
 
 
 # === PayrollImportViewImportView ===================================== PR2020-06-25
@@ -3246,6 +3890,7 @@ def upload_abscat_order(upload_dict, logging_on, request):
 
     updated_list = []
     deleted_list = []
+    messages = []
     msg_dict = {}
     is_created = False
 
@@ -3292,9 +3937,9 @@ def upload_abscat_order(upload_dict, logging_on, request):
                                    'mapid': map_id,
                                    'deleted': True}
     # - delete abscat order
-                    msg_err = m.delete_instance(instance, request, this_text)
-                    if msg_err:
-                        msg_dict['err_delete'] = msg_err
+                    msg_dict = m.delete_instance(instance, request, this_text)
+                    if msg_dict:
+                        messages.append(msg_dict)
                     else:
             # - add deleted_row to deleted_list
                         deleted_list.append(deleted_row)
@@ -3467,19 +4112,19 @@ def upload_wagecode(key_str, upload_dict, request, logging_on):
 
     if logging_on:
         logger.debug(' ----- upload_wagecode -----')
-        logger.debug('upload_dict' + str(upload_dict))
-        logger.debug('key_str: ' + str(key_str))
-        logger.debug('pk_int: ' + str(pk_int))
-        logger.debug('ppk_int: ' + str(ppk_int))
-        logger.debug('map_id: ' + str(map_id))
-        logger.debug('is_create: ' + str(is_create))
-        logger.debug('is_delete: ' + str(is_delete))
+        logger.debug('upload_dict: ' + str(upload_dict))
+        logger.debug('key_str:     ' + str(key_str))
+        logger.debug('pk_int:      ' + str(pk_int))
+        logger.debug('ppk_int:     ' + str(ppk_int))
+        logger.debug('map_id:      ' + str(map_id))
+        logger.debug('is_create:   ' + str(is_create))
+        logger.debug('is_delete:   ' + str(is_delete))
 
     wagecode_rows = []
+    messages = []
     msg_dict = {}
-
-    # TODO implement refresh_employeelist_needed
     refresh_employeelist_needed = False
+
     refresh_emplhour_needed = False
     #logger.debug('is_create: ' + str(is_create))
     #logger.debug('map_id: ' + str(map_id))
@@ -3492,21 +4137,33 @@ def upload_wagecode(key_str, upload_dict, request, logging_on):
         if is_delete:
             instance = m.Wagecode.objects.get_or_none(id=pk_int, key=key_str, company=parent)
             if instance:
-                this_text = _("Wage code '%(tbl)s'") % {'tbl': instance.code}
-    # - check if this Wagefactor has emplhours with lockedpaydate=True
-                # has_lockedwagecode_emplhours is also used for wagefactor
-                if instance.has_lockedwagecode_emplhours():
+                this_text = _("Item")
+
+    # - check if this wagecode has emplhours with payrollpublished is not None
+                has_locked__emplhours = False
+                if key_str == 'wgc':
+                    has_locked__emplhours = instance.has_lockedwagecode_emplhours()
+                    this_text = _("Wage code '%(tbl)s'") % {'tbl': instance.code}
+                elif key_str == 'fnc':
+                    has_locked__emplhours = instance.has_lockedfunctioncode_emplhours()
+                    this_text = _("Function '%(tbl)s'") % {'tbl': instance.code}
+                elif key_str == 'wfc':
+                    has_locked__emplhours = instance.has_lockedwagefactorcode_emplhours()
+                    this_text = _("Wagefactor '%(tbl)s'") % {'tbl': instance.code}
+
+                if has_locked__emplhours:
                     msg_dict['err_delete'] = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
                 else:
     # - delete_instance, it adds 'deleted' or 'error' to id_dict
                     deleted_row = {'mapid': map_id, 'deleted': True}
                     # wagecodeitems are not in use for wagefactor
-                    msg_err = m.delete_instance(instance, request, this_text)
-                    if msg_err:
-                        msg_dict['err_delete'] = msg_err
+                    msg_dict = m.delete_instance(instance, request, this_text)
+                    if msg_dict:
+                        messages.append(msg_dict)
                     else:
                         wagecode_rows.append(deleted_row)
                         instance = None
+                        refresh_employeelist_needed = True
         else:
 # +++++ Create new wagecode
             if is_create:
@@ -3518,13 +4175,14 @@ def upload_wagecode(key_str, upload_dict, request, logging_on):
 # +++++ Update wagecode, also when it is created
             #logger.debug('instance: ' + str(instance))
             if instance:
-                update_wagecode(key_str, instance, parent, upload_dict, msg_dict, request, logging_on)
-
+                refresh_needed = update_wagecode(key_str, instance, parent, upload_dict, msg_dict, request, logging_on)
+                if not is_create:
+                    refresh_employeelist_needed = refresh_needed
     # - put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
         if instance:
             wagecode_rows = ed.create_wagecode_rows(key_str, request, msg_dict, instance.pk)
 
-    return wagecode_rows
+    return wagecode_rows, messages, refresh_employeelist_needed
 # --- end of upload_wagecode
 
 
@@ -3565,6 +4223,7 @@ def update_wagecode(key_str, instance, parent, upload_dict, msg_dict, request, l
     if logging_on:
         logger.debug(' --- update_wagecode --- ')
         logger.debug('upload_dict: ' + str(upload_dict))
+    refresh_employeelist_needed = False
 
     if instance:
         table = 'wagecode'
@@ -3634,6 +4293,7 @@ def update_wagecode(key_str, instance, parent, upload_dict, msg_dict, request, l
                 msg_dict['err_update'] = _('An error occurred. The changes have not been saved.')
 
         if not has_error:
+            refresh_employeelist_needed = True
             if recalc_emplhour_wagecodes:
                 # TODO recalc emplhour records when necessary
                 # update wagecodes in all emplhour records that are not locked
@@ -3641,21 +4301,27 @@ def update_wagecode(key_str, instance, parent, upload_dict, msg_dict, request, l
                 if key_str == 'alw':
                     recalc_emplhour_allowances(instance, request, logging_on)
 
+    return refresh_employeelist_needed
 # ---  end of update_wagecode
 
 #########################################################
-# === upload_paydatecode ======  PR2020-06-17  PR2020-09-22
+# === upload_paydatecode ======  PR2020-06-17  PR2020-09-22 PR2021-06-09
 def upload_paydatecode(upload_dict, user_lang, request):
-    logger.debug(' ===== upload_paydatecode =====')
-    logger.debug('upload_dict' + str(upload_dict))
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' ===== upload_paydatecode =====')
+        logger.debug('upload_dict' + str(upload_dict))
     # Paydatecodes are stored in table Paydatecode
 
     paydatecode_rows = []
     deleted_list= []
-    msg_dict = {}
+    messages = []
+    msg_dict = {} #TODO to be deprecated
     refresh_employeelist_needed = False
 
-# - get id  variables
+# upload_dict keys are: table (NIU), pk, ppk, create, delete, code, recurrence, dayofmonth, referencedate,
+    # closingdates
+# - get variables
     table = upload_dict.get('table')
     pk_int = upload_dict.get( 'pk')
     ppk_int = upload_dict.get( 'ppk')
@@ -3675,10 +4341,11 @@ def upload_paydatecode(upload_dict, user_lang, request):
                 company=parent)
             if instance:
                 this_text = _("Payroll period '%(tbl)s'") % {'tbl': instance.code}
-    # - check if this paydatecode has emplhours with lockedpaydate=True
-                if instance.has_lockedpaydate_emplhours():
-                    msg_err = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
-                    msg_dict['err_delete'] = msg_err
+    # - check if this paydatecode has emplhours with payrollpublished is not null
+
+                if instance.has_locked_paydatecode_emplhours():
+                    msg_list = _('%(tbl)s has locked roster shifts. It cannot be deleted.') % {'tbl': this_text}
+                    messages.append({'class': 'border_bg_invalid', 'msg_list': [msg_list]})
                 else:
 
     # - create deleted_row, to be sent back to page
@@ -3687,15 +4354,14 @@ def upload_paydatecode(upload_dict, user_lang, request):
                                    'deleted': True}
     # - delete_instance
                     # paydateitems are also deleted because of cascade delete
-                    msg_err = m.delete_instance(instance, request, this_text)
-                    if msg_err:
-                        msg_dict['err_delete'] = msg_err
+                    msg_dict = m.delete_instance(instance, request, this_text)
+                    if msg_dict:
+                        messages.append(msg_dict)
                     else:
                         deleted_list.append(deleted_row)
                         instance = None
                         refresh_employeelist_needed = True
         else:
-
 # +++++ Create new paydatecode
             if is_create:
                 instance = create_new_paydatecode(parent, upload_dict, msg_dict, request)
@@ -3734,7 +4400,7 @@ def upload_paydatecode(upload_dict, user_lang, request):
         if deleted_list:
             paydatecode_rows.extend(deleted_list)
 
-    return paydatecode_rows, refresh_employeelist_needed
+    return paydatecode_rows, messages, refresh_employeelist_needed
 # --- end of upload_paydatecode
 
 
@@ -3771,10 +4437,13 @@ def create_new_paydatecode(parent, upload_dict, msg_dict, request):
 def update_paydatecode(instance, parent, upload_dict, msg_dict, request):
     # --- update existing and new paydate PR2020-06-17  PR2020-09-22
     # add new values to update_dict (don't reset update_dict, it has values)
-    #logger.debug(' --- update_paydatecode --- ')
+    logging_on = s.LOGGING_ON
+    if logging_on:
+        logger.debug(' --- update_paydatecode --- ')
+        logger.debug('upload_dict: ' + str(upload_dict))
+        logger.debug('instance: ' + str(instance))
+        logger.debug('parent: ' + str(parent))
 
-    #logger.debug('upload_dict: ' + str(upload_dict))
-    #logger.debug('update_dict: ' + str(update_dict))
     # upload_dict: {'id': {'table': 'paydatecode', 'ppk': 3, 'create': True},
     # 'recurrence': {'value': 'irregular', 'update': True},
     # 'code': {'value': 'Loonperiode', 'update': True},
@@ -3792,6 +4461,9 @@ def update_paydatecode(instance, parent, upload_dict, msg_dict, request):
         for field in c.FIELDS_PAYDATECODE:
 # - get field_dict from  upload_dict if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
+            if logging_on:
+                logger.debug('field: ' + str(field) + ' ' + str(type(field)))
+                logger.debug('field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
             if 'update' in field_dict:
 # - get new_value
                 new_value = field_dict.get('value')
@@ -3826,6 +4498,9 @@ def update_paydatecode(instance, parent, upload_dict, msg_dict, request):
                 elif field in ['isdefault', 'inactive']:
                     new_value = field_dict.get('value', False)
                     saved_value = getattr(instance, field, False)
+                    if logging_on:
+                        logger.debug('new_value: ' + str(new_value) + ' ' + str(type(new_value)))
+                        logger.debug('saved_value: ' + str(saved_value) + ' ' + str(type(saved_value)))
                     if new_value != saved_value:
                         setattr(instance, field, new_value)
                         save_changes = True
@@ -3964,7 +4639,8 @@ def upload_pdc_wgc_fnc_in_employee(upload_dict, request, logging_on):
         logger.debug('upload_dict' + str(upload_dict))
         # upload_dict{'table': 'employee', 'employee_list': [7],
         #             'wagecode': {'pk': 20, key: 'fnc', 'code': 'secretaresse', 'update': True}}
-
+        # upload_dict: {'table': 'employee', 'employee_list': [7],
+        #               'paydatecode': {'pk': 7, 'key': None, 'code': 'Tweewekelijks t/m woensdag', 'update': True}}
     updated_employee_rows = []
     updated_employee_pk_list = []
 
@@ -4031,33 +4707,10 @@ def upload_pdc_wgc_fnc_in_employee(upload_dict, request, logging_on):
 
 #############################################
 
-# === update_emplhour_functioncode_NIU =========== PR2020-09-21
-def update_emplhour_functioncode_NIU(employee_pk_list, new_functioncode_pk):
-    logger.debug(' ===== update_emplhour_functioncode_NIU =====')
-    logger.debug('employee_pk_list' + str(employee_pk_list))
-    logger.debug('new_functioncode_pk' + str(new_functioncode_pk))
 
-    field = 'functioncode'
-    sql_keys = {'eid_arr': employee_pk_list}
-    sql_list = ['UPDATE companies_emplhour SET']
-
-    if new_functioncode_pk:
-        sql_list.append(field + '_id = %(fld_pk)s::INT')
-        sql_keys['fld_pk'] = new_functioncode_pk
-    else:
-        sql_list.append(field + '_id = NULL')
-    sql_list.append("""WHERE NOT companies_emplhour.lockedpaydate AND companies_emplhour.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )""")
-    sql = ' '.join(sql_list)
-
-    #logger.debug('sql_keys' + str(sql_keys))
-    #logger.debug('sql' + str(sql))
-    with connection.cursor() as cursor:
-        cursor.execute(sql, sql_keys)
-# ---- end of update_emplhour_functioncode_NIU
-
-
-# === update_emplhour_pdc_wgc_fnc =========== PR2020-09-28 PR2021-02-28
+# === update_emplhour_pdc_wgc_fnc =========== PR2020-09-28 PR2021-02-28 PR2021-06-06
 def update_emplhour_pdc_wgc_fnc(field_id, employee_pk_list, new_pdc_wgc_fnc_pk, logging_on):
+    # update paydatecode / wagecode / functioncode in non-locked emplhour records of updated employees
     # only called by upload_pdc_wgc_fnc_in_employee
     if logging_on:
         logger.debug(' ===== update_emplhour_pdc_wgc_fnc =====')
@@ -4073,7 +4726,7 @@ def update_emplhour_pdc_wgc_fnc(field_id, employee_pk_list, new_pdc_wgc_fnc_pk, 
     else:
         sql_list.append(field_id + ' = NULL')
     sql_list.append("""
-        WHERE NOT companies_emplhour.lockedpaydate 
+        WHERE companies_emplhour.payrollpublished_id IS NULL 
         AND companies_emplhour.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
         RETURNING id, rosterdate, employeecode
         """)
@@ -4085,8 +4738,8 @@ def update_emplhour_pdc_wgc_fnc(field_id, employee_pk_list, new_pdc_wgc_fnc_pk, 
     with connection.cursor() as cursor:
         cursor.execute(sql, sql_keys)
         emplhour_rows = f.dictfetchall(cursor)
-        for row in emplhour_rows:
-            if logging_on:
+        if logging_on:
+            for row in emplhour_rows:
                 logger.debug('emplhour_row: ' + str(row))
 # ---- end of update_emplhour_pdc_wgc_fnc
 
@@ -4128,7 +4781,7 @@ def upload_emplhour_wagefactorNIU(upload_dict, user_lang, request):
         # F. Update employee, also when it is created
                 if instance:
                     update_employee_paydate_function(instance, dict, update_dict, request)
-
+                    # TODO fix not found
                     ed.create_employee_dict(instance, update_dict, user_lang)
             # - remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
@@ -4149,64 +4802,62 @@ def get_payroll_emplhour(upload_dict, request):
 
     emplhour_dict = {}
     emplhourlog_list = []
+    corremplhour_rows = []
     emplhour_pk = upload_dict.get('emplhour_pk')
     if emplhour_pk:
-        sql_emplhour = """
-            SELECT eh.id, eh.rosterdate, eh.employeecode, eh.isreplacement, eh.lockedpaydate, eh.nohours,
-                eh.timestart, eh.timeend, eh.timeduration, eh.breakduration, eh.plannedduration, eh.billingduration,
-                eh.offsetstart, eh.offsetend, eh.wagerate, eh.wagefactor, eh.wage, eh.status, eh.overlap, eh.locked,
-                eh.modifiedbyusername, eh.modifiedat, 
-                oh.id AS oh_id,
-                o.id AS order_id,
-                c.id AS customer_id,
-                oh.shiftcode, oh.isrestshift, oh.isabsence, 
-                oh.ordercode, oh.customercode,
-                eh.functioncode_id AS fnc_id,
-                eh.wagecode_id AS wgc_id,
-                eh.wagefactorcode_id AS wfc_id,
-                eh.paydatecode_id AS pdc_id,
-                pdc.code AS pdc_code, fnc.code AS fnc_code, wgc.code AS wgc_code, wfc.code AS wfc_code, 
-                e.datefirst AS e_datefirst, e.datelast AS e_datelast
-            FROM companies_emplhour AS eh
-            LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)
-            LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id)
-            LEFT JOIN companies_wagecode AS wgc ON (wgc.id = eh.wagecode_id)
-            LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id)
-            LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id)
-            INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)
-            INNER JOIN companies_order AS o ON (o.id = oh.order_id)
-            INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-            WHERE c.company_id = %(compid)s 
-            AND eh.id = %(emplhid)s
-            """
-        #  CONCAT(c.code, ' - ', o.code ) AS c_o_code,
-        newcursor = connection.cursor()
-        newcursor.execute(sql_emplhour, {
-            'compid': request.user.company_id,
-            'emplhid': emplhour_pk
-        })
-        emplhour_dict = f.dictfetchone(newcursor)
+        sql_keys = {'compid': request.user.company_id, 'emplhid': emplhour_pk}
 
-        logger.debug('emplhour_dict' + str(emplhour_dict))
-        sql_emplhourlog = """
-            SELECT ehlog.emplhour_id, ehlog.rosterdate, ehlog.employeecode, ehlog.isreplacement, 
-                ehlog.timestart, ehlog.timeend, ehlog.timeduration, ehlog.breakduration, 
-                ehlog.plannedduration, ehlog.billingduration, ehlog.offsetstart, ehlog.offsetend, 
-                ehlog.shiftcode, ehlog.isrestshift, ehlog.isabsence, 
-                ehlog.ordercode, ehlog.customercode, 
-                ehlog.status, ehlog.modifiedbyusername, ehlog.modifiedat
-            FROM companies_emplhourlog AS ehlog
-            WHERE ehlog.emplhour_id = %(emplhid)s
-            ORDER BY ehlog.modifiedat DESC
-            """
-        #  CONCAT(c.code, ' - ', o.code ) AS c_o_code,
-        newcursor.execute(sql_emplhourlog, {
-            'emplhid': emplhour_pk
-        })
-        emplhourlog_list = f.dictfetchall(newcursor)
+        sql_list = ["SELECT eh.id, CONCAT('emplhour_', eh.id::TEXT) AS mapid,",
+                    "eh.rosterdate, eh.employeecode, eh.isreplacement, eh.nohours,",
+                "eh.timestart, eh.timeend, eh.timeduration, eh.breakduration, eh.plannedduration, eh.billingduration,",
+                "eh.offsetstart, eh.offsetend, eh.wagerate, eh.wagefactor, eh.wage, eh.status, eh.overlap, eh.locked,",
+                "oh.shiftcode, oh.isrestshift, oh.isabsence, oh.ordercode, oh.customercode,",
+                "CONCAT(oh.customercode, ' - ', oh.ordercode ) AS c_o_code,",
+                "eh.functioncode_id AS fnc_id, eh.wagecode_id AS wgc_id, eh.wagefactorcode_id AS wfc_id,",
+                "eh.paydatecode_id AS pdc_id, eh.corremplhourid, eh.modifiedbyusername, eh.modifiedat,",
+                "CASE WHEN eh.payrollpublished_id IS NULL THEN FALSE ELSE TRUE END AS stat_pay_publ,",
+                "oh.id AS oh_id, o.id AS order_id, c.id AS customer_id,",
+                "pdc.code AS pdc_code, fnc.code AS fnc_code, wgc.code AS wgc_code, wfc.code AS wfc_code,",
+                "e.datefirst AS e_datefirst, e.datelast AS e_datelast",
+            "FROM companies_emplhour AS eh",
+            "LEFT JOIN companies_employee AS e ON (e.id = eh.employee_id)",
+            "LEFT JOIN companies_wagecode AS fnc ON (fnc.id = eh.functioncode_id)",
+            "LEFT JOIN companies_wagecode AS wgc ON (wgc.id = eh.wagecode_id)",
+            "LEFT JOIN companies_wagecode AS wfc ON (wfc.id = eh.wagefactorcode_id)",
+            "LEFT JOIN companies_paydatecode AS pdc ON (pdc.id = eh.paydatecode_id)",
+            "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+            "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+            "WHERE c.company_id = %(compid)s"]
+
+        sql_emplhour = sql_list + ["AND eh.id = %(emplhid)s"]
+        sql = ' '.join(sql_emplhour)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, sql_keys)
+            emplhour_dict = f.dictfetchone(cursor)
+
+# also get corrections of this emplhour
+            sql_corrections = sql_list + ["AND eh.corremplhourid = %(emplhid)s ORDER BY eh.modifiedat"]
+            sql = ' '.join(sql_corrections)
+            cursor.execute(sql, sql_keys)
+            corremplhour_rows = f.dictfetchall(cursor)
+
+# also get log of this emplhour
+            sql_list = ["SELECT ehlog.emplhour_id, ehlog.rosterdate, ehlog.employeecode, ehlog.isreplacement,",
+                    "ehlog.timestart, ehlog.timeend, ehlog.timeduration, ehlog.breakduration,",
+                    "ehlog.plannedduration, ehlog.billingduration, ehlog.offsetstart, ehlog.offsetend,",
+                    "ehlog.shiftcode, ehlog.isrestshift, ehlog.isabsence, ehlog.ordercode, ehlog.customercode,",
+                    "ehlog.status, ehlog.modifiedbyusername, ehlog.modifiedat",
+                    "FROM companies_emplhourlog AS ehlog",
+                    "WHERE ehlog.emplhour_id = %(emplhid)s",
+                    "ORDER BY ehlog.modifiedat DESC"]
+            sql = ' '.join(sql_list)
+            cursor.execute(sql, sql_keys)
+            emplhourlog_list = f.dictfetchall(cursor)
 
         logger.debug('emplhourlog_list' + str(emplhourlog_list))
-    return emplhour_dict, emplhourlog_list
+    return emplhour_dict, emplhourlog_list, corremplhour_rows
 
 
 def update_employee_paydate_function(instance, upload_dict, update_dict, request):
@@ -4288,36 +4939,32 @@ def update_employee_paydate_function(instance, upload_dict, update_dict, request
 
 # === recalc_emplhour_functioncode =======  PR2020-07-19 PR2020-09-20
 def recalc_emplhour_functioncode(employee_pk_list):
-    #logger.debug(' --- recalc_emplhour_functioncode --- ')
-    # function updates functioncode_id in all emplhour records in pk_list that are not lockedpaydate
+    logger.debug(' --- recalc_emplhour_functioncode --- ')
+    # function updates functioncode_id in all emplhour records in pk_list with payrollpublished is None
     # Do not update modifiedby_id and modifiedat PR20202-07-19
 
     # empty employee_pk_list [] is falsey
     if employee_pk_list:
-
-        sql_update_functioncode = """
-            UPDATE companies_emplhour AS eh
-            SET functioncode_id = e.functioncode_id
-            FROM companies_employee AS e
-            WHERE eh.employee_id = e.id
-            AND NOT eh.lockedpaydate
-            AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )
-            RETURNING eh.id;
-        """
+        sql_keys = {'eid_arr': employee_pk_list}
+        sql_list = ["UPDATE companies_emplhour AS eh SET functioncode_id = e.functioncode_id",
+            "FROM companies_employee AS e",
+            "WHERE eh.payrollpublished IS NULL",
+            "AND eh.employee_id = e.id",
+            "AND eh.employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+            "RETURNING eh.id;"]
+        sql = ' '.join(sql_list)
         # was for testing: RETURNING eh.employee_id, e.code, e.functioncode_id;
         with connection.cursor() as cursor:
-            cursor.execute(sql_update_functioncode, {
-                'eid_arr': employee_pk_list
-            })
-           # items = f.dictfetchall(cursor)
-           #for item in items:
-                #logger.debug('.. updated functioncode_pk: ' + str(item))
+            cursor.execute(sql,sql_keys)
+            items = f.dictfetchall(cursor)
+            for item in items:
+                logger.debug('.. updated functioncode_pk: ' + str(item))
 # ---  end of recalc_emplhour_functioncode
 
 
 # === recalc_emplhour_allowances =======  PR2021-02-11
 def recalc_emplhour_allowances(wagecode, request, logging_on):
-    # function updates rate and amount in all emplhour records in pk_list that are not lockedpaydate
+    # function updates rate and amount in all emplhour records in pk_list with payrollpublished is None
     if logging_on:
         logger.debug('----- recalc_emplhour_allowances -----')
 
@@ -4325,7 +4972,7 @@ def recalc_emplhour_allowances(wagecode, request, logging_on):
         wagerate = getattr(wagecode, 'wagerate', 0)
         ehals = m.Emplhourallowance.objects.filter(
             allowancecode=wagecode,
-            emplhour__lockedpaydate=False,
+            emplhour__payrollpublished_id__isnull=True,
             emplhour__locked=False
         )
         if logging_on:
@@ -4349,7 +4996,7 @@ def recalc_emplhour_allowances(wagecode, request, logging_on):
 
 # === recalc_emplhour_paydatecode ===================================== PR2020-06-27 PR2021-02-28
 def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees, request):
-    # function updates paydatecode in all emplhour records that are not lockedpaydate
+    # function updates paydatecode in all emplhour records with payrollpublished is None
     logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' --- recalc_emplhour_paydatecode --- ')
@@ -4367,29 +5014,29 @@ def recalc_emplhour_paydatecode(paydatecode_pk, employee_pk_list, all_employees,
     if employee_pk_list:
         if paydatecode_pk is None:
     # ---   remove paydatecode_pk from empl emplhour records  when no paydatecode_pk:
-            #  - that are not lockedpaydate
+            #  - with payrollpublished is None
             #  - only of employees in employee_pk_list
             #  - skip when all_employees = True
             sql_keys['eid_arr'] = employee_pk_list
             sql_list = ["UPDATE companies_emplhour SET paydatecode_id = NULL",
-                        "WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+                        "WHERE payrollpublished_id IS NULL AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
                         "RETURNING employee_id, paydatecode_id"
                         ]
         else:
     # ---   update paydatecode_id in all emplhour records:
-            #  - that are not lockedpaydate
+            #  - with payrollpublished is None
             #  - only of employees in employee_pk_list
             #  - skip when all_employees = True
             sql_keys['eid_arr'] = employee_pk_list
             sql_list = ["UPDATE companies_emplhour SET paydatecode_id = %(pdc_id)s",
-                        "WHERE NOT lockedpaydate AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
+                        "WHERE payrollpublished_id IS NULL AND employee_id IN ( SELECT UNNEST( %(eid_arr)s::INT[] ) )",
                         "RETURNING employee_id, companies_employee.paydatecode_id"]
     elif all_employees:
 # ---   update field paydatecode_id in table emplhour with paydatecode_id of related employee record
-        #  - that are not lockedpaydate , filter company_id
+        #  - with payrollpublished is None , filter company_id
         sql_list = ["UPDATE companies_emplhour SET paydatecode_id = companies_employee.paydatecode_id",
                     "FROM companies_employee",
-                    "WHERE NOT companies_emplhour.lockedpaydate",
+                    "WHERE companies_emplhour.payrollpublished_id IS NULL",
                     "AND companies_employee.company_id = %(comp_id)s::INT",
                     "AND companies_emplhour.employee_id = companies_employee.id",
                     "RETURNING employee_id, companies_employee.paydatecode_id"]
@@ -4508,7 +5155,7 @@ def create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang,
 
  # 8. update scheme_list when changes are made
         filter_dict = {'order_pk': None}
-        scheme_list = pld.create_scheme_list(
+        scheme_rows, scheme_list = pld.create_scheme_list(
             filter_dict=filter_dict,
             company=request.user.company,
             comp_timezone=comp_timezone,
@@ -4536,7 +5183,7 @@ def create_updated_employee_calendar_list(upload_dict, comp_timezone, user_lang,
         if teammember_list:
             update_wrap['teammember_list'] = teammember_list
 
-        schemeitem_list = pld.create_schemeitem_list( filter_dict=filter_dict, company=request.user.company)
+        schemeitem_list, schemeitem_rows = pld.create_schemeitem_list( filter_dict=filter_dict, company=request.user.company)
         if schemeitem_list:
             update_wrap['schemeitem_list'] = schemeitem_list
 
@@ -4579,7 +5226,7 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
 
     # 8. update scheme_list when changes are made
     filter_dict = {'order_pk': order_pk}
-    scheme_list = pld.create_scheme_list(
+    scheme_rows, scheme_list = pld.create_scheme_list(
         filter_dict=filter_dict,
         company=request.user.company,
         comp_timezone=comp_timezone,
@@ -4607,7 +5254,7 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
     if teammember_list:
         update_wrap['teammember_list'] = teammember_list
 
-    schemeitem_list = pld.create_schemeitem_list( filter_dict=filter_dict, company=request.user.company)
+    schemeitem_list, schemeitem_rows = pld.create_schemeitem_list( filter_dict=filter_dict, company=request.user.company)
     if schemeitem_list:
         update_wrap['schemeitem_list'] = schemeitem_list
 
@@ -4616,32 +5263,125 @@ def create_updated_order_calendar_list(upload_dict, update_wrap, comp_timezone, 
     #logging.debug('logging turned on again')
 
 
+
+
+# === PayrollDownloadPublishedHoursXlsxView ===================================== PR2021-06-08
+@method_decorator([login_required], name='dispatch')
+class PayrollDownloadPublishedHoursXlsxView(View):
+
+    def get(self, request, list):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('===== PayrollDownloadPublishedHoursXlsxView ===== ')
+
+        has_permit = False
+        response = None
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
+
+    # ----- Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+    # ----- get upload_dict from request.POST
+
+    # list: 10 <class 'str'>
+            published_pk = int(list)
+            if logging_on:
+                logger.debug('list: ' + str(list) + ' ' + str(type(list)))
+                logger.debug('published_pk: ' + str(published_pk) + ' ' + str(type(published_pk)))
+
+            if published_pk:
+                period_dict = {'published_pk': published_pk}
+                response = ed.create_afas_hours_rows(period_dict, user_lang, request)
+
+        if response:
+            return response
+        else:
+            logger.debug('HTTP_REFERER: ' + str(request.META.get('HTTP_REFERER')))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+# - end of PayrollDownloadPublishedHoursXlsxView
+
+
 # === PayrollAfasHoursXlsxView ===================================== PR2021-02-17
 @method_decorator([login_required], name='dispatch')
 class PayrollAfasHoursXlsxView(View):
-    #logger.debug('===== PayrollAfasHoursXlsxView ===== ')
 
-    def get(self, request):
-        param = {}
+    def post(self, request):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('===== PayrollAfasHoursXlsxView ===== ')
+
         has_permit = False
         if request.user is not None and request.user.company is not None:
             has_permit = (request.user.is_perm_hrman)
         if has_permit:
+            response = None
+
+    # ----- Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+    # ----- get upload_dict from request.POST
+            published_pk = None
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                if logging_on:
+                    logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict = {table: "published", published_pk: published_pk};
+                published_pk = upload_dict.get('published_pk')
+
+            if published_pk:
+                period_dict = {'published_pk': published_pk}
+                response = ed.create_afas_hours_rows(period_dict, user_lang, request)
+
+            return response
+
+    def get(self, request):
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug('===== PayrollAfasHoursXlsxView ===== ')
+
+        has_permit = False
+        if request.user is not None and request.user.company is not None:
+            has_permit = (request.user.is_perm_hrman)
+        if has_permit:
+
 # ----- Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
+# ----- get upload_dict from request.POST
+            published_pk = None
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                if logging_on:
+                    logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict = {table: "published", published_pk: published_pk};
+                published_pk = upload_dict.get('published_pk')
+
+            if published_pk:
+                period_dict = {'published_pk': published_pk}
+            else:
 # - get saved period_dict
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-            interval = request.user.company.interval if request.user.company.interval else 15
-            period_dict = pld.period_get_and_save('payroll_period', None, comp_timezone, timeformat, interval, user_lang, request)
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
+                timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+                interval = request.user.company.interval if request.user.company.interval else 15
+                period_dict = pld.period_get_and_save('payroll_period', None, comp_timezone, timeformat, interval, user_lang, request)
 
             response = ed.create_afas_hours_rows(period_dict, user_lang, request)
 
             return response
 # - end of PayrollAfasHoursXlsxView
+
 
 # === PayrollAfasEhalXlsxView ===================================== PR2021-02-13
 @method_decorator([login_required], name='dispatch')
@@ -4767,3 +5507,58 @@ class ReviewlAfasInvoiceXlsxView(View):
 
             return response
 # - end of ReviewlAfasInvoiceXlsxView
+
+
+
+###################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+def publish_emplhour_rows(paydatecode_pk, rosterdatefirst, rosterdatelast, published_instance, message_list, request):  # PR2021-05-15
+    logging_on = False  #s.LOGGING_ON
+    if logging_on:
+        logger.debug(' --- publish_emplhour_rows --- ')
+        logger.debug('paydatecode_pk: ' + str(paydatecode_pk))
+        logger.debug('rosterdatefirst: ' + str(rosterdatefirst))
+        logger.debug('rosterdatelast: ' + str(rosterdatelast))
+
+    if paydatecode_pk and rosterdatefirst and rosterdatelast and published_instance and request.user.company:
+        try:
+            sql_keys = {'comp_id': request.user.company.pk,
+                        'pdc_id': paydatecode_pk,
+                        'rdf': rosterdatefirst,
+                        'rdl': rosterdatelast,
+                        'publ_id': published_instance.pk}
+
+            sql_list = ["UPDATE companies_emplhour AS eh SET payrollpublished_id = %(publ_id)s::INT",
+                        "WHERE eh.id IN ( SELECT eh.id",
+                            "FROM companies_emplhour AS eh",
+                            "INNER JOIN companies_orderhour AS oh ON (oh.id = eh.orderhour_id)",
+                            "INNER JOIN companies_order AS o ON (o.id = oh.order_id)",
+                            "INNER JOIN companies_customer AS c ON (c.id = o.customer_id)",
+                            "WHERE c.company_id = %(comp_id)s::INT",
+
+                            "AND eh.paydatecode_id = %(pdc_id)s::INT",
+                            "AND eh.rosterdate >= %(rdf)s::DATE AND eh.rosterdate <= %(rdl)s::DATE",
+                            "AND eh.payrollpublished_id IS NULL)",
+                        "RETURNING eh.id;"]
+            sql = ' '.join(sql_list)
+            logger.debug('sql: ' + str(sql))
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql, sql_keys)
+        # put amount of closed emplhour records in published_instance
+                record_count = len(cursor.fetchall())
+                if record_count:
+                    setattr(published_instance, 'recordcount', record_count)
+                    published_instance.save(request=request)
+                if logging_on:
+                    logger.debug('record_count: ' + str(record_count))
+
+        except Exception as e:
+            logger.error(getattr(e, 'message', str(e)))
+            msg_list = [str(_('An error occurred: ')),
+                        str(e),
+                        str(_('This payroll period could not be closed.'))]
+            message_list.append({'class': 'alert-danger', 'msg_list': msg_list})
+    return record_count
+# - end of publish_emplhour_rows
+#######################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

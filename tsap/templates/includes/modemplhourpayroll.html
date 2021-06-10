@@ -3,7 +3,7 @@
 
 <!-- =================== MODAL EMPLHOUR PAYROLL  =================== -->
     <div class="modal" id="id_mod_emplhour_payroll" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
                     <h4 id="id_MEP_header" class="modal-title mx-2" >{% trans 'Roster shift' %}</h4>
@@ -16,7 +16,7 @@
                             <img src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
                     </div>
-                <div id="id_MEP_input_container" class="modal-body">
+                <div id="id_MEP_input_container" class="modal-body mx-2 p-2">
                     <div class="content_header">
                          <div class="content_subheader_left mx-1 ctl_show ctl_shift display_hide">
                             <label class="tsa_margin_label_0848 ">{% trans 'Customer' %}:</label>
@@ -60,30 +60,52 @@
                     </div>
 
                     <div class="content_header">
+                         <div class="tsa_flex_2 mx-1">
+                            <label class="tsa_margin_label_0848">{% trans 'Payroll period' %}:</label>
+                            <p id="id_MEP_paydatecode" class="form-control mb-1" data-field="pdc_code">  </p>
+                            <select id="id_MEP_paydatecodeXX" class="form-control mb-1 display_hide" data-field="pdc_code"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                        </div>
+
+                        <div class="tsa_flex_1 mx-1">
+                            <label class="tsa_margin_label_0848">{% trans 'Wage component' %}:</label>
+                            <select id="id_MEP_wagefactor" class="form-control mb-1" data-field="wfc_code"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                        </div>
                         <div class="tsa_flex_1 mx-1">
                             <label class="tsa_margin_label_0848">{% trans 'Function' %}:</label>
                             <p id="id_MEP_functioncode" class="form-control mb-1" data-field="fnc_code">  </p>
                             <select id="id_MEP_functioncodeXX" class="form-control mb-1 display_hide" data-field="fnc_code"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
                         </div>
-                        <div class="tsa_flex_1 mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Wage component' %}:</label>
-                            <select id="id_MEP_wagefactor" class="form-control mb-1" data-field="wfc_code"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                    </div>
+                    <div class="content_header p-2">
+                        <div class="content_subheader_left">
+                             <small id="id_MEP_modifiedby">{% trans 'Last modified by' %}: </small>
                         </div>
-                        <div class="tsa_flex_2 mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Payroll period' %}:</label>
-                            <p id="id_MEP_paydatecode" class="form-control mb-1" data-field="pdc_code">  </p>
-                            <select id="id_MEP_paydatecodeXX" class="form-control mb-1 display_hide" data-field="pdc_code"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                        <div class="content_subheader_right">
                         </div>
                     </div>
+                </div>
+
+                <div class="border_bg_transparent mx-4 p-2">
                     <div class="content_header">
-                        <div class="mx-2 my-1">
-                            <small id="id_MEP_modifiedby">{% trans 'Last modified by' %}: </small>
+                        <div class="content_subheader_left mx-1 my-2">
+                            <h6 id="id_MEP_correction_header" class="mx-2" >{% trans 'Correction' %}</h6>
+                            <div id="id_MEP_correction_container" class="display_hide">
+                                <table  class="table tsa_tbl m-0">
+                                    <thead id="id_MEP_thead_correction"></thead>
+                                    <tbody id="id_MEP_tbody_correction"></tbody>
+                                    <tfoot id="id_MEP_tfoot_correction"></tfoot>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <div id="id_MEP_tblbody_container" class="content_header tbl_h_180">
+
+                </div>
+
+                <div id="id_MEP_tblbody_container" class="modal-body border_bg_transparent m-2 p-2">
+                    <div class="content_header tbl_h_180">
                         <h6 class="mx-2 mt-3">{% trans 'Log file' %}</h6>
                         <table class="table tsa_tbl">
                             <tbody id="id_MEP_tblbody">
@@ -97,7 +119,8 @@
                     </div>
                     <div class="content_subheader_right">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Close' %}</button>
-                        <button id="id_MEP_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+
+                            <button id="id_MEP_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save changes' %}</button>
                     </div>
                 </div>
             </div>

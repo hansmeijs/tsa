@@ -98,7 +98,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Select Scheme
         // EventHandler HandleSelect_Row is added in FillSelectTable
-        const sidebar_tblBody_scheme = document.getElementById("id_select_tbody_scheme")
+        const el_SBR_thead_scheme = document.getElementById("id_SBR_thead_scheme");
+        const el_SBR_tblBody_scheme = document.getElementById("id_SBR_tbody_scheme")
+        const el_SBR_tfoot_scheme = document.getElementById("id_SBR_tfoot_scheme")
 
         const tblHead_datatable = document.getElementById("id_tblHead_datatable");
         const tblBody_datatable = document.getElementById("id_tblBody_datatable");
@@ -160,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const url_schemeitem_upload = get_attr_from_el(el_data, "data-schemeitem_upload_url");
         const url_schemeitem_fill = get_attr_from_el(el_data, "data-schemeitem_fill_url");
-        const url_schemeitems_download = get_attr_from_el(el_data, "data-schemeitems_download_url");
+        //const url_schemeitems_download = get_attr_from_el(el_data, "data-schemeitems_download_url");
         const url_scheme_shift_team_upload = get_attr_from_el(el_data, "data-schemeorshiftorteam_upload_url");
         const url_teammember_upload = get_attr_from_el(el_data, "data-teammember_upload_url");
         const url_grid_upload = get_attr_from_el(el_data, "data-grid_upload_url");
@@ -174,18 +176,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
         const imgsrc_chck01 = get_attr_from_el(el_data, "data-imgsrc_chck01");
 
-//  ========== EVENT LISTENERS  ======================
+// === EVENT HANDLERS ===
 
-// ---  Sidebar - Select Order
+// === reset filter when clicked on Escape button === or  on sidebar_showall
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                ResetFilterRows();
+            } else if (["Enter", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
+                HandleEventKey(event.key, event.shiftKey )
+            }
+        });
+
+// ---  SIDEBAR ------------------------------------
+        const el_SBR_order_div = document.getElementById("id_SBR_order_div")
         const el_sidebar_select_order = document.getElementById("id_SBR_select_order");
             el_sidebar_select_order.addEventListener("click", function() {MSCO_Open()}, false );
             add_hover(el_sidebar_select_order);
-// --- create EventListener for buttons in btn_container
+
+        const el_SBR_template_div = document.getElementById("id_SBR_template_div")
+
+// --- BUTTON CONTAINER ------------------------------------
         const el_btn_container = document.getElementById("id_btn_container").children;
         for (let i = 0, btn; btn = el_btn_container[i]; i++) {
             const data_btn = get_attr_from_el(btn,"data-btn")
             btn.addEventListener("click", function() {HandleBtnSelect(data_btn)}, false )
         }
+
 // ---  create EventListener for buttons above table schemeitems
         const el_btns_grid = document.getElementById("id_btns_grid");
         for (let i = 0, btn; btn = el_btns_grid.children[i]; i++) {
@@ -360,15 +376,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }, false);  // document.addEventListener('click',
 
-// === reset filter when clicked on Escape button === or  on sidebar_showall
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape") {
-                ResetFilterRows();
-            } else if (["Enter", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.key) > -1) {
-                HandleEventKey(event.key, event.shiftKey )
-            }
-        });
-
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_schm"));
 
@@ -422,7 +429,6 @@ document.addEventListener('DOMContentLoaded', function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-
                 console.log("response")
                 console.log(response)
 // ---  hide loader
@@ -481,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selected.tblRow_rowIndex = null;  // to be used in HandleEventKey
                 }
         }
-        if ("wagefactor_rows" in response) {fill_datamap(wagefactor_map, response.wagefactor_rows)};
+        if ("wagefactor_rows" in response) {b_fill_datamap(wagefactor_map, response.wagefactor_rows)};
 
 //------------- employee_planning_list  -----------------------
 // ---  for print planning PR2020-11-04
@@ -540,7 +546,11 @@ document.addEventListener('DOMContentLoaded', function() {
         //if ("order_list" in response) {b_refresh_datamap(response["order_list"], order_map)}
         //if ("order_rows" in response) { b_refresh_datamap(response.order_rows, order_map, "order")};
 
-        if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
+        // scheme_list replaced by scheme_rows PR2021-05-26
+        // if ("scheme_list" in response) {b_refresh_datamap(response["scheme_list"], scheme_map)}
+        if ("scheme_rows" in response) {b_refresh_datamap(response.scheme_rows, scheme_map, "scheme")}
+        console.log("response.scheme_rows: ", response.scheme_rows);
+
         // PR2021-01-03 use shift_rows instead of shift_list. Was: if ("shift_list" in response) {b_refresh_datamap(response.shift_list, shift_map)}
         if ("shift_rows" in response) {b_refresh_datamap(response.shift_rows, shift_map, "shift")}
         if ("team_rows" in response) {b_refresh_datamap(response.team_rows, team_map, "team")}
@@ -553,10 +563,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("absence_rows" in response) { b_refresh_datamap(response.absence_rows, absence_map, "absence") };
 
         if ("holiday_dict" in response) { holiday_dict = response["holiday_dict"]}
-
-        if ("scheme_list" in response) {
-            // tblNames are: shift, teammember, schemeitem, absence
-        }
 
         if("copied_from_template" in response) {
             let new_scheme_pk = get_dict_value(response, ["copied_from_template", "scheme_pk"])
@@ -586,8 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
         UpdateHeaderText("HandleSubmenubtnTemplateShow");
 // --- reset grid
         Grid_Reset();
-// reset sidebar_tblBody_scheme
-        //>>>>>>>>>sidebar_tblBody_scheme.innerText = null;
+// reset el_SBR_tblBody_scheme
         SBR_FillSelectTable("UpdateTablesAfterResponse")
 
         //FillTableRows(tblName);
@@ -675,8 +680,8 @@ document.addEventListener('DOMContentLoaded', function() {
         UpdateHeaderText("HandleSubmenubtnTemplateShow");
 // --- reset grid
         Grid_Reset();
-// reset sidebar_tblBody_scheme
-        sidebar_tblBody_scheme.innerText = null;
+// reset el_SBR_tblBody_scheme
+        el_SBR_tblBody_scheme.innerText = null;
 
 // reset selected customer and order
         if(is_template_mode){
@@ -720,8 +725,8 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
         HandleSelectOrder(sel_customer_pk, sel_order_pk);
 
 // hide sidebar select_order in template mode
-        add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
-        add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
+        add_or_remove_class(el_SBR_order_div, cls_hide, is_template_mode )
+        add_or_remove_class(el_SBR_template_div, cls_hide, !is_template_mode )
 
         RefreshSubmenuButtons();
     }  // HandleSubmenubtnTemplateShow
@@ -763,7 +768,7 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
         add_or_remove_class(el_div_datatable,cls_hide, show_grid);
         add_or_remove_class(el_div_gridlayout, cls_hide, !show_grid);
 // ---  show only the elements that are used in this tab
-        show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
+        b_show_hide_selected_elements_byClass("tab_show", "tab_" + selected_btn)
 // +++  when is_absence_mode
         if (is_absence_mode){
             CreateAbsenceTblHeader();
@@ -787,7 +792,7 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
 
 //=========  HandleSelectOrder  ================ PR2019-03-24 PR2020-05-21
     function HandleSelectOrder(sel_customer_pk, sel_order_pk ) {
-        //console.log("=====  HandleSelectOrder =========");
+        console.log("=====  HandleSelectOrder =========");
         //console.log("mod_MSCO_MCFT_dict: ", mod_MSCO_MCFT_dict)
         //console.log( "sel_customer_pk", sel_customer_pk);
         //console.log( "sel_order_pk", sel_order_pk);
@@ -824,7 +829,7 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
         document.getElementById("id_hdr_text").innerText = loc.Select_customer_and_order;
         document.getElementById("id_hdr_right_text").innerText = null;
 
-        sidebar_tblBody_scheme.innerText = null;
+        el_SBR_tblBody_scheme.innerText = null;
 // reset tables schemeitems, shift and teammember
         tblHead_datatable.innerText = null;
         tblBody_datatable.innerText = null;
@@ -883,22 +888,32 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
 
 //=========  HandleSelect_Row ================ PR2019-12-01 PR2020-07-02
     function HandleSelect_Row(sel_tr_clicked, event_target) {
-        //console.log( "===== HandleSelect_Row  ========= ");
-         // selectRow table = scheme
-         // skip when clicked on inactive img
+        console.log( "===== HandleSelect_Row  ========= ");
+        console.log( "sel_tr_clicked", sel_tr_clicked);
+        console.log( "event_target", event_target);
+        // event_target is the element that triggered this event:
+        // selectRow table = scheme
+        // skip when clicked on inactive img
         const is_tag_img = (event_target && event_target.tagName === "IMG");
+
         let map_dict = {};
         if(sel_tr_clicked && !is_tag_img) {
 // ---  get map_dict
             const data_pk = get_attr_from_el(sel_tr_clicked, "data-pk")
             const tblName = get_attr_from_el(sel_tr_clicked, "data-table")
             const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, tblName, data_pk);
+
             const is_addnew_row = !Number(data_pk);
             if (!isEmpty(map_dict)){
 // ---  update selected.scheme_pk (and selected.order_pk to be on the safe side)
-                selected.scheme_pk = get_dict_value(map_dict, ["id", "pk"], 0);
-                selected.order_pk = get_dict_value(map_dict, ["id", "ppk"], 0);
-
+                if(tblName === "scheme"){
+                    // use new format from scheme_rows PR2021-05-27
+                    selected.scheme_pk = (map_dict.id) ? map_dict.id : null;
+                    selected.order_pk == (map_dict.o_id) ? map_dict.o_id : null;
+                } else {
+                    selected.scheme_pk = get_dict_value(map_dict, ["id", "pk"], 0);
+                    selected.order_pk = get_dict_value(map_dict, ["id", "ppk"], 0);
+                }
 // ---  deselect selected.shift_pk and selected.team_pk when selected.scheme_pk changes
                 selected.shift_pk = 0;
                 selected.team_pk = 0;
@@ -922,11 +937,9 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
             }  //   if (!isEmpty(map_dict))
 
 // ---  highlight clicked row in select table
-        // make all rows of this select_table light yellow
-        // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
-
-            ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow)
-
+            // make all rows of this select_table light yellow
+            // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
+            ChangeBackgroundRows(el_SBR_tblBody_scheme, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow)
 
 // happens in HandleBtnSelect
     // --- fill grid with new scheme
@@ -1316,12 +1329,12 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
 
 //========= SBR_FillSelectTable  ============= PR2019-09-23 PR2020-05-22
     function SBR_FillSelectTable(called_by) {
-        //console.log( "=== SBR_FillSelectTable === ", called_by);
+        console.log( "=== SBR_FillSelectTable === ", called_by);
         // scheme is only select table PR2020-07-02
 
         const tblName = "scheme";
-        const tblBody = sidebar_tblBody_scheme;
-        const tblHead = document.getElementById("id_select_thead_scheme");
+        const tblBody = el_SBR_tblBody_scheme;
+        const tblHead = el_SBR_thead_scheme;
 
         const data_map = scheme_map;
         const include_parent_code = false ;
@@ -1345,8 +1358,8 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
         let tblRow_selected = null;
 
 // hide sidebar select_order in template mode
-        add_or_remove_class(document.getElementById("id_sidebar_div_select_order"),cls_hide, is_template_mode )
-        add_or_remove_class(document.getElementById("id_select_template_div"),cls_hide, !is_template_mode )
+        add_or_remove_class(el_SBR_order_div, cls_hide, is_template_mode )
+        add_or_remove_class(el_SBR_template_div, cls_hide, !is_template_mode )
 
         t_Fill_SelectTable(tblBody, tblHead, data_map, tblName, selected_pk, include_parent_code,
             HandleSelect_Filter, HandleSelectFilterBtnInactive, HandleSelect_Row, HandleSelectRowButtonInactive, has_delete_btn,
@@ -1358,7 +1371,7 @@ console.log( "RefreshSubmenuButtons scheme_pk:", selected.scheme_pk);
 // --- filter inactive scheme's
         // has_ppk_filter = false, because only schemes of selected order are in the list
 
-       t_Filter_TableRows(sidebar_tblBody_scheme, "scheme", {}, filter_show_inactive);
+       t_Filter_TableRows(el_SBR_tblBody_scheme, "scheme", {}, filter_show_inactive);
 
 // --- show select_table scheme when selected.order_pk exists
        add_or_remove_class(document.getElementById("id_select_table_scheme"), cls_hide, !selected.order_pk)
@@ -1387,9 +1400,9 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // Filter TableRows
         // TODO there is no scehem table yet
         // has_ppk_filter = false, because only schemes of selected order are in the list
-        //t_Filter_TableRows(sidebar_tblBody_scheme, "scheme", {}, filter_show_inactive);
+        //t_Filter_TableRows(el_SBR_tblBody_scheme, "scheme", {}, filter_show_inactive);
 
-        t_Filter_SelectRows(sidebar_tblBody_scheme, null, filter_show_inactive);
+        t_Filter_SelectRows(el_SBR_tblBody_scheme, null, filter_show_inactive);
 
     }  // HandleSelectFilterBtnInactive
 
@@ -1453,7 +1466,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 
     //console.log("caption: " , caption)
     // ++++++ add tHeadRow  ++++++
-        let tblHead = document.getElementById("id_select_thead_scheme")
+        let tblHead = el_SBR_thead_scheme;
         tblHead.innerText = null
         let tHeadRow = tblHead.insertRow(-1);
             let th = document.createElement('th');
@@ -1477,7 +1490,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         // ppk_int has no value yet, because AddnewRow is added at startup
 
 // ++++++ add addnew row  ++++++
-        let tblFoot = document.getElementById("id_select_tfoot_scheme")
+        let tblFoot = el_SBR_tfoot_scheme;
 
     //-- increase id_new
         id_new = id_new + 1
@@ -2416,7 +2429,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
         if (selected_btn === "btn_grid"){
             mode = "scheme_delete";
             // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
-            MSCH_get_scheme_dict();
+            MSCH_get_scheme_dict(selected.scheme_pk);
         } else if (selected_btn === "btn_absence") {
 
             // PR2020-11-09 permit_customer_orders may add absence to employees that have shift in his orders
@@ -2886,7 +2899,7 @@ function HandleSelect_Filter(){console.log("HandleSelect_Filter")}
 // ++++ update selectRow ++++
 //--- insert new selectRow if is_created, highlight selected row
         if (["scheme", "shift", "team"].indexOf( tblName ) > -1){
-            const sidebar_tblBody = sidebar_tblBody_scheme;
+            const sidebar_tblBody = el_SBR_tblBody_scheme;
             const selected_pk =  selected.scheme_pk;
             let selectRow;
             if(is_created && !!sidebar_tblBody){
@@ -3848,7 +3861,7 @@ console.log("mod_MGS_dict.shift[fldName]", mod_MGS_dict.shift[fldName])
         };
 
 // ---  display modified_by
-        el_MGS_modifiedby.innerText = display_modifiedby(loc, mod_MGS_dict.shift.modat, mod_MGS_dict.shift.modby_usr);
+        el_MGS_modifiedby.innerText = b_display_modifiedat_by(loc, mod_MGS_dict.shift.modat, mod_MGS_dict.shift.modby_usr);
 
     }  // MGS_SetShiftInputboxes
 
@@ -3898,7 +3911,7 @@ console.log("mod_MGS_dict.shift[fldName]", mod_MGS_dict.shift[fldName])
 // ---  display modified_by
             const modat = get_dict_value(mod_MGT_dict, ["team", "modat"])
             const modby_usr = get_dict_value(mod_MGT_dict, ["team", "modby_usr"])
-            el_MGT_modifiedby.innerText = display_modifiedby(loc, modat, modby_usr);
+            el_MGT_modifiedby.innerText = b_display_modifiedat_by(loc, modat, modby_usr);
 
 // ---  fill table teammembers
             MGT_CreateTblTeammemberHeader();
@@ -3914,7 +3927,6 @@ console.log("mod_MGS_dict.shift[fldName]", mod_MGS_dict.shift[fldName])
 // ---  show modal
             $("#id_modgrid_team").modal({backdrop: true});
         }  //  if(!!scheme_pk)
-console.log("mod_MGT_dict", deepcopy_dict(mod_MGT_dict));
     };  // MGT_Open
 
 //=========  MGT_fill_MGT_dict  ================  PR2020-03-19 PR2021-01-05
@@ -4383,6 +4395,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
         }  // if(!!tblRow)
     }  // MGT_BtnDeleteClicked
+
 
 //=========  MGT_TeammemberDateChanged  ================ PR2020-03-19
     function MGT_TeammemberDateChanged(el_input) {
@@ -4894,8 +4907,6 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
             // mode is alway delete when called by grid_team
 // ---  make team column red
             const col_index = get_dict_value(mod_dict, ["team", "col"])
-            console.log(">>>>> mod_dict: ", mod_dict );
-            console.log(">>>>> col_index: ", col_index );
             let tblBody = el_grid_tbody_team;
             for (let i = 0, cell, len = tblBody.rows.length; i < len; i++) {
                 cell = tblBody.rows[i].cells[col_index];
@@ -4911,8 +4922,6 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
         } else {
                 const is_delete = (mode === "delete");
-                console.log(">>>>>is_delete: ", is_delete );
-
 
         // ---  Upload Changes
                 const tblName = get_dict_value(mod_dict, ["id", "table"])
@@ -5082,17 +5091,17 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MSCO_FillSelectRow  ================ PR2020-05-21 cleaned
     function MSCO_FillSelectRow(tableBody, map_dict, mod_name) {
-        console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
-        console.log( "map_dict ", map_dict);
+        //console.log( "===== MSCO_FillSelectRow ========= mod_name", mod_name);
+        //console.log( "map_dict ", map_dict);
 
 //--- check if item must be added to list
         let add_to_list = false, is_selected_pk = false;
         const is_absence = (map_dict.c_isabsence) ? map_dict.c_isabsence : false;
         const customer_inactive = (map_dict.c_inactive) ? map_dict.c_inactive : false;
         const order_inactive = (map_dict.o_inactive) ? map_dict.o_inactive : false;
-        console.log( "map_dict.c_isabsence ", map_dict.c_isabsence);
-        console.log( "map_dict.c_inactive ", map_dict.c_inactive);
-        console.log( "map_dict.o_inactive ", map_dict.o_inactive);
+        //console.log( "map_dict.c_isabsence ", map_dict.c_isabsence);
+        //console.log( "map_dict.c_inactive ", map_dict.c_inactive);
+        //console.log( "map_dict.o_inactive ", map_dict.o_inactive);
 
         if (is_absence === show_absence_FOR_TESTING_ONLY || show_absence_FOR_TESTING_ONLY == null){
             add_to_list = true
@@ -5137,8 +5146,8 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MSCO_MCFT_SelecttableClicked  ================ PR2020-05-21 cleaned
     function MSCO_MCFT_SelecttableClicked(tblRow, mod_name) {
-        console.log( "===== MSCO_MCFT_SelecttableClicked ========= ");
-        console.log( "mod_name", mod_name);
+        //console.log( "===== MSCO_MCFT_SelecttableClicked ========= ");
+        //console.log( "mod_name", mod_name);
 
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -5160,7 +5169,7 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
                 MSCO_Save();
             }
-        console.log( "mod_MSCO_MCFT_dict", mod_MSCO_MCFT_dict);
+        //console.log( "mod_MSCO_MCFT_dict", mod_MSCO_MCFT_dict);
         }
     }  // MSCO_MCFT_SelecttableClicked
 
@@ -5576,15 +5585,17 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
 
 //=========  MOD SCHEME  ================ PR2020-04-19
     function MSCH_Open(el_clicked) {
-        //console.log("=========  MSCH_Open ========= ");
-        //console.log("selected.scheme_pk:", selected.scheme_pk);
+        console.log("=========  MSCH_Open ========= ");
+        console.log("selected.scheme_pk:", selected.scheme_pk);
         //console.log("selected.order_pk:", selected.order_pk);
 
         // el_clicked is undefined when clicked on menubtn add_new
-        if(!el_clicked){selected.scheme_pk = null}
+        // PR2021-05-27 debug. Keep selected.scheme_pk when clicked on add_new btn
+        // was: if(!el_clicked){selected.scheme_pk = null}
+        const sel_scheme_pk = (el_clicked) ? selected.scheme_pk : null;
 
 // ---  put info of selected scheme in mod_MSCH_dict, gets info for new scheme when selected scheme not found
-        MSCH_get_scheme_dict();
+        MSCH_get_scheme_dict(sel_scheme_pk);
 
         //console.log("selected.order_pk:", selected.order_pk);
         //console.log("mod_MSCH_dict:", mod_MSCH_dict);
@@ -5615,12 +5626,13 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
                     set_focus_on_el_with_timeout(el, 150);
                 }
             }
-            el_MSCH_modifiedby.innerText = display_modifiedby(loc, mod_MSCH_dict.modat, mod_MSCH_dict.modby_usr);
+
+            el_MSCH_modifiedby.innerText = b_display_modifiedat_by(loc, mod_MSCH_dict.modat, mod_MSCH_dict.modby_usr);
 
 // ---  validate values, set save btn enabled
             MSCH_validate_and_disable();
 // ---  open Modal Scheme Add
-            $("#id_modscheme").modal({backdrop: true});
+            $("#id_mod_scheme").modal({backdrop: true});
 
         } else {
             // open confirm box 'Please_select_order'
@@ -5708,17 +5720,17 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
     }  // MSCH_Please_select_msg
 
 //=========  MSCH_get_scheme_dict  ================ PR2020-04-20 PR2020-08-30
-    function MSCH_get_scheme_dict() {
-        //console.log( "=== MSCH_get_scheme_dict === ")
+    function MSCH_get_scheme_dict(sel_scheme_pk) {
+        console.log( "=== MSCH_get_scheme_dict === ")
         mod_MSCH_dict = {};
         if(!selected.order_pk){selected.scheme_pk = null};
 
         if(selected.order_pk){
 // --- GET SCHEME ----------------------------------
-            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
-        //console.log( "map_dict", map_dict)
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", sel_scheme_pk);
+        console.log( "map_dict", map_dict)
             if (isEmpty(map_dict)) {
-                selected.scheme_pk = null;
+
     // ---  create new scheme_dict if map_dict is empty, with default cycle = 7
                 const new_code = get_schemecode_with_sequence(scheme_map, selected.order_pk, loc.Scheme);
                 mod_MSCH_dict = {
@@ -5730,24 +5742,30 @@ console.log("mod_MGT_dict: ", deepcopy_dict(mod_MGT_dict))
                         create: true
                     };
             } else {
-                let cycle =  get_dict_value(map_dict, ["cycle", "value"]);
+                // use new format from scheme_rows PR2021-05-27
+                let cycle = map_dict.cycle;
                 if (cycle > MAX_CYCLE_DAYS) {cycle = null};
-                mod_MSCH_dict = { pk: get_dict_value(map_dict, ["id", "pk"]),
-                        ppk: get_dict_value(map_dict, ["id", "ppk"]),
+                mod_MSCH_dict = { pk: map_dict.id,
+                        ppk: map_dict.o_id,
                         table: "scheme",
-                        code: get_dict_value(map_dict, ["code", "value"]),
+                        code: map_dict.code,
                         cycle: cycle,
                         nocycle: (!cycle),
 
-                        datefirst: get_dict_value(map_dict, ["datefirst", "value"]),
-                        datelast: get_dict_value(map_dict, ["datelast", "value"]),
+                        datefirst: map_dict.s_datefirst,
+                        datelast: map_dict.s_datelast,
 
-                        excludecompanyholiday: get_dict_value(map_dict, ["excludecompanyholiday", "value"], false),
-                        excludepublicholiday: get_dict_value(map_dict, ["excludepublicholiday", "value"], false),
-                        divergentonpublicholiday: get_dict_value(map_dict, ["divergentonpublicholiday", "value"], false)
+                        // NIU excludecompanyholiday: (map_dict.excludecompanyholiday ? map_dict.excludecompanyholiday : false,
+                        excludepublicholiday: (map_dict.excludepublicholiday) ? map_dict.excludepublicholiday : false,
+                        divergentonpublicholiday:  (map_dict.divergentonpublicholiday) ? map_dict.divergentonpublicholiday : false,
+
+                        modat: map_dict.modat,
+                        modby_usr: map_dict.modby_usr
                 };
             }
         }
+console.log( "mod_MSCH_dict: ", mod_MSCH_dict);
+
     }  // MSCH_get_scheme_dict
 
 //=========  MSCH_DateChanged  ================ PR2020-01-03
@@ -5895,6 +5913,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         };
         document.getElementById("id_MSCH_header").innerText = header_text
 
+// ---  hide delete button when no selected scheme
+        add_or_remove_class(el_MSCH_btn_delete, cls_hide, !selected.scheme_pk);
+
 // ---  disable save button when has_error
         el_MSCH_btn_save.disabled = (has_error);
     }  // MSCH_validate_and_disable
@@ -5982,7 +6003,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
             el_MAB_input_abscat.value = mod_MAB_dict.order_code
             el_MAB_input_replacement.value =  mod_MAB_dict.replacement_code;
 
-            el_MAB_modifiedby.innerText = display_modifiedby(loc, mod_MAB_dict.modat, mod_MAB_dict.modby_usr);
+            el_MAB_modifiedby.innerText = b_display_modifiedat_by(loc, mod_MAB_dict.modat, mod_MAB_dict.modby_usr);
         }
         //console.log("mod_MAB_dict", deepcopy_dict(mod_MAB_dict))
 // --- when no employee selected: fill select table employee
@@ -6787,7 +6808,7 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
 
         if(!has_error) {
 
-            $("#id_modscheme").modal("hide");
+            $("#id_mod_scheme").modal("hide");
 // get template pk from modal select
             const template_pk = 0 // = parseInt(el_mod_copyfrom_template_select.value)
 
@@ -7549,9 +7570,9 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         // these variables store pk of customer / order from setting.
         // They are used in HandleSelectCustomer to go to saved customer / order
         // field type is integer
-        settings.customer_pk = get_dict_value(setting_dict, ["sel_customer_pk"]);
-        settings.order_pk = get_dict_value(setting_dict, ["sel_order_pk"]);
-        settings.scheme_pk = get_dict_value(setting_dict, ["sel_scheme_pk"]);
+        settings.customer_pk = (setting_dict.sel_customer_pk) ? setting_dict.sel_customer_pk : null;
+        settings.order_pk = (setting_dict.sel_order_pk) ? setting_dict.sel_order_pk : null;
+        settings.scheme_pk = (setting_dict.sel_scheme_pk) ? setting_dict.sel_scheme_pk : null;
 
         // selected.customer_pk can also contain pk of template customer,
         // settings.customer_pk only contains normal customers
@@ -7559,21 +7580,18 @@ mod_dict.scheme.cycle = {value: cycle_value, update: true}
         selected.order_pk = settings.order_pk;
         // don't set value of selected.scheme_pk after update in template_mode
         selected.scheme_pk = (!is_template_mode) ? settings.scheme_pk : null
-console.log( "selected.customer_pk:", selected.customer_pk);
-console.log( "selected.order_pk:", selected.order_pk);
-console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 
 // put grid_range in selected, default = 1 (1 week)
         // PR2021-01-02 selected.grid_range gets value after downloading setting_dict and after btn_goto clicked
         selected.grid_range = get_dict_value(setting_dict, ["grid_range"], 1);
 
         //console.log("selected_btn", selected_btn)
-        //console.log("selected", selected)
+        console.log("selected", selected)
     }  // UpdateSettings
 
 //========= UpdateHeaderText  ================== PR2019-11-23
     function UpdateHeaderText(calledby){
-        console.log(" --- UpdateHeaderText ---", calledby )
+        //console.log(" --- UpdateHeaderText ---", calledby )
 
         // from fill select order
         let header_text = "", hdr_right_text = "";
@@ -7592,7 +7610,7 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
                 const customer_code =  (map_dict.c_code) ? map_dict.c_code : null;
 
 
-        console.log("map_dict", map_dict)
+        //console.log("map_dict", map_dict)
 
                 header_text += (map_dict.c_o_code) ? map_dict.c_o_code : "---";
                 select_order_header_text = header_text;
@@ -7762,30 +7780,32 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
 //========= Grid_UpdateSchemeFields  ====================================
     function Grid_UpdateSchemeFields(scheme_dict) {
         //console.log(" === Grid_UpdateSchemeFields ===") // PR2020-07-06
-
+        // use new format from scheme_rows PR2021-05-27
 // ---  get value from scheme_dict
-        const scheme_pk = get_dict_value(scheme_dict, ["id", "pk"]);
-        const scheme_code = get_dict_value(scheme_dict, ["code", "value"]);
-        const cycle = get_dict_value(scheme_dict, ["cycle", "value"]);
+        const scheme_pk = scheme_dict.id;
+        const scheme_code = scheme_dict.code;
+        const cycle =  scheme_dict.cycle;
         const nocycle = (!cycle || (Number(cycle) && cycle === 32767) )
-        const datefirst_iso = get_dict_value(scheme_dict, ["datefirst", "value"], "")
-        const datelast_iso = get_dict_value(scheme_dict, ["datelast", "value"], "")
-        const excl_ph = get_dict_value(scheme_dict, ["excludepublicholiday", "value"], false);
-        const dvg_onph = get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false);
-        const excl_ch = get_dict_value(scheme_dict, ["excludecompanyholiday", "value"], false)
+        const datefirst_iso = (scheme_dict.s_datefirst) ? scheme_dict.s_datefirst : null;
+        const datelast_iso = (scheme_dict.s_datelast) ? scheme_dict.s_datelast : null;
+        const excl_ph = (scheme_dict.excludepublicholiday) ? scheme_dict.excludepublicholiday : false;
+        const dvg_onph =  (scheme_dict.divergentonpublicholiday) ? scheme_dict.divergentonpublicholiday : false;
+        const excl_ch = (scheme_dict.excludecompanyholiday) ? scheme_dict.excludecompanyholiday : false;
 
 // ---  loop through buttons / fields in scheme box of grid
         let elements = document.getElementById("id_grid_scheme_container").querySelectorAll(".tsa_input_text")
-        for (let i = 0, el; el = elements[i]; i++) {
+        for (let i = 0, el, value; el = elements[i]; i++) {
             const fldName = get_attr_from_el(el,"data-field");
+        //console.log("fldName" , fldName)
+                // TODO move to refreshItem
             let is_updated = get_dict_value(scheme_dict, [fldName, "updated"], false);
-            let value = get_dict_value(scheme_dict, [fldName, "value"]);
             // temporarily remove current background of element when updated
             let cur_class = (["code", "cycle"].indexOf(fldName)> -1) ? cls_bc_yellow_lightlight : null;
             let display_text = "-"
             if(fldName === "code") {
-                display_text = (value) ? value : loc.Scheme + "..."
+                display_text = (scheme_dict.code) ? scheme_dict.code : loc.Scheme + "..."
             } else if(fldName === "cycle") {
+                value =  (scheme_dict.cycle) ? scheme_dict.cycle : 0;
                 if(!value)
                     display_text = loc.Cycle + "..."
                 if (value === 32767) {
@@ -7794,8 +7814,6 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
                     display_text = value.toString() + "-" + loc.days_cycle;
                 }
             } else if(fldName === "datefirstlast") {
-                const datefirst_iso = get_dict_value(scheme_dict, ["datefirst", "value"]);
-                const datelast_iso = get_dict_value(scheme_dict, ["datelast", "value"]);
                 is_updated = ( get_dict_value(scheme_dict, ["datefirst", "updated"], false) ||
                                get_dict_value(scheme_dict, ["datelast", "updated"], false) );
                 let prefix = loc.Period + ": ";
@@ -7811,13 +7829,12 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
                     display_text = prefix + loc.All.toLowerCase()
                 }
             } else if(fldName === "dvg_excl_ph") {
-                const excl_ph =  get_dict_value(scheme_dict, ["excludepublicholiday", "value"], false);
-                const dvg_onph =  get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false);
                 display_text = (excl_ph) ? loc.Not_on_public_holidays : (dvg_onph)
                                       ? loc.Divergent_shift_on_public_holidays
                                       : loc.Also_on_public_holidays;
             } else if(fldName === "excludecompanyholiday") {
-                display_text = (excl_ch) ? loc.Not_on_company_holidays : loc.Also_on_company_holidays;
+                // deprecated
+                display_text = null;  //(excl_ch) ? loc.Not_on_company_holidays : loc.Also_on_company_holidays;
             }
             el.innerText = display_text
             if (["dvg_excl_ph", "excludecompanyholiday"].indexOf(fldName) > -1) {
@@ -7849,14 +7866,17 @@ console.log( "UpdateSettings scheme_pk:", selected.scheme_pk);
         Grid_Reset();
 
 // ---  get scheme_pk value from scheme_dict
+        //console.log("selected.scheme_pk: ", selected.scheme_pk)
         const scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected.scheme_pk);
         if (!isEmpty(scheme_dict)){
+            // use new format from scheme_rows PR2021-05-27
+        //console.log("scheme_dict: ", scheme_dict)
             // PR20202-07-15 debug. Must check if selected.order_pk equals scheme.order_pk, to prevent showing wrong scheme
-            const scheme_order_pk = get_dict_value(scheme_dict, ["id", "ppk"]);
+            const scheme_order_pk =  scheme_dict.o_id;
             if (scheme_order_pk === selected.order_pk){
-                grid_dict.scheme_pk = get_dict_value(scheme_dict, ["id", "pk"]);
-                grid_dict.cycle = get_dict_value(scheme_dict, ["cycle", "value"], 32767);
-                grid_dict.dvg_onph = get_dict_value(scheme_dict, ["divergentonpublicholiday", "value"], false)
+                grid_dict.scheme_pk = scheme_dict.id;
+                grid_dict.cycle = (scheme_dict.cycle) ? scheme_dict.cycle : 0
+                grid_dict.dvg_onph =  (scheme_dict.divergentonpublicholiday) ? scheme_dict.divergentonpublicholiday : false;
                 grid_dict.nocycle = (!grid_dict.cycle || grid_dict.cycle > MAX_CYCLE_DAYS)
                 if (grid_dict.nocycle){ grid_dict.cycle = 0 }
 
