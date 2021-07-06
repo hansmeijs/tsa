@@ -13,24 +13,39 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div  id="id_mod_select_columns_body" class="modal-body">
-                    <div class="mx-2 mt-4">
-                        <div class="modal_container">
-    <!-- this div contains range select table -->
-                            <div class="flex_3 mx-2 my-2">
+                <div class="modal-body mx-2 mt-4">
+                        <div class="content_header">
+                            <div class="content_subheader_left m-2">
                                 <label class="mx-2 my-1">{% trans 'Payroll period' %}:</label>
-                                <div id="id_MPUB_input_paydatecode" class="form-control"></div>
+                                <div id="id_MPUB_paydatecode" class="form-control pointer_show"></div>
                             </div>
-                            <div class="flex_1 mx-2 my-2">
-                                <label class="mx-2 my-1">{% trans 'Year' %}:</label>
-                                <div id="id_MPUB_input_year" class="form-control"></div>
-                            </div>
-                            <div class="flex_3 mx-2 my-2">
-                                <label class="mx-2 my-1">{% trans 'Period' %}:</label>
-                                <div id="id_MPUB_input_period" class="form-control"></div>
+                            <div class="content_subheader_left m-2">
+                                    <div class="content_header">
+                                        <div class="content_subheader_left mr-2">
+                                            <label class="mx-2 my-1">{% trans 'Year' %}:</label>
+                                            <div id="id_MPUB_year" class="form-control pointer_show"></div>
+                                        </div>
+                                        <div class="content_subheader_left_flex2 ml-2">
+                                            <label class="mx-2 my-1">{% trans 'Period' %}:</label>
+                                            <div id="id_MPUB_period" class="form-control pointer_show"></div>
+                                        </div>
+                                    </div>
                             </div>
                         </div>
 
+
+
+                        <div class="content_header">
+                            <div class="content_subheader_left m-2">
+                                <label for="id_MPUB_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                <input id="id_MPUB_input_datefirst" type="date" data-field="datefirst" class="form-control">
+                            </div>
+                            <div class="content_subheader_left m-2">
+                                <label for="id_MPUB_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                <input id="id_MPUB_input_datelast" type="date" data-field="datelast"
+                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                            </div>
+                        </div>
                         <div id="id_MPUB_loader" class="image_container visibility_hideXX">
                             <span>
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
@@ -38,7 +53,6 @@
                         </div>
                         <div id="id_MPUB_message_container" class="modal-body">
                         </div>
-                    </div>
 
                 </div>
                 <div class="modal-footer">

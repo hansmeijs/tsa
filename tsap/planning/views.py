@@ -4200,17 +4200,20 @@ class EmplhournoteUploadView(UpdateView):  # PR2020-10-14
 
 
 @method_decorator([login_required], name='dispatch')
-class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
+class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14 PR2021-07-06
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= EmplhourallowanceUploadView ============= ')
+        logging_on = s.LOGGING_ON
+        if logging_on:
+            logger.debug(' ============= EmplhourallowanceUploadView ============= ')
 
         update_wrap = {}
         messages = []
         if request.user is not None and request.user.company is not None:
+
 # - Reset language
-            #user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            #activate(user_lang)
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
 
 # - get upload_dict from request.POST
             upload_json = request.POST.get('upload')
@@ -4220,6 +4223,10 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
 # - get info from upload_dict
                 emplhour_pk = upload_dict.get('emplhour_pk')
                 ehal_list = upload_dict.get('ehal_list')
+
+                if logging_on:
+                    logger.debug('emplhour_pk: ' + str(emplhour_pk))
+                    logger.debug('ehal_list: ' + str(ehal_list))
 
                 if emplhour_pk and ehal_list:
 # - get emplhour
@@ -4233,7 +4240,16 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                             alw_pk = ehal.get('alw_id')
                             quantity = ehal.get('quantity', 0)
 
+                            if logging_on:
+                                logger.debug('mode: ' + str(mode))
+                                logger.debug('ehal_pk: ' + str(ehal_pk))
+                                logger.debug('alw_pk: ' + str(alw_pk))
+                                logger.debug('quantity: ' + str(quantity))
+
                             allowancecode = m.Wagecode.objects.get_or_none(pk=alw_pk, key='alw')
+
+                            if logging_on:
+                                logger.debug('allowancecode: ' + str(allowancecode))
 
                             rate, amount = 0, 0
                             if allowancecode:
@@ -4253,6 +4269,9 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                                     ehal.save(request=request)
                             elif mode == 'delete':
                                 ehal = m.Emplhourallowance.objects.get_or_none(id=ehal_pk, emplhour=emplhour)
+                                if logging_on:
+                                    logger.debug('ehal: ' + str(ehal))
+
                                 if ehal:
                                     this_text = _("Allowance '%(code)s'") % {'code': ehal.allowancecode.code}
                                     msg_dict = m.delete_instance(ehal, request, this_text)
@@ -4263,6 +4282,9 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                                         # instance will stay after delete, therefore must set instance = None
                                         # TODO update_dict doesn't exists ,can be re,oved?
                                         #  update_dict['id']['deleted'] = True
+                                    if logging_on:
+                                        logger.debug('msg_dict: ' + str(msg_dict))
+
                             elif mode == 'update':
                                 if allowancecode:
                                     # only quantity field can change, also get rate again from allowancecode
@@ -4272,6 +4294,9 @@ class EmplhourallowanceUploadView(UpdateView):  # PR2020-10-14
                                         ehal.quantity = quantity
                                         ehal.amount = amount
                                         ehal.save(request=request)
+
+                        if messages:
+                            update_wrap['messages'] = messages
 
                         emplhourallowance_rows = d.create_emplhourallowance_rows(
                             request=request,

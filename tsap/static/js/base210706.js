@@ -99,17 +99,20 @@ PR2021-03-09 error after switching to Django 3.1:
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
-//=========  AddSubmenuButton  === PR2020-01-26  PR2020-11-29
-    function AddSubmenuButton(el_div, a_innerText, a_function, classnames_list, a_id, a_href) {
+//=========  AddSubmenuButton  === PR2020-01-26  PR2020-11-29 PR2021-06-23
+    function AddSubmenuButton(el_div, a_innerText, a_function, classnames_list, a_id, a_href, a_download) {
         //console.log(" ---  AddSubmenuButton --- ");
         let el_a = document.createElement("a");
             if(!!a_id){el_a.setAttribute("id", a_id)};
 
-            if(!!a_href) {el_a.setAttribute("href", a_href)};
+            if(a_href) {
+                el_a.setAttribute("href", a_href);
+                if(a_download){ el_a.setAttribute("target", "_blank") }
+            };
             el_a.innerText = a_innerText;
             if(!!a_function){el_a.addEventListener("click", a_function, false)};
             el_a.classList.add("no_select");
-            if (!!classnames_list) {
+            if (classnames_list && classnames_list.length) {
                 for (let i = 0, len = classnames_list.length; i < len; i++) {
                     const classname = classnames_list[i];
                     if(!!classname){

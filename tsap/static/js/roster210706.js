@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
         //   - can add any employee, but filter only on allowed employees
         // map_dict.allowed is false when user has allowed_customers / allowed_orders and employee is not in shift of these orders
 
+
+        // TODO move properties to setting_dict and permit_dict (does not exist yet) instead of roster_period PR2021-07-06
+        let setting_dict = {};
+
         // permits get value when selected_period is downloaded
         let permit_add_delete_rows = false;
         let permit_edit_rows = false;
@@ -151,30 +155,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const spaces_48 = " ".repeat(48);
 
 // get elements
-        let tblHead_datatable = document.getElementById("id_tblHead_datatable");
-        let tblBody_datatable = document.getElementById("id_tblBody_datatable");
-        let tBody_select = document.getElementById("id_tbody_select");
+        const tblHead_datatable = document.getElementById("id_tblHead_datatable");
+        const tblBody_datatable = document.getElementById("id_tblBody_datatable");
+        const tBody_select = document.getElementById("id_tbody_select");
 
-        let el_loader = document.getElementById("id_loader");
-        let el_msg = document.getElementById("id_msgbox");
+        const el_loader = document.getElementById("id_loader");
+        const el_mod_message_container = document.getElementById("id_mod_message_container");
 
-        let el_MRE_tblbody_select = document.getElementById("id_MRE_tblbody_select");
-        let el_MRO_tblbody_select = document.getElementById("id_MRO_tblbody_select");
-        let el_MSO_tblbody_select = document.getElementById("id_MSO_tblbody_select");
-        let el_MSE_tblbody_select = document.getElementById("id_ModSelEmp_tbody_employee");
+        const el_MRE_tblbody_select = document.getElementById("id_MRE_tblbody_select");
+        const el_MRO_tblbody_select = document.getElementById("id_MRO_tblbody_select");
+        const el_MSO_tblbody_select = document.getElementById("id_MSO_tblbody_select");
+        const el_MSE_tblbody_select = document.getElementById("id_ModSelEmp_tbody_employee");
 
-        let el_modemployee_body = document.getElementById("id_MRE_body")
-        let el_modemployee_body_right = document.getElementById("id_MRE_body_right")
+        const el_modemployee_body = document.getElementById("id_MRE_body")
+        const el_modemployee_body_right = document.getElementById("id_MRE_body_right")
 
-        let el_timepicker = document.getElementById("id_timepicker")
-        let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
-        let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
+        const el_timepicker = document.getElementById("id_timepicker")
+        const el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
+        const el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
 
-        let el_popup_wdy = document.getElementById("id_popup_wdy");
+        const el_popup_wdy = document.getElementById("id_popup_wdy");
 
 // --- get header elements
-        let hdr_customer = document.getElementById("id_hdr_customer")
-        let hdr_order = document.getElementById("id_hdr_order")
+        const hdr_customer = document.getElementById("id_hdr_customer")
+        const hdr_order = document.getElementById("id_hdr_order")
 
 // === EVENT HANDLERS ===
 // ---  side bar - select period
@@ -376,18 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_mod_status_btn_save =  document.getElementById("id_mod_status_btn_save")
             el_mod_status_btn_save.addEventListener("click", function() {ModalStatusSave()}, false )
 
-// ---  DOCUMENT CLICK - to close popup windows ------------------------------
-// add EventListener to document to close msgbox
-        document.addEventListener('click', function (event) {
-            el_msg.classList.remove("show");
-            // PR2020-04-12 dont deselect when clicked outside table - use ESC instead
-            // remove highlighted row when clicked outside tabelrows
-            //let tr_selected = get_tablerow_selected(event.target)
-            //if(!tr_selected) {
-            //    selected_emplhour_pk = 0;
-            //    DeselectHighlightedTblbody(tblBody_datatable, cls_selected);
-            //};
-        }, false);
+// ---  DOCUMENT CLICK - to close modal windows ------------------------------
 
 // === reset filter when clicked on Escape button ===
         document.addEventListener("keydown", function (event) {
@@ -483,6 +476,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hide loader
                 el_loader.classList.add(cls_visible_hide)
                 document.getElementById("id_modroster_employee_loader").classList.add(cls_hide)
+
+        // TODO move properties to setting_dict and permit_dict (does not exist yet) instead of roster_period PR2021-07-06
+                if ("setting_dict" in response) {
+                    setting_dict = response.setting_dict;
+                }
 
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
@@ -641,8 +639,6 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_submenu, loc.Show_roster, function() {PrintReport("preview")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Download_roster, function() {PrintReport("download")}, ["mx-2"]);
         AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, ["mx-2"]);
-
-        // for testing only AddSubmenuButton(el_submenu, "CheckForUpdates", function() {CheckForUpdates()}, ["mx-2"]);
 
         if (permit_add_delete_rosterdates){
             AddSubmenuButton(el_submenu, loc.Create_roster, function() {MRD_Open("create")}, ["mx-2"]);
@@ -2904,14 +2900,19 @@ rowcount: 11
 
 //  #############################################################################################################
 
-//=========  CheckForUpdates  === PR2020-08-06
+//=========  CheckForUpdates  === PR2020-08-06 PR2021-07-06
     function CheckForUpdates() {
         //console.log("===  CheckForUpdates == ");
-        const datalist_request = {
-            roster_period: {get: true, now: now_arr},
-            emplhour: {mode: "emplhour_check"}
-            }
-        DatalistDownload(datalist_request, true); // no_loader = true
+        //console.log("setting_dict", setting_dict);
+
+        // skip CheckForUpdates in development - when skip_check_updates = true
+        if(!setting_dict.skip_check_updates){
+            const datalist_request = {
+                roster_period: {get: true, now: now_arr},
+                emplhour: {mode: "emplhour_check"}
+                }
+            DatalistDownload(datalist_request, true); // no_loader = true
+        }
     }  // CheckForUpdates
 
 //=========  UpdateOverlap  === PR2020-05-13
@@ -3324,21 +3325,20 @@ rowcount: 11
             const el = row.querySelector("[data-field='hasallowance']");
             if(el){
                 add_or_remove_class(el, icon_class, add_icon)
-                if (add_icon){
-                    el.setAttribute("data-filter", "1")
-                } else {
-                    el.removeAttribute("data-filter")
-                }
+                // change data-filter value of el
+                add_or_remove_attr(el, "data-filter", add_icon, "1");
 
                 let title = "";
-                for (let i = 0, ehal_id; ehal_id = item_dict.ehal_id_agg[i]; i++) {
-                    if (title) {title += "\n"}
-                    title += (item_dict.description_agg[i]) ? item_dict.description_agg[i] : "";
-                    const quantity = item_dict.quantity_agg[i];
-                    if (!quantity){
-                        title +=  " (-)"
-                    } else {
-                        title +=  " (" + quantity / 10000 + "x)"
+                if(item_dict && item_dict.ehal_id_agg && item_dict.ehal_id_agg.length) {
+                    for (let i = 0, ehal_id; ehal_id = item_dict.ehal_id_agg[i]; i++) {
+                        if (title) {title += "\n"}
+                        title += (item_dict.description_agg[i]) ? item_dict.description_agg[i] : "";
+                        const quantity = item_dict.quantity_agg[i];
+                        if (!quantity){
+                            title +=  " (-)"
+                        } else {
+                            title +=  " (" + quantity / 10000 + "x)"
+                        }
                     }
                 }
                 el.title = title;
@@ -3656,6 +3656,39 @@ rowcount: 11
                 success: function (response) {
                     console.log("response");
                     console.log(response);
+
+                    if ("messages" in response) {
+                        const messages = response.messages;
+                        if(messages && messages.length){
+                            let msg_html = "";
+                            for (let i = 0, len = messages.length; i < len; i++) {
+                                const msg = messages[i];
+                                if(msg){
+                                    const cls_str = (msg.class) ? msg.class + " m-2" : "m-2";
+                                    const cls_html = (cls_str) ? " class=\"" + cls_str + "\"" : "";
+                                    msg_html += "<div" + cls_html + ">";
+
+                                    if(msg.msg_list && msg.msg_list.length){
+                                        for (let j = 0, len = msg.msg_list.length; j < len; j++) {
+                                            const msg_str = msg.msg_list[j];
+                                            if(msg_str){
+                                                msg_html += "<div>" + msg_str + "</div>";
+                                            }
+                                        }
+                                    }
+
+                                    msg_html += "</div>";
+
+                                }  //  if(msg)
+                            }
+
+                    console.log("msg_html", msg_html);
+                            if(msg_html){
+                                el_mod_message_container.innerHTML = msg_html
+                                $("#id_mod_message").modal({backdrop: true});
+                            }
+                        };
+                    };
 
                     // update EmplhourNotes must come before refresh_updated_emplhour_rows
                     if ("emplhournote_updates" in response) {
@@ -5111,7 +5144,7 @@ function MRD_set_rosterdate_label(rosterdate_iso, is_valid_date){
                 for (let i = 0, msg_text; msg_text = msg_list[i]; i++) {
                     html_text += "<div>" + msg_text + "</div>"
                 }
-                document.getElementById("id_mod_message_container").innerHTML = html_text
+                el_mod_message_container.innerHTML = html_text
                 $("#id_mod_message").modal({backdrop: true});
             };
         } else {

@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let mod_MSPP_dict = {};
         let mod_MSEF_dict = {};  // - used in SBR select employee / function, contains id of selected employee / functioncode. Only one of them can have value
         let mod_MEP_dict = {};
+        let mod_MPUB_dict = {};
 
         let filter_select = "";
         let filter_show_inactive = false;
@@ -318,10 +319,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  MODAL SELECT PERIOD / PAYDATE ---------------------------
         let el_MSPP_tblbody = document.getElementById("id_MSPP_tblbody");
         // ---  buttons in btn_container
-        const MSPP_btns = document.getElementById("id_MSPP_btn_container").children;
-        for (let i = 0, btn; btn = MSPP_btns[i]; i++) {
-            btn.addEventListener("click", function() {MSPP_BtnSelect(btn)}, false )
-        }
+
+        const el_MSPP_btn_container = document.getElementById("id_MSPP_btn_container");
+        const el_MSPP_header = document.getElementById("id_MSPP_header");
+
+        const el_MSPP_btn_calendar_period = document.getElementById("id_MSPP_btn_calendar_period");
+            el_MSPP_btn_calendar_period.addEventListener("click", function() {MSPP_BtnSelect("calendar_period")}, false )
+        const el_MSPP_btn_payroll_period = document.getElementById("id_MSPP_btn_payroll_period");
+            el_MSPP_btn_payroll_period.addEventListener("click", function() {MSPP_BtnSelect("payroll_period")}, false )
+
         const el_MSPP_datefirst = document.getElementById("id_MSPP_datefirst");
             el_MSPP_datefirst.addEventListener("change", function() {MSPP_DateChanged("datefirst")}, false );
         const el_MSPP_datelast = document.getElementById("id_MSPP_datelast");
@@ -439,9 +445,18 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MWF_btn_delete.addEventListener("click", function() {MWF_Save("delete")}, false )
 
 // ---  MODAL PUBLISH
-        const el_MPUB_input_paydatecode = document.getElementById("id_MPUB_input_paydatecode");
-        const el_MPUB_input_year = document.getElementById("id_MPUB_input_year");
-        const el_MPUB_input_period = document.getElementById("id_MPUB_input_period");
+        const el_MPUB_paydatecode = document.getElementById("id_MPUB_paydatecode");
+        if(el_MPUB_paydatecode){el_MPUB_paydatecode.addEventListener("click", function() {MSPP_Open("payroll_period", true)})};  // true =payrollperiod_only"
+        const el_MPUB_year = document.getElementById("id_MPUB_year");
+        if(el_MPUB_year){el_MPUB_year.addEventListener("click",function() {MSPP_Open("payroll_period", true)})};  // true =payrollperiod_only"
+        const el_MPUB_period = document.getElementById("id_MPUB_period");
+        if(el_MPUB_period){el_MPUB_period.addEventListener("click", function() {MSPP_Open("payroll_period", true)})};  // true =payrollperiod_only"
+
+        const el_MPUB_input_datefirst = document.getElementById("id_MPUB_input_datefirst");
+        if(el_MPUB_input_datefirst){el_MPUB_input_datefirst.addEventListener("change", function() {MPUB_InputDateChanged(el_MPUB_input_datefirst)})};
+        const el_MPUB_input_datelast = document.getElementById("id_MPUB_input_datelast");
+        if(el_MPUB_input_datelast){el_MPUB_input_datelast.addEventListener("change", function() {MPUB_InputDateChanged(el_MPUB_input_datelast)})};
+
         const el_MPUB_loader = document.getElementById("id_MPUB_loader") ;
         const el_MPUB_message_container = document.getElementById("id_MPUB_message_container");
         const el_MPUB_btn_save = document.getElementById("id_MPUB_btn_save");
@@ -461,6 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MODAL EMPLHOUR PAYROLL  ------------------------------------
         const el_MEP_loader = document.getElementById("id_MEP_loader");
+        const el_MEP_locked = document.getElementById("id_MEP_locked");
         const el_MEP_btn_log = document.getElementById("id_MEP_btn_log");
         if (el_MEP_btn_log) {el_MEP_btn_log.addEventListener("click", function() {MEP_ShowLog()}, false )};
 
@@ -468,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const el_MEP_wagefactor = document.getElementById("id_MEP_wagefactor");
 
         const el_MEP_timeduration = document.getElementById("id_MEP_timeduration");
-        if(el_MEP_timeduration){el_MEP_timeduration.addEventListener("click", function() {MEP_TimepickerOpen(el_MEP_timeduration)}, false)};
+        if(el_MEP_timeduration){el_MEP_timeduration.addEventListener("click", function() {MEP_TimepickerOpen("emplhour", el_MEP_timeduration)}, false)};
         const el_MEP_btn_save = document.getElementById("id_MEP_btn_save")
         if(el_MEP_btn_save){el_MEP_btn_save.addEventListener("click", function() {MEP_Save()}, false )};
 
@@ -770,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 DatalistDownload(datalist_request);
             } else {
                 CreatePayrollTblHeader();
-               // CreateHTML_list()
+                CreateHTML_alllists();
                 FillPayrollRows();
             }
         } else if(["paydatecode", "functioncode"].includes(selected_btn)){
@@ -883,7 +899,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             UpdateHeaderText();
             CreatePayrollTblHeader();
-            //CreateHTML_list()
+            //CreateHTML_alllists();
             FillPayrollRows();
 
         }
@@ -901,7 +917,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selected.employee_code = "";
 
         CreatePayrollTblHeader();
-        //CreateHTML_list()
+        //CreateHTML_alllists();
         FillPayrollRows();
         UpdateHeaderText();
    }  // HandleAggrowReturn
@@ -1393,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // tblName = "payroll_hours_agg", "payroll_hours_detail", "payroll_alw_agg", "payroll_alw_detail"
         const settings = field_settings[tblName];
 
+// --- loop through field_names
         let col_index = -1;
         // must use len, otherwise loop will end when payroll_header_row[j] has no value PR2020-07-16
          for (let i = 0, len = settings.field_names.length; i < len; i++) {
@@ -1408,7 +1425,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  skip if field is in list of selected_col_hidden
             if(!selected_col_hidden.includes(field_name)) {
 
-// loop through fields of orderdetail / absdetail abscats, field_count = 1 for other fields
+//----------------------------------------------------------
+// --- loop through fields of orderdetail / absdetail abscats, field_count = 1 for other fields
                 const inuse_list = (field_name === "orderdetail") ? orders_inuse_list_sorted :
                                     (field_name === "absdetail") ? abscats_inuse_list_sorted :
                                     (field_name === "allowanceamount") ? allowances_inuse_dictlist :
@@ -1416,7 +1434,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const field_count = (inuse_list) ? inuse_list.length : 1;
 
-//----------------------------------------------------------
                 for (let j = 0; j < field_count; j++) {
                     let caption = null, excel_caption = null, has_border_left = false, has_border_right = false;
                     col_index += 1;
@@ -1592,6 +1609,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }  // if(!selected_col_hidden.includes(field_name))
         }  // for (let i = 0, len = field_settings[tblName].field_names.length; i < len; i++)
     } //  CreatePayrollTblHeader
+
+
+    function CreateHTML_alllists() {
+        CreateHTML_list("payroll_hours_agg", payroll_hours_agg_map, false);
+        CreateHTML_list("payroll_hours_detail", payroll_hours_detail_map, true);
+        CreateHTML_list("payroll_alw_agg", payroll_alw_agg_map, false);
+        CreateHTML_list("payroll_alw_detail", payroll_alw_detail_map, true);
+    }
 
 //========= CreateHTML_list  ==================================== PR2020-09-01 PR2021-06-04
     function CreateHTML_list(tblName, data_map, is_detail_mode) {
@@ -1901,6 +1926,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         ResetPayrollTotalrow();
 
+// +++++++++++++++++++++++++++++++++++++
 // --- loop through detail_map / agg_map
         // detail_row = [ 0: show_row, 1: employee_pk, 2: filter_data, 3: excel_data, 4: row_html,
         //                5: emplhour_id, 6: fnc_id, 7: o_id, 8: isabsence];
@@ -1939,9 +1965,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 map_dict.show = show_row;
 
                 if (show_row){
-                    if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
-                    previous_oh_id = map_dict.oh_id;
-
                     const tblRow = tblBody_datatable.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         // --- add empoyee_pk as id to tblRow
                     tblRow.id = map_dict.employee_pk;
@@ -1958,8 +1981,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- add EventListener to tblRow.
                     tblRow.addEventListener("click", function() {HandleAggRowClicked(tblRow)}, false);
                     add_hover(tblRow)
+
+//----------------------------------------------------------
+// ---  put rowhtml in row
                     tblRow.innerHTML = map_dict.rowhtml;
+//----------------------------------------------------------
+
 // ---  alternate row background color
+                    if(previous_oh_id !== map_dict.oh_id) {is_odd_row = !is_odd_row};
+                    previous_oh_id = map_dict.oh_id;
                     const class_background = (!is_odd_row) ? cls_cell_unchanged_even : cls_cell_unchanged_odd;
                     tblRow.classList.add(class_background);
 
@@ -1967,6 +1997,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     AddToPayrollTotalrow(map_dict.exceldata, tblName);
                 }  //  if (show_row){
             }  // for (let i = 0,
+// +++++++++++++++++++++++++++++++++++++
         }  // if (detail_rows) {
         UpdatePayrollTotalrow()
         //console.log("FillPayrollRows - elapsed time:", (new Date().getTime() - startime) / 1000 )
@@ -3845,33 +3876,38 @@ console.log("field_value", field_value);
 //###########################################################################
 // +++++++++++++++++ MODAL SELECT PERIOD or PAYDATECODE +++++++++++++++++++++
 
-//========= MSPP_Open=================== PR2020-07-12 PR2020-09-23
-    function MSPP_Open () {
+//========= MSPP_Open=================== PR2020-07-12 PR2020-09-23 PR2021-07-01
+    function MSPP_Open (view, payrollperiod_only) {
         //console.log("===  MSPP_Open  =====") ;
-        MSPP_BtnSelect()
+        MSPP_BtnSelect(view, payrollperiod_only)
 // ---  show modal
         $("#id_mod_select_period_paydate").modal({backdrop: true});
 }; // function MSPP_Open
 
-//=========  MSPP_BtnSelect  ================ PR2020-09-27
-    function MSPP_BtnSelect(btn) {
+//=========  MSPP_BtnSelect  ================ PR2020-09-27  PR2021-07-01
+    function MSPP_BtnSelect(view, publish_payroll) {
         //console.log( "===== MSPP_BtnSelect ========= ");
         //console.log( "selected_period", selected_period);
         //console.log( "btn", btn);
-        let MSPP_selected_btn = null;
-        if(btn){
-            MSPP_selected_btn = get_attr_from_el(btn, "data-btn")
+        // view = calendar_period or payroll_period
+        // publish_payroll = true when called by close publish_payroll modal
+        let MSPP_selected_view = null;
+        if(view){
+            MSPP_selected_view = view
         } else if (selected_view){
-                MSPP_selected_btn = selected_view;
+                MSPP_selected_view = selected_view;
         } else {
-            MSPP_selected_btn = "calendar_period";
+            MSPP_selected_view = "calendar_period";
         }
+        add_or_remove_class(el_MSPP_btn_container, cls_hide, !!publish_payroll)
+        el_MSPP_header.innerText = (!!publish_payroll) ? loc.Select_payrollperiod : loc.Select_period;
 
-        const tblName = (MSPP_selected_btn === "payroll_period") ? "paydatecode" : MSPP_selected_btn;
-        mod_MSPP_dict = {sel_view: MSPP_selected_btn,
-                        tblName: MSPP_selected_btn,
+        const tblName = (MSPP_selected_view === "payroll_period") ? "paydatecode" : MSPP_selected_view;
+        mod_MSPP_dict = {sel_view: MSPP_selected_view,
+                        tblName: MSPP_selected_view,
+                        publish_payroll: !!publish_payroll
                         };
-        if(MSPP_selected_btn === "calendar_period") {
+        if(MSPP_selected_view === "calendar_period") {
             mod_MSPP_dict.period_tag = selected_period.period_tag;
             mod_MSPP_dict.period_datefirst = selected_period.period_datefirst;
             mod_MSPP_dict.period_datelast = selected_period.period_datelast;
@@ -3884,11 +3920,9 @@ console.log("field_value", field_value);
 
         //console.log( "mod_MSPP_dict", mod_MSPP_dict);
 // ---  highlight selected button
-        let btns = document.getElementById("id_MSPP_btn_container").children;
-        for (let i = 0, btn; btn = btns[i]; i++) {
-            const data_button = get_attr_from_el_str(btn, "data-btn");
-            add_or_remove_class(btn, cls_btn_selected, data_button === mod_MSPP_dict.sel_view);
-        }
+        add_or_remove_class(el_MSPP_btn_calendar_period, cls_btn_selected, mod_MSPP_dict.sel_view === "calendar_period");
+        add_or_remove_class(el_MSPP_btn_payroll_period, cls_btn_selected, mod_MSPP_dict.sel_view === "payroll_period");
+
 // --- fill select table
          // names of select_table:  calendar_period, paydatecode, paydateitem
          if(mod_MSPP_dict.sel_view === "calendar_period") {
@@ -3989,20 +4023,23 @@ console.log("field_value", field_value);
                         }
         }
     // ---  upload new setting
-        const datalist_request = {payroll_period: payroll_period_dict,
-                                  payroll_list: {get: true}
-                                 };
-        DatalistDownload(datalist_request);
+        if(mod_MSPP_dict.publish_payroll){
+                MPUB_ChangePayrollPeriod(payroll_period_dict);
+        } else {
+            const datalist_request = {payroll_period: payroll_period_dict,
+                                      payroll_list: {get: true}
+                                     };
+            DatalistDownload(datalist_request);
 
-        payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
+            payroll_abscat_list = [];  // list of absence categories in crosstab 'payroll_map'
 
-        payroll_header_row = []
-        payroll_total_row = [];
+            payroll_header_row = []
+            payroll_total_row = [];
 
-        is_payroll_detail_mode = false;
+            is_payroll_detail_mode = false;
 
-        UpdateHeaderText();
-
+            UpdateHeaderText();
+        }
 // hide modal
         $("#id_mod_select_period_paydate").modal("hide");
     }  // MSPP_Save
@@ -5364,31 +5401,96 @@ console.log("field_value", field_value);
        console.log("========= MPUB_Open  ========= ");
        console.log("selected_period", selected_period);
 
-        el_MPUB_input_paydatecode.innerText = selected_period.paydatecode_code;
-        el_MPUB_input_year.innerText = selected_period.paydateitem_year;
-        el_MPUB_input_period.innerText = selected_period.dates_display_short;
+        mod_MPUB_dict = {
+            mode: "test",
+            payroll_period: selected_period.payroll_period,
+            paydatecode_pk: selected_period.paydatecode_pk,
+            paydatecode_code: selected_period.paydatecode_code,
+            paydateitem_year: selected_period.paydateitem_year,
+            dates_display_short: selected_period.dates_display_short,
+            paydateitem_datefirst: selected_period.paydateitem_datefirst,
+            paydateitem_datelast: selected_period.paydateitem_datelast,
+            publish_datefirst: selected_period.paydateitem_datefirst,
+            publish_datelast: selected_period.paydateitem_datelast
+        };
 
-        add_or_remove_class(el_MPUB_loader, cls_hide, false)
-        el_MPUB_message_container.innerHTML = null
-        el_MPUB_btn_save.disabled = true;
-        el_MPUB_btn_export_excel.classList.add(cls_hide);
+        el_MPUB_paydatecode.innerText = mod_MPUB_dict.paydatecode_code;
+        el_MPUB_year.innerText = mod_MPUB_dict.paydateitem_year;
+        el_MPUB_period.innerText = mod_MPUB_dict.dates_display_short;
+
+        el_MPUB_input_datefirst.value = mod_MPUB_dict.paydateitem_datefirst;
+        el_MPUB_input_datefirst.min = mod_MPUB_dict.paydateitem_datefirst;
+        el_MPUB_input_datefirst.max = mod_MPUB_dict.paydateitem_datelast;
+
+        el_MPUB_input_datelast.value = mod_MPUB_dict.paydateitem_datelast;
+        el_MPUB_input_datelast.min = mod_MPUB_dict.paydateitem_datefirst;
+        el_MPUB_input_datelast.max = mod_MPUB_dict.paydateitem_datelast;
+
 
 // ---  show modal
         $("#id_mod_publish_payrollperiod").modal({backdrop: true});
 
-        const upload_dict = {mode: "test", now: get_now_arr()};
-        UploadChanges(upload_dict, url_publish_upload);
+        MPUB_Test()
+
+
    }
 
-//=========  MPUB_Save  ================ PR2020-05-18
-    function MPUB_Save(response) {
+//=========  MPUB_Save  ================ PR2020-05-18 PR2021-07-01
+    function MPUB_Save() {
        console.log("========= MPUB_Save  ========= ");
 
        payroll_needs_update = true;
 
-       const upload_dict = {mode: "create", now: get_now_arr()};
-       UploadChanges(upload_dict, url_publish_upload);
+       mod_MPUB_dict.mode = "create";
+       mod_MPUB_dict.now = get_now_arr();
+
+       UploadChanges(mod_MPUB_dict, url_publish_upload);
     };  // MPUB_Save
+
+
+//=========  MPUB_Test  ================ PR2020-05-18 PR2021-07-01
+    function MPUB_Test() {
+       console.log("========= MPUB_Test  ========= ");
+
+        // publishing uses two first-last date sets:
+        //  -  paydateitem_datefirst / paydateitem_datelast are the first and last date of the payroll period
+        //  -  publish_datefirst / publish_datelast is the range of rosterdates that will be published
+
+
+    // - empty message_container
+        el_MPUB_message_container.innerHTML = null
+    // - disable save button
+        el_MPUB_btn_save.disabled = true;
+        el_MPUB_btn_export_excel.classList.add(cls_hide);
+
+    // - show MPUB loader
+        add_or_remove_class(el_MPUB_loader, cls_hide, false)
+
+        mod_MPUB_dict.mode = "test";
+        mod_MPUB_dict.now = get_now_arr();
+
+       UploadChanges(mod_MPUB_dict, url_publish_upload);
+    };  // MPUB_Test
+
+
+//=========  MPUB_InputDateChanged  ================ PR2021-07-01
+    function MPUB_InputDateChanged(el_input) {
+        console.log("========= MPUB_InputDateChanged  ========= ");
+        console.log("el_input", el_input);
+        const fldName = get_attr_from_el(el_input, "data-field")
+        console.log("fldName", fldName);
+
+        if (fldName === "datefirst"){
+            mod_MPUB_dict.publish_datefirst = (el_input.value) ? el_input.value : mod_MPUB_dict.paydateitem_datefirst;
+            el_MPUB_input_datelast.min = mod_MPUB_dict.publish_datefirst
+        } else if  (fldName === "datelast"){
+            mod_MPUB_dict.publish_datelast = (el_input.value) ? el_input.value : mod_MPUB_dict.paydateitem_datelast;
+            el_MPUB_input_datefirst.max = mod_MPUB_dict.publish_datelast
+        }
+
+        MPUB_Test();
+
+    };  // MPUB_InputDateChanged
 
 //=========  MPUB_Response  ================ PR2020-05-17
     function MPUB_Response(response) {
@@ -5401,6 +5503,21 @@ console.log("field_value", field_value);
        el_MPUB_btn_save.disabled = !response.has_unpublished_emplhours;
        add_or_remove_class(el_MPUB_btn_export_excel, cls_hide, !response.has_unpublished_emplhours)
     };
+
+//=========  MPUB_ChangePayrollPeriod  ================ PR2020-05-17
+    function MPUB_ChangePayrollPeriod(payroll_period_dict) {
+       console.log("========= MPUB_ChangePayrollPeriod  ========= ");
+       console.log("payroll_period_dict", payroll_period_dict);
+       console.log("selected_period", selected_period);
+
+        el_MPUB_paydatecode.innerText = payroll_period_dict.paydatecode_code;
+        el_MPUB_year.innerText = payroll_period_dict.paydateitem_year;
+        el_MPUB_period.innerText = payroll_period_dict.dates_display_short;
+
+        MPUB_Test();
+
+    };  // MPUB_ChangePayrollPeriod
+
 
 //========= MPUB_render_messages  =================
     function MPUB_render_messages(msg_list) {
@@ -6052,8 +6169,9 @@ console.log("field_value", field_value);
             el_MEP_tbody_correction.innerText = null;
             el_MEP_tfoot_correction.innerText = null;
 
-    // --- show loader
-            el_MEP_loader.classList.remove(cls_hide)
+    // --- show loader, hide locked icon
+            el_MEP_loader.classList.remove(cls_hide);
+            el_MEP_locked.classList.add(cls_hide);
 
     // ---  show modal
             $("#id_mod_emplhour_payroll").modal({backdrop: true});
@@ -6194,7 +6312,9 @@ console.log("field_value", field_value);
 
         const rosterdate_JS = get_dateJS_from_dateISO(emplhour_dict.rosterdate);
         // hide loader
-        el_MEP_loader.classList.add(cls_hide)
+        el_MEP_loader.classList.add(cls_hide);
+
+        add_or_remove_class(el_MEP_locked, cls_hide, !mod_MEP_dict.islocked);
 
     // ---  set header text
         let header_text = ( (emplhour_dict.isabsence) ? loc.Absence : loc.Roster_shift ) + loc.of_withspaces;
@@ -6227,8 +6347,11 @@ console.log("field_value", field_value);
 
 
         add_or_remove_class(el_MEP_wagefactor, "tsa_bc_disabled", mod_MEP_dict.islocked);
+        el_MEP_wagefactor.disabled = mod_MEP_dict.islocked;
         const wagefactor_pk = (emplhour_dict.nopay) ? -1 : (emplhour_dict.wfc_id) ? emplhour_dict.wfc_id : 0
         MEP_FillSelectOptions("wagefactor", el_MEP_wagefactor, wagefactor_pk);
+
+
 
 
     // -- remove grey font color from enabled input boxes
@@ -6300,7 +6423,7 @@ console.log("field_value", field_value);
             const field_caption = [first_caption, "Start_time", "End_time", "Break", "Hours", "Modified_on", "Modified_by"];
             const field_names = [first_fieldname, "offsetstart", "offsetend", "breakduration", "timeduration", "modifiedat", "modifiedbyusername"];
             const field_tags = ["text",  "offset", "offset", "duration", "duration", "datetime", "text"];
-            const field_width = ["180", "090", "090", "060", "060", "120", "090"];
+            const field_width = ["180", "090", "090", "060", "060", "100", "090"];
             const field_align = ["l",  "r", "r", "r", "r", "r", "l", "l"];
 
             const tblHeadRow = tblBody_select.insertRow(-1);
@@ -6373,45 +6496,50 @@ console.log("field_value", field_value);
     }  // MEP_ShowLog
 
 //=========  MEP_TimepickerOpen  ================ PR2020-11-29 PR2021-05-28
-    function MEP_TimepickerOpen(el_input) {
-        console.log("=== MEP_TimepickerOpen ===");
-        console.log("el_input.id", el_input.id);
-        const is_corremplhour = el_input.id !== "id_MEP_timeduration"
+    function MEP_TimepickerOpen(mode, el_input) {
+        //console.log("=== MEP_TimepickerOpen ===");
+        //console.log("el_input.id", el_input.id);
+        const is_corremplhour = (mode === "correction");
         let tblName = null, map_id = null, timedur_no_neg = 0, txt_dateheader = null;
-
+        let is_locked = true;
         if(is_corremplhour){
             tblName = "corremplhour";
             const tblRow = get_tablerow_selected(el_input);
             map_id = tblRow.id;
             const dict = mod_MEP_dict.corremplhours[map_id];
+        //console.log("dict", dict);
+            is_locked = !!dict.islocked;
             timedur_no_neg = (dict.timedur_no_neg) ? dict.timedur_no_neg : 0;
             txt_dateheader = loc.Correction_hours;
         } else {
 
-        console.log("mod_MEP_dict", mod_MEP_dict);
+        //console.log("mod_MEP_dict", mod_MEP_dict);
             tblName = "emplhour";
             map_id = mod_MEP_dict.mapid;
             timedur_no_neg = mod_MEP_dict.timeduration;
+            is_locked = !!mod_MEP_dict.islocked;
             txt_dateheader = (mod_MEP_dict.isabsence) ? loc.Absence_hours : loc.Worked_hours;;
         }
-        const tp_dict = {table: tblName,
-                       //field: "timeduration",  // used in TimepickerResponse
-                       mapid: map_id,
-                       offset: timedur_no_neg,
-                       minoffset: 0,
-                       maxoffset: 1440,
-                       isampm: (loc.timeformat === 'AmPm'),
-                       quicksave: is_quicksave,
-                       el_input: el_input}
+        if(!is_locked){
+            const tp_dict = {table: tblName,
+                           //field: "timeduration",  // used in TimepickerResponse
+                           mapid: map_id,
+                           offset: timedur_no_neg,
+                           minoffset: 0,
+                           maxoffset: 1440,
+                           isampm: (loc.timeformat === 'AmPm'),
+                           quicksave: is_quicksave,
+                           el_input: el_input}
 
-// ---  create st_dict
-        let st_dict = { url_settings_upload: url_settings_upload,
-                        txt_dateheader: txt_dateheader,
-                        txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                        show_btn_delete: true
-                        };
-// ---  open ModTimepicker
-        mtp_TimepickerOpen(loc, el_input, MEP_TimepickerResponse, tp_dict, st_dict)
+    // ---  create st_dict
+            let st_dict = { url_settings_upload: url_settings_upload,
+                            txt_dateheader: txt_dateheader,
+                            txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
+                            show_btn_delete: true
+                            };
+    // ---  open ModTimepicker
+            mtp_TimepickerOpen(loc, el_input, MEP_TimepickerResponse, tp_dict, st_dict)
+        }  // if(!is_locked)
     };  // MEP_TimepickerOpen
 
 //========= MEP_TimepickerResponse  ============= PR2019-10-12
@@ -6633,7 +6761,7 @@ console.log("field_value", field_value);
                 if(dict.stat_pay_publ){
                     el.classList.add("tsa_color_darkgrey")
                 } else {
-                    el.addEventListener("click", function() {MEP_TimepickerOpen(el)}, false);
+                    el.addEventListener("click", function() {MEP_TimepickerOpen("correction", el)}, false);
                     add_hover(el)
                 }
                 el.classList.add("mr-2")
@@ -7282,7 +7410,7 @@ const mapped_abscat_fields = {o_code: "code", o_identifier: "identifier", o_sequ
         let tblRow = get_tablerow_selected(el_input);
         const tblName = get_tblName(tblRow);  // if tblRow = null: tblName gets value from selected_btn
         const selected_pk = get_selected_pk(); // selected_pk gets value from selected_btn
-        const key_str = selected_key; // selected_key gets value in HandleBtnSelect from selected_btn
+        const key_str = selected_key; // selected_key gets value in  HandleBtnSelect from selected_btn
         if(!tblRow){
             const tblRow_id = get_map_id(tblName, selected_pk);
             tblRow = document.getElementById(tblRow_id);

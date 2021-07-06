@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Payroll' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/payroll210419.js' %}"></script>
+    <script src="{% static 'js/payroll210706.js' %}"></script>
 {% endblock %}
 
 
@@ -74,6 +74,7 @@
                 {% include 'includes/confirm.html' %}
                 {% include 'includes/modmessage.html' %}
                 {% include 'includes/modabscat.html' %}
+                {% include 'includes/modpublishpayrollperiod.html' %}
                 {% include 'includes/modselectperiodorpaydate.html' %}
                 {% include 'includes/modpayrollperiod.html' %}
                 {% include 'includes/modfunctioncode.html' %}
@@ -82,7 +83,6 @@
                 {% include 'includes/modselectcustomerorder.html' %}
                 {% include 'includes/modselectemployeefunction.html' %}
                 {% include 'includes/modselectpaydate.html' %}
-                {% include 'includes/modpublishpayrollperiod.html' %}
                 {% include 'includes/modselectcolumns.html' %}
                 {% include 'includes/modemplhourpayroll.html' %}
                 {% include 'includes/modtimepicker.html' %}

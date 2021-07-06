@@ -11,72 +11,72 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                    <div class="content_subheader_right mx-4 mt-2">
-                        <div id="id_MEP_loader" class="image_container display_hide">
-                            <img src="{% static 'img/loader.gif' %}" height="24" width="24">
-                        </div>
-                    </div>
+
+                <div id="id_MEP_loader" class="image_container mt-2 display_hide">
+                    <img src="{% static 'img/loader.gif' %}" height="24" width="24">
+                </div>
+
+                <div id="id_MEP_locked" class="stat_1_6 mt-2 display_hide">
+                </div>
+
+
                 <div id="id_MEP_input_container" class="modal-body mx-2 p-2">
                     <div class="content_header">
                          <div class="content_subheader_left mx-1 ctl_show ctl_shift display_hide">
-                            <label class="tsa_margin_label_0848 ">{% trans 'Customer' %}:</label>
-                             <p id="id_MEP_customer" class="form-control" data-field="customercode"></p>
+                            <label class="tsa_margin_label_4848 ">{% trans 'Customer' %}:</label>
+                             <div id="id_MEP_customer" class="form-control" data-field="customercode"></div>
                          </div>
                          <div class="content_subheader_left mx-1 ctl_show ctl_shift display_hide">
-                            <label for="id_MEP_order" class="tsa_margin_label_0848">{% trans 'Order' %}:</label>
-                            <p id="id_MEP_order" class="form-control" data-field="ordercode">
+                            <label for="id_MEP_order" class="tsa_margin_label_4848">{% trans 'Order' %}:</label>
+                            <div id="id_MEP_order" class="form-control" data-field="ordercode"></div>
                          </div>
                          <div class="content_subheader_left mx-1 ctl_show ctl_absence display_hide">
-                            <label class="tsa_margin_label_0848">{% trans 'Absence category' %}:</label>
+                            <label class="tsa_margin_label_4848">{% trans 'Absence category' %}:</label>
                             <select id="id_MEP_abscat" class="form-control mb-1" data-field="abscat"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
                          </div>
                          <div class="content_subheader_left mx-1 ctl_show ctl_shift display_hide">
-                            <label for="id_MEP_shift" class="tsa_margin_label_0848">{% trans 'Shift' %}:</label>
-                            <p id="id_MEP_shift" class="form-control" data-field="shiftcode">
+                            <label for="id_MEP_shift" class="tsa_margin_label_4848">{% trans 'Shift' %}:</label>
+                            <div id="id_MEP_shift" class="form-control" data-field="shiftcode"></div>
                          </div>
                          <div class="content_subheader_left mx-1">
-                            <label for="id_MEP_rosterdate" class="tsa_margin_label_0848">{% trans 'Date' %}:</label>
-                            <p id="id_MEP_rosterdate" class="form-control" data-field="rosterdate">
+                            <label for="id_MEP_rosterdate" class="tsa_margin_label_4848">{% trans 'Date' %}:</label>
+                            <div id="id_MEP_rosterdate" class="form-control" data-field="rosterdate"></div>
                          </div>
                     </div>
                     <div class="content_header">
                         <div class="content_subheader_left mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Start time' %}:</label>
-                            <p id="id_MEP_timestart" class="form-control" data-field="offsetstart"> </p>
+                            <label class="tsa_margin_label_4848">{% trans 'Start time' %}:</label>
+                            <div id="id_MEP_timestart" class="form-control" data-field="offsetstart"> </div>
                         </div>
                         <div class="content_subheader_left mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'End time' %}:</label>
-                            <p id="id_MEP_timeend" class="form-control" data-field="offsetend">  </p>
+                            <label class="tsa_margin_label_4848">{% trans 'End time' %}:</label>
+                            <div id="id_MEP_timeend" class="form-control" data-field="offsetend">  </div>
                         </div>
                         <div class="content_subheader_left mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Break' %}:</label>
-                            <p id="id_MEP_breakduration" class="form-control" data-field="breakduration">  </p>
+                            <label class="tsa_margin_label_4848">{% trans 'Break' %}:</label>
+                            <div id="id_MEP_breakduration" class="form-control" data-field="breakduration">  </div>
                         </div>
                         <div class="content_subheader_left mx-1">
-                            <label id="id_MEP_label_timeduration" class="tsa_margin_label_0848">{% trans 'Worked hours' %}:</label>
-                            <p id="id_MEP_timeduration" class="form-control" data-field="timeduration">  </p>
+                            <label id="id_MEP_label_timeduration" class="tsa_margin_label_4848">{% trans 'Worked hours' %}:</label>
+                            <div id="id_MEP_timeduration" class="form-control" data-field="timeduration">  </div>
                         </div>
                     </div>
 
                     <div class="content_header">
                          <div class="tsa_flex_2 mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Payroll period' %}:</label>
-                            <p id="id_MEP_paydatecode" class="form-control mb-1" data-field="pdc_code">  </p>
-                            <select id="id_MEP_paydatecodeXX" class="form-control mb-1 display_hide" data-field="pdc_code"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                            <label class="tsa_margin_label_4848">{% trans 'Payroll period' %}:</label>
+                            <div id="id_MEP_paydatecode" class="form-control mb-1" data-field="pdc_code">  </div>
                         </div>
 
                         <div class="tsa_flex_1 mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Wage component' %}:</label>
+                            <label class="tsa_margin_label_4848">{% trans 'Wage component' %}:</label>
                             <select id="id_MEP_wagefactor" class="form-control mb-1" data-field="wfc_code"
                                 autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
                         </div>
                         <div class="tsa_flex_1 mx-1">
-                            <label class="tsa_margin_label_0848">{% trans 'Function' %}:</label>
-                            <p id="id_MEP_functioncode" class="form-control mb-1" data-field="fnc_code">  </p>
-                            <select id="id_MEP_functioncodeXX" class="form-control mb-1 display_hide" data-field="fnc_code"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;"></select>
+                            <label class="tsa_margin_label_4848">{% trans 'Function' %}:</label>
+                            <div id="id_MEP_functioncode" class="form-control mb-1" data-field="fnc_code">  </div>
                         </div>
                     </div>
                     <div class="content_header p-2">
@@ -88,7 +88,7 @@
                     </div>
                 </div>
 
-                <div class="border_bg_transparent mx-4 p-2">
+                <div class="border_bg_transparent mx-3 p-2">
                     <div class="content_header">
                         <div class="content_subheader_left mx-1 my-2">
                             <h6 id="id_MEP_correction_header" class="mx-2" >{% trans 'Correction' %}</h6>
@@ -104,9 +104,9 @@
 
                 </div>
 
-                <div id="id_MEP_tblbody_container" class="modal-body border_bg_transparent m-2 p-2">
+                <div id="id_MEP_tblbody_container" class="modal-body border_bg_transparent m-3 p-2">
                     <div class="content_header tbl_h_180">
-                        <h6 class="mx-2 mt-3">{% trans 'Log file' %}</h6>
+                        <h6 class="m-3">{% trans 'Log file' %}</h6>
                         <table class="table tsa_tbl">
                             <tbody id="id_MEP_tblbody">
                             </tbody>

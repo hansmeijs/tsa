@@ -2024,7 +2024,7 @@ def create_wagecode_rows(key_str, request, msg_dict, pk_int=None):
 # --- end of create_wagecode_rows
 
 
-def create_afas_hours_rows(period_dict, user_lang, request):
+def create_afas_hours_rows(period_dict, request):
 
     logger.debug('-----  create_afas_hours_rows  -----')
     # --- create list of wagecodes filter by key_str of this company PR2020-06-17 PR2020-09-15 PR2021-01-30
@@ -2100,8 +2100,7 @@ def create_afas_hours_rows(period_dict, user_lang, request):
         cursor.execute(sql, sql_keys)
         afas_hours_rows = f.dictfetchall(cursor)
 
-    response = create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request)
-    return response
+    return afas_hours_rows
 # --- end of create_afas_hours_rows
 
 
@@ -2159,6 +2158,7 @@ def create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request):  #
     sheet.write(1, 1, company_name)
     sheet.write(2, 0, str(_('Date')) + ':')
     sheet.write(2, 1, today_formatted)
+
 # ---  period row
     paydatecode_code = period_dict.get('paydatecode_code')
     dates_display_short = period_dict.get('dates_display_short')

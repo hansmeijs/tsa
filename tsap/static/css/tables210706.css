@@ -551,6 +551,9 @@
 .tsa_margin_label_0848 {
     margin: 0px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */
 }
+.tsa_margin_label_4848 {
+    margin: 4px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */
+}
 .tsa_carousel_item {
    height: calc(100vh - 32px);
 }

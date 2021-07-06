@@ -5,7 +5,7 @@
 {% block title %}{% trans 'Roster' %}{% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/roster210417.js' %}"></script>
+    <script src="{% static 'js/roster210706.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -74,11 +74,6 @@
 
     {% if user.is_authenticated %}
     {% if user.is_perm_supervisor or user.is_perm_planner or user.is_perm_hrman or user.is_perm_accman %}
-
-<!-- =================== id_msgbox  =================== -->
-        <div class="popup display_hide" >
-            <span class="popuptext" id="id_msgbox"></span>
-        </div>
 
         {% include 'includes/modselectperiod.html' %}
         {% include 'includes/modselectcustomerorder.html' %}

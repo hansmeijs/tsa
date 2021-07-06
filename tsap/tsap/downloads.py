@@ -66,19 +66,23 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
-# ----- get comp_timezone PR2019-06-14
+
+
+# - get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-# ----- get interval
                     interval = request.user.company.interval if request.user.company.interval else 15
+                    skip_check_updates = s.SKIP_CHECK_UPDATES
 # ----- get datalist_request
                     datalist_request = json.loads(request.POST['download'])
 
 # ----- get settings -- first get settings, these are used in other downloads
                     # download_setting will update usersetting with items in request_item, and retrieve saved settings
                     request_item = datalist_request.get('setting')
-                    new_setting_dict = download_setting(request_item, user_lang, comp_timezone, timeformat, interval, logging_on, request)
-                    # only add setting_dict to  datalists when called by request_item 'setting'
+                    new_setting_dict = download_setting(request_item, user_lang, comp_timezone, timeformat, interval, skip_check_updates, request)
+                    # only add setting_dict to datalists when called by request_item 'setting'
+
+                    # TODO move properties to setting_dict and permit_dict (does not exist yet) instead of roster_period
                     if request_item and new_setting_dict:
                         datalists['setting_dict'] = new_setting_dict
 
@@ -511,16 +515,20 @@ class DatalistDownloadView(View):  # PR2019-05-23
         return HttpResponse(datalists_json)
 
 
-def download_setting(request_item, user_lang, comp_timezone, timeformat, interval, logging_on, request):  # PR2020-07-01
+def download_setting(request_item, user_lang, comp_timezone, timeformat, interval, skip_check_updates, request):
+    logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' --- download_setting --- ' )
         logger.debug('request_item: ' + str(request_item) )
-    # this function get settingss from request_item.
+    # this function get settingss from request_item.  # PR2020-07-01 PR2021-07-06
     # if not in request_item, it takes the saved settings.
+
     new_setting_dict = {'user_lang': user_lang,
                         'comp_timezone': comp_timezone,
                         'timeformat': timeformat,
-                        'interval': interval}
+                        'interval': interval,
+                        'skip_check_updates': skip_check_updates
+                        }
     # <PERMIT>
     # put all permits in new_setting_dict
     if request.user.is_perm_employee:

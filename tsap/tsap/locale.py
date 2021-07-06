@@ -371,6 +371,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval, 
         dict['period_select_list'] = TXT_Period_planning_list
         dict['Payroll_period'] = TXT_Payroll_period
         dict['Payroll_periods'] = TXT_Payroll_periods
+
+        dict['Select_payrollperiod'] = _('Select payroll period')
         dict['This_payrollperiod'] = TXT_This_payrollperiod
         dict['Add_payrollperiod'] = TXT_Add_payrollperiod
         dict['Link_payrollperiod'] = _('Link payroll period')

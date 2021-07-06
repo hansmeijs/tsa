@@ -1435,9 +1435,10 @@ def delete_instance(instance, request, this_text=None):
     msg_list = []
     if instance:
         try:
-            instance.delete(requestXX=request)
+            instance.delete(request=request)
         except Exception as e:
-            msg_list.append(str(_('An error occurred')) + ": '" + str(e) + "'.")
+            msg_list.append(str(_('An error occurred')) + ":")
+            msg_list.append(  '<i>' + str(e) + '</i>')
             if this_text is None:
                 this_text = str(_('This item'))
             msg_list.append(str(_('%(tbl)s could not be deleted.') % {'tbl': this_text}))

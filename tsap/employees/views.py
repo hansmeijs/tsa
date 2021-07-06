@@ -3571,17 +3571,32 @@ class PublishUploadView(UpdateView):
                 today_dte = f.get_date_from_arr(now_arr)
 
 # ----- get period from Usersetting
-                payroll_period = req_usr.get_usersetting(c.KEY_USER_PAYROLL_PERIOD)
-                paydatecode_pk = payroll_period.get('paydatecode_pk')
-                paydatecode_code = payroll_period.get('paydatecode_code')
-                datefirst = payroll_period.get('paydateitem_datefirst')
-                datelast = payroll_period.get('paydateitem_datelast')
+                #payroll_period = req_usr.get_usersetting(c.KEY_USER_PAYROLL_PERIOD)
+                #paydatecode_pk = payroll_period.get('paydatecode_pk')
+                #paydatecode_code = payroll_period.get('paydatecode_code')
+                #datefirst = payroll_period.get('paydateitem_datefirst')
+                #datelast = payroll_period.get('paydateitem_datelast')
+
+                # publishing uses two first-last date sets:
+                #  -  paydateitem_datefirst / paydateitem_datelast are the first and last date of the payroll period
+                #  -  publish_datefirst / publish_datelast is the range of rosterdates that will be published
+
+                paydatecode_pk = upload_dict.get('paydatecode_pk')
+                paydatecode_code = upload_dict.get('paydatecode_code')
+
+                paydateitem_datefirst = upload_dict.get('paydateitem_datefirst')
+                paydateitem_datelast = upload_dict.get('paydateitem_datelast')
+
+                publish_datefirst = upload_dict.get('publish_datefirst')
+                publish_datelast = upload_dict.get('publish_datelast')
 
                 if logging_on:
                     logger.debug('paydatecode_pk:        ' + str(paydatecode_pk))
                     logger.debug('paydatecode_code:      ' + str(paydatecode_code))
-                    logger.debug('datefirst: ' + str(datefirst))
-                    logger.debug('datelast: ' + str(datelast))
+                    logger.debug('paydateitem_datefirst: ' + str(paydateitem_datefirst))
+                    logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
+                    logger.debug('publish_datefirst: ' + str(publish_datefirst))
+                    logger.debug('publish_datelast: ' + str(publish_datelast))
 
 # ++++ Check published emplhours when mode = 'test', return paydatecode and message_list with info or errors
                 instance = None
@@ -3589,8 +3604,8 @@ class PublishUploadView(UpdateView):
                     has_unpublished_emplhours = check_published(
                         paydatecode_pk=paydatecode_pk,
                         paydatecode_code=paydatecode_code,
-                        datefirst=datefirst,
-                        datelast=datelast,
+                        publish_datefirst=publish_datefirst,
+                        publish_datelast=publish_datelast,
                         message_list=message_list,
                         company=req_usr.company)
                     update_wrap['has_unpublished_emplhours'] = has_unpublished_emplhours
@@ -3601,26 +3616,25 @@ class PublishUploadView(UpdateView):
                         name=paydatecode_code,
                         ispayroll=True,
                         isinvoice=False,
-                        datefirst=datefirst,
-                        datelast=datelast,
+                        paydateitem_datefirst=paydateitem_datefirst,
+                        paydateitem_datelast=paydateitem_datelast,
                         datepublished=today_dte,
                         message_list=message_list,
                         request=request
                     )
                     if instance:
                         is_created = True
-                        record_count = publish_emplhour_rows(paydatecode_pk, datefirst, datelast,
+                        record_count = publish_emplhour_rows(paydatecode_pk, publish_datefirst, publish_datelast,
                                               instance, message_list, request)
                         if record_count:
                             if record_count == 0:
-                                record_arr = (str(_('No ')), str(_('shifts')))
+                                record_str = _('There are no shifts closed.')
                             elif record_count == 1:
-                                record_arr = (str('1'), str(_('shift')))
+                                record_str = _('There is 1 shift closed.')
                             else:
-                                record_arr = (str(record_count), str(_('shifts')))
-                            record_str = ' '.join(record_arr)
+                                record_str = _('There are %(count)s shifts closed.') % {'count': record_count}
 
-                            msg_list = [str(_('This payroll period is closed.')), str(_("There are %(count_shifts)s are closed.") % {'count_shifts': record_str})]
+                            msg_list = [str(_('This payroll period is closed.')), str(record_str)]
                             msg_dict = {'class': 'alert-info', 'msg_list': msg_list}
                             message_list.append(msg_dict)
 
@@ -3682,7 +3696,7 @@ class PublishUploadView(UpdateView):
 # - end of PublishUploadView
 
 
-def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, message_list, company):
+def check_published(paydatecode_pk, paydatecode_code, publish_datefirst, publish_datelast, message_list, company):
     # --- check published # PR2021-05-17
     logging_on = False  # s.LOGGING_ON
     if logging_on:
@@ -3703,10 +3717,10 @@ def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, messa
             msg_list.append(str(_("This payroll period '%(code)s' is not found.") % {'code': paydatecode_code}))
 
 # - check if period is entered:
-        elif datefirst is None or datelast is None:
-            if datefirst is None and datelast is None:
+        elif publish_datefirst is None or publish_datelast is None:
+            if publish_datefirst is None and publish_datelast is None:
                 first_lastdate = _("first- and last date")
-            elif datefirst is None:
+            elif publish_datefirst is None:
                 first_lastdate = _("first date")
             else:
                 first_lastdate = _("last date")
@@ -3718,7 +3732,7 @@ def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, messa
             crit = Q(orderhour__order__customer__company=company) & \
                    Q(paydatecode=paydatecode) & \
                    Q(rosterdate__isnull=False) & \
-                   Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast)
+                   Q(rosterdate__gte=publish_datefirst) & Q(rosterdate__lte=publish_datelast)
     # - check if there are any emplhour records
             record_count = m.Emplhour.objects.filter(crit).count()
             if not record_count:
@@ -3734,7 +3748,7 @@ def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, messa
                 crit = Q(orderhour__order__customer__company=company) & \
                        Q(paydatecode=paydatecode) & \
                        Q(rosterdate__isnull=False) & \
-                       Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast) & \
+                       Q(rosterdate__gte=publish_datefirst) & Q(rosterdate__lte=publish_datelast) & \
                         Q(payrollpublished_id__isnull=False)
     # - check if there are closed records
                 published_count = m.Emplhour.objects.filter(crit).count()
@@ -3756,7 +3770,7 @@ def check_published(paydatecode_pk, paydatecode_code, datefirst, datelast, messa
                 crit = Q(orderhour__order__customer__company=company) & \
                        Q(paydatecode=paydatecode) & \
                        Q(rosterdate__isnull=False) & \
-                       Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast) & \
+                       Q(rosterdate__gte=publish_datefirst) & Q(rosterdate__lte=publish_datelast) & \
                         Q(payrollpublished_id__isnull=True)
                 unpublished_count = m.Emplhour.objects.filter(crit).count()
                 if logging_on:
@@ -3812,15 +3826,15 @@ def delete_published(instance, published_rows, message_list, request):
 # - end of delete_published
 
 
-def create_new_published(name, ispayroll, isinvoice, datefirst, datelast, datepublished, message_list, request):
+def create_new_published(name, ispayroll, isinvoice, paydateitem_datefirst, paydateitem_datelast, datepublished, message_list, request):
     # --- create new published instance # PR2021-05-15
 
     logging_on = s.LOGGING_ON
     if logging_on:
         logger.debug(' ----- create_new_published ----- ')
         logger.debug('name: ' + str(name))
-        logger.debug('datefirst: ' + str(datefirst))
-        logger.debug('datelast: ' + str(datelast))
+        logger.debug('paydateitem_datefirst: ' + str(paydateitem_datefirst))
+        logger.debug('paydateitem_datelast: ' + str(paydateitem_datelast))
         logger.debug('datepublished: ' + str(datepublished))
 
     instance = None
@@ -3832,8 +3846,8 @@ def create_new_published(name, ispayroll, isinvoice, datefirst, datelast, datepu
                 name=name,
                 ispayroll=ispayroll,
                 isinvoice=isinvoice,
-                datefirst=datefirst,
-                datelast=datelast,
+                datefirst=paydateitem_datefirst,
+                datelast=paydateitem_datelast,
                 datepublished=datepublished
                 # filename = CharField(max_length=255, null=True)
                 # file = FileField(storage=PrivateMediaStorage(), null=True)
@@ -5295,7 +5309,8 @@ class PayrollDownloadPublishedHoursXlsxView(View):
 
             if published_pk:
                 period_dict = {'published_pk': published_pk}
-                response = ed.create_afas_hours_rows(period_dict, user_lang, request)
+                afas_hours_rows = ed.create_afas_hours_rows(period_dict, request)
+                response = ed.create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request)
 
         if response:
             return response
@@ -5339,7 +5354,8 @@ class PayrollAfasHoursXlsxView(View):
 
             if published_pk:
                 period_dict = {'published_pk': published_pk}
-                response = ed.create_afas_hours_rows(period_dict, user_lang, request)
+                afas_hours_rows = ed.create_afas_hours_rows(period_dict, request)
+                response = ed.create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request)
 
             return response
 
@@ -5377,7 +5393,8 @@ class PayrollAfasHoursXlsxView(View):
                 interval = request.user.company.interval if request.user.company.interval else 15
                 period_dict = pld.period_get_and_save('payroll_period', None, comp_timezone, timeformat, interval, user_lang, request)
 
-            response = ed.create_afas_hours_rows(period_dict, user_lang, request)
+            afas_hours_rows = ed.create_afas_hours_rows(period_dict, request)
+            response = ed.create_afas_hours_xlsx(period_dict, afas_hours_rows, user_lang, request)
 
             return response
 # - end of PayrollAfasHoursXlsxView
